@@ -1,6 +1,6 @@
 # MVP-1 plan: live AAS access through the Studio BFF
 
-- Status: Planned (phase 0 partially done)
+- Status: Implemented; decision gate pending (see [results](#results))
 - Date: 2026-10-06
 - Scope decision gate: the first representative vertical slice
 
@@ -63,174 +63,91 @@ web and packaged Electron:
 8. **No secrets reach the client.** No response, log line, or renderer storage
    contains a token, client secret, or downstream URL.
 
-## Workstreams
+## Results
 
-- **A, platform:** persistence, sessions, admin API, credential strategies.
-- **B, AAS access:** SDK adapter, read API, UI.
+The slice is implemented and was verified on 2026-10-06 against the test
+environment in the dev server, the hosted production build (SSR), and the
+desktop production bundle (Nitro in desktop mode and a packaged macOS arm64
+app).
 
-Workstream B starts immediately against a temporary in-memory target
-registry, configured from environment variables to point at the test
-environment's open target. It switches to the database-backed registry when
-workstream A lands. The temporary registry is deleted at that point, not kept
-as a second configuration path.
+| Definition of done | Status | Evidence |
+| --- | --- | --- |
+| 1. Admin registers three targets | Done | Admin page; endpoints and issuer are checked against the network policy and probed before saving; client secrets are stored as `env:` references |
+| 2. Per-user authorization; service and open targets need none | Done | Hosted: browser flow with `studio-web`. Desktop bundle: system-browser flow with the public `studio-desktop` client on a dynamic loopback port |
+| 3. `carol` sees partial data | Done | `Costs` is listed as *No access*; the internal shell answers `target_forbidden` |
+| 4. `bob` is forbidden | Done | Integration test (`target_forbidden`); not clicked through in the UI |
+| 5. Hard cases on the open target | Done | 62 shells over cursor pages; nested collections; lists of lists; operation variables, including locators inside variables; 300-element submodel; dangling reference shown as *Not found* |
+| 6. Clean target switching | Implemented | Every query key starts with the target ID; tree requests carry a generation counter; the tree is keyed by target and submodel. No automated test yet |
+| 7. Expiry, revocation, outages | Implemented | Refresh 30 s before expiry; `invalid_grant` leads to re-authorization; a downstream 401 drops the stored credential (integration test). A stopped container maps to `target_unreachable`, but this was not exercised manually |
+| 8. No secrets reach the client | Done | The database holds only `v1.` AES-GCM ciphertexts; API responses carry secret references, never values; CSRF and Origin checks are enforced |
 
-## Phases
+Automated checks: `pnpm lint`, `pnpm typecheck`, and `pnpm test` (unit), plus
+`pnpm test:integration` (64 tests, needs `pnpm testenv:up`).
 
-### Phase 0: groundwork and qualification
+### PGlite qualification gate (ADR 0011)
 
-Done:
+| Gate | Result |
+| --- | --- |
+| 1. Packaging | Passed on macOS arm64. Nitro traces `pglite.wasm` and `pglite.data` into `.output`; the packaged app starts the service and applies migrations; no install scripts. Windows and Linux are not yet verified |
+| 2. Crash safety | Passed. SIGKILL during writes, then reopen: every acknowledged commit is present. PGlite disables fsync by default (`-F`); Studio turns it on (200 commits took 29 ms) |
+| 3. Footprint | **Open decision.** Cold reopen takes about 100 ms. The local service uses about 610 MB RSS under Node and about 860 MB inside packaged Electron, mostly the WebAssembly engine; `shared_buffers=16MB` saves only about 100 MB. Package size grows by about 25 MB unpacked. Maintainers must accept this, or the `embedded-postgres` fallback must be measured first |
+| 4. Migrations | Passed. One chain applies to PostgreSQL 18 and PGlite (tests) |
+| 5. Engine upgrade | Passed for dump/restore of a migrated database into a fresh engine (test). Not yet run across real PostgreSQL major versions |
+| 6. Semantics | Passed for transactions, constraints, and the advisory lock used by the migrator. No row-locking repository code exists yet |
 
-- [x] Test environment (`test-setup/`):
-  - PostgreSQL;
-  - Keycloak realm with Entra-shaped tokens;
-  - unsecured and secured BaSyx Go 1.1.0;
-  - AAS Core-verified fixtures;
-  - 31-check smoke test.
-- [x] Interactive browser login and code exchange (`studio-web`, PKCE, `iss`
-  response parameter) verified against the test IdP.
-- [x] idShortPath list indexes work URL-encoded (`Items%5B1%5D`,
-  `NestedLists%5B1%5D%5B0%5D`).
-- [x] Keycloak accepts RFC 8252 loopback redirects on any port for the
-  desktop client.
+### Findings and deviations
 
-Open:
+**API contract**
 
-- [ ] Add Vitest and a `pnpm test` script.
-- [ ] Check that aas-core 1.0.1 works inside the Nitro server build and the
-  Electron build. Its ESM build fails in plain Node because of extensionless
-  imports; the CommonJS build works.
-- [ ] Check `basyx-typescript-sdk` 2.2.5 in Nitro:
-  - per-request `Configuration` with a custom `fetchApi`;
-  - SDK instances come from the SDK's bundled aas-core copy, so use
-    `modelType()` or the `is*` helpers, never `instanceof`.
-- [ ] Check `openid-client` in Nitro against the test IdP.
-- [ ] Run the PGlite qualification gate from ADR 0011:
-  - packaging in Electron;
-  - crash safety;
-  - footprint;
-  - one migration chain on both drivers;
-  - engine upgrade through dump/restore.
+The Zod schemas in `shared/contract` are authoritative for the implemented
+routes. Deviations from the `openapi.yaml` draft:
+- `PUT /infrastructures/{id}` (full replacement with `If-Match`) replaces `PATCH`;
+- `GET /targets/{id}/shells/{shellKey}/submodel-refs` is added;
+- `GET /targets/{id}/submodels/{key}` returns metadata only;
+- `PUT /targets/{id}/activation` is not needed, because the route carries the target;
+- starting an authorization returns `{ authorizationUrl, mode }`.
 
-  This also decides Drizzle adoption (setup guide, section 10).
+Element keys are base64url-encoded locators that extend idShortPaths with
+`@input`, `@output` and `@inoutput`, because the AAS API cannot address
+operation variables.
 
-### Phase 1: persistence (A)
+**BaSyx Go 1.1.0**
+- No `ETag` on any response, so MVP-2 conflict detection needs another mechanism.
+- A request without a token gets 403, not 401.
 
-- [ ] **Drizzle `pgTable` schema:**
-  - `infrastructures` and their endpoints, with a row version for `If-Match`;
-  - `studio_sessions`;
-  - `oidc_transactions` (state, nonce, PKCE verifier, short TTL);
-  - `target_credentials` (encrypted token material per session and target);
-  - `audit_events`.
-- [ ] One migration chain. Driver selection by deployment mode:
-  `node-postgres` when hosted, PGlite on desktop and in tests.
-- [ ] `SecretCipher` (AES-GCM) for token material.
-  - **Hosted:** the key comes from the deployment secret store.
-  - **Desktop:** Electron main keeps the key in `safeStorage` and passes it to
-    the local Studio Service at launch, like the launch secret.
-- [ ] Electron single-instance lock, so only one process opens the PGlite
-  directory.
+**SDK and aas-core**
+- The SDK bundles its own aas-core copy, so results are converted to JSON at the
+  adapter boundary.
+- `$metadata` results are plain JSON.
+- Transport failures surface as status 0, so the guarded fetch records the
+  reason.
+- The aas-core 1.0.1 ESM build cannot load in plain Node; Nitro and Vitest
+  inline it.
 
-### Phase 2: Studio session and login (A)
+**Tooling**
+- `vue-tsc` does not support TypeScript 7, so TypeScript 6 is pinned for type
+  checking.
 
-- [ ] `GET /context`, `GET /session`, `POST /auth/login`, `GET /auth/callback`,
-  `POST /auth/logout`.
-- [ ] **Cookie and CSRF:** an opaque HttpOnly session cookie (`SameSite=Lax`
-  for the callback), rotated at login. `X-CSRF-Token` plus an Origin check on
-  every mutation.
-- [ ] **Role mapping:** claim path configurable, default `roles`; the
-  `studio-admin` role gates the admin API.
-- [ ] **Callback validation:** `state`, `nonce`, PKCE, and the RFC 9207 `iss`
-  parameter.
-- [ ] **Desktop:** a local-user session authenticated by the existing launch
-  secret, with no Studio IdP.
+**Not done yet**
+- per-target authorization (every signed-in user may use every target);
+- Playwright smoke test;
+- visual check of the packaged renderer (the service itself was verified);
+- Windows and Linux packages;
+- OpenTelemetry;
+- automated target-switch test;
+- the about 24 px layout shift on the first SSR paint;
+- revealing a deep-linked element in the tree.
 
-### Phase 3: infrastructure administration (A)
+### Code map
 
-- [ ] `GET/POST /infrastructures`, `GET/PATCH/DELETE /infrastructures/{id}`
-  (`PATCH` with `If-Match`), and `POST /infrastructures/{id}/probe`.
-- [ ] Endpoint validation per deployment mode:
-  - scheme and port policy;
-  - DNS resolution, with private and loopback addresses denied by default when
-    hosted and allowed for Docker targets on desktop;
-  - no embedded credentials in URLs.
-- [ ] The probe calls BaSyx `/description` and `/health`; `/description` is
-  public even on the secured test target.
-- [ ] Secrets are accepted only as secret references, never stored as values.
-- [ ] A minimal Vuetify admin page.
-
-### Phase 4: credential strategies (A + B)
-
-- [ ] **`unsecured`.**
-- [ ] **`deployment_client_credentials`:** token cached per target and
-  refreshed before expiry. Studio authorization and an audit record covering
-  both identities still apply to every request.
-- [ ] **`delegated_user`:**
-  - `POST/DELETE /targets/{id}/authorization`;
-  - tokens stored per (session, target) and refreshed on expiry;
-  - target-specific scopes from the target configuration (`openid basyx-api`
-    in the test realm, `api://<basyx-api>/access_as_user` in Entra);
-  - the Studio login token is never reused implicitly.
-- [ ] **Login-required detection:** "target authentication required" (`409`)
-  comes from Studio's own state (no usable credential for this target), not
-  from downstream status codes. BaSyx Go answers 403 when no token is sent.
-- [ ] **Desktop login:**
-  - the system browser opens the authorization URL;
-  - the loopback callback on the local BFF is exempt from the launch-secret
-    check and is validated against server-side `state`;
-  - the renderer learns the result by polling;
-  - the loopback host is configurable: `127.0.0.1` for RFC 8252 IdPs,
-    `localhost` for Entra.
-
-### Phase 5: read API (B)
-
-- [ ] **Target routing:**
-  - an SDK `Configuration` factory per target;
-  - a guarded `fetchApi` that enforces the origin allowlist, `redirect:
-    'manual'`, timeouts, and response-size limits;
-  - credential injection by the strategy;
-  - W3C trace context and request IDs propagated downstream.
-- [ ] **`LiveAasTarget` adapter** over `AasRepositoryClient` and
-  `SubmodelRepositoryClient`. It doesn't use `AasService.getAasList`, which
-  drops the cursor, issues N+1 requests, and strips path prefixes.
-- [ ] **Routes:**
-  - `GET /targets`, `GET /targets/{id}`, `PUT /targets/{id}/activation`;
-  - `GET /targets/{id}/shells` (cursor paging) and
-    `GET /targets/{id}/shells/{key}`;
-  - submodel references of a shell;
-  - `GET /targets/{id}/submodels/{key}`;
-  - `GET /targets/{id}/submodels/{key}/elements?parentElementKey=` returns tree
-    nodes: `key`, `idShort`, `modelType`, `semanticId`, `hasChildren`;
-  - `GET /targets/{id}/submodels/{key}/elements/{elementKey}` returns the full
-    element JSON.
-- [ ] **Resource keys** are base64url-encoded identifiers or idShortPaths,
-  matching the OpenAPI draft's `OpaqueId` pattern.
-- [ ] **Errors:** SDK `ApiResult` responses map to `application/problem+json`
-  with stable codes:
-  - `target_auth_required`;
-  - `forbidden`;
-  - `not_found`;
-  - `target_unreachable`;
-  - `invalid_target_response`.
-
-### Phase 6: minimal UI (B)
-
-- [ ] Sign-in and sign-out, and a target picker showing authorization state with
-  an *Authorize* action.
-- [ ] `targetId` is part of the route. There is no global infrastructure store,
-  and every Pinia Colada key starts with the target ID.
-- [ ] Shell list with paging, submodel list, lazy element tree (`v-treeview`),
-  and a read-only JSON panel.
-- [ ] Typed empty, forbidden, not-found, and target-unreachable states.
-
-### Phase 7: hard cases and verification
-
-- [ ] Every scenario in the definition of done, automated where practical:
-  - Vitest for BFF modules;
-  - integration tests against the test environment;
-  - one Playwright smoke test for hosted.
-- [ ] Hosted production build (`node .output/server/index.mjs`) and packaged
-  Electron on at least one OS.
-- [ ] Decision-gate review with the maintainers.
+| Path | Content |
+| --- | --- |
+| `shared/contract/` | Versioned UI↔BFF contract (Zod) |
+| `server/lib/` | Framework-independent modules:<br>• `config`<br>• `crypto`<br>• `database` (schema, migrator, PostgreSQL/PGlite)<br>• `network` (address policy, guarded fetch)<br>• `oidc`<br>• `infrastructures`<br>• `targets` (credential broker, `LiveAasTarget`)<br>• `aas` (keys, locators, outline) |
+| `server/api/studio/v1/` | Thin Nitro handlers |
+| `server/utils/`, `server/middleware/`, `server/plugins/` | Runtime wiring, sessions, CSRF/Origin checks, launch secret |
+| `app/` | Pages, components, `useStudioApi`, `useTarget`, session store |
+| `test/` | Unit tests and integration tests (`STUDIO_TESTENV=1`) |
 
 ## ADRs to write during MVP-1
 
@@ -242,7 +159,7 @@ Open:
 
 | Risk | Mitigation |
 | --- | --- |
-| PGlite fails qualification | `embedded-postgres` fallback with the same schema (ADR 0011) |
+| PGlite footprint (about 0.6–0.9 GB RSS) is not accepted | Measure the `embedded-postgres` fallback with the same schema (ADR 0011) |
 | BaSyx Go 1.1.0 sends no `ETag` | Not needed in read-only MVP-1. MVP-2 needs a fallback, such as comparing against a fresh read, or ETag support upstream. |
 | The SDK bundles its own aas-core copy | Use type helpers instead of `instanceof`; propose externalizing aas-core in the SDK build |
 | aas-core 1.0.1 ESM build fails in plain Node | Confirm bundler behavior in phase 0; report upstream |

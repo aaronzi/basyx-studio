@@ -45,6 +45,19 @@ targets within one Studio session.
 The AAS environment serves `/shells`, `/submodels` and `/concept-descriptions`
 from one base URL. Registry and discovery endpoints are not part of MVP-1.
 
+Register them in Studio under *Infrastructures* (signed in as `studio-admin`),
+always with *Allow loopback and private-network addresses* enabled:
+
+| Target | Access mode | Issuer | Client ID | Scopes | Client secret |
+| --- | --- | --- | --- | --- | --- |
+| Open | Unsecured | – | – | – | – |
+| Secured (as user), hosted/dev | Your account | `http://keycloak.localhost:18080/realms/basyx-studio` | `studio-web` | `openid basyx-api` | `env:STUDIO_OIDC_CLIENT_SECRET` |
+| Secured (as user), desktop | Your account | same | `studio-desktop` | `openid basyx-api` | none (public client), loopback host `127.0.0.1` |
+| Secured (as Studio) | Studio service account | same | `studio-service` | `basyx-api` | `env:STUDIO_TESTENV_SERVICE_SECRET` (hosted) or the secret value (desktop) |
+
+`.env.example` in the repository root provides the matching Studio
+configuration and the environment variables these secret references point to.
+
 ### Test data
 
 | Target | Content |
