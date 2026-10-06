@@ -1,10 +1,18 @@
 import { timingSafeEqual } from 'node:crypto'
+import { callbackPath } from '../lib/urls'
 
 const launchSecretHeader = 'x-studio-launch-secret'
 
-export default defineEventHandler((event) => {
+export default defineEventHandler(event => {
   const expected = process.env.STUDIO_LAUNCH_SECRET
   if (!expected) {
+    return
+  }
+
+  // The OIDC callback reaches the desktop service from the system browser,
+  // which cannot know the launch secret. It is authenticated by its
+  // single-use, server-side `state` instead.
+  if (event.method === 'GET' && event.path.split('?', 1)[0] === callbackPath) {
     return
   }
 

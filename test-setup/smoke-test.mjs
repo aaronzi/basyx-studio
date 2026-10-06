@@ -8,8 +8,6 @@
 
 import { createHash, randomBytes } from 'node:crypto'
 
-// The local test IdP is plain HTTP on loopback by design.
-// eslint-disable-next-line unicorn/prefer-https
 const issuer = 'http://keycloak.localhost:18080/realms/basyx-studio'
 const openUrl = 'http://localhost:18081'
 const securedUrl = 'http://localhost:18082'
@@ -79,10 +77,10 @@ function userTokens (username, scope = 'openid basyx-api') {
 
 function serviceTokens () {
   return tokenRequest({
-  grant_type: 'client_credentials',
-  client_id: 'studio-service',
-  client_secret: 'studio-service-test-secret',
-})
+    grant_type: 'client_credentials',
+    client_id: 'studio-service',
+    client_secret: 'studio-service-test-secret',
+  })
 }
 
 await check('IdP discovery issuer matches the configured issuer', () => {
