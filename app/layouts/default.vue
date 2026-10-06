@@ -1,36 +1,36 @@
 <template>
   <v-app>
-    <v-app-bar border="b" density="comfortable" flat>
+    <v-app-bar>
       <template #prepend>
-        <NuxtLink class="d-flex align-center ga-2 text-decoration-none text-high-emphasis ml-2" to="/">
-          <img alt="" height="28" src="~/assets/logo.svg" width="28">
+        <v-btn :active="false" class="text-none" to="/">
+          <template #prepend>
+            <v-img :alt="t('app.name')" :src="basyxLogo" width="28" />
+          </template>
+
           <span class="text-title-medium font-weight-bold">{{ t('app.name') }}</span>
-        </NuxtLink>
+        </v-btn>
       </template>
 
-      <div v-if="!session.needsLogin" class="d-flex ga-1 ml-6">
-        <v-btn prepend-icon="mdi-database-search-outline" :text="t('app.browse')" to="/" variant="text" />
+      <div v-if="!session.needsLogin" class="d-flex ga-1 ms-4">
+        <v-btn exact prepend-icon="mdi-database-search-outline" :text="t('app.browse')" to="/" />
 
         <v-btn
           v-if="session.isAdmin"
           prepend-icon="mdi-server-network"
           :text="t('app.infrastructures')"
           to="/admin/infrastructures"
-          variant="text"
         />
       </div>
 
       <template #append>
-        <v-btn
-          :aria-label="t('app.toggleTheme')"
-          icon="mdi-theme-light-dark"
-          variant="text"
-          @click="theme.cycle()"
-        />
+        <v-btn :aria-label="t('app.toggleTheme')" icon="mdi-theme-light-dark" @click="theme.cycle()" />
 
         <v-menu v-if="session.session">
           <template #activator="{ props }">
-            <v-btn v-bind="props" class="mr-2" prepend-icon="mdi-account-circle-outline" variant="text">
+            <v-btn v-bind="props" class="me-2 text-none">
+              <template #prepend>
+                <v-avatar color="primary" size="28" :text="initials" />
+              </template>
               {{ session.isDesktop ? t('app.localUser') : session.session.user.name }}
             </v-btn>
           </template>
@@ -58,8 +58,14 @@
 
 <script lang="ts" setup>
   import { useTheme } from 'vuetify'
+  import basyxLogo from '~/assets/basyx-logo.svg'
 
   const { t } = useI18n()
   const theme = useTheme()
   const session = useSessionStore()
+
+  const initials = computed(() => {
+    const name = session.isDesktop ? t('app.localUser') : (session.session?.user.name ?? '')
+    return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join('')
+  })
 </script>

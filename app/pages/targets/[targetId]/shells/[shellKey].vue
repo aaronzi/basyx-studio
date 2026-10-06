@@ -1,5 +1,5 @@
 <template>
-  <v-container class="py-6" fluid>
+  <v-container fluid max-width="none">
     <TargetHeader :target="target.data.value" :trail="trail" />
 
     <ProblemAlert v-if="target.error.value" :error="target.error.value" retry @retry="target.refetch()" />
@@ -12,14 +12,14 @@
 
     <ProblemAlert v-else-if="shell.error.value" :error="shell.error.value" retry @retry="shell.refetch()" />
 
-    <v-row v-else-if="target.data.value" dense>
+    <v-row v-else-if="target.data.value" density="compact">
       <v-col cols="12" lg="3" md="4">
-        <v-card class="pane" variant="outlined">
+        <v-card-pane>
           <v-card-title class="text-title-medium">{{ t('shell.submodels') }}</v-card-title>
           <v-divider />
 
-          <div class="pane__body">
-            <v-progress-linear v-if="refs.isLoading.value" indeterminate />
+          <div class="flex-grow-1 overflow-auto">
+            <v-progress-linear v-if="refs.isLoading.value" />
 
             <ProblemAlert
               v-else-if="refs.error.value"
@@ -44,15 +44,15 @@
               />
             </v-list>
           </div>
-        </v-card>
+        </v-card-pane>
       </v-col>
 
       <v-col cols="12" lg="4" md="8">
-        <v-card class="pane" variant="outlined">
+        <v-card-pane>
           <v-card-title class="text-title-medium">{{ t('shell.elements') }}</v-card-title>
           <v-divider />
 
-          <div class="pane__body">
+          <div class="flex-grow-1 overflow-auto">
             <ElementTree
               v-if="submodelKey"
               :key="`${targetId}:${submodelKey}`"
@@ -63,20 +63,20 @@
 
             <div v-else class="pa-4 text-medium-emphasis">{{ t('shell.selectSubmodel') }}</div>
           </div>
-        </v-card>
+        </v-card-pane>
       </v-col>
 
       <v-col cols="12" lg="5">
-        <v-card class="pane" variant="outlined">
+        <v-card-pane>
           <v-card-title class="text-title-medium">{{ t('shell.details') }}</v-card-title>
           <v-divider />
 
-          <div class="pane__body">
-            <v-progress-linear v-if="details.isLoading.value" indeterminate />
+          <div class="flex-grow-1 overflow-auto">
+            <v-progress-linear v-if="details.isLoading.value" />
             <ProblemAlert v-else-if="details.error.value" class="ma-2" :error="details.error.value" />
             <JsonPanel v-else-if="details.data.value" :label="details.data.value.label" :value="details.data.value.value" />
           </div>
-        </v-card>
+        </v-card-pane>
       </v-col>
     </v-row>
   </v-container>
@@ -150,17 +150,3 @@
     await queryCache.invalidateQueries({ key: ['targets', targetId.value] })
   }
 </script>
-
-<style scoped>
-.pane {
-  display: flex;
-  flex-direction: column;
-  height: calc(100vh - 190px);
-  min-height: 320px;
-}
-
-.pane__body {
-  flex: 1;
-  overflow: auto;
-}
-</style>

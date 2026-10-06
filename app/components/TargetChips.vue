@@ -1,20 +1,7 @@
 <template>
   <div class="d-flex flex-wrap ga-2">
-    <v-chip
-      label
-      :prepend-icon="securityModeIcons[target.securityMode]"
-      size="small"
-      :text="t(`security.${target.securityMode}`)"
-      variant="tonal"
-    />
-
-    <v-chip
-      :color="stateColor"
-      label
-      size="small"
-      :text="t(`authState.${target.authenticationState}`)"
-      variant="tonal"
-    />
+    <v-chip :prepend-icon="securityModeIcons[target.securityMode]" :text="t(`security.${target.securityMode}`)" />
+    <v-chip :color="stateColor" :text="t(`authState.${target.authenticationState}`)" />
   </div>
 </template>
 

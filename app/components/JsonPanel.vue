@@ -1,20 +1,21 @@
 <template>
-  <div class="json-panel">
-    <div class="d-flex align-center ga-2 px-4 py-2">
-      <span class="text-body-medium text-medium-emphasis text-truncate">{{ label }}</span>
-      <v-spacer />
+  <div class="d-flex flex-column h-100">
+    <v-toolbar color="transparent" density="compact">
+      <v-toolbar-title class="text-body-medium text-medium-emphasis">{{ label }}</v-toolbar-title>
 
-      <v-btn
-        :aria-label="t('shell.details')"
-        :icon="copied ? 'mdi-check' : 'mdi-content-copy'"
-        size="small"
-        variant="text"
-        @click="copy"
-      />
-    </div>
+      <template #append>
+        <v-btn
+          :aria-label="t('shell.copyJson')"
+          :icon="copied ? 'mdi-check' : 'mdi-content-copy'"
+          size="small"
+          @click="copy"
+        />
+      </template>
+    </v-toolbar>
 
     <v-divider />
-    <pre class="json-panel__content pa-4">{{ text }}</pre>
+
+    <v-code class="flex-grow-1 overflow-auto text-mono text-pre text-body-small pa-4" rounded="0" tag="pre">{{ text }}</v-code>
   </div>
 </template>
 
@@ -31,13 +32,3 @@
     setTimeout(() => (copied.value = false), 1500)
   }
 </script>
-
-<style scoped>
-.json-panel__content {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  overflow: auto;
-  white-space: pre;
-}
-</style>

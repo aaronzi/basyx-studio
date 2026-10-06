@@ -87,17 +87,7 @@ export default defineNuxtConfig({
         },
       },
     },
-    vuetifyOptions: {
-      theme: {
-        // default 'system' requires `ssr: false` to avoid hydration warnings
-        defaultTheme: 'dark',
-
-        themes: {
-          light: {},
-          dark: {},
-        },
-      },
-    },
+    // Theme, aliases and component defaults live in vuetify.config.ts.
   },
 
   eslint: {

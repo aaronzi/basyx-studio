@@ -8,7 +8,7 @@
       @retry="reload"
     />
 
-    <v-progress-linear v-if="loadingRoot" indeterminate />
+    <v-progress-linear v-if="loadingRoot" />
 
     <div v-else-if="rootLoaded && items.length === 0" class="pa-4 text-medium-emphasis">
       {{ t('shell.noElements') }}
@@ -17,8 +17,6 @@
     <v-treeview
       v-else
       v-model:activated="activated"
-      activatable
-      density="compact"
       item-title="label"
       item-value="key"
       :items="items"

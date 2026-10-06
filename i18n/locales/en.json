@@ -53,7 +53,8 @@
       "forbidden": "No access",
       "not_found": "Not found",
       "error": "Unavailable"
-    }
+    },
+    "copyJson": "Copy JSON"
   },
   "variables": {
     "input": "Input variables",

@@ -19,7 +19,7 @@
 
           <v-text-field v-model="model.submodelRepository" class="mt-2" :label="t('admin.submodelRepository')" :rules="[required, httpUrl]" />
           <v-text-field v-model="model.conceptDescriptionRepository" :label="t('admin.conceptDescriptionRepository')" :rules="[optionalHttpUrl]" />
-          <v-checkbox v-model="model.allowPrivateNetwork" density="compact" :label="t('admin.allowPrivateNetwork')" />
+          <v-checkbox v-model="model.allowPrivateNetwork" :label="t('admin.allowPrivateNetwork')" />
 
           <div class="text-title-small mt-2 mb-2">{{ t('admin.security') }}</div>
 
@@ -77,15 +77,8 @@
 
       <v-card-actions>
         <v-spacer />
-        <v-btn :text="t('admin.cancel')" variant="text" @click="open = false" />
-
-        <v-btn
-          color="primary"
-          :loading="saving"
-          :text="t('admin.save')"
-          variant="flat"
-          @click="save"
-        />
+        <v-btn :text="t('admin.cancel')" @click="open = false" />
+        <v-btn-primary :loading="saving" :text="t('admin.save')" @click="save" />
       </v-card-actions>
     </v-card>
   </v-dialog>

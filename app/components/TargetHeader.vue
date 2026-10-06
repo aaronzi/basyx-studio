@@ -9,7 +9,6 @@
       prepend-icon="mdi-account-cancel-outline"
       size="small"
       :text="t('target.revoke')"
-      variant="text"
       @click="revoke"
     />
   </div>

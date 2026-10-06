@@ -1,11 +1,5 @@
 <template>
-  <v-alert
-    border="start"
-    :icon="icon"
-    :title="message"
-    :type="type"
-    variant="tonal"
-  >
+  <v-alert :icon="icon" :title="message" :type="type">
     <div v-if="detail" class="text-body-medium">{{ detail }}</div>
 
     <div v-if="apiError?.problem" class="text-body-small text-medium-emphasis mt-1">
@@ -13,7 +7,7 @@
     </div>
 
     <template v-if="retry && retryable" #append>
-      <v-btn size="small" :text="t('problem.retry')" variant="text" @click="emit('retry')" />
+      <v-btn :text="t('problem.retry')" @click="emit('retry')" />
     </template>
   </v-alert>
 </template>

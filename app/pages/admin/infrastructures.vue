@@ -1,5 +1,5 @@
 <template>
-  <v-container class="py-8" max-width="1100">
+  <v-container>
     <div class="d-flex flex-wrap align-center ga-4 mb-6">
       <div>
         <h1 class="text-headline-medium">{{ t('admin.title') }}</h1>
@@ -8,13 +8,7 @@
 
       <v-spacer />
 
-      <v-btn
-        color="primary"
-        prepend-icon="mdi-plus"
-        :text="t('admin.add')"
-        variant="flat"
-        @click="edit(null)"
-      />
+      <v-btn-primary prepend-icon="mdi-plus" :text="t('admin.add')" @click="edit(null)" />
     </div>
 
     <ProblemAlert
@@ -27,9 +21,9 @@
 
     <ProblemAlert v-if="actionError" class="mb-4" :error="actionError" />
 
-    <v-progress-linear v-if="list.isLoading.value" indeterminate />
+    <v-progress-linear v-if="list.isLoading.value" />
 
-    <v-card v-else variant="outlined">
+    <v-card v-else>
       <v-list v-if="list.data.value?.items.length" lines="two">
         <v-list-item
           v-for="item in list.data.value.items"
@@ -45,10 +39,8 @@
                 :key="endpoint.type"
                 class="mr-1"
                 :color="endpoint.reachable ? 'success' : 'error'"
-                label
                 size="x-small"
                 :text="`${endpoint.type}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
-                variant="tonal"
               />
             </div>
           </template>
@@ -58,24 +50,18 @@
               :aria-label="t('admin.probe')"
               icon="mdi-lan-connect"
               :loading="probing === item.id"
-              size="small"
-              variant="text"
               @click="probe(item)"
             />
 
             <v-btn
               :aria-label="t('admin.edit')"
               icon="mdi-pencil-outline"
-              size="small"
-              variant="text"
               @click="edit(item)"
             />
 
             <v-btn
               :aria-label="t('admin.delete')"
               icon="mdi-delete-outline"
-              size="small"
-              variant="text"
               @click="confirmDelete = item"
             />
           </template>
@@ -93,8 +79,8 @@
 
         <v-card-actions>
           <v-spacer />
-          <v-btn :text="t('admin.cancel')" variant="text" @click="confirmDelete = null" />
-          <v-btn color="error" :text="t('admin.delete')" variant="flat" @click="remove" />
+          <v-btn :text="t('admin.cancel')" @click="confirmDelete = null" />
+          <v-btn-primary color="error" :text="t('admin.delete')" @click="remove" />
         </v-card-actions>
       </v-card>
     </v-dialog>

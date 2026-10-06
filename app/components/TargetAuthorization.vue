@@ -1,5 +1,5 @@
 <template>
-  <v-card class="mx-auto" max-width="560" variant="outlined">
+  <v-card class="mx-auto" max-width="560">
     <v-card-item prepend-icon="mdi-account-key-outline">
       <v-card-title>{{ t('target.authorizeTitle', { name: target.name }) }}</v-card-title>
     </v-card-item>
@@ -8,22 +8,20 @@
       <p>{{ t('target.authorizeText') }}</p>
       <ProblemAlert v-if="error" class="mt-4" :error="error" />
 
-      <v-alert v-if="waiting" class="mt-4" type="info" variant="tonal">
+      <v-alert v-if="waiting" class="mt-4" type="info">
         {{ t('target.waitingForBrowser') }}
       </v-alert>
     </v-card-text>
 
     <v-card-actions class="px-4 pb-4">
-      <v-btn
-        color="primary"
+      <v-btn-primary
         :loading="starting || waiting"
         prepend-icon="mdi-login"
         :text="t('target.authorize')"
-        variant="flat"
         @click="authorize"
       />
 
-      <v-btn v-if="waiting" :text="t('target.cancel')" variant="text" @click="stopWaiting" />
+      <v-btn v-if="waiting" :text="t('target.cancel')" @click="stopWaiting" />
     </v-card-actions>
   </v-card>
 </template>

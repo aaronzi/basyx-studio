@@ -1,25 +1,16 @@
 <template>
-  <v-container class="py-8" max-width="1100">
-    <template v-if="session.needsLogin">
-      <v-card class="mx-auto mt-12" max-width="520" variant="outlined">
-        <v-card-item>
-          <v-card-title>{{ t('home.signInTitle') }}</v-card-title>
-        </v-card-item>
-
-        <v-card-text>{{ t('home.signInText') }}</v-card-text>
-
-        <v-card-actions class="px-4 pb-4">
-          <v-btn
-            color="primary"
-            :loading="signingIn"
-            prepend-icon="mdi-login"
-            :text="t('app.signIn')"
-            variant="flat"
-            @click="signIn"
-          />
-        </v-card-actions>
-      </v-card>
-    </template>
+  <v-container>
+    <v-empty-state
+      v-if="session.needsLogin"
+      :image="basyxLogo"
+      size="96"
+      :text="t('home.signInText')"
+      :title="t('home.signInTitle')"
+    >
+      <template #actions>
+        <v-btn-primary :loading="signingIn" prepend-icon="mdi-login" :text="t('app.signIn')" @click="signIn" />
+      </template>
+    </v-empty-state>
 
     <template v-else>
       <div class="mb-6">
@@ -37,17 +28,15 @@
         @retry="targets.refetch()"
       />
 
-      <v-progress-linear v-if="targets.isLoading.value" indeterminate />
+      <v-progress-linear v-if="targets.isLoading.value" />
 
       <v-row v-else-if="targets.data.value?.items.length">
         <v-col v-for="target in targets.data.value.items" :key="target.id" cols="12" md="6">
-          <v-card class="h-100" :to="`/targets/${target.id}`" variant="outlined">
-            <v-card-item :prepend-icon="securityModeIcons[target.securityMode]">
-              <v-card-title>{{ target.name }}</v-card-title>
-              <v-card-subtitle v-if="target.description">{{ target.description }}</v-card-subtitle>
-            </v-card-item>
+          <v-card class="h-100" :to="`/targets/${target.id}`">
+            <v-card-item :prepend-icon="securityModeIcons[target.securityMode]" :title="target.name" />
 
             <v-card-text>
+              <p v-if="target.description" class="text-medium-emphasis mb-3">{{ target.description }}</p>
               <TargetChips :target="target" />
             </v-card-text>
           </v-card>
@@ -61,7 +50,7 @@
         :title="t('home.noTargets')"
       >
         <template v-if="session.isAdmin" #actions>
-          <v-btn color="primary" :text="t('home.addInfrastructure')" to="/admin/infrastructures" variant="flat" />
+          <v-btn-primary :text="t('home.addInfrastructure')" to="/admin/infrastructures" />
         </template>
       </v-empty-state>
     </template>
@@ -71,6 +60,7 @@
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
   import { useQuery } from '@pinia/colada'
+  import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { securityModeIcons } from '~/utils/aas'
 
