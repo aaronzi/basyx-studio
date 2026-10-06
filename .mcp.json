@@ -3,6 +3,10 @@
     "vuetify": {
       "command": "node",
       "args": ["node_modules/@vuetify/mcp/bin/cli.js"]
+    },
+    "nuxt": {
+      "type": "http",
+      "url": "https://nuxt.com/mcp"
     }
   }
 }

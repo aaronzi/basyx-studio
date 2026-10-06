@@ -16,3 +16,6 @@
   component APIs, props, slots, and breaking changes instead of guessing.
   Tools that create bins, links, or playgrounds publish content to Vuetify's
   services; do not use them with project code.
+- The official Nuxt MCP server (`https://nuxt.com/mcp`, read-only docs) is
+  configured in `.mcp.json`. Use it for Nuxt 4 and Nitro questions such as
+  server assets, route rules, runtime config, and module APIs.
