@@ -127,6 +127,19 @@ operation variables.
 **Tooling**
 - `vue-tsc` does not support TypeScript 7, so TypeScript 6 is pinned for type
   checking.
+- undici stays on major 7: the guarded fetch passes an undici dispatcher to
+  Node's built-in fetch, which bundles undici 7.
+
+**Nuxt 5 readiness**
+- Route handlers, server middleware and `server/utils` use the portable
+  `nuxt/server` API (Nuxt 4.6+), so they run on Nitro v2 today and on Nuxt 5's
+  Nitro v3.
+- Only two Nitro-specific places remain, both marked for porting:
+  - `server/nitro/migration-assets.ts`, which loads migrations from Nitro
+    server assets;
+  - `server/plugins/studio.ts`, the startup and shutdown plugin.
+- The Origin check moved from middleware into `defineStudioHandler`, because
+  server middleware may only extend the context or throw.
 
 **Not done yet**
 - per-target authorization (every signed-in user may use every target);

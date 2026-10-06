@@ -1,23 +1,25 @@
 import type { Actor } from '../lib/deps'
 import type { SessionRecord } from '../lib/sessions'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import { timingSafeEqual } from 'node:crypto'
+import { getCookie, getRequestHeader } from 'nuxt/server'
 import { StudioProblem } from '../lib/problem'
 import { desktopSessionId, findSession, findSessionById } from '../lib/sessions'
+import { useStudio } from './studio'
 
 export function sessionCookieName (secure: boolean): string {
   // The __Host- prefix pins the cookie to this origin, but requires HTTPS.
   return secure ? '__Host-studio_session' : 'studio_session'
 }
 
-interface ResolvedSession {
+export interface ResolvedSession {
   actor: Actor
   session: SessionRecord
 }
 
-async function resolveSession (event: H3Event): Promise<ResolvedSession | null> {
+async function resolveSession (event: RequestEvent): Promise<ResolvedSession | null> {
   if (event.context.studioSession !== undefined) {
-    return event.context.studioSession as ResolvedSession | null
+    return event.context.studioSession
   }
   const studio = await useStudio()
   let session: SessionRecord | undefined
@@ -44,11 +46,11 @@ async function resolveSession (event: H3Event): Promise<ResolvedSession | null> 
   return resolved
 }
 
-export async function currentSession (event: H3Event): Promise<ResolvedSession | null> {
+export async function currentSession (event: RequestEvent): Promise<ResolvedSession | null> {
   return resolveSession(event)
 }
 
-export async function requireActor (event: H3Event): Promise<Actor> {
+export async function requireActor (event: RequestEvent): Promise<Actor> {
   const resolved = await resolveSession(event)
   if (!resolved) {
     throw new StudioProblem('unauthenticated')
@@ -56,7 +58,7 @@ export async function requireActor (event: H3Event): Promise<Actor> {
   return resolved.actor
 }
 
-export async function requireAdmin (event: H3Event): Promise<Actor> {
+export async function requireAdmin (event: RequestEvent): Promise<Actor> {
   const actor = await requireActor(event)
   if (!actor.isAdmin) {
     throw new StudioProblem('forbidden', 'Studio administrator role required.')
@@ -65,9 +67,9 @@ export async function requireAdmin (event: H3Event): Promise<Actor> {
 }
 
 /** Double-submit check for state-changing requests that act on a session. */
-export async function requireCsrf (event: H3Event): Promise<void> {
+export async function requireCsrf (event: RequestEvent): Promise<void> {
   const resolved = await resolveSession(event)
-  const provided = getHeader(event, 'x-csrf-token') ?? ''
+  const provided = getRequestHeader(event, 'x-csrf-token') ?? ''
   const expected = resolved?.session.csrfToken ?? ''
   const providedBytes = Buffer.from(provided)
   const expectedBytes = Buffer.from(expected)

@@ -1,5 +1,9 @@
 import type { Target } from '#shared/contract'
 import { getInfrastructure } from '~~/server/lib/infrastructures'
+import { requireActor } from '~~/server/utils/auth'
+import { defineStudioHandler, routeParam } from '~~/server/utils/handler'
+import { useStudio } from '~~/server/utils/studio'
+import { toTarget } from '~~/server/utils/target'
 
 export default defineStudioHandler(async (event): Promise<Target> => {
   const actor = await requireActor(event)

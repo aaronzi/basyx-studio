@@ -49,7 +49,7 @@
 
 <script lang="ts" setup>
   import type { Page, ShellSummary } from '#shared/contract'
-  import { useInfiniteQuery, useQueryCache } from '@pinia/colada'
+  import { useInfiniteQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { langText } from '~/utils/aas'
 
@@ -58,7 +58,7 @@
   const { t } = useI18n()
   const route = useRoute()
   const api = useStudioApi()
-  const queryCache = useQueryCache()
+  const invalidate = useInvalidate()
 
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)
@@ -88,6 +88,6 @@
   }
 
   async function onAuthorized () {
-    await queryCache.invalidateQueries({ key: ['targets', targetId.value] })
+    await invalidate(['targets', targetId.value])
   }
 </script>

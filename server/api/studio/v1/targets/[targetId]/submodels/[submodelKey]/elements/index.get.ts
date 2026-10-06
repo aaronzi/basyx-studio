@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { decodeKey, parseLocator, splitAddressable } from '~~/server/lib/aas/keys'
 import { childrenOf, navigate, submodelChildren, toElementNode } from '~~/server/lib/aas/outline'
 import { StudioProblem } from '~~/server/lib/problem'
+import { defineStudioHandler, queryValidated, routeParam } from '~~/server/utils/handler'
+import { openTarget } from '~~/server/utils/target'
 
 const querySchema = z.object({ parentElementKey: z.string().max(4000).optional() })
 

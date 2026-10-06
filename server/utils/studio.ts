@@ -1,11 +1,13 @@
 import type { DeploymentMode } from '#shared/contract'
 import type { StudioDeps } from '../lib/deps'
+import { useRuntimeConfig } from 'nuxt/server'
 import { loadStudioConfig } from '../lib/config'
 import { SecretCipher } from '../lib/crypto/cipher'
 import { openDatabase } from '../lib/database/client'
-import { applyMigrations, migrationsFromJournal } from '../lib/database/migrate'
+import { applyMigrations } from '../lib/database/migrate'
 import { ensureDesktopSession } from '../lib/sessions'
 import { CredentialBroker } from '../lib/targets/credentials'
+import { loadMigrationsFromAssets } from '../nitro/migration-assets'
 
 export interface StudioRuntime extends StudioDeps {
   broker: CredentialBroker
@@ -13,18 +15,6 @@ export interface StudioRuntime extends StudioDeps {
 }
 
 let runtime: Promise<StudioRuntime> | undefined
-
-async function loadMigrationsFromAssets () {
-  const storage = useStorage('assets:migrations')
-  const raw = async (key: string) => {
-    const value = await storage.getItemRaw(key)
-    if (value === null || value === undefined) {
-      throw new Error(`Migration asset ${key} is missing.`)
-    }
-    return typeof value === 'string' ? value : Buffer.from(value as Uint8Array).toString('utf8')
-  }
-  return migrationsFromJournal(await raw('meta:_journal.json'), tag => raw(`${tag}.sql`))
-}
 
 async function initialize (): Promise<StudioRuntime> {
   const deploymentMode = useRuntimeConfig().studio.deploymentMode as DeploymentMode

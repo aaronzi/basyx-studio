@@ -1,4 +1,6 @@
 import type { Page, ShellSummary } from '#shared/contract'
+import { defineStudioHandler, queryValidated } from '~~/server/utils/handler'
+import { openTarget } from '~~/server/utils/target'
 import { listQuerySchema } from '#shared/contract'
 
 export default defineStudioHandler(async (event): Promise<Page<ShellSummary>> => {

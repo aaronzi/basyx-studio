@@ -1,4 +1,5 @@
 import { timingSafeEqual } from 'node:crypto'
+import { createError, defineEventHandler, getRequestHeader } from 'nuxt/server'
 import { callbackPath } from '../lib/urls'
 
 const launchSecretHeader = 'x-studio-launch-secret'
@@ -12,11 +13,11 @@ export default defineEventHandler(event => {
   // The OIDC callback reaches the desktop service from the system browser,
   // which cannot know the launch secret. It is authenticated by its
   // single-use, server-side `state` instead.
-  if (event.method === 'GET' && event.path.split('?', 1)[0] === callbackPath) {
+  if (event.req.method === 'GET' && event.url.pathname === callbackPath) {
     return
   }
 
-  const provided = getHeader(event, launchSecretHeader)
+  const provided = getRequestHeader(event, launchSecretHeader)
   const expectedBytes = Buffer.from(expected)
   const providedBytes = Buffer.from(provided ?? '')
 
@@ -24,6 +25,6 @@ export default defineEventHandler(event => {
     expectedBytes.length !== providedBytes.length
     || !timingSafeEqual(expectedBytes, providedBytes)
   ) {
-    throw createError({ statusCode: 401, statusMessage: 'Unauthorized' })
+    throw createError({ status: 401, statusText: 'Unauthorized' })
   }
 })

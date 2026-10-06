@@ -1,5 +1,8 @@
 import type { AuthorizationStart } from '#shared/contract'
 import { getInfrastructure } from '~~/server/lib/infrastructures'
+import { requireActor, requireCsrf } from '~~/server/utils/auth'
+import { defineStudioHandler, readValidated, routeParam } from '~~/server/utils/handler'
+import { useStudio } from '~~/server/utils/studio'
 import { loginRequestSchema } from '#shared/contract'
 
 export default defineStudioHandler(async (event): Promise<AuthorizationStart> => {

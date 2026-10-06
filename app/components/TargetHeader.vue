@@ -16,7 +16,6 @@
 
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
-  import { useQueryCache } from '@pinia/colada'
 
   const props = defineProps<{
     target: Target | undefined
@@ -25,7 +24,7 @@
 
   const { t } = useI18n()
   const api = useStudioApi()
-  const queryCache = useQueryCache()
+  const invalidate = useInvalidate()
 
   const crumbs = computed(() => [
     { title: t('home.title'), to: '/' },
@@ -39,6 +38,6 @@
     }
     await api(`/targets/${props.target.id}/authorization`, { method: 'DELETE' })
     // Drop everything cached for this target, then reload its state.
-    await queryCache.invalidateQueries({ key: ['targets', props.target.id] })
+    await invalidate(['targets', props.target.id])
   }
 </script>

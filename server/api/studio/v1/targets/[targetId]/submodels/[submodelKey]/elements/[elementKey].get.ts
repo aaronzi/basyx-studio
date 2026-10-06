@@ -2,6 +2,8 @@ import type { ElementDetail } from '#shared/contract'
 import { decodeKey, parseLocator, splitAddressable } from '~~/server/lib/aas/keys'
 import { navigate } from '~~/server/lib/aas/outline'
 import { StudioProblem } from '~~/server/lib/problem'
+import { defineStudioHandler, routeParam } from '~~/server/utils/handler'
+import { openTarget } from '~~/server/utils/target'
 
 export default defineStudioHandler(async (event): Promise<ElementDetail> => {
   const submodelId = decodeKey(routeParam(event, 'submodelKey'), 'submodel key')

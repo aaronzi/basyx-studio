@@ -84,14 +84,14 @@
 
 <script lang="ts" setup>
   import type { ElementDetail, ShellDetail, SubmodelDetail, SubmodelRef } from '#shared/contract'
-  import { useQuery, useQueryCache } from '@pinia/colada'
+  import { useQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
 
   const { t } = useI18n()
   const route = useRoute()
   const router = useRouter()
   const api = useStudioApi()
-  const queryCache = useQueryCache()
+  const invalidate = useInvalidate()
 
   const targetId = computed(() => String(route.params.targetId))
   const shellKey = computed(() => String(route.params.shellKey))
@@ -147,6 +147,6 @@
   }
 
   async function onAuthorized () {
-    await queryCache.invalidateQueries({ key: ['targets', targetId.value] })
+    await invalidate(['targets', targetId.value])
   }
 </script>

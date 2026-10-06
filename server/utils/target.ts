@@ -1,10 +1,13 @@
 import type { AuthenticationState, Target } from '#shared/contract'
 import type { Actor } from '../lib/deps'
 import type { InfrastructureRecord } from '../lib/infrastructures'
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import { recordAudit } from '../lib/audit'
 import { getInfrastructure, targetPolicy } from '../lib/infrastructures'
 import { LiveAasTarget } from '../lib/targets/live-target'
+import { requireActor } from './auth'
+import { requestIdOf, routeParam } from './handler'
+import { useStudio } from './studio'
 
 export interface OpenedTarget {
   actor: Actor
@@ -16,7 +19,7 @@ export interface OpenedTarget {
  * Resolves the `targetId` route parameter for the signed-in user and returns
  * an SDK-backed target with the credentials of this user and target.
  */
-export async function openTarget (event: H3Event): Promise<OpenedTarget> {
+export async function openTarget (event: RequestEvent): Promise<OpenedTarget> {
   const actor = await requireActor(event)
   const studio = await useStudio()
   const record = await getInfrastructure(studio, routeParam(event, 'targetId'))
@@ -31,7 +34,7 @@ export async function openTarget (event: H3Event): Promise<OpenedTarget> {
       actorSubject: actor.subject,
       targetId: record.id,
       downstreamIdentity: access.downstreamIdentity,
-      details: { route: event.path.split('?', 1)[0] },
+      details: { route: event.url.pathname },
     })
   }
 

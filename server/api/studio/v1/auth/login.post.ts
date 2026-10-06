@@ -3,6 +3,8 @@ import { getOidcClient, OidcError, startAuthorization } from '~~/server/lib/oidc
 import { saveTransaction } from '~~/server/lib/oidc/transactions'
 import { StudioProblem } from '~~/server/lib/problem'
 import { callbackUri } from '~~/server/lib/urls'
+import { defineStudioHandler, readValidated } from '~~/server/utils/handler'
+import { useStudio } from '~~/server/utils/studio'
 import { loginRequestSchema } from '#shared/contract'
 
 export default defineStudioHandler(async (event): Promise<AuthorizationStart> => {

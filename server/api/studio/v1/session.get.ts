@@ -1,5 +1,7 @@
 import type { StudioSession } from '#shared/contract'
 import { StudioProblem } from '~~/server/lib/problem'
+import { currentSession } from '~~/server/utils/auth'
+import { defineStudioHandler } from '~~/server/utils/handler'
 
 export default defineStudioHandler(async (event): Promise<StudioSession> => {
   const resolved = await currentSession(event)

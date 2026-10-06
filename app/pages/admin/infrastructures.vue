@@ -89,12 +89,12 @@
 
 <script lang="ts" setup>
   import type { Infrastructure, ProbeResult } from '#shared/contract'
-  import { useQuery, useQueryCache } from '@pinia/colada'
+  import { useQuery } from '@pinia/colada'
   import { securityModeIcons } from '~/utils/aas'
 
   const { t } = useI18n()
   const api = useStudioApi()
-  const queryCache = useQueryCache()
+  const invalidate = useInvalidate()
 
   const list = useQuery({
     key: ['admin', 'infrastructures'],
@@ -115,10 +115,7 @@
 
   async function refresh () {
     // Target lists and per-target data depend on the infrastructure configuration.
-    await Promise.all([
-      queryCache.invalidateQueries({ key: ['admin', 'infrastructures'] }),
-      queryCache.invalidateQueries({ key: ['targets'] }),
-    ])
+    await invalidate(['admin', 'infrastructures'], ['targets'])
   }
 
   async function probe (item: Infrastructure) {

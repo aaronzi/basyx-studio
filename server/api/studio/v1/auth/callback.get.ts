@@ -1,11 +1,15 @@
-import type { H3Event } from 'h3'
+import type { RequestEvent } from 'nuxt/server'
 import type { AuthorizationTransaction } from '~~/server/lib/oidc/transactions'
+import { defineEventHandler, getQuery, sendRedirect, setCookie, setResponseStatus } from 'nuxt/server'
 import { recordAudit } from '~~/server/lib/audit'
 import { getInfrastructure } from '~~/server/lib/infrastructures'
 import { completeAuthorization, getOidcClient, readRoles } from '~~/server/lib/oidc/client'
 import { consumeTransaction } from '~~/server/lib/oidc/transactions'
 import { StudioProblem } from '~~/server/lib/problem'
 import { createSession } from '~~/server/lib/sessions'
+import { sessionCookieName } from '~~/server/utils/auth'
+import { requestIdOf } from '~~/server/utils/handler'
+import { useStudio } from '~~/server/utils/studio'
 
 function withQuery (path: string, name: string, value: string): string {
   const url = new URL(path, 'https://studio.invalid')
@@ -14,16 +18,16 @@ function withQuery (path: string, name: string, value: string): string {
 }
 
 /** Desktop callbacks end in the system browser; tell the user where to continue. */
-function desktopPage (event: H3Event, title: string, message: string): string {
-  setResponseHeader(event, 'Content-Type', 'text/html; charset=utf-8')
-  setResponseHeader(event, 'Content-Security-Policy', 'default-src \'none\'; style-src \'unsafe-inline\'')
+function desktopPage (event: RequestEvent, title: string, message: string): string {
+  event.res.headers.set('Content-Type', 'text/html; charset=utf-8')
+  event.res.headers.set('Content-Security-Policy', 'default-src \'none\'; style-src \'unsafe-inline\'')
   const escape = (text: string) => text.replace(/[&<>"']/g, character => `&#${character.codePointAt(0)};`)
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>${escape(title)}</title>
 <style>body{font-family:system-ui,sans-serif;max-width:32rem;margin:15vh auto;padding:0 1rem;line-height:1.5}</style></head>
 <body><h1>${escape(title)}</h1><p>${escape(message)}</p></body></html>`
 }
 
-async function completeLogin (event: H3Event, transaction: AuthorizationTransaction, callbackUrl: URL): Promise<void> {
+async function completeLogin (event: RequestEvent, transaction: AuthorizationTransaction, callbackUrl: URL): Promise<void> {
   const studio = await useStudio()
   const login = studio.config.login
   if (!login) {

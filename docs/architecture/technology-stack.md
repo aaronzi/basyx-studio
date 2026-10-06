@@ -10,7 +10,7 @@ proof. A library should earn its place by removing real Studio code or risk.
 | --- | --- | --- | --- |
 | Package manager | PNPM only, integrity-pinned through Corepack | Development, CI, containers, release builds, isolated app builds | Accepted; one lockfile and deny-by-default dependency build scripts reduce supply-chain exposure |
 | UI | Vue 3, Nuxt 4, Vuetify | Browser or Electron renderer | Accepted; matches team experience and current prototype |
-| Studio API/BFF | Nitro/H3 on Node.js | Hosted container or desktop child process | Accepted; one application and contract surface across web and desktop |
+| Studio API/BFF | Nitro/H3 on Node.js; handlers written against the portable `nuxt/server` API | Hosted container or desktop child process | Accepted; one application and contract surface across web and desktop. Portable handlers run on Nuxt 4 (Nitro v2) and Nuxt 5 (Nitro v3); Nitro-specific code is confined to `server/plugins/` and `server/nitro/` |
 | SSR | Nuxt hybrid/route rules | Hosted Studio Service | Accepted capability; enable where first-load, catalogue, or public routes benefit rather than forcing every editor route through SSR |
 | Desktop host | Electron, Electron Builder, Electron Updater | User computer | Accepted; harden the host and validate N−2 update/migration paths before reconsidering the shell |
 | Live AAS client | `basyx-typescript-sdk` | Studio Service | Required; upgrade the prototype to the SDK's AAS Core 3.1 peer version before core feature work |

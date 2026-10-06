@@ -2,6 +2,8 @@ import type { SubmodelRef } from '#shared/contract'
 import { decodeKey, encodeKey } from '~~/server/lib/aas/keys'
 import { firstKeyValue } from '~~/server/lib/aas/outline'
 import { StudioProblem } from '~~/server/lib/problem'
+import { defineStudioHandler, routeParam } from '~~/server/utils/handler'
+import { openTarget } from '~~/server/utils/target'
 
 const concurrency = 6
 
