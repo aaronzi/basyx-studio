@@ -3,6 +3,7 @@
     <v-main>
       <nuxt-page />
     </v-main>
+
     <v-btn
       class="ma-2"
       icon="mdi-theme-light-dark"
