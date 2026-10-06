@@ -4,10 +4,11 @@ import type { AddressInfo } from 'node:net'
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { existsSync } from 'node:fs'
+import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 
-import { app, BrowserWindow, dialog, session } from 'electron'
+import { app, BrowserWindow, dialog, safeStorage, session, shell } from 'electron'
 
 const launchSecretHeader = 'X-Studio-Launch-Secret'
 const loopbackHost = '127.0.0.1'
@@ -45,7 +46,7 @@ async function findAvailablePort (): Promise<number> {
 
   const port = (address as AddressInfo).port
   await new Promise<void>((resolve, reject) => {
-    server.close((error) => error ? reject(error) : resolve())
+    server.close(error => error ? reject(error) : resolve())
   })
 
   return port
@@ -95,6 +96,28 @@ async function waitForStudioService (
   throw new Error('Timed out while starting the local Studio Service.')
 }
 
+/**
+ * The key that encrypts tokens and stored secrets in the local database. It is
+ * generated once and kept only encrypted by the OS credential store
+ * (Keychain, DPAPI, libsecret/kwallet) through Electron safeStorage.
+ */
+async function loadDataKey (): Promise<string> {
+  if (!safeStorage.isEncryptionAvailable()) {
+    throw new Error('The operating system credential store is not available.')
+  }
+  if (process.platform === 'linux' && safeStorage.getSelectedStorageBackend() === 'basic_text') {
+    throw new Error('No supported credential store (libsecret or kwallet) was found. BaSyx Studio does not store keys in plain text.')
+  }
+  const keyFile = join(app.getPath('userData'), 'data-key.bin')
+  if (existsSync(keyFile)) {
+    return safeStorage.decryptString(await readFile(keyFile))
+  }
+  const key = randomBytes(32).toString('base64url')
+  await mkdir(app.getPath('userData'), { recursive: true })
+  await writeFile(keyFile, safeStorage.encryptString(key), { mode: 0o600 })
+  return key
+}
+
 async function startStudioService (): Promise<{ launchSecret: string, url: string }> {
   const serverEntry = join(app.getAppPath(), '.output', 'server', 'index.mjs')
   if (!existsSync(serverEntry)) {
@@ -105,12 +128,17 @@ async function startStudioService (): Promise<{ launchSecret: string, url: strin
   const launchSecret = randomBytes(32).toString('base64url')
   const url = `http://${loopbackHost}:${port}/`
 
+  const dataKey = await loadDataKey()
+
   studioService = spawn(process.execPath, [serverEntry], {
     env: {
       ...process.env,
       ELECTRON_RUN_AS_NODE: '1',
       NITRO_HOST: loopbackHost,
       NITRO_PORT: String(port),
+      NUXT_STUDIO_DEPLOYMENT_MODE: 'desktop',
+      STUDIO_DATA_DIR: join(app.getPath('userData'), 'studio-data'),
+      STUDIO_DATA_KEY: dataKey,
       STUDIO_LAUNCH_SECRET: launchSecret,
     },
     stdio: ['ignore', 'inherit', 'inherit'],
@@ -165,7 +193,15 @@ async function createWindow (url: string, launchSecret?: string): Promise<void> 
       event.preventDefault()
     }
   })
-  win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+  // IdP sign-in for targets runs in the system browser (RFC 8252); the
+  // renderer never opens other windows.
+  win.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
+    const protocol = new URL(targetUrl).protocol
+    if (protocol === 'https:' || protocol === 'http:') {
+      void shell.openExternal(targetUrl)
+    }
+    return { action: 'deny' }
+  })
   win.once('ready-to-show', () => win.show())
 
   await win.loadURL(url)
@@ -199,7 +235,21 @@ function handleStartupError (error: unknown): void {
   app.quit()
 }
 
-app.whenReady().then(start).catch(handleStartupError)
+// Only one instance may own the local database and its data directory.
+if (app.requestSingleInstanceLock()) {
+  app.on('second-instance', () => {
+    const [window] = BrowserWindow.getAllWindows()
+    if (window) {
+      if (window.isMinimized()) {
+        window.restore()
+      }
+      window.focus()
+    }
+  })
+  app.whenReady().then(start).catch(handleStartupError)
+} else {
+  app.quit()
+}
 
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0 && rendererUrl) {
