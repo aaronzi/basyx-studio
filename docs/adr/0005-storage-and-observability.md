@@ -1,6 +1,6 @@
 # 0005: Storage and observability baseline
 
-- Status: Accepted
+- Status: Partially superseded by [ADR 0011](0011-single-postgresql-dialect-with-pglite.md) (desktop relational storage)
 - Date: 2026-08-24
 - Deciders: BaSyx Studio maintainers
 - Requirements: DEP-007, OPS-001, OPS-003 through OPS-006, SEC-009

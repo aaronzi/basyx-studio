@@ -31,7 +31,7 @@ through the existing target router and capability broker.
 
 - Hosted definitions use the Studio PostgreSQL database and normal owner/group
   authorization.
-- Desktop definitions use the existing local SQLite database and may be exported
+- Desktop definitions use the existing embedded PGlite database and may be exported
   with a project or as a standalone definition.
 - Built-in widgets execute as trusted Studio UI components.
 - App-provided widgets execute through the existing sandboxed app UI origin and

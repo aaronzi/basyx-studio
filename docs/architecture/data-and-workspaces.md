@@ -100,7 +100,8 @@ The desktop workspace owns:
 - local draft/recovery snapshots
 - explicit save and save-as behavior
 - package validation and export
-- local project metadata in SQLite
+- local project metadata, stored by the local Studio Service in its embedded
+  PGlite database (the worker does not open the database itself)
 
 No BaSyx server is required for this variant.
 

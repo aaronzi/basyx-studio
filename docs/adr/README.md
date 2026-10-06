@@ -13,12 +13,13 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0002](0002-bff-and-authentication.md) | Accepted | BFF owns authentication, credentials, and downstream access |
 | [0003](0003-aas-targets-and-workspaces.md) | Accepted | One target contract for live servers and isolated AASX workspaces |
 | [0004](0004-runtime-installable-apps.md) | Accepted | Signed, capability-based, isolated runtime-installable apps |
-| [0005](0005-storage-and-observability.md) | Accepted | PostgreSQL/SQLite baseline and reuse of the BaSyx Go observability stack |
+| [0005](0005-storage-and-observability.md) | Partially superseded by 0011 | PostgreSQL baseline and reuse of the BaSyx Go observability stack; desktop SQLite superseded |
 | [0006](0006-frontend-state-and-validation.md) | Accepted | Pragmatic Nuxt/Pinia state with selective Pinia Colada and layered validation |
 | [0007](0007-http-and-realtime-transports.md) | Accepted | HTTP by default; SSE or WebSockets only for justified realtime behavior |
 | [0008](0008-evolutionary-architecture-and-dependencies.md) | Accepted | Evolutionary architecture and explicit justification for added complexity |
 | [0009](0009-declarative-graphical-views.md) | Accepted | Declarative graphical views with capability-bound built-in and app widgets |
 | [0010](0010-pnpm-only-supply-chain.md) | Accepted | PNPM-only package management with hardened supply-chain controls |
+| [0011](0011-single-postgresql-dialect-with-pglite.md) | Accepted | PostgreSQL as the only SQL dialect; embedded PGlite for desktop metadata |
 
 ## Template
 

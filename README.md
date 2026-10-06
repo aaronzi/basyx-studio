@@ -40,7 +40,7 @@ Coding agents and LLM-based development tools must also follow [AGENTS.md](AGENT
 - Nitro as the Studio backend-for-frontend (BFF)
 - Electron for the installed desktop product
 - `basyx-typescript-sdk` for live AAS client operations
-- PostgreSQL for hosted Studio persistence and SQLite for desktop metadata
+- PostgreSQL for Studio persistence: a server when hosted, embedded PGlite on desktop
 - OpenTelemetry and the existing BaSyx Grafana observability stack
 - Pinia for client/editor state; Pinia Colada only for complex shared remote state
 - Zod for Studio-owned TypeScript trust boundaries; AAS Core verification for AAS models

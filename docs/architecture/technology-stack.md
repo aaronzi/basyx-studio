@@ -58,14 +58,16 @@ code it removes.
 
 | Concern | Hosted | Desktop | Direction |
 | --- | --- | --- | --- |
-| Relational metadata | PostgreSQL | SQLite | Accepted baseline |
-| Database access | Drizzle ORM/query builder candidate | Same schema tooling where practical | Prove migrations, transactions, PostgreSQL row locking, and Electron packaging in a vertical slice before final adoption |
+| Relational metadata | PostgreSQL server | PGlite (PostgreSQL compiled to WebAssembly) embedded in the local Studio Service | Accepted in ADR 0011, subject to its qualification gate; fallback `embedded-postgres` |
+| Database access | Drizzle ORM/query builder candidate, `node-postgres` driver | Same Drizzle schema, `pglite` driver | One `pgTable` schema and one migration chain; prove migrations, transactions, row locking, and Electron packaging in the MVP-1 slice before final adoption |
 | Secrets | Deployment secret manager | OS keychain/Electron `safeStorage` | Store references in relational metadata, not secret values |
 | Background work | Separate Node worker with PostgreSQL-backed durable job records | Supervised utility process and local job records | Start without Redis; evaluate Graphile Worker or an equivalent PostgreSQL queue when retry/concurrency needs are concrete |
 
-PostgreSQL and SQLite are not assumed to have identical capabilities. Share
-domain repositories and migrations only where doing so stays clear; do not
-degrade hosted behavior merely to force one SQL dialect.
+Hosted and desktop share one PostgreSQL dialect (ADR 0011). Shared repository
+code uses only features PGlite supports; server-only features such as
+cross-process `LISTEN/NOTIFY` or multi-worker `SKIP LOCKED` queues belong in
+hosted-only modules behind an explicit capability check. Only the local Studio
+Service opens the desktop database.
 
 ## Desktop AASX workspace
 
