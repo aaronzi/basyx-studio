@@ -18,7 +18,11 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint",
-    "lint:fix": "eslint --fix"
+    "lint:fix": "eslint --fix",
+    "testenv:up": "docker compose -f test-setup/docker-compose.yaml up -d --wait --wait-timeout 300",
+    "testenv:down": "docker compose -f test-setup/docker-compose.yaml down -v",
+    "testenv:smoke": "node test-setup/smoke-test.mjs",
+    "testenv:fixtures": "node test-setup/fixtures/generate-fixtures.mjs"
   },
   "dependencies": {
     "@aas-core-works/aas-core3.1-typescript": "^1.0.1",

@@ -1,16 +1,127 @@
+# Local test environment for BaSyx Studio.
+#
+#   pnpm testenv:up      start everything and wait until healthy
+#   pnpm testenv:smoke   verify targets, IdP configuration and access rules
+#   pnpm testenv:down    stop and discard all data
+#
+# See README.md in this folder for targets, users and IdP configuration.
+# All credentials in this folder are test-only values.
+
+name: basyx-studio-testenv
+
+x-basyx-env: &basyx-env
+  SERVER_PORT: "5004"
+  POSTGRES_HOST: postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: basyx
+  POSTGRES_PASSWORD: basyx
+  POSTGRES_MAXOPENCONNECTIONS: "20"
+  POSTGRES_MAXIDLECONNECTIONS: "10"
+  POSTGRES_CONNMAXLIFETIMEMINUTES: "5"
+  POSTGRES_CONNMAXIDLETIMEMINUTES: "0"
+
 services:
+  # Studio metadata (database "studio") and the BaSyx databases share one server.
   postgres:
     image: postgres:18
-    container_name: postgres
-    restart: unless-stopped
     environment:
-      POSTGRES_DB: basyx
-      POSTGRES_USER: basyx
-      POSTGRES_PASSWORD: basyx
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "6432:5432"
+      - "15432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
 
-volumes:
-  postgres_data:
+  # OIDC test provider. The issuer must be identical for the browser, the Studio
+  # BFF on the host and the BaSyx containers, hence keycloak.localhost (resolves
+  # to loopback on the host; mapped to the host gateway inside containers).
+  keycloak:
+    image: keycloak/keycloak:26.8.0
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HOSTNAME: http://keycloak.localhost:18080
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "18080:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '200 OK' <&3
+      interval: 5s
+      timeout: 5s
+      retries: 60
+
+  # --- Target "open": unsecured BaSyx Go AAS environment ----------------------
+  basyx-open-schema:
+    image: eclipsebasyx/basyxconfigurationservice-go:1.1.0
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_open
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  basyx-open:
+    image: eclipsebasyx/aasenvironment-go:1.1.0
+    command: ["/app/aasenvironmentservice"]
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_open
+      ABAC_ENABLED: "false"
+      GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
+    ports:
+      - "18081:5004"
+    volumes:
+      - ./fixtures/open:/app/preconfiguration:ro
+    depends_on:
+      basyx-open-schema:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # --- Target "secured": BaSyx Go with OIDC (Keycloak) and ABAC ---------------
+  basyx-secured-schema:
+    image: eclipsebasyx/basyxconfigurationservice-go:1.1.0
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_secured
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  basyx-secured:
+    image: eclipsebasyx/aasenvironment-go:1.1.0
+    command: ["/app/aasenvironmentservice"]
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_secured
+      ABAC_ENABLED: "true"
+      ABAC_MODELPATH: /security/access-rules.json
+      ABAC_POLICY_FILE_IMPORT: always
+      OIDC_TRUSTLISTPATH: /security/trustlist.json
+      GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
+    ports:
+      - "18082:5004"
+    volumes:
+      - ./basyx/secured:/security:ro
+      - ./fixtures/secured:/app/preconfiguration:ro
+    extra_hosts:
+      - "keycloak.localhost:host-gateway"
+    depends_on:
+      basyx-secured-schema:
+        condition: service_completed_successfully
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped

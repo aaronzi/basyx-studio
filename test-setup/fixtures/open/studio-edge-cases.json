@@ -1,0 +1,2217 @@
+{
+  "assetAdministrationShells": [
+    {
+      "idShort": "EdgeCasesShell",
+      "description": [
+        {
+          "language": "en",
+          "text": "Shell with nested, list, operation and dangling-reference cases"
+        }
+      ],
+      "id": "urn:studio:test:aas:edge-cases",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:edge-cases"
+      },
+      "submodels": [
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:sm:edge-cases"
+            }
+          ]
+        },
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:sm:large"
+            }
+          ]
+        },
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:sm:missing"
+            }
+          ]
+        }
+      ],
+      "modelType": "AssetAdministrationShell"
+    }
+  ],
+  "submodels": [
+    {
+      "idShort": "EdgeCases",
+      "id": "urn:studio:test:sm:edge-cases",
+      "kind": "Instance",
+      "semanticId": {
+        "type": "ExternalReference",
+        "keys": [
+          {
+            "type": "GlobalReference",
+            "value": "urn:studio:test:semantic:edge-cases"
+          }
+        ]
+      },
+      "submodelElements": [
+        {
+          "idShort": "SimpleString",
+          "valueType": "xs:string",
+          "value": "hello studio",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Temperature",
+          "valueType": "xs:double",
+          "value": "21.5",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Enabled",
+          "valueType": "xs:boolean",
+          "value": "true",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Name-With-Hyphen",
+          "valueType": "xs:string",
+          "value": "idShort contains a hyphen",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "EmptyValue",
+          "valueType": "xs:string",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Title",
+          "value": [
+            {
+              "language": "en",
+              "text": "Edge case submodel"
+            },
+            {
+              "language": "de",
+              "text": "Grenzfall-Teilmodell"
+            }
+          ],
+          "modelType": "MultiLanguageProperty"
+        },
+        {
+          "idShort": "OperatingRange",
+          "valueType": "xs:int",
+          "min": "0",
+          "max": "100",
+          "modelType": "Range"
+        },
+        {
+          "idShort": "Manual",
+          "value": "/aasx/files/manual.pdf",
+          "contentType": "application/pdf",
+          "modelType": "File"
+        },
+        {
+          "idShort": "Thumbnail",
+          "value": "aGVsbG8gc3R1ZGlv",
+          "contentType": "text/plain",
+          "modelType": "Blob"
+        },
+        {
+          "idShort": "RefToSimpleString",
+          "value": {
+            "type": "ModelReference",
+            "keys": [
+              {
+                "type": "Submodel",
+                "value": "urn:studio:test:sm:edge-cases"
+              },
+              {
+                "type": "Property",
+                "value": "SimpleString"
+              }
+            ]
+          },
+          "modelType": "ReferenceElement"
+        },
+        {
+          "idShort": "DependsOn",
+          "first": {
+            "type": "ModelReference",
+            "keys": [
+              {
+                "type": "Submodel",
+                "value": "urn:studio:test:sm:edge-cases"
+              },
+              {
+                "type": "Property",
+                "value": "Temperature"
+              }
+            ]
+          },
+          "second": {
+            "type": "ModelReference",
+            "keys": [
+              {
+                "type": "Submodel",
+                "value": "urn:studio:test:sm:edge-cases"
+              },
+              {
+                "type": "Range",
+                "value": "OperatingRange"
+              }
+            ]
+          },
+          "modelType": "RelationshipElement"
+        },
+        {
+          "idShort": "CanMeasure",
+          "modelType": "Capability"
+        },
+        {
+          "idShort": "Motor",
+          "statements": [
+            {
+              "idShort": "SerialNumber",
+              "valueType": "xs:string",
+              "value": "SN-0001",
+              "modelType": "Property"
+            }
+          ],
+          "entityType": "SelfManagedEntity",
+          "globalAssetId": "urn:studio:test:asset:motor",
+          "modelType": "Entity"
+        },
+        {
+          "idShort": "Level1",
+          "value": [
+            {
+              "idShort": "Level1Value",
+              "valueType": "xs:string",
+              "value": "level 1",
+              "modelType": "Property"
+            },
+            {
+              "idShort": "Level2",
+              "value": [
+                {
+                  "idShort": "Items",
+                  "orderRelevant": true,
+                  "typeValueListElement": "SubmodelElementCollection",
+                  "value": [
+                    {
+                      "value": [
+                        {
+                          "idShort": "Name",
+                          "valueType": "xs:string",
+                          "value": "item 0",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Index",
+                          "valueType": "xs:int",
+                          "value": "0",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Details",
+                          "value": [
+                            {
+                              "idShort": "Deepest",
+                              "valueType": "xs:string",
+                              "value": "deepest value of item 0",
+                              "modelType": "Property"
+                            }
+                          ],
+                          "modelType": "SubmodelElementCollection"
+                        }
+                      ],
+                      "modelType": "SubmodelElementCollection"
+                    },
+                    {
+                      "value": [
+                        {
+                          "idShort": "Name",
+                          "valueType": "xs:string",
+                          "value": "item 1",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Index",
+                          "valueType": "xs:int",
+                          "value": "1",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Details",
+                          "value": [
+                            {
+                              "idShort": "Deepest",
+                              "valueType": "xs:string",
+                              "value": "deepest value of item 1",
+                              "modelType": "Property"
+                            }
+                          ],
+                          "modelType": "SubmodelElementCollection"
+                        }
+                      ],
+                      "modelType": "SubmodelElementCollection"
+                    },
+                    {
+                      "value": [
+                        {
+                          "idShort": "Name",
+                          "valueType": "xs:string",
+                          "value": "item 2",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Index",
+                          "valueType": "xs:int",
+                          "value": "2",
+                          "modelType": "Property"
+                        },
+                        {
+                          "idShort": "Details",
+                          "value": [
+                            {
+                              "idShort": "Deepest",
+                              "valueType": "xs:string",
+                              "value": "deepest value of item 2",
+                              "modelType": "Property"
+                            }
+                          ],
+                          "modelType": "SubmodelElementCollection"
+                        }
+                      ],
+                      "modelType": "SubmodelElementCollection"
+                    }
+                  ],
+                  "modelType": "SubmodelElementList"
+                }
+              ],
+              "modelType": "SubmodelElementCollection"
+            }
+          ],
+          "modelType": "SubmodelElementCollection"
+        },
+        {
+          "idShort": "Numbers",
+          "orderRelevant": true,
+          "typeValueListElement": "Property",
+          "valueTypeListElement": "xs:int",
+          "value": [
+            {
+              "valueType": "xs:int",
+              "value": "10",
+              "modelType": "Property"
+            },
+            {
+              "valueType": "xs:int",
+              "value": "20",
+              "modelType": "Property"
+            },
+            {
+              "valueType": "xs:int",
+              "value": "30",
+              "modelType": "Property"
+            }
+          ],
+          "modelType": "SubmodelElementList"
+        },
+        {
+          "idShort": "NestedLists",
+          "orderRelevant": true,
+          "typeValueListElement": "SubmodelElementList",
+          "value": [
+            {
+              "orderRelevant": true,
+              "typeValueListElement": "Property",
+              "valueTypeListElement": "xs:string",
+              "value": [
+                {
+                  "valueType": "xs:string",
+                  "value": "a",
+                  "modelType": "Property"
+                },
+                {
+                  "valueType": "xs:string",
+                  "value": "b",
+                  "modelType": "Property"
+                }
+              ],
+              "modelType": "SubmodelElementList"
+            },
+            {
+              "orderRelevant": true,
+              "typeValueListElement": "Property",
+              "valueTypeListElement": "xs:string",
+              "value": [
+                {
+                  "valueType": "xs:string",
+                  "value": "c",
+                  "modelType": "Property"
+                }
+              ],
+              "modelType": "SubmodelElementList"
+            }
+          ],
+          "modelType": "SubmodelElementList"
+        },
+        {
+          "idShort": "Calibrate",
+          "inputVariables": [
+            {
+              "value": {
+                "idShort": "Offset",
+                "valueType": "xs:double",
+                "value": "0.0",
+                "modelType": "Property"
+              }
+            }
+          ],
+          "outputVariables": [
+            {
+              "value": {
+                "idShort": "Result",
+                "valueType": "xs:string",
+                "modelType": "Property"
+              }
+            }
+          ],
+          "inoutputVariables": [
+            {
+              "value": {
+                "idShort": "Settings",
+                "value": [
+                  {
+                    "idShort": "Mode",
+                    "valueType": "xs:string",
+                    "value": "fast",
+                    "modelType": "Property"
+                  }
+                ],
+                "modelType": "SubmodelElementCollection"
+              }
+            }
+          ],
+          "modelType": "Operation"
+        }
+      ],
+      "modelType": "Submodel"
+    },
+    {
+      "idShort": "LargeSubmodel",
+      "id": "urn:studio:test:sm:large",
+      "kind": "Instance",
+      "submodelElements": [
+        {
+          "idShort": "Value000",
+          "valueType": "xs:int",
+          "value": "0",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value001",
+          "valueType": "xs:int",
+          "value": "1",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value002",
+          "valueType": "xs:int",
+          "value": "2",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value003",
+          "valueType": "xs:int",
+          "value": "3",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value004",
+          "valueType": "xs:int",
+          "value": "4",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value005",
+          "valueType": "xs:int",
+          "value": "5",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value006",
+          "valueType": "xs:int",
+          "value": "6",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value007",
+          "valueType": "xs:int",
+          "value": "7",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value008",
+          "valueType": "xs:int",
+          "value": "8",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value009",
+          "valueType": "xs:int",
+          "value": "9",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value010",
+          "valueType": "xs:int",
+          "value": "10",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value011",
+          "valueType": "xs:int",
+          "value": "11",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value012",
+          "valueType": "xs:int",
+          "value": "12",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value013",
+          "valueType": "xs:int",
+          "value": "13",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value014",
+          "valueType": "xs:int",
+          "value": "14",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value015",
+          "valueType": "xs:int",
+          "value": "15",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value016",
+          "valueType": "xs:int",
+          "value": "16",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value017",
+          "valueType": "xs:int",
+          "value": "17",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value018",
+          "valueType": "xs:int",
+          "value": "18",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value019",
+          "valueType": "xs:int",
+          "value": "19",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value020",
+          "valueType": "xs:int",
+          "value": "20",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value021",
+          "valueType": "xs:int",
+          "value": "21",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value022",
+          "valueType": "xs:int",
+          "value": "22",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value023",
+          "valueType": "xs:int",
+          "value": "23",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value024",
+          "valueType": "xs:int",
+          "value": "24",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value025",
+          "valueType": "xs:int",
+          "value": "25",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value026",
+          "valueType": "xs:int",
+          "value": "26",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value027",
+          "valueType": "xs:int",
+          "value": "27",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value028",
+          "valueType": "xs:int",
+          "value": "28",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value029",
+          "valueType": "xs:int",
+          "value": "29",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value030",
+          "valueType": "xs:int",
+          "value": "30",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value031",
+          "valueType": "xs:int",
+          "value": "31",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value032",
+          "valueType": "xs:int",
+          "value": "32",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value033",
+          "valueType": "xs:int",
+          "value": "33",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value034",
+          "valueType": "xs:int",
+          "value": "34",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value035",
+          "valueType": "xs:int",
+          "value": "35",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value036",
+          "valueType": "xs:int",
+          "value": "36",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value037",
+          "valueType": "xs:int",
+          "value": "37",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value038",
+          "valueType": "xs:int",
+          "value": "38",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value039",
+          "valueType": "xs:int",
+          "value": "39",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value040",
+          "valueType": "xs:int",
+          "value": "40",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value041",
+          "valueType": "xs:int",
+          "value": "41",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value042",
+          "valueType": "xs:int",
+          "value": "42",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value043",
+          "valueType": "xs:int",
+          "value": "43",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value044",
+          "valueType": "xs:int",
+          "value": "44",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value045",
+          "valueType": "xs:int",
+          "value": "45",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value046",
+          "valueType": "xs:int",
+          "value": "46",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value047",
+          "valueType": "xs:int",
+          "value": "47",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value048",
+          "valueType": "xs:int",
+          "value": "48",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value049",
+          "valueType": "xs:int",
+          "value": "49",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value050",
+          "valueType": "xs:int",
+          "value": "50",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value051",
+          "valueType": "xs:int",
+          "value": "51",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value052",
+          "valueType": "xs:int",
+          "value": "52",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value053",
+          "valueType": "xs:int",
+          "value": "53",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value054",
+          "valueType": "xs:int",
+          "value": "54",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value055",
+          "valueType": "xs:int",
+          "value": "55",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value056",
+          "valueType": "xs:int",
+          "value": "56",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value057",
+          "valueType": "xs:int",
+          "value": "57",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value058",
+          "valueType": "xs:int",
+          "value": "58",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value059",
+          "valueType": "xs:int",
+          "value": "59",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value060",
+          "valueType": "xs:int",
+          "value": "60",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value061",
+          "valueType": "xs:int",
+          "value": "61",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value062",
+          "valueType": "xs:int",
+          "value": "62",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value063",
+          "valueType": "xs:int",
+          "value": "63",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value064",
+          "valueType": "xs:int",
+          "value": "64",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value065",
+          "valueType": "xs:int",
+          "value": "65",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value066",
+          "valueType": "xs:int",
+          "value": "66",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value067",
+          "valueType": "xs:int",
+          "value": "67",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value068",
+          "valueType": "xs:int",
+          "value": "68",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value069",
+          "valueType": "xs:int",
+          "value": "69",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value070",
+          "valueType": "xs:int",
+          "value": "70",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value071",
+          "valueType": "xs:int",
+          "value": "71",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value072",
+          "valueType": "xs:int",
+          "value": "72",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value073",
+          "valueType": "xs:int",
+          "value": "73",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value074",
+          "valueType": "xs:int",
+          "value": "74",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value075",
+          "valueType": "xs:int",
+          "value": "75",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value076",
+          "valueType": "xs:int",
+          "value": "76",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value077",
+          "valueType": "xs:int",
+          "value": "77",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value078",
+          "valueType": "xs:int",
+          "value": "78",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value079",
+          "valueType": "xs:int",
+          "value": "79",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value080",
+          "valueType": "xs:int",
+          "value": "80",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value081",
+          "valueType": "xs:int",
+          "value": "81",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value082",
+          "valueType": "xs:int",
+          "value": "82",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value083",
+          "valueType": "xs:int",
+          "value": "83",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value084",
+          "valueType": "xs:int",
+          "value": "84",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value085",
+          "valueType": "xs:int",
+          "value": "85",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value086",
+          "valueType": "xs:int",
+          "value": "86",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value087",
+          "valueType": "xs:int",
+          "value": "87",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value088",
+          "valueType": "xs:int",
+          "value": "88",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value089",
+          "valueType": "xs:int",
+          "value": "89",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value090",
+          "valueType": "xs:int",
+          "value": "90",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value091",
+          "valueType": "xs:int",
+          "value": "91",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value092",
+          "valueType": "xs:int",
+          "value": "92",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value093",
+          "valueType": "xs:int",
+          "value": "93",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value094",
+          "valueType": "xs:int",
+          "value": "94",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value095",
+          "valueType": "xs:int",
+          "value": "95",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value096",
+          "valueType": "xs:int",
+          "value": "96",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value097",
+          "valueType": "xs:int",
+          "value": "97",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value098",
+          "valueType": "xs:int",
+          "value": "98",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value099",
+          "valueType": "xs:int",
+          "value": "99",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value100",
+          "valueType": "xs:int",
+          "value": "100",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value101",
+          "valueType": "xs:int",
+          "value": "101",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value102",
+          "valueType": "xs:int",
+          "value": "102",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value103",
+          "valueType": "xs:int",
+          "value": "103",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value104",
+          "valueType": "xs:int",
+          "value": "104",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value105",
+          "valueType": "xs:int",
+          "value": "105",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value106",
+          "valueType": "xs:int",
+          "value": "106",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value107",
+          "valueType": "xs:int",
+          "value": "107",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value108",
+          "valueType": "xs:int",
+          "value": "108",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value109",
+          "valueType": "xs:int",
+          "value": "109",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value110",
+          "valueType": "xs:int",
+          "value": "110",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value111",
+          "valueType": "xs:int",
+          "value": "111",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value112",
+          "valueType": "xs:int",
+          "value": "112",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value113",
+          "valueType": "xs:int",
+          "value": "113",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value114",
+          "valueType": "xs:int",
+          "value": "114",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value115",
+          "valueType": "xs:int",
+          "value": "115",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value116",
+          "valueType": "xs:int",
+          "value": "116",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value117",
+          "valueType": "xs:int",
+          "value": "117",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value118",
+          "valueType": "xs:int",
+          "value": "118",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value119",
+          "valueType": "xs:int",
+          "value": "119",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value120",
+          "valueType": "xs:int",
+          "value": "120",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value121",
+          "valueType": "xs:int",
+          "value": "121",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value122",
+          "valueType": "xs:int",
+          "value": "122",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value123",
+          "valueType": "xs:int",
+          "value": "123",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value124",
+          "valueType": "xs:int",
+          "value": "124",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value125",
+          "valueType": "xs:int",
+          "value": "125",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value126",
+          "valueType": "xs:int",
+          "value": "126",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value127",
+          "valueType": "xs:int",
+          "value": "127",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value128",
+          "valueType": "xs:int",
+          "value": "128",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value129",
+          "valueType": "xs:int",
+          "value": "129",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value130",
+          "valueType": "xs:int",
+          "value": "130",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value131",
+          "valueType": "xs:int",
+          "value": "131",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value132",
+          "valueType": "xs:int",
+          "value": "132",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value133",
+          "valueType": "xs:int",
+          "value": "133",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value134",
+          "valueType": "xs:int",
+          "value": "134",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value135",
+          "valueType": "xs:int",
+          "value": "135",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value136",
+          "valueType": "xs:int",
+          "value": "136",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value137",
+          "valueType": "xs:int",
+          "value": "137",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value138",
+          "valueType": "xs:int",
+          "value": "138",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value139",
+          "valueType": "xs:int",
+          "value": "139",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value140",
+          "valueType": "xs:int",
+          "value": "140",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value141",
+          "valueType": "xs:int",
+          "value": "141",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value142",
+          "valueType": "xs:int",
+          "value": "142",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value143",
+          "valueType": "xs:int",
+          "value": "143",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value144",
+          "valueType": "xs:int",
+          "value": "144",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value145",
+          "valueType": "xs:int",
+          "value": "145",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value146",
+          "valueType": "xs:int",
+          "value": "146",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value147",
+          "valueType": "xs:int",
+          "value": "147",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value148",
+          "valueType": "xs:int",
+          "value": "148",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value149",
+          "valueType": "xs:int",
+          "value": "149",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value150",
+          "valueType": "xs:int",
+          "value": "150",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value151",
+          "valueType": "xs:int",
+          "value": "151",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value152",
+          "valueType": "xs:int",
+          "value": "152",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value153",
+          "valueType": "xs:int",
+          "value": "153",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value154",
+          "valueType": "xs:int",
+          "value": "154",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value155",
+          "valueType": "xs:int",
+          "value": "155",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value156",
+          "valueType": "xs:int",
+          "value": "156",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value157",
+          "valueType": "xs:int",
+          "value": "157",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value158",
+          "valueType": "xs:int",
+          "value": "158",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value159",
+          "valueType": "xs:int",
+          "value": "159",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value160",
+          "valueType": "xs:int",
+          "value": "160",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value161",
+          "valueType": "xs:int",
+          "value": "161",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value162",
+          "valueType": "xs:int",
+          "value": "162",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value163",
+          "valueType": "xs:int",
+          "value": "163",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value164",
+          "valueType": "xs:int",
+          "value": "164",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value165",
+          "valueType": "xs:int",
+          "value": "165",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value166",
+          "valueType": "xs:int",
+          "value": "166",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value167",
+          "valueType": "xs:int",
+          "value": "167",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value168",
+          "valueType": "xs:int",
+          "value": "168",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value169",
+          "valueType": "xs:int",
+          "value": "169",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value170",
+          "valueType": "xs:int",
+          "value": "170",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value171",
+          "valueType": "xs:int",
+          "value": "171",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value172",
+          "valueType": "xs:int",
+          "value": "172",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value173",
+          "valueType": "xs:int",
+          "value": "173",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value174",
+          "valueType": "xs:int",
+          "value": "174",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value175",
+          "valueType": "xs:int",
+          "value": "175",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value176",
+          "valueType": "xs:int",
+          "value": "176",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value177",
+          "valueType": "xs:int",
+          "value": "177",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value178",
+          "valueType": "xs:int",
+          "value": "178",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value179",
+          "valueType": "xs:int",
+          "value": "179",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value180",
+          "valueType": "xs:int",
+          "value": "180",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value181",
+          "valueType": "xs:int",
+          "value": "181",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value182",
+          "valueType": "xs:int",
+          "value": "182",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value183",
+          "valueType": "xs:int",
+          "value": "183",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value184",
+          "valueType": "xs:int",
+          "value": "184",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value185",
+          "valueType": "xs:int",
+          "value": "185",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value186",
+          "valueType": "xs:int",
+          "value": "186",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value187",
+          "valueType": "xs:int",
+          "value": "187",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value188",
+          "valueType": "xs:int",
+          "value": "188",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value189",
+          "valueType": "xs:int",
+          "value": "189",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value190",
+          "valueType": "xs:int",
+          "value": "190",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value191",
+          "valueType": "xs:int",
+          "value": "191",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value192",
+          "valueType": "xs:int",
+          "value": "192",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value193",
+          "valueType": "xs:int",
+          "value": "193",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value194",
+          "valueType": "xs:int",
+          "value": "194",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value195",
+          "valueType": "xs:int",
+          "value": "195",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value196",
+          "valueType": "xs:int",
+          "value": "196",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value197",
+          "valueType": "xs:int",
+          "value": "197",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value198",
+          "valueType": "xs:int",
+          "value": "198",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value199",
+          "valueType": "xs:int",
+          "value": "199",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value200",
+          "valueType": "xs:int",
+          "value": "200",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value201",
+          "valueType": "xs:int",
+          "value": "201",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value202",
+          "valueType": "xs:int",
+          "value": "202",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value203",
+          "valueType": "xs:int",
+          "value": "203",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value204",
+          "valueType": "xs:int",
+          "value": "204",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value205",
+          "valueType": "xs:int",
+          "value": "205",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value206",
+          "valueType": "xs:int",
+          "value": "206",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value207",
+          "valueType": "xs:int",
+          "value": "207",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value208",
+          "valueType": "xs:int",
+          "value": "208",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value209",
+          "valueType": "xs:int",
+          "value": "209",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value210",
+          "valueType": "xs:int",
+          "value": "210",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value211",
+          "valueType": "xs:int",
+          "value": "211",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value212",
+          "valueType": "xs:int",
+          "value": "212",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value213",
+          "valueType": "xs:int",
+          "value": "213",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value214",
+          "valueType": "xs:int",
+          "value": "214",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value215",
+          "valueType": "xs:int",
+          "value": "215",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value216",
+          "valueType": "xs:int",
+          "value": "216",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value217",
+          "valueType": "xs:int",
+          "value": "217",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value218",
+          "valueType": "xs:int",
+          "value": "218",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value219",
+          "valueType": "xs:int",
+          "value": "219",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value220",
+          "valueType": "xs:int",
+          "value": "220",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value221",
+          "valueType": "xs:int",
+          "value": "221",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value222",
+          "valueType": "xs:int",
+          "value": "222",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value223",
+          "valueType": "xs:int",
+          "value": "223",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value224",
+          "valueType": "xs:int",
+          "value": "224",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value225",
+          "valueType": "xs:int",
+          "value": "225",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value226",
+          "valueType": "xs:int",
+          "value": "226",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value227",
+          "valueType": "xs:int",
+          "value": "227",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value228",
+          "valueType": "xs:int",
+          "value": "228",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value229",
+          "valueType": "xs:int",
+          "value": "229",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value230",
+          "valueType": "xs:int",
+          "value": "230",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value231",
+          "valueType": "xs:int",
+          "value": "231",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value232",
+          "valueType": "xs:int",
+          "value": "232",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value233",
+          "valueType": "xs:int",
+          "value": "233",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value234",
+          "valueType": "xs:int",
+          "value": "234",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value235",
+          "valueType": "xs:int",
+          "value": "235",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value236",
+          "valueType": "xs:int",
+          "value": "236",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value237",
+          "valueType": "xs:int",
+          "value": "237",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value238",
+          "valueType": "xs:int",
+          "value": "238",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value239",
+          "valueType": "xs:int",
+          "value": "239",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value240",
+          "valueType": "xs:int",
+          "value": "240",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value241",
+          "valueType": "xs:int",
+          "value": "241",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value242",
+          "valueType": "xs:int",
+          "value": "242",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value243",
+          "valueType": "xs:int",
+          "value": "243",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value244",
+          "valueType": "xs:int",
+          "value": "244",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value245",
+          "valueType": "xs:int",
+          "value": "245",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value246",
+          "valueType": "xs:int",
+          "value": "246",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value247",
+          "valueType": "xs:int",
+          "value": "247",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value248",
+          "valueType": "xs:int",
+          "value": "248",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value249",
+          "valueType": "xs:int",
+          "value": "249",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value250",
+          "valueType": "xs:int",
+          "value": "250",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value251",
+          "valueType": "xs:int",
+          "value": "251",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value252",
+          "valueType": "xs:int",
+          "value": "252",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value253",
+          "valueType": "xs:int",
+          "value": "253",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value254",
+          "valueType": "xs:int",
+          "value": "254",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value255",
+          "valueType": "xs:int",
+          "value": "255",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value256",
+          "valueType": "xs:int",
+          "value": "256",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value257",
+          "valueType": "xs:int",
+          "value": "257",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value258",
+          "valueType": "xs:int",
+          "value": "258",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value259",
+          "valueType": "xs:int",
+          "value": "259",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value260",
+          "valueType": "xs:int",
+          "value": "260",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value261",
+          "valueType": "xs:int",
+          "value": "261",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value262",
+          "valueType": "xs:int",
+          "value": "262",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value263",
+          "valueType": "xs:int",
+          "value": "263",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value264",
+          "valueType": "xs:int",
+          "value": "264",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value265",
+          "valueType": "xs:int",
+          "value": "265",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value266",
+          "valueType": "xs:int",
+          "value": "266",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value267",
+          "valueType": "xs:int",
+          "value": "267",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value268",
+          "valueType": "xs:int",
+          "value": "268",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value269",
+          "valueType": "xs:int",
+          "value": "269",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value270",
+          "valueType": "xs:int",
+          "value": "270",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value271",
+          "valueType": "xs:int",
+          "value": "271",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value272",
+          "valueType": "xs:int",
+          "value": "272",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value273",
+          "valueType": "xs:int",
+          "value": "273",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value274",
+          "valueType": "xs:int",
+          "value": "274",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value275",
+          "valueType": "xs:int",
+          "value": "275",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value276",
+          "valueType": "xs:int",
+          "value": "276",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value277",
+          "valueType": "xs:int",
+          "value": "277",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value278",
+          "valueType": "xs:int",
+          "value": "278",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value279",
+          "valueType": "xs:int",
+          "value": "279",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value280",
+          "valueType": "xs:int",
+          "value": "280",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value281",
+          "valueType": "xs:int",
+          "value": "281",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value282",
+          "valueType": "xs:int",
+          "value": "282",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value283",
+          "valueType": "xs:int",
+          "value": "283",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value284",
+          "valueType": "xs:int",
+          "value": "284",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value285",
+          "valueType": "xs:int",
+          "value": "285",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value286",
+          "valueType": "xs:int",
+          "value": "286",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value287",
+          "valueType": "xs:int",
+          "value": "287",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value288",
+          "valueType": "xs:int",
+          "value": "288",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value289",
+          "valueType": "xs:int",
+          "value": "289",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value290",
+          "valueType": "xs:int",
+          "value": "290",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value291",
+          "valueType": "xs:int",
+          "value": "291",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value292",
+          "valueType": "xs:int",
+          "value": "292",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value293",
+          "valueType": "xs:int",
+          "value": "293",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value294",
+          "valueType": "xs:int",
+          "value": "294",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value295",
+          "valueType": "xs:int",
+          "value": "295",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value296",
+          "valueType": "xs:int",
+          "value": "296",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value297",
+          "valueType": "xs:int",
+          "value": "297",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value298",
+          "valueType": "xs:int",
+          "value": "298",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Value299",
+          "valueType": "xs:int",
+          "value": "299",
+          "modelType": "Property"
+        }
+      ],
+      "modelType": "Submodel"
+    }
+  ]
+}

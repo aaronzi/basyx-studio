@@ -1,0 +1,115 @@
+{
+  "assetAdministrationShells": [
+    {
+      "idShort": "SecuredPublicShell",
+      "id": "urn:studio:test:secured:aas:public",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:secured:asset:public"
+      },
+      "submodels": [
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:secured:sm:public-nameplate"
+            }
+          ]
+        },
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:secured:sm:restricted-costs"
+            }
+          ]
+        }
+      ],
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "SecuredInternalShell",
+      "id": "urn:studio:test:secured:aas:internal",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:secured:asset:internal"
+      },
+      "submodels": [
+        {
+          "type": "ModelReference",
+          "keys": [
+            {
+              "type": "Submodel",
+              "value": "urn:studio:test:secured:sm:internal-data"
+            }
+          ]
+        }
+      ],
+      "modelType": "AssetAdministrationShell"
+    }
+  ],
+  "submodels": [
+    {
+      "idShort": "Nameplate",
+      "id": "urn:studio:test:secured:sm:public-nameplate",
+      "kind": "Instance",
+      "submodelElements": [
+        {
+          "idShort": "ManufacturerName",
+          "valueType": "xs:string",
+          "value": "Secured Test Manufacturer",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "SerialNumber",
+          "valueType": "xs:string",
+          "value": "SEC-0001",
+          "modelType": "Property"
+        }
+      ],
+      "modelType": "Submodel"
+    },
+    {
+      "idShort": "Costs",
+      "id": "urn:studio:test:secured:sm:restricted-costs",
+      "kind": "Instance",
+      "submodelElements": [
+        {
+          "idShort": "UnitCost",
+          "valueType": "xs:decimal",
+          "value": "1234.50",
+          "modelType": "Property"
+        },
+        {
+          "idShort": "Currency",
+          "valueType": "xs:string",
+          "value": "EUR",
+          "modelType": "Property"
+        }
+      ],
+      "modelType": "Submodel"
+    },
+    {
+      "idShort": "InternalData",
+      "id": "urn:studio:test:secured:sm:internal-data",
+      "kind": "Instance",
+      "submodelElements": [
+        {
+          "idShort": "Maintenance",
+          "value": [
+            {
+              "idShort": "LastService",
+              "valueType": "xs:date",
+              "value": "2026-09-01",
+              "modelType": "Property"
+            }
+          ],
+          "modelType": "SubmodelElementCollection"
+        }
+      ],
+      "modelType": "Submodel"
+    }
+  ]
+}
