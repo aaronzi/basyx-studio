@@ -1,0 +1,101 @@
+name: Sync pnpm packageManager version
+
+on:
+  push:
+    branches:
+      - "dependabot/npm_and_yarn/**"
+    paths:
+      - "package.json"
+
+permissions:
+  contents: write
+
+jobs:
+  sync-pnpm-version:
+    runs-on: ubuntu-latest
+    # Only run when the push is made by Dependabot
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Use a token with write access to push back to the Dependabot branch.
+          # The default GITHUB_TOKEN is sufficient for branches in the same repo.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.ref }}
+
+      - name: Extract pnpm version from devDependencies
+        id: pnpm-version
+        run: |
+          VERSION=$(node -e "
+            const pkg = JSON.parse(require('fs').readFileSync('package.json', 'utf8'));
+            const raw = pkg.devDependencies?.pnpm;
+            if (!raw) { process.stderr.write('No pnpm devDependency found\n'); process.exit(1); }
+            // Strip leading range specifier (^, ~, >=, etc.)
+            const match = raw.match(/(\d+\.\d+\.\d+)/);
+            if (!match) { process.stderr.write('Cannot parse pnpm version: ' + raw + '\n'); process.exit(1); }
+            process.stdout.write(match[1]);
+          ")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected pnpm version: $VERSION"
+
+      - name: Fetch sha512 integrity for new pnpm version
+        id: pnpm-integrity
+        env:
+          VERSION: ${{ steps.pnpm-version.outputs.version }}
+        run: |
+          INTEGRITY=$(npm view "pnpm@${VERSION}" dist.integrity 2>/dev/null)
+          if [ -z "$INTEGRITY" ]; then
+            echo "Could not fetch integrity for pnpm@${VERSION}" >&2
+            exit 1
+          fi
+          # Corepack packageManager hashes use hex, while npm dist.integrity is SRI base64.
+          HASH=$(INTEGRITY="$INTEGRITY" node -e '
+            const integrity = process.env.INTEGRITY ?? "";
+            const match = integrity.match(/^sha512-(.+)$/);
+            if (!match) {
+              process.stderr.write(`Unexpected integrity format: ${integrity}\n`);
+              process.exit(1);
+            }
+            process.stdout.write(Buffer.from(match[1], "base64").toString("hex"));
+          ')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "sha512 hash: $HASH"
+
+      - name: Update packageManager field in package.json
+        env:
+          VERSION: ${{ steps.pnpm-version.outputs.version }}
+          HASH: ${{ steps.pnpm-integrity.outputs.hash }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = 'package.json';
+            const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+            pkg.packageManager = 'pnpm@' + process.env.VERSION + '+sha512.' + process.env.HASH;
+            fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Updated packageManager to pnpm@${VERSION}+sha512.${HASH}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "24"
+
+      - name: Sync pnpm lockfile
+        run: |
+          corepack enable pnpm
+          pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Commit packageManager and lockfile changes
+        env:
+          TARGET: ${{ steps.pnpm-version.outputs.version }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          if git diff --staged --quiet; then
+            echo "No pnpm sync changes to commit."
+          else
+            git commit -m "chore: sync packageManager to pnpm ${TARGET}"
+            git push
+          fi
