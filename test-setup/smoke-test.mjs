@@ -133,7 +133,7 @@ await check('BaSyx audience is only issued when the basyx-api scope is requested
 await check('Client-credentials token for the Studio deployment identity', () => {
   const claims = decodeJwt(tokens.service)
   expect([claims.aud].flat().includes('basyx-api'), `aud is ${JSON.stringify(claims.aud)}`)
-  expect(claims.roles?.includes('basyx-reader'), `roles is ${JSON.stringify(claims.roles)}`)
+  expect(claims.roles?.includes('basyx-editor'), `roles is ${JSON.stringify(claims.roles)}`)
   expect(service.refresh_token === undefined, 'client credentials should not return a refresh token')
   return `azp=${claims.azp} roles=${claims.roles}`
 })

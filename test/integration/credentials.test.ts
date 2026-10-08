@@ -68,6 +68,20 @@ describe.runIf(testenvAvailable)('CredentialBroker against the test environment'
     expect((await target.listShells(10, undefined)).items).toHaveLength(2)
   })
 
+  it('writes with the Studio identity of a client-credentials target', async () => {
+    const broker = new CredentialBroker(deps)
+    const record = await getInfrastructure(deps, 'service')
+    const target = new LiveAasTarget({ record, access: await broker.access(record, 'desktop-local'), policy: targetPolicy(deps, record), requestId: 'test', onUnauthorized: async () => {} })
+    const submodelId = 'urn:studio:test:secured:sm:public-nameplate'
+    const before = await target.element(submodelId, 'ManufacturerName')
+    const after = await target.setElementValue(submodelId, 'ManufacturerName', 'Written as Studio', before.revision)
+    try {
+      expect(after.value.value).toBe('Written as Studio')
+    } finally {
+      await target.setElementValue(submodelId, 'ManufacturerName', before.value.value as string, after.revision)
+    }
+  })
+
   it('requires per-user authorization and starts it with a loopback redirect for the public desktop client', async () => {
     const broker = new CredentialBroker(deps)
     const record = await getInfrastructure(deps, 'delegated')

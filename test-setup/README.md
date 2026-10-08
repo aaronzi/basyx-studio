@@ -83,7 +83,7 @@ startup through `GENERAL_AAS_PRECONFIG_PATHS`.
 | `dave` | `basyx-editor` | user | reads everything and may update existing resources (no create or delete) |
 | `carol` | `basyx-limited` | user | sees only `SecuredPublicShell`; sees both of its submodel references but gets **403** on `Costs` (partial access) |
 | `bob` | none | user | **403** on everything |
-| service account `studio-service` | `basyx-reader` | n/a | reads both shells |
+| service account `studio-service` | `basyx-editor` | n/a | reads both shells and may update existing resources |
 
 BaSyx Go behaviours that Studio must handle (all checked by the smoke test):
 
@@ -154,7 +154,7 @@ tokens, so Keycloak-specific assumptions fail early:
 | Realm role `studio-admin` | App role on the **Studio** app registration (appears in the ID token's `roles`) |
 | Client `studio-web` | App registration **Studio**:<br>• platform *Web*, redirect `https://<studio-host>/api/studio/v1/auth/callback`<br>• client secret or certificate<br>• delegated permission `access_as_user` on BaSyx API<br>• use a separate registration for `http://localhost:3000` development |
 | Client `studio-desktop` | Public app registration:<br>• platform *Mobile and desktop applications*<br>• redirect `http://localhost/api/studio/v1/auth/callback` (port ignored)<br>• delegated permission `access_as_user` |
-| Client `studio-service` (client credentials) | Studio's own registration or a separate one:<br>• *application* permission `basyx-reader` on BaSyx API, with admin consent<br>• token scope `api://<basyx-api>/.default` |
+| Client `studio-service` (client credentials) | Studio's own registration or a separate one:<br>• *application* permission `basyx-editor` on BaSyx API, with admin consent<br>• token scope `api://<basyx-api>/.default` |
 | BaSyx trustlist `audience: basyx-api` | `audience: <basyx-api-client-id>` |
 
 For BaSyx Go with Entra, see

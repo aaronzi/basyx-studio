@@ -268,7 +268,7 @@
       "username": "service-account-studio-service",
       "enabled": true,
       "serviceAccountClientId": "studio-service",
-      "realmRoles": ["basyx-reader"]
+      "realmRoles": ["basyx-editor"]
     }
   ]
 }

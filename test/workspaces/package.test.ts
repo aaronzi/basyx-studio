@@ -1,11 +1,30 @@
-import { readFile } from 'node:fs/promises'
+import { randomBytes } from 'node:crypto'
+import { mkdtemp, readFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { NewPackaging } from 'aas-package3-typescript'
 import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { isSafeEntryName } from '~~/server/lib/workspaces/archive'
 import { readPackage, writePackage } from '~~/server/lib/workspaces/package'
 
 const fixture = fileURLToPath(new URL('../../test-setup/fixtures/open/IESEDriveMotorDM3000.aasx', import.meta.url))
+const edgeCases = fileURLToPath(new URL('../../test-setup/fixtures/open/studio-edge-cases.json', import.meta.url))
+
+/** A JSON-spec package of the edge-case environment with one supplementary file. */
+async function edgeCasePackage (): Promise<Uint8Array> {
+  const pkg = await NewPackaging().Create(join(await mkdtemp(join(tmpdir(), 'studio-package-')), 'edge-cases.aasx'))
+  try {
+    const spec = await pkg.PutPart(new URL('https://package.local/aasx/edge-cases/edge-cases.json'), 'application/json', new Uint8Array(await readFile(edgeCases)))
+    await pkg.MakeSpec(spec)
+    const manual = await pkg.PutPart(new URL('https://package.local/aasx-suppl/edge-cases/manual.pdf'), 'application/pdf', randomBytes(4096))
+    await pkg.RelateSupplementaryToSpec(manual, spec)
+    return await pkg.Flush()
+  } finally {
+    pkg.Close()
+  }
+}
 
 async function partsOf (bytes: Uint8Array): Promise<Map<string, Uint8Array>> {
   const { pkg } = await readPackage(bytes)
@@ -39,6 +58,20 @@ describe('AASX packages', () => {
     const after = await partsOf(saved)
     expect([...after.keys()].toSorted()).toEqual([...before.keys()].toSorted())
     expect(before.size).toBeGreaterThan(0)
+    for (const [path, bytes] of before) {
+      expect(Buffer.from(after.get(path)!).equals(Buffer.from(bytes)), path).toBe(true)
+    }
+  })
+
+  it('round-trips a JSON package with every element kind', async () => {
+    const original = await edgeCasePackage()
+    const opened = await readPackage(original)
+    expect(opened.format).toBe('json')
+    const saved = await writePackage(opened, opened.environment)
+    expect((await readPackage(saved)).environment).toEqual(opened.environment)
+    const before = await partsOf(original)
+    const after = await partsOf(saved)
+    expect(before.size).toBe(1)
     for (const [path, bytes] of before) {
       expect(Buffer.from(after.get(path)!).equals(Buffer.from(bytes)), path).toBe(true)
     }
