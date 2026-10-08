@@ -7,12 +7,12 @@ import type { TargetAccess } from './credentials'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import { jsonization } from '@aas-core-works/aas-core3.1-typescript'
 import { AasRepositoryClient, Configuration, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
-import { encodeKey } from '../aas/keys'
+import { submodelIdOf, toShellSummary } from '../aas/shells'
 import { withValue } from '../aas/values'
 import { endpointUrl } from '../infrastructures'
 import { createGuardedFetch } from '../network/guarded-fetch'
 import { StudioProblem } from '../problem'
-import { contentHash, formatRevision, parseRevision } from './revision'
+import { contentHash, parseRevision, revisionOf } from './revision'
 
 type SdkResult<T>
   = | { success: true, data: T, statusCode?: number, etag?: string }
@@ -37,32 +37,6 @@ export interface LiveTargetOptions {
  */
 function toJson (value: types.Class): JsonObject {
   return jsonization.toJsonable(value) as JsonObject
-}
-
-function langStrings (value: unknown): Array<{ language: string, text: string }> {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is { language: string, text: string } => typeof entry?.language === 'string' && typeof entry?.text === 'string')
-    : []
-}
-
-export function toShellSummary (shell: JsonObject): ShellSummary {
-  const assetInformation = (shell.assetInformation ?? {}) as JsonObject
-  return {
-    key: encodeKey(String(shell.id)),
-    id: String(shell.id),
-    idShort: typeof shell.idShort === 'string' ? shell.idShort : null,
-    displayName: langStrings(shell.displayName),
-    description: langStrings(shell.description),
-    assetKind: typeof assetInformation.assetKind === 'string' ? assetInformation.assetKind : null,
-    globalAssetId: typeof assetInformation.globalAssetId === 'string' ? assetInformation.globalAssetId : null,
-  }
-}
-
-/** The submodel identifier of a submodel reference (`ModelReference` to a `Submodel`). */
-export function submodelIdOf (reference: JsonObject): string | null {
-  const keys = Array.isArray(reference.keys) ? reference.keys as JsonObject[] : []
-  const key = keys.findLast(entry => entry.type === 'Submodel') ?? keys[0]
-  return typeof key?.value === 'string' ? key.value : null
 }
 
 /** Live AAS target backed by `basyx-typescript-sdk`, scoped to one request. */
@@ -122,7 +96,7 @@ export class LiveAasTarget implements AasTarget {
 
   async element (submodelId: string, idShortPath: string): Promise<ElementSnapshot> {
     const { value, etag } = await this.#read(submodelId, idShortPath)
-    return { value, revision: formatRevision({ kind: 'hash', hash: contentHash(value) }), concurrency: etag ? 'strong' : 'best_effort' }
+    return { value, revision: revisionOf(value), concurrency: etag ? 'strong' : 'best_effort' }
   }
 
   /**
@@ -134,9 +108,6 @@ export class LiveAasTarget implements AasTarget {
    */
   async setElementValue (submodelId: string, idShortPath: string, value: ElementValueInput['value'], revision: string): Promise<ElementSnapshot> {
     const token = parseRevision(revision)
-    if (token.kind !== 'hash') {
-      throw new StudioProblem('invalid_request', 'The revision does not belong to this target.')
-    }
     for (let attempt = 1; ; attempt++) {
       const current = await this.#read(submodelId, idShortPath)
       if (contentHash(current.value) !== token.hash) {

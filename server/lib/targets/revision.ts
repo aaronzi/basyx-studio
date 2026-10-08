@@ -2,14 +2,14 @@ import { createHash } from 'node:crypto'
 import { StudioProblem } from '../problem'
 
 /**
- * Studio revision tokens are opaque to the UI:
- * - `h.<hash>`: hash of a live element as read. A write reads the element
- *   again, compares the hash, and writes conditionally on the fresh ETag;
- * - `w.<revision>`: revision of a desktop workspace model.
+ * Studio revision tokens are opaque to the UI. `h.<hash>` is the hash of an
+ * element as read: a write compares it with the element's current content
+ * before changing it. Live targets add the downstream ETag check for the
+ * write itself; workspaces check and write in one step.
  */
-export type RevisionToken
-  = | { kind: 'hash', hash: string }
-    | { kind: 'workspace', revision: number }
+export interface RevisionToken {
+  hash: string
+}
 
 const hashPattern = /^[\w-]{43}$/
 
@@ -31,8 +31,8 @@ export function contentHash (value: unknown): string {
   return createHash('sha256').update(canonical(value)).digest('base64url')
 }
 
-export function formatRevision (token: RevisionToken): string {
-  return token.kind === 'hash' ? `h.${token.hash}` : `w.${token.revision}`
+export function revisionOf (value: unknown): string {
+  return `h.${contentHash(value)}`
 }
 
 /** Parses an `If-Match` value as sent by the UI (quoted or bare). */
@@ -41,14 +41,9 @@ export function parseRevision (value: string | undefined): RevisionToken {
     throw new StudioProblem('precondition_required')
   }
   const text = value.trim().replace(/^"(.*)"$/, '$1')
-  const [kind, body, ...rest] = text.split('.')
-  if (rest.length === 0 && body) {
-    if (kind === 'h' && hashPattern.test(body)) {
-      return { kind: 'hash', hash: body }
-    }
-    if (kind === 'w' && /^\d{1,15}$/.test(body)) {
-      return { kind: 'workspace', revision: Number(body) }
-    }
+  const [kind, hash, ...rest] = text.split('.')
+  if (kind === 'h' && hash && rest.length === 0 && hashPattern.test(hash)) {
+    return { hash }
   }
   throw new StudioProblem('invalid_request', 'Malformed revision.')
 }

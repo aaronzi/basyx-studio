@@ -76,7 +76,15 @@
   "workspace": {
     "localFile": "Local AASX file",
     "unsaved": "Unsaved changes",
-    "saved": "Saved"
+    "saved": "Saved",
+    "open": "Open AASX file",
+    "save": "Save",
+    "saveAs": "Save as…",
+    "close": "Close",
+    "closeTitle": "Close {name}?",
+    "closeText": "The package has unsaved changes. They are lost if you close it now.",
+    "closeWithoutSaving": "Close without saving",
+    "cancel": "Cancel"
   },
   "variables": {
     "input": "Input variables",

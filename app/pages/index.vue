@@ -13,12 +13,26 @@
     </v-empty-state>
 
     <template v-else>
-      <div class="mb-6">
-        <h1 class="text-headline-medium">{{ t('home.title') }}</h1>
-        <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
+      <div class="d-flex flex-wrap align-start ga-4 mb-6">
+        <div>
+          <h1 class="text-headline-medium">{{ t('home.title') }}</h1>
+          <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
+        </div>
+
+        <v-spacer />
+
+        <v-btn-primary
+          v-if="bridge"
+          :loading="opening"
+          prepend-icon="mdi-folder-open-outline"
+          :text="t('workspace.open')"
+          @click="openPackage"
+        />
       </div>
 
       <ProblemAlert v-if="authError" class="mb-4" :error="authErrorProblem" />
+
+      <ProblemAlert v-if="openError" class="mb-4" :error="openError" />
 
       <ProblemAlert
         v-if="targets.error.value"
@@ -59,6 +73,7 @@
 
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
+  import type { DesktopBridge } from '~/composables/useDesktopBridge'
   import { useQuery } from '@pinia/colada'
   import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -84,6 +99,28 @@
     requestId: '-',
     retryable: false,
   }))
+
+  // Desktop only: open a local AASX package as a workspace target.
+  const bridge = ref<DesktopBridge | null>(null)
+  onMounted(() => (bridge.value = useDesktopBridge()))
+  const opening = ref(false)
+  const openError = ref<unknown>(null)
+
+  async function openPackage () {
+    opening.value = true
+    openError.value = null
+    try {
+      const grant = await bridge.value?.chooseAasxFile()
+      if (grant) {
+        const target = await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } })
+        await navigateTo(`/targets/${target.id}`)
+      }
+    } catch (error) {
+      openError.value = error
+    } finally {
+      opening.value = false
+    }
+  }
 
   const signingIn = ref(false)
   async function signIn () {

@@ -6,7 +6,9 @@ import type { RequestEvent } from 'nuxt/server'
 import { recordAudit } from '../lib/audit'
 import { getInfrastructure, targetPolicy } from '../lib/infrastructures'
 import { LiveAasTarget } from '../lib/targets/live-target'
+import { isWorkspaceId } from '../lib/workspaces/manager'
 import { requireActor } from './auth'
+import { requireWorkspaces } from './desktop'
 import { requestIdOf, routeParam } from './handler'
 import { useStudio } from './studio'
 
@@ -25,7 +27,24 @@ export interface OpenedTarget {
 export async function openTarget (event: RequestEvent): Promise<OpenedTarget> {
   const actor = await requireActor(event)
   const studio = await useStudio()
-  const record = await getInfrastructure(studio, routeParam(event, 'targetId'))
+  const targetId = routeParam(event, 'targetId')
+
+  if (isWorkspaceId(targetId)) {
+    return {
+      actor,
+      target: requireWorkspaces(studio).target(targetId),
+      auditWrite: (outcome, details) => recordAudit(studio, {
+        action: 'workspace.write',
+        outcome,
+        requestId: requestIdOf(event),
+        actorSubject: actor.subject,
+        targetId,
+        details,
+      }),
+    }
+  }
+
+  const record = await getInfrastructure(studio, targetId)
   const access = await studio.broker.access(record, actor.sessionId)
   const audit = (action: string, outcome: 'success' | 'failure', details: Record<string, unknown>) => recordAudit(studio, {
     action,

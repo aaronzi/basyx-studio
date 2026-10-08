@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { withValue } from '~~/server/lib/aas/values'
-import { contentHash, formatRevision, parseRevision } from '~~/server/lib/targets/revision'
+import { contentHash, parseRevision, revisionOf } from '~~/server/lib/targets/revision'
 
 const property = { idShort: 'Temperature', modelType: 'Property', valueType: 'xs:double', value: '21.5' }
 const title = { idShort: 'Title', modelType: 'MultiLanguageProperty', value: [{ language: 'en', text: 'Title' }] }
@@ -33,15 +33,15 @@ describe('revision tokens', () => {
     expect(contentHash({ a: 1 })).not.toBe(contentHash({ a: 2 }))
   })
 
-  it('round-trips hash and workspace revisions, quoted or bare', () => {
-    const hash = contentHash({ value: 'x' })
-    expect(parseRevision(`"${formatRevision({ kind: 'hash', hash })}"`)).toEqual({ kind: 'hash', hash })
-    expect(parseRevision('w.42')).toEqual({ kind: 'workspace', revision: 42 })
+  it('parses revisions, quoted or bare', () => {
+    const revision = revisionOf({ value: 'x' })
+    expect(parseRevision(`"${revision}"`)).toEqual({ hash: contentHash({ value: 'x' }) })
+    expect(parseRevision(revision)).toEqual({ hash: contentHash({ value: 'x' }) })
   })
 
   it('requires a revision and rejects malformed ones', () => {
     expect(() => parseRevision(undefined)).toThrow(expect.objectContaining({ code: 'precondition_required' }))
-    for (const value of ['h.short', 'w.x', 'x.1', 'h.', 'w.1.2']) {
+    for (const value of ['h.short', 'w.1', 'x.1', 'h.', `${revisionOf(1)}.x`]) {
       expect(() => parseRevision(value)).toThrow(expect.objectContaining({ code: 'invalid_request' }))
     }
   })

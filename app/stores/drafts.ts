@@ -36,5 +36,10 @@ export const useDraftStore = defineStore('drafts', () => {
     return Object.keys(drafts.value).filter(key => (JSON.parse(key) as string[])[0] === targetId).length
   }
 
-  return { drafts, get, set, discard, countFor }
+  /** Drops every draft of a target, e.g. when its workspace is closed. */
+  function discardTarget (targetId: string): void {
+    drafts.value = Object.fromEntries(Object.entries(drafts.value).filter(([key]) => (JSON.parse(key) as string[])[0] !== targetId))
+  }
+
+  return { drafts, get, set, discard, countFor, discardTarget }
 })
