@@ -31,16 +31,19 @@
     "DEFACLS": [
       { "name": "anonymous_read", "acl": { "USEATTRIBUTES": "anonymous_attr", "RIGHTS": ["READ"], "ACCESS": "ALLOW" } },
       { "name": "roles_read", "acl": { "USEATTRIBUTES": "roles_attr", "RIGHTS": ["READ"], "ACCESS": "ALLOW" } },
+      { "name": "roles_edit", "acl": { "USEATTRIBUTES": "roles_attr", "RIGHTS": ["READ", "UPDATE"], "ACCESS": "ALLOW" } },
       { "name": "roles_all", "acl": { "USEATTRIBUTES": "roles_attr", "RIGHTS": ["ALL"], "ACCESS": "ALLOW" } }
     ],
     "DEFFORMULAS": [
       { "name": "is_admin", "formula": { "$contains": [{ "$attribute": { "CLAIMPATH": "/roles" } }, { "$strVal": "basyx-admin" }] } },
       { "name": "is_reader", "formula": { "$contains": [{ "$attribute": { "CLAIMPATH": "/roles" } }, { "$strVal": "basyx-reader" }] } },
+      { "name": "is_editor", "formula": { "$contains": [{ "$attribute": { "CLAIMPATH": "/roles" } }, { "$strVal": "basyx-editor" }] } },
       { "name": "is_limited", "formula": { "$contains": [{ "$attribute": { "CLAIMPATH": "/roles" } }, { "$strVal": "basyx-limited" }] } }
     ],
     "rules": [
       { "USEACL": "anonymous_read", "USEOBJECTS": ["service_description"], "FORMULA": { "$boolean": true } },
       { "USEACL": "roles_read", "USEOBJECTS": ["all_api"], "USEFORMULA": "is_reader" },
+      { "USEACL": "roles_edit", "USEOBJECTS": ["all_api"], "USEFORMULA": "is_editor" },
       { "USEACL": "roles_read", "USEOBJECTS": ["limited_objects"], "USEFORMULA": "is_limited" },
       { "USEACL": "roles_all", "USEOBJECTS": ["all_api"], "USEFORMULA": "is_admin" }
     ]

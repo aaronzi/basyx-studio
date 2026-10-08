@@ -22,7 +22,10 @@ pnpm testenv:down    # stop and discard all data
 | `basyx-secured` | <http://localhost:18082> | BaSyx Go AAS environment with OIDC and ABAC |
 | `postgres` | `localhost:15432` | Database `studio` (user `studio` / `studio`) for hosted Studio metadata, plus the BaSyx databases |
 
-Images are pinned: BaSyx Go `1.1.0`, Keycloak `26.8.0`, PostgreSQL `18`.
+BaSyx Go runs the `SNAPSHOT` images of `main`, pulled on every start
+(`pull_policy: always`), so Studio is tested against upstream changes as they
+land, as the BaSyx TypeScript SDK's integration tests are. Keycloak (`26.8.0`)
+and PostgreSQL (`18`) are pinned.
 
 The issuer is `http://keycloak.localhost:18080/realms/basyx-studio`. It must be
 byte-identical for the browser, the Studio BFF and BaSyx Go. `*.localhost`
@@ -77,6 +80,7 @@ startup through `GENERAL_AAS_PRECONFIG_PATHS`.
 | --- | --- | --- | --- |
 | `studio-admin` | `studio-admin`, `basyx-admin` | admin | full access |
 | `alice` | `basyx-reader` | user | reads both shells and all submodels |
+| `dave` | `basyx-editor` | user | reads everything and may update existing resources (no create or delete) |
 | `carol` | `basyx-limited` | user | sees only `SecuredPublicShell`; sees both of its submodel references but gets **403** on `Costs` (partial access) |
 | `bob` | none | user | **403** on everything |
 | service account `studio-service` | `basyx-reader` | n/a | reads both shells |
@@ -89,8 +93,10 @@ BaSyx Go behaviours that Studio must handle (all checked by the smoke test):
 - **Invalid token or wrong audience gives 401.**
 - **List indexes in idShortPaths must be URL-encoded** (`Items%5B1%5D`), and
   this works.
-- **BaSyx Go 1.1.0 returns no `ETag`.** Conflict detection for editing (MVP-2)
-  needs another mechanism.
+- **Conditional requests (RFC 9110).** Reads of single resources return a
+  strong `ETag`; writes evaluate `If-Match` and answer `412` when it is stale.
+  A submodel element shares the revision of its submodel, and a `412` carries
+  no current `ETag`.
 
 ## IdP configuration per Studio runtime
 
