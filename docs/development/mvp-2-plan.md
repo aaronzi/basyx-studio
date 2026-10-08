@@ -1,6 +1,6 @@
 # MVP-2 plan: one edit on a live target and in a local AASX package
 
-- Status: Planned
+- Status: Implemented; decision gate pending (see [results](#results))
 - Date: 2026-10-08
 - Depends on: [MVP-1](mvp-1-plan.md) and its decision gate
 - Scope decision gate: the target abstraction and the write path are proven for
@@ -150,6 +150,116 @@ Run against the [test environment](../../test-setup/README.md):
 9. **MVP-1 gate closed.** The PGlite footprint is accepted by the maintainers,
    or the `embedded-postgres` fallback has been measured with the same schema.
 
+## Results
+
+The slice was implemented and verified on 2026-10-08 against the test
+environment (BaSyx Go `SNAPSHOT`) in the dev server, the hosted production
+build, and the packaged macOS arm64 app (unpacked, ad-hoc signed).
+
+| Definition of done | Status | Evidence |
+| --- | --- | --- |
+| 1. Shared contract | Done | Route handlers use `AasTarget`; the UI branches on `capabilities` and the optional `workspace` state, never on `kind` |
+| 2. Live edit | Done | `dave` (`basyx-editor`) on the secured target, the Studio service account (client credentials, now `basyx-editor`) and the open target: integration tests; web e2e edits and reloads |
+| 3. Forbidden write | Done | `alice` gets `target_forbidden` (integration test); the draft stays |
+| 4. Conflict | Done | Stale revision → `revision_conflict`; an edit to another element of the same submodel is not a conflict; *Apply mine anyway* overwrites deliberately (integration and web e2e); `best_effort` covered with the `ETag` removed |
+| 5. Desktop package | Done | Packaged-app e2e: open, edit, Save, Save As (original untouched), close prompts in the app and for the window |
+| 6. Package safety | Done | Path traversal, absolute names, more than 10 000 entries, a decompression bomb, non-ZIP files and invalid AAS XML are rejected; the worker keeps serving; a request over its time limit kills and restarts the worker |
+| 7. Round trip | Done | `IESEDriveMotorDM3000.aasx` (XML) and an edge-case JSON package: equal AAS content, byte-identical supplementary files |
+| 8. End-to-end in CI | Implemented | `pnpm test:e2e:web` and `pnpm test:e2e:desktop` pass locally (web: Chromium; desktop: packaged macOS app). CI runs both; the Linux desktop job (Xvfb, gnome-keyring) first runs on the MVP-2 pull request |
+| 9. MVP-1 gate closed | **Open** | The PGlite footprint decision is the maintainers' |
+
+Automated checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (unit, including
+the worker process), `pnpm test:integration` (98 tests), `pnpm testenv:smoke`
+(34 checks), and the two Playwright suites.
+
+### Findings and deviations
+
+**Concurrency**
+- The revision token is the hash of the element as read (`h.<hash>`). A write
+  reads the element again, compares the hash, and writes with `If-Match` on
+  the *fresh* BaSyx `ETag`; a 412 caused by another element of the submodel is
+  retried up to three times. The token never contains the downstream `ETag`,
+  so tokens do not go stale when unrelated elements change.
+- Workspaces use the same token. The worker checks and writes in one step, so
+  their concurrency is `strong`. There is no separate workspace revision token.
+- `concurrency` is reported per element read (`ElementDetail.concurrency`),
+  not as a target capability, because it depends on what the server sends.
+- The revision is in the response body as well as the `ETag` header: the UI's
+  fetch helper does not expose response headers.
+- A conflict answers `revision_conflict` without the current value; the UI
+  reloads the element to show it.
+
+**Writes**
+- Writes `PATCH` the whole element (`patchSubmodelElementByPath`) instead of the
+  value-only representation, which would need a JSON type per `valueType`.
+  The element is validated with AAS Core (including its language strings)
+  before it is sent.
+- The SDK accepts Studio's aas-core instances for writes, although it bundles
+  its own aas-core copy.
+
+**Desktop**
+- The Workspace Worker is a child process forked and supervised by the local
+  Studio Service, not an Electron `utilityProcess`: it then runs the same way
+  in `nuxt dev`, tests and the packaged app. It is bundled with esbuild
+  (`modules/workspace-worker.ts`) to `.output/server/workspace-worker.mjs`.
+- Package engine: `aas-package3-typescript` 1.0.0 with AAS Core 3.1. Studio
+  checks entry names, counts, declared sizes and compression ratios before the
+  library decompresses anything; the decompressor never writes more than an
+  entry's declared size. AAS Core's XML reader needs the XML declaration
+  removed first.
+- Only AAS 3.1 packages with exactly one spec part are opened; AAS 3.0 packages
+  are rejected with a clear message.
+- The library writes packages uncompressed (ZIP level 0), so a saved package
+  can be larger than the original (the fixture: 1.8 MB → 2.0 MB).
+- Native paths reach the service only from the Electron main process, as
+  single-use file grants authenticated with a broker secret that the renderer
+  never receives (`/desktop/file-grants`). `nuxt dev --envName electron` shares
+  the secret through the environment (`modules/desktop-dev.ts`).
+- Preventing a window close during a quit cancels the quit; the main process
+  resumes it after the unsaved-changes check.
+
+**API**
+
+Deviations from the `openapi.yaml` draft (the Zod schemas in `shared/contract`
+are authoritative):
+- `PUT /targets/{id}/submodels/{key}/elements/{elementKey}/value` with
+  `If-Match` (428 `precondition_required` without it);
+- new problem codes: `precondition_required`, `unsupported_operation`,
+  `validation_failed`, `workspace_unsaved_changes`, `package_rejected`;
+- `POST /workspaces {fileHandle}` opens a package (instead of
+  `/workspaces/imports` and `/activation`); `POST /workspaces/{id}/saves`,
+  `POST /workspaces/{id}/exports {fileHandle}` (Save As), and
+  `DELETE /workspaces/{id}?force=`;
+- `POST /desktop/file-grants` and `GET /desktop/state` for the Electron main
+  process only.
+
+**Test environment**
+- BaSyx Go runs `SNAPSHOT` images; the realm adds `basyx-editor` and the user
+  `dave`; the service account is an editor.
+- `EmptyValue` comes back as `""` after a write without a value, so a cleared
+  property reads as an empty string at BaSyx Go.
+
+**Not done yet**
+- PGlite footprint decision (DoD 9);
+- Windows and macOS e2e in CI; Windows and Linux packages beyond the CI build;
+- recovery snapshots, new packages, attachments, AAS 3.0 packages;
+- syncing the `openapi.yaml` draft.
+
+### Code map
+
+| Path | Content |
+| --- | --- |
+| `server/lib/targets/aas-target.ts` | The `AasTarget` interface |
+| `server/lib/targets/revision.ts` | Revision tokens |
+| `server/lib/aas/values.ts` | Value changes validated with AAS Core |
+| `server/lib/workspaces/` | Archive checks, package read/write, workspace model, worker, worker client, manager and file grants |
+| `server/workers/workspace-worker.ts` | Worker process entry |
+| `modules/` | Worker bundling, dev broker secret |
+| `electron/preload.ts` | The native bridge (two dialogs) |
+| `app/components/ElementValueEditor.vue`, `app/stores/drafts.ts` | Editor and drafts |
+| `app/components/WorkspaceActions.vue` | Save, Save As, Close |
+| `test/e2e/` | Playwright suites (web, desktop) |
+
 ## Phases
 
 | Phase | Content | Exit |
@@ -161,12 +271,14 @@ Run against the [test environment](../../test-setup/README.md):
 | 4. Workspace write | Apply, Save, Save As, close guard, round-trip suite | DoD 5, 7 |
 | 5. Wrap-up | Results section, ADR updates, `openapi.yaml` sync | DoD 8–9 documented |
 
-## ADRs to write during MVP-2
+## ADRs written during MVP-2
 
-- Revision tokens: `strong` and `best_effort` modes, and the retry after
-  submodel-level conflicts.
-- Desktop package engine and Workspace Worker process model.
-- Electron preload and IPC contract (first IPC surface, SEC-009).
+- [ADR 0013](../adr/0013-revision-tokens-and-conditional-writes.md): revision
+  tokens and conditional writes.
+- [ADR 0014](../adr/0014-workspace-worker-and-package-engine.md): Workspace
+  Worker process and package engine.
+- [ADR 0015](../adr/0015-desktop-native-bridge-and-file-grants.md): desktop
+  native bridge and file grants.
 
 ## Known risks
 

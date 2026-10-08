@@ -21,6 +21,9 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0010](0010-pnpm-only-supply-chain.md) | Accepted, amended by 0012 | PNPM-only package management with hardened supply-chain controls |
 | [0011](0011-single-postgresql-dialect-with-pglite.md) | Accepted | PostgreSQL as the only SQL dialect; embedded PGlite for desktop metadata |
 | [0012](0012-release-age-exceptions-for-basyx-packages.md) | Accepted | Exact-version release-age exceptions for reviewed Eclipse BaSyx packages |
+| [0013](0013-revision-tokens-and-conditional-writes.md) | Accepted | Element-hash revision tokens; conditional writes on the fresh downstream ETag |
+| [0014](0014-workspace-worker-and-package-engine.md) | Accepted | Supervised Workspace Worker process; aas-package3-typescript with archive checks |
+| [0015](0015-desktop-native-bridge-and-file-grants.md) | Accepted | Two-call preload bridge; single-use file grants from the Electron main process |
 
 ## Template
 
