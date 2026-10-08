@@ -35,6 +35,7 @@ MVP-2 adds both sources at once and keeps the edit itself small.
 | Revisions | The Studio API always uses `ETag` / `If-Match` with opaque Studio revision tokens. The adapter decides how strong the guarantee is (see [concurrency](#concurrency-on-live-targets)). |
 | Drafts | Per target and element in Pinia (ADR 0006); never in the query cache. A failed apply keeps the draft. |
 | Live targets | AAS and Submodel Repository only, as in MVP-1. |
+| Upstream versions | `basyx-typescript-sdk` ≥ 2.3.0. The test environment moves from BaSyx Go 1.1.0 to the first release that contains conditional requests, pinned by version; a `SNAPSHOT` image pinned by digest bridges the gap until then. |
 | Desktop workspace | Open an existing `.aasx`, edit, Save, Save As, close. No new packages, no attachments editing, no recovery snapshots. |
 | Hosted web | No workspace targets. The workspace capability is absent in hosted mode. |
 | Package engine | Chosen by a round-trip qualification in phase 0, run in a separate Electron `utilityProcess` (the Workspace Worker). |
@@ -43,30 +44,51 @@ MVP-2 adds both sources at once and keeps the edit itself small.
 
 ### Concurrency on live targets
 
-BaSyx Go 1.1.0 sends no `ETag`. `basyx-typescript-sdk` 2.2.5 has no per-call
-`If-Match` option and returns only the status code, not response headers.
-Studio can work around the SDK gap: a per-request `Configuration` carries the
-`If-Match` header, and the guarded fetch that already wraps every SDK request
-can capture the `ETag`. The live adapter has two modes:
+Upstream support landed on 2026-10-08:
 
-- **`best_effort` (today):** the revision token is a hash of the element as
-  Studio last read it. On apply, the BFF reads the element again, compares the
-  hash, and writes only if it matches; otherwise it returns `revision_conflict`
-  with the current value. A write by someone else between that check and the
-  write is not detected. The UI states this for targets in this mode.
-- **`strong` (once available):** the token is the downstream `ETag`, forwarded
-  as `If-Match`. A downstream `412` maps to `revision_conflict`.
+- BaSyx Go ([basyx-go-components#742](https://github.com/eclipse-basyx/basyx-go-components/pull/742),
+  closes [#737](https://github.com/eclipse-basyx/basyx-go-components/issues/737)):
+  strong `ETag`s, `If-Match` / `If-None-Match`, `412`, and an optional `428`
+  in all services. It is merged to `main` but not yet in a release (the latest
+  release, 1.1.1, predates it); it needs database schema `v1.2.3`.
+- `basyx-typescript-sdk` 2.3.0 ([basyx-typescript-sdk#547](https://github.com/eclipse-basyx/basyx-typescript-sdk/pull/547),
+  closes [#546](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/546)):
+  per-call `ifMatch` / `ifNoneMatch`, `etag` in every `ApiResult`, and
+  `preconditionFailed` / `preconditionRequired` flags. Published to npm on
+  2026-10-08; Studio's `minimumReleaseAge` allows installing it one day later.
+- The AAS API specification does not define ETags yet
+  ([aas-specs-api#691](https://github.com/admin-shell-io/aas-specs-api/issues/691)),
+  so other servers and older BaSyx Go versions send none.
 
-The adapter selects the mode per target from the response headers it sees, so
-no Studio change is needed when BaSyx Go adds ETags. Upstream requests:
+BaSyx Go semantics that shape the adapter:
 
-- BaSyx Go: `ETag` and conditional requests in all services
-  ([basyx-go-components#737](https://github.com/eclipse-basyx/basyx-go-components/issues/737)).
-- `basyx-typescript-sdk`: per-call `ifMatch` / `ifNoneMatch` options and the
-  `ETag` in `ApiResult`
-  ([basyx-typescript-sdk#546](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/546)).
-- AAS API specification: ETags and conditional requests in IDTA-01002
-  ([aas-specs-api#691](https://github.com/admin-shell-io/aas-specs-api/issues/691)).
+- **One revision per top-level resource.** A submodel element shares the
+  revision of its submodel. A tag read from an element works as `If-Match` for
+  writes to that element, because writes compare only the revision part.
+- **Coarse conflicts.** A change to *any* element of the submodel invalidates
+  the tag, so two users editing different properties of one submodel conflict.
+- **`412` carries no current tag.** The current state must be read again.
+- **`PATCH` returns the new tag; `PUT` does not.** JSON representations above
+  16 MiB are streamed without a tag.
+
+The live adapter therefore has two modes, selected per read from whether the
+downstream response carries an `ETag`:
+
+- **`strong`:** the Studio revision token holds the downstream `ETag` and a
+  hash of the element as read. Apply sends the tag through the SDK's `ifMatch`.
+  On `preconditionFailed`, the BFF reads the element again: if its value still
+  equals the hashed base, the conflict came from another element of the same
+  submodel, and the BFF retries once with the new tag (still conditional, so a
+  concurrent change is still detected). Otherwise it returns
+  `revision_conflict` with the current value.
+- **`best_effort`:** for targets without `ETag`. The token is only the element
+  hash. On apply, the BFF reads the element again, compares the hash, and writes
+  unconditionally if it matches. A write by someone else between that check and
+  the write is not detected; the UI states this for these targets.
+
+After a successful apply, the BFF reads the element again and returns the stored
+(normalized) value with a fresh token. `preconditionRequired` (a target that
+requires `If-Match`) maps to a typed problem; it cannot occur in `strong` mode.
 
 ### Workspace semantics
 
@@ -108,8 +130,10 @@ Run against the [test environment](../../test-setup/README.md):
 3. **Forbidden write.** `alice` (`basyx-reader`) edits a property; apply returns
    `target_forbidden`, the draft remains, and reading still works.
 4. **Conflict.** Two sessions edit the same property; the second apply gets
-   `revision_conflict` with the current value and keeps its draft. The test also
-   documents the remaining `best_effort` race window.
+   `revision_conflict` with the current value and keeps its draft. Two sessions
+   editing *different* properties of one submodel both succeed (retry after the
+   submodel-level `412`). An integration test with the `ETag` header removed
+   covers `best_effort` and documents its race window.
 5. **Desktop package.** In the packaged app, open
    `IESEDriveMotorDM3000.aasx`, edit a property, Save, close, reopen: the value
    persists. Save As writes a second file and leaves the first unchanged.
@@ -130,7 +154,7 @@ Run against the [test environment](../../test-setup/README.md):
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| 0. Decisions and harness | PGlite footprint decision; package-engine round-trip qualification; Playwright harness for both runtimes with the MVP-1 flows | Engine chosen; e2e green in CI |
+| 0. Decisions and harness | PGlite footprint decision; package-engine round-trip qualification; Playwright harness for both runtimes with the MVP-1 flows; upgrade to `basyx-typescript-sdk` 2.3.0 and a BaSyx Go image with conditional requests | Engine chosen; e2e green in CI; smoke test checks `ETag` and `412` |
 | 1. Target contract | `AasTarget` interface, target router, capabilities in the contract, `kind` union; no behavior change | MVP-1 tests and e2e unchanged and green |
 | 2. Live write | Revision tokens, value `PUT`, conflict and forbidden handling, draft store, edit UI for `Property` and `MultiLanguageProperty` | DoD 2–4 |
 | 3. Workspace read | Preload and IPC handles, Workspace Worker process with supervision, open and browse a package, import limits | DoD 1, 6 |
@@ -139,8 +163,8 @@ Run against the [test environment](../../test-setup/README.md):
 
 ## ADRs to write during MVP-2
 
-- Revision tokens and the `best_effort` concurrency mode for targets without
-  `ETag`.
+- Revision tokens: `strong` and `best_effort` modes, and the retry after
+  submodel-level conflicts.
 - Desktop package engine and Workspace Worker process model.
 - Electron preload and IPC contract (first IPC surface, SEC-009).
 
@@ -148,8 +172,9 @@ Run against the [test environment](../../test-setup/README.md):
 
 | Risk | Mitigation |
 | --- | --- |
-| No downstream `ETag` makes live conflicts detectable only on a best-effort basis | Explicit `best_effort` capability shown in the UI; upstream issue; switch to `strong` automatically when headers appear |
-| The SDK has no `If-Match` option and drops the `ETag` | Per-request `Configuration` headers and the guarded fetch cover it until the upstream SDK change lands |
+| BaSyx Go releases conditional requests later than MVP-2 needs them | `SNAPSHOT` image pinned by digest in the test environment; switch to the release when it appears |
+| Submodel-level revisions cause conflicts between unrelated edits | Retry once when the element itself is unchanged; ask BaSyx Go for element-level revisions only if retries show up in practice |
+| Targets without `ETag` (other servers, older BaSyx Go) | Explicit `best_effort` capability shown in the UI; the specification proposal aims to make ETags common |
 | No TypeScript AASX library passes the round-trip qualification | Qualify early in phase 0; fall back to the aas-core JSON/XML de/serializers plus an OPC zip layer owned by the Worker |
 | Electron e2e is flaky on CI (`xvfb`, startup time) | Start with Linux only; keep macOS packaged checks manual until stable |
 | The first preload widens the renderer attack surface | Two calls, schema-validated in both directions, handles instead of paths, covered by security tests |

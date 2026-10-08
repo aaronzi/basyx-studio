@@ -44,7 +44,7 @@ porting.
 | UI isolation | Sandboxed `iframe` without `allow-same-origin`, on a separate origin: a configured app host name in hosted mode, a `studio-app:` protocol registered on the renderer session in Electron. Strict CSP per app. |
 | Bridge | `postMessage` over a `MessageChannel`, versioned protocol `studio-sdk/0`, every message validated with Zod on the host side. |
 | Studio SDK | `@basyx/studio-sdk` as a pnpm workspace package in this repository: RPC client, types, and context helpers. Published to npm later. |
-| Capabilities | `studio.ui.context` (target, shell, submodel, element, locale, theme tokens), `studio.ui.notify`, `studio.aas.getShell`, `studio.aas.getSubmodel`, `studio.aas.getElement`, `studio.aas.setElementValue` (MVP-2 write path, with revision tokens). |
+| Capabilities | `studio.ui.context` (target, shell, submodel, element, locale, theme tokens), `studio.ui.notify`, `studio.aas.getShell`, `studio.aas.getSubmodel`, `studio.aas.getElement`, `studio.aas.setElementValue` (MVP-2 write path: apps pass the revision token from `getElement` and get the same `strong` or `best_effort` semantics as the core UI). |
 | Authorization | Every call is checked against the installed manifest *and* the signed-in user's target access, then audited with the app identity. An app never gains rights the user lacks. |
 | Installation scope | Hosted: deployment-wide, by `studio-admin`. Desktop: current OS user. Per-user or per-group visibility (SEC-006) is out of scope. |
 | Runtime install | Install, update and uninstall change only database rows and app files. The Studio Service and the renderer bundle are not rebuilt or restarted. Open sessions pick up changes through query invalidation. |
@@ -141,5 +141,8 @@ backend apps.
 
 - Port BaSyx AAS Web UI components and modules according to the classification.
 - Registry and discovery resolution.
-- Cross-target AAS copy.
+- Cross-target AAS copy. With BaSyx Go conditional requests, the default
+  `fail_without_changes` policy can write with `If-None-Match: *` (create-only
+  `PUT`), so a resource created concurrently in the destination is never
+  overwritten.
 - Marketplace: catalogue, signed OCI artifacts, updates, rollback, visibility.
