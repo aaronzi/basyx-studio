@@ -35,7 +35,7 @@ MVP-2 adds both sources at once and keeps the edit itself small.
 | Revisions | The Studio API always uses `ETag` / `If-Match` with opaque Studio revision tokens. The adapter decides how strong the guarantee is (see [concurrency](#concurrency-on-live-targets)). |
 | Drafts | Per target and element in Pinia (ADR 0006); never in the query cache. A failed apply keeps the draft. |
 | Live targets | AAS and Submodel Repository only, as in MVP-1. |
-| Upstream versions | `basyx-typescript-sdk` ≥ 2.3.0. The test environment moves from BaSyx Go 1.1.0 to the first release that contains conditional requests, pinned by version; a `SNAPSHOT` image pinned by digest bridges the gap until then. |
+| Upstream versions | `basyx-typescript-sdk` ≥ 2.3.0 (installed through an exact-version release-age exception, [ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md)). The test environment runs the BaSyx Go `SNAPSHOT` images, as the SDK's own integration tests do, so Studio sees upstream changes as they land. |
 | Desktop workspace | Open an existing `.aasx`, edit, Save, Save As, close. No new packages, no attachments editing, no recovery snapshots. |
 | Hosted web | No workspace targets. The workspace capability is absent in hosted mode. |
 | Package engine | Chosen by a round-trip qualification in phase 0, run in a separate Electron `utilityProcess` (the Workspace Worker). |
@@ -49,13 +49,13 @@ Upstream support landed on 2026-10-08:
 - BaSyx Go ([basyx-go-components#742](https://github.com/eclipse-basyx/basyx-go-components/pull/742),
   closes [#737](https://github.com/eclipse-basyx/basyx-go-components/issues/737)):
   strong `ETag`s, `If-Match` / `If-None-Match`, `412`, and an optional `428`
-  in all services. It is merged to `main` but not yet in a release (the latest
-  release, 1.1.1, predates it); it needs database schema `v1.2.3`.
+  in all services. It is on `main` and in the `SNAPSHOT` images; it needs
+  database schema `v1.2.3`.
 - `basyx-typescript-sdk` 2.3.0 ([basyx-typescript-sdk#547](https://github.com/eclipse-basyx/basyx-typescript-sdk/pull/547),
   closes [#546](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/546)):
   per-call `ifMatch` / `ifNoneMatch`, `etag` in every `ApiResult`, and
   `preconditionFailed` / `preconditionRequired` flags. Published to npm on
-  2026-10-08; Studio's `minimumReleaseAge` allows installing it one day later.
+  2026-10-08 and already used by Studio.
 - The AAS API specification does not define ETags yet
   ([aas-specs-api#691](https://github.com/admin-shell-io/aas-specs-api/issues/691)),
   so other servers and older BaSyx Go versions send none.
@@ -154,7 +154,7 @@ Run against the [test environment](../../test-setup/README.md):
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| 0. Decisions and harness | PGlite footprint decision; package-engine round-trip qualification; Playwright harness for both runtimes with the MVP-1 flows; upgrade to `basyx-typescript-sdk` 2.3.0 and a BaSyx Go image with conditional requests | Engine chosen; e2e green in CI; smoke test checks `ETag` and `412` |
+| 0. Decisions and harness | PGlite footprint decision; package-engine round-trip qualification; Playwright harness for both runtimes with the MVP-1 flows; BaSyx Go `SNAPSHOT` images in the test environment | Engine chosen; e2e green in CI; smoke test checks `ETag` and `412` |
 | 1. Target contract | `AasTarget` interface, target router, capabilities in the contract, `kind` union; no behavior change | MVP-1 tests and e2e unchanged and green |
 | 2. Live write | Revision tokens, value `PUT`, conflict and forbidden handling, draft store, edit UI for `Property` and `MultiLanguageProperty` | DoD 2–4 |
 | 3. Workspace read | Preload and IPC handles, Workspace Worker process with supervision, open and browse a package, import limits | DoD 1, 6 |
@@ -172,7 +172,7 @@ Run against the [test environment](../../test-setup/README.md):
 
 | Risk | Mitigation |
 | --- | --- |
-| BaSyx Go releases conditional requests later than MVP-2 needs them | `SNAPSHOT` image pinned by digest in the test environment; switch to the release when it appears |
+| A `SNAPSHOT` change breaks the test environment | CI logs the image digests; a failing run can be reproduced with the logged digest and reported upstream |
 | Submodel-level revisions cause conflicts between unrelated edits | Retry once when the element itself is unchanged; ask BaSyx Go for element-level revisions only if retries show up in practice |
 | Targets without `ETag` (other servers, older BaSyx Go) | Explicit `best_effort` capability shown in the UI; the specification proposal aims to make ETags common |
 | No TypeScript AASX library passes the round-trip qualification | Qualify early in phase 0; fall back to the aas-core JSON/XML de/serializers plus an OPC zip layer owned by the Worker |
