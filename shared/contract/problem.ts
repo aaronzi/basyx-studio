@@ -12,6 +12,9 @@ export const problemCodes = [
   'invalid_request',
   'not_found',
   'revision_conflict',
+  'precondition_required',
+  'unsupported_operation',
+  'validation_failed',
   'internal_error',
   // Infrastructure administration
   'endpoint_rejected',
@@ -26,6 +29,9 @@ export const problemCodes = [
   'target_blocked',
   'target_error',
   'target_invalid_response',
+  // Desktop workspaces
+  'workspace_unsaved_changes',
+  'package_rejected',
 ] as const
 
 export const problemCodeSchema = z.enum(problemCodes)

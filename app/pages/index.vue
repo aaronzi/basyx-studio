@@ -33,7 +33,7 @@
       <v-row v-else-if="targets.data.value?.items.length">
         <v-col v-for="target in targets.data.value.items" :key="target.id" cols="12" md="6">
           <v-card class="h-100" :to="`/targets/${target.id}`">
-            <v-card-item :prepend-icon="securityModeIcons[target.securityMode]" :title="target.name" />
+            <v-card-item :prepend-icon="targetIcon(target)" :title="target.name" />
 
             <v-card-text>
               <p v-if="target.description" class="text-medium-emphasis mb-3">{{ target.description }}</p>
@@ -62,7 +62,7 @@
   import { useQuery } from '@pinia/colada'
   import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
-  import { securityModeIcons } from '~/utils/aas'
+  import { targetIcon } from '~/utils/aas'
 
   const { t } = useI18n()
   const route = useRoute()

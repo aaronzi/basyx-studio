@@ -44,7 +44,7 @@
   "shell": {
     "submodels": "Submodels",
     "elements": "Elements",
-    "details": "JSON",
+    "details": "Details",
     "noSubmodels": "This shell references no submodels.",
     "selectSubmodel": "Select a submodel to browse its elements.",
     "selectElement": "Select a submodel or element to see its JSON.",
@@ -55,6 +55,28 @@
       "error": "Unavailable"
     },
     "copyJson": "Copy JSON"
+  },
+  "editor": {
+    "title": "Value",
+    "apply": "Apply",
+    "discard": "Discard",
+    "language": "Language",
+    "text": "Text",
+    "addLanguage": "Add language",
+    "remove": "Remove",
+    "emptyValue": "(empty)",
+    "currentValue": "Current value",
+    "applied": "Applied.",
+    "appliedUnsaved": "Applied. Save the package to keep the change.",
+    "conflictTitle": "Someone else changed this value",
+    "conflictText": "Your change was not applied. Keep it and apply it anyway, or discard it.",
+    "overwrite": "Apply mine anyway",
+    "bestEffort": "This infrastructure does not report revisions. A change made by someone else at the same moment can be overwritten."
+  },
+  "workspace": {
+    "localFile": "Local AASX file",
+    "unsaved": "Unsaved changes",
+    "saved": "Saved"
   },
   "variables": {
     "input": "Input variables",
@@ -68,6 +90,11 @@
     "invalid_request": "The request was invalid.",
     "not_found": "This item does not exist (anymore).",
     "revision_conflict": "Someone else changed this item. Reload it and try again.",
+    "precondition_required": "The request did not say which revision it is based on.",
+    "unsupported_operation": "This cannot be changed here.",
+    "validation_failed": "The value is not valid.",
+    "workspace_unsaved_changes": "The package has unsaved changes.",
+    "package_rejected": "The package cannot be opened.",
     "internal_error": "Something went wrong in Studio.",
     "endpoint_rejected": "The address is not permitted by this Studio's network policy.",
     "infrastructure_unreachable": "The infrastructure could not be reached.",

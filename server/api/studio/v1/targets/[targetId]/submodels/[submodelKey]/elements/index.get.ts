@@ -20,7 +20,7 @@ export default defineStudioHandler(async (event): Promise<{ items: ElementNode[]
 
   const steps = parseLocator(decodeKey(parentElementKey, 'element key'))
   const { idShortPath, rest } = splitAddressable(steps)
-  const parent = navigate(await target.element(submodelId, idShortPath), rest)
+  const parent = navigate((await target.element(submodelId, idShortPath)).value, rest)
   if (!parent) {
     throw new StudioProblem('target_resource_not_found')
   }
