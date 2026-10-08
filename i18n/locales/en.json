@@ -1,0 +1,127 @@
+{
+  "app": {
+    "name": "BaSyx Studio",
+    "browse": "Browse",
+    "infrastructures": "Infrastructures",
+    "toggleTheme": "Toggle theme",
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "localUser": "Local user",
+    "administrator": "Administrator"
+  },
+  "home": {
+    "title": "AAS targets",
+    "subtitle": "Choose an infrastructure to browse its Asset Administration Shells.",
+    "signInTitle": "Sign in to BaSyx Studio",
+    "signInText": "Studio accesses your AAS infrastructures on your behalf. Sign in with your organization's account to continue.",
+    "noTargets": "No infrastructures are configured yet.",
+    "noTargetsAdmin": "Add an infrastructure to get started.",
+    "noTargetsUser": "Ask a Studio administrator to add one.",
+    "addInfrastructure": "Add infrastructure"
+  },
+  "security": {
+    "unsecured": "Unsecured",
+    "deployment_client_credentials": "Studio service account",
+    "delegated_user": "Your account"
+  },
+  "authState": {
+    "not_required": "Ready",
+    "authenticated": "Authorized",
+    "required": "Authorization required"
+  },
+  "target": {
+    "shells": "Shells",
+    "loadMore": "Load more",
+    "noShells": "This target has no shells.",
+    "authorizeTitle": "Authorize access to {name}",
+    "authorizeText": "This infrastructure uses your own account. Sign in at its identity provider so Studio can access it on your behalf.",
+    "authorize": "Authorize",
+    "revoke": "Revoke authorization",
+    "waitingForBrowser": "Complete the sign-in in your browser. This page updates automatically.",
+    "cancel": "Cancel",
+    "assetKind": "Asset kind"
+  },
+  "shell": {
+    "submodels": "Submodels",
+    "elements": "Elements",
+    "details": "JSON",
+    "noSubmodels": "This shell references no submodels.",
+    "selectSubmodel": "Select a submodel to browse its elements.",
+    "selectElement": "Select a submodel or element to see its JSON.",
+    "noElements": "This submodel has no elements.",
+    "refStatus": {
+      "forbidden": "No access",
+      "not_found": "Not found",
+      "error": "Unavailable"
+    },
+    "copyJson": "Copy JSON"
+  },
+  "variables": {
+    "input": "Input variables",
+    "output": "Output variables",
+    "inoutput": "In/out variables"
+  },
+  "problem": {
+    "unauthenticated": "Your session has ended. Sign in again.",
+    "forbidden": "You are not permitted to do this.",
+    "csrf_rejected": "The request was rejected for security reasons. Reload the page and try again.",
+    "invalid_request": "The request was invalid.",
+    "not_found": "This item does not exist (anymore).",
+    "revision_conflict": "Someone else changed this item. Reload it and try again.",
+    "internal_error": "Something went wrong in Studio.",
+    "endpoint_rejected": "The address is not permitted by this Studio's network policy.",
+    "infrastructure_unreachable": "The infrastructure could not be reached.",
+    "target_auth_required": "Authorize this target to access its data.",
+    "target_credentials_rejected": "The infrastructure rejected Studio's service account. Ask an administrator to check its configuration.",
+    "target_forbidden": "You do not have access to this data.",
+    "target_resource_not_found": "The infrastructure does not have this item.",
+    "target_request_rejected": "The infrastructure rejected the request.",
+    "target_unreachable": "The infrastructure could not be reached.",
+    "target_blocked": "The request was blocked by Studio's network policy.",
+    "target_error": "The infrastructure reported an error.",
+    "target_invalid_response": "The infrastructure returned an invalid response.",
+    "network": "Studio could not be reached.",
+    "requestId": "Request ID",
+    "retry": "Retry"
+  },
+  "admin": {
+    "title": "Infrastructures",
+    "subtitle": "AAS infrastructures available to Studio users. Endpoints are probed before they are saved.",
+    "add": "Add infrastructure",
+    "edit": "Edit infrastructure",
+    "delete": "Delete",
+    "deleteConfirm": "Delete \"{name}\"? This removes the configuration from Studio, not any data in the infrastructure.",
+    "probe": "Check connection",
+    "probeOk": "All endpoints reachable",
+    "probeFailed": "Some endpoints are unreachable",
+    "save": "Save",
+    "cancel": "Cancel",
+    "name": "Name",
+    "description": "Description",
+    "endpoints": "Endpoints",
+    "aasRepository": "AAS repository URL",
+    "submodelRepository": "Submodel repository URL",
+    "conceptDescriptionRepository": "Concept description repository URL (optional)",
+    "sameUrlHint": "For a BaSyx AAS environment, use the same URL for all repositories.",
+    "allowPrivateNetwork": "Allow loopback and private-network addresses",
+    "security": "Security",
+    "securityMode": "Access mode",
+    "issuer": "Issuer URL",
+    "clientId": "Client ID",
+    "scopes": "Scopes (space-separated)",
+    "scopesHint": "Include the scope that grants the infrastructure's audience, e.g. api://…/access_as_user for Entra ID.",
+    "clientSecretRef": "Client secret reference",
+    "clientSecretRefHint": "env:VARIABLE_NAME or file:/run/secrets/name. Leave empty to keep the current secret.",
+    "clientSecretValue": "Client secret",
+    "clientSecretValueHint": "Stored encrypted with a key from your operating system's credential store. Leave empty to keep the current secret.",
+    "loopbackHost": "Desktop loopback host",
+    "loopbackHostHint": "127.0.0.1 for Keycloak and other RFC 8252 providers; localhost for Microsoft Entra ID.",
+    "modeHelp": {
+      "unsecured": "No credentials. Only for infrastructures without access control.",
+      "deployment_client_credentials": "Studio authenticates with its own service account (client credentials). Every user sees what this account may see.",
+      "delegated_user": "Each user authorizes the infrastructure with their own account (authorization code with PKCE)."
+    },
+    "revision": "Revision",
+    "noInfrastructures": "No infrastructures configured."
+  }
+}

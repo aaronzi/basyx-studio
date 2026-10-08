@@ -1,3 +1,22 @@
+import type { ElectronOptions } from 'nuxt-electron'
+
+// nuxt-electron does not augment the Nuxt config type itself.
+declare module '@nuxt/schema' {
+  interface NuxtConfig {
+    electron?: ElectronOptions
+  }
+}
+
+const electronOptions: ElectronOptions = {
+  disableDefaultOptions: true,
+  build: [
+    {
+      // Main-Process entry file of the Electron App.
+      entry: 'electron/main.ts',
+    },
+  ],
+}
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: '2025-12-21',
@@ -16,24 +35,40 @@ export default defineNuxtConfig({
     electron: {
       ssr: false,
       modules: ['nuxt-electron'],
-      electron: {
-        disableDefaultOptions: true,
-        build: [
-          {
-            // Main-Process entry file of the Electron App.
-            entry: 'electron/main.ts',
-          },
-        ],
+      electron: electronOptions,
+      runtimeConfig: {
+        studio: {
+          deploymentMode: 'desktop',
+        },
       },
     },
   },
 
   app: {
     head: {
+      title: 'BaSyx Studio',
       link: [
         { rel: 'stylesheet', href: '/layers.css' },
       ],
     },
+  },
+
+  runtimeConfig: {
+    studio: {
+      // Overridable at runtime with NUXT_STUDIO_DEPLOYMENT_MODE.
+      deploymentMode: 'hosted',
+    },
+  },
+
+  nitro: {
+    // The ESM build of aas-core3.1-typescript uses extensionless relative
+    // imports that plain Node ESM cannot load, so it must be bundled.
+    externals: {
+      inline: ['@aas-core-works/aas-core3.1-typescript'],
+    },
+    serverAssets: [
+      { baseName: 'migrations', dir: './database/migrations' },
+    ],
   },
 
   vuetify: {
@@ -52,17 +87,7 @@ export default defineNuxtConfig({
         },
       },
     },
-    vuetifyOptions: {
-      theme: {
-        // default 'system' requires `ssr: false` to avoid hydration warnings
-        defaultTheme: 'dark',
-
-        themes: {
-          light: {},
-          dark: {},
-        },
-      },
-    },
+    // Theme, aliases and component defaults live in vuetify.config.ts.
   },
 
   eslint: {
@@ -75,6 +100,8 @@ export default defineNuxtConfig({
 
   i18n: {
     defaultLocale: 'en',
+    strategy: 'no_prefix',
+    locales: [{ code: 'en', name: 'English', file: 'en.json' }],
     vueI18n: './i18n.config.ts',
   },
 })

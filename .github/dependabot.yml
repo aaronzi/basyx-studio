@@ -1,0 +1,95 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    # Matches minimumReleaseAge in pnpm-workspace.yaml.
+    cooldown:
+      default-days: 1
+    groups:
+      nuxt-stack:
+        patterns:
+          - "nuxt"
+          - "@nuxt/*"
+          - "@nuxtjs/*"
+          - "nitropack"
+          - "h3"
+      vue-stack:
+        patterns:
+          - "vue"
+          - "vue-*"
+          - "@vue/*"
+          - "pinia"
+          - "@pinia/*"
+      vuetify-stack:
+        patterns:
+          - "vuetify"
+          - "vuetify-*"
+          - "@vuetify/*"
+          - "@mdi/*"
+          - "sass"
+      electron-stack:
+        patterns:
+          - "electron"
+          - "electron-*"
+          - "nuxt-electron"
+          - "vite-plugin-electron*"
+      aas-stack:
+        patterns:
+          - "basyx-typescript-sdk"
+          - "@aas-core-works/*"
+      database-stack:
+        patterns:
+          - "drizzle-*"
+          - "pg"
+          - "@types/pg"
+          - "@electric-sql/*"
+      auth-and-http:
+        patterns:
+          - "openid-client"
+          - "undici"
+      validation:
+        patterns:
+          - "zod"
+          - "ajv"
+          - "ajv-*"
+      lint-and-types:
+        patterns:
+          - "eslint"
+          - "eslint-*"
+          - "@eslint/*"
+          - "typescript"
+          - "vue-tsc"
+      vitest-stack:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 1
+    groups:
+      github-actions-workflows:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "docker-compose"
+    directory: "/test-setup"
+    schedule:
+      interval: "weekly"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    cooldown:
+      default-days: 1
+    groups:
+      test-environment-images:
+        patterns:
+          - "*"

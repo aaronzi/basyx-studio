@@ -1,12 +1,13 @@
 import { spawn as e } from "node:child_process";
 import { randomBytes as t } from "node:crypto";
 import { existsSync as n } from "node:fs";
-import { createServer as r } from "node:net";
-import { join as i } from "node:path";
-import { BrowserWindow as a, app as o, dialog as s, session as c } from "electron";
+import { mkdir as r, readFile as i, writeFile as a } from "node:fs/promises";
+import { createServer as o } from "node:net";
+import { join as s } from "node:path";
+import { BrowserWindow as c, app as l, dialog as u, safeStorage as d, session as f, shell as p } from "electron";
 //#region electron/main.ts
-var l = "X-Studio-Launch-Secret", u = "127.0.0.1", d = 15e3, f, p, m, h = !1;
-function g(e) {
+var m = "X-Studio-Launch-Secret", h = "127.0.0.1", g = 15e3, _, v, y, b = !1;
+function x(e) {
 	let t = new URL(e), n = /* @__PURE__ */ new Set([
 		"127.0.0.1",
 		"::1",
@@ -15,10 +16,10 @@ function g(e) {
 	if (t.protocol !== "http:" || !n.has(t.hostname)) throw Error("The Electron development server URL must use HTTP on loopback.");
 	return t.href;
 }
-async function _() {
-	let e = r();
+async function S() {
+	let e = o();
 	await new Promise((t, n) => {
-		e.once("error", n), e.listen(0, u, t);
+		e.once("error", n), e.listen(0, h, t);
 	});
 	let t = e.address();
 	if (!t || typeof t == "string") throw e.close(), Error("Could not allocate a loopback port for the Studio Service.");
@@ -27,8 +28,8 @@ async function _() {
 		e.close((e) => e ? n(e) : t());
 	}), n;
 }
-async function v(e, t, n) {
-	let r = Date.now() + d, i, a = (e) => {
+async function C(e, t, n) {
+	let r = Date.now() + g, i, a = (e) => {
 		i = e;
 	};
 	n.once("error", a);
@@ -38,7 +39,7 @@ async function v(e, t, n) {
 			if (n.exitCode !== null) throw Error(`The Studio Service exited during startup with code ${n.exitCode}.`);
 			try {
 				if ((await fetch(e, {
-					headers: { [l]: t },
+					headers: { [m]: t },
 					signal: AbortSignal.timeout(1e3)
 				})).ok) return;
 			} catch {}
@@ -49,39 +50,50 @@ async function v(e, t, n) {
 	}
 	throw Error("Timed out while starting the local Studio Service.");
 }
-async function y() {
-	let r = i(o.getAppPath(), ".output", "server", "index.mjs");
+async function w() {
+	if (!d.isEncryptionAvailable()) throw Error("The operating system credential store is not available.");
+	if (process.platform === "linux" && d.getSelectedStorageBackend() === "basic_text") throw Error("No supported credential store (libsecret or kwallet) was found. BaSyx Studio does not store keys in plain text.");
+	let e = s(l.getPath("userData"), "data-key.bin");
+	if (n(e)) return d.decryptString(await i(e));
+	let o = t(32).toString("base64url");
+	return await r(l.getPath("userData"), { recursive: !0 }), await a(e, d.encryptString(o), { mode: 384 }), o;
+}
+async function T() {
+	let r = s(l.getAppPath(), ".output", "server", "index.mjs");
 	if (!n(r)) throw Error("The packaged Studio Service entry point is missing.");
-	let a = await _(), c = t(32).toString("base64url"), l = `http://${u}:${a}/`;
-	return m = e(process.execPath, [r], {
+	let i = await S(), a = t(32).toString("base64url"), o = `http://${h}:${i}/`, c = await w();
+	return y = e(process.execPath, [r], {
 		env: {
 			...process.env,
 			ELECTRON_RUN_AS_NODE: "1",
-			NITRO_HOST: u,
-			NITRO_PORT: String(a),
-			STUDIO_LAUNCH_SECRET: c
+			NITRO_HOST: h,
+			NITRO_PORT: String(i),
+			NUXT_STUDIO_DEPLOYMENT_MODE: "desktop",
+			STUDIO_DATA_DIR: s(l.getPath("userData"), "studio-data"),
+			STUDIO_DATA_KEY: c,
+			STUDIO_LAUNCH_SECRET: a
 		},
 		stdio: [
 			"ignore",
 			"inherit",
 			"inherit"
 		]
-	}), await v(l, c, m), m.once("exit", (e, t) => {
-		h || (s.showErrorBox("BaSyx Studio Service stopped", `The local Studio Service exited unexpectedly (${t ?? e ?? "unknown reason"}).`), o.quit());
+	}), await C(o, a, y), y.once("exit", (e, t) => {
+		b || (u.showErrorBox("BaSyx Studio Service stopped", `The local Studio Service exited unexpectedly (${t ?? e ?? "unknown reason"}).`), l.quit());
 	}), {
-		launchSecret: c,
-		url: l
+		launchSecret: a,
+		url: o
 	};
 }
-async function b(e, t) {
-	let n = c.fromPartition("studio");
+async function E(e, t) {
+	let n = f.fromPartition("studio");
 	t && n.webRequest.onBeforeSendHeaders({ urls: [`${e}*`] }, (e, n) => {
 		n({ requestHeaders: {
 			...e.requestHeaders,
-			[l]: t
+			[m]: t
 		} });
 	});
-	let r = new a({
+	let r = new c({
 		show: !1,
 		title: "BaSyx Studio",
 		webPreferences: {
@@ -93,28 +105,34 @@ async function b(e, t) {
 	}), i = new URL(e).origin;
 	r.webContents.on("will-navigate", (e, t) => {
 		new URL(t).origin !== i && e.preventDefault();
-	}), r.webContents.setWindowOpenHandler(() => ({ action: "deny" })), r.once("ready-to-show", () => r.show()), await r.loadURL(e), o.isPackaged || r.webContents.openDevTools();
+	}), r.webContents.setWindowOpenHandler(({ url: e }) => {
+		let t = new URL(e).protocol;
+		return (t === "https:" || t === "http:") && p.openExternal(e), { action: "deny" };
+	}), r.once("ready-to-show", () => r.show()), await r.loadURL(e), l.isPackaged || r.webContents.openDevTools();
 }
-async function x() {
+async function D() {
 	let e = process.env.VITE_DEV_SERVER_URL;
-	if (!o.isPackaged) {
+	if (!l.isPackaged) {
 		if (!e) throw Error("The Electron development server URL is missing.");
-		f = g(e), await b(f);
+		_ = x(e), await E(_);
 		return;
 	}
-	let t = await y();
-	f = t.url, p = t.launchSecret, await b(f, p);
+	let t = await T();
+	_ = t.url, v = t.launchSecret, await E(_, v);
 }
-function S(e) {
+function O(e) {
 	let t = e instanceof Error ? e.message : "Unknown startup error.";
-	s.showErrorBox("BaSyx Studio could not start", t), o.quit();
+	u.showErrorBox("BaSyx Studio could not start", t), l.quit();
 }
-o.whenReady().then(x).catch(S), o.on("activate", () => {
-	a.getAllWindows().length === 0 && f && b(f, p).catch(S);
-}), o.on("before-quit", () => {
-	h = !0, m?.kill(), m = void 0;
-}), o.on("window-all-closed", () => {
-	process.platform !== "darwin" && o.quit();
+l.requestSingleInstanceLock() ? (l.on("second-instance", () => {
+	let [e] = c.getAllWindows();
+	e && (e.isMinimized() && e.restore(), e.focus());
+}), l.whenReady().then(D).catch(O)) : l.quit(), l.on("activate", () => {
+	c.getAllWindows().length === 0 && _ && E(_, v).catch(O);
+}), l.on("before-quit", () => {
+	b = !0, y?.kill(), y = void 0;
+}), l.on("window-all-closed", () => {
+	process.platform !== "darwin" && l.quit();
 });
 //#endregion
 export {};

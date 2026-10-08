@@ -40,7 +40,7 @@ Coding agents and LLM-based development tools must also follow [AGENTS.md](AGENT
 - Nitro as the Studio backend-for-frontend (BFF)
 - Electron for the installed desktop product
 - `basyx-typescript-sdk` for live AAS client operations
-- PostgreSQL for hosted Studio persistence and SQLite for desktop metadata
+- PostgreSQL for Studio persistence: a server when hosted, embedded PGlite on desktop
 - OpenTelemetry and the existing BaSyx Grafana observability stack
 - Pinia for client/editor state; Pinia Colada only for complex shared remote state
 - Zod for Studio-owned TypeScript trust boundaries; AAS Core verification for AAS models
@@ -58,11 +58,26 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
+For the MVP-1 slice (live AAS access through the BFF), start the local test
+environment and configure Studio against it:
+
+```sh
+pnpm testenv:up
+cp .env.example .env
+pnpm dev
+```
+
+Sign in at <http://localhost:3000> as `studio-admin` (password `studio-admin`,
+test realm only) and register the test targets under *Infrastructures*; see
+[test-setup/README.md](test-setup/README.md#targets-for-studio).
+
 Run the current checks with:
 
 ```sh
 pnpm lint
 pnpm typecheck
+pnpm test
+pnpm test:integration   # needs pnpm testenv:up
 ```
 
 Desktop, container, PNPM, and supply-chain workflows are documented in

@@ -1,0 +1,6 @@
+[
+  {
+    "issuer": "http://keycloak.localhost:18080/realms/basyx-studio",
+    "audience": "basyx-api"
+  }
+]

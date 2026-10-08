@@ -1,0 +1,263 @@
+{
+  "realm": "basyx-studio",
+  "displayName": "BaSyx Studio test realm",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "roles": {
+    "realm": [
+      { "name": "studio-admin", "description": "May administer Studio (infrastructures, apps)." },
+      { "name": "basyx-admin", "description": "Full access to the secured BaSyx test infrastructure." },
+      { "name": "basyx-reader", "description": "Read access to everything in the secured BaSyx test infrastructure." },
+      { "name": "basyx-limited", "description": "Read access to the public shell and nameplate only." }
+    ]
+  },
+  "clientScopes": [
+    {
+      "name": "basic",
+      "description": "Subject claim (mirrors the Keycloak built-in scope)",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "false", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "config": { "access.token.claim": "true", "introspection.token.claim": "true" }
+        }
+      ]
+    },
+    {
+      "name": "profile",
+      "description": "Standard profile claims",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "preferred_username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "full name",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-full-name-mapper",
+          "config": {
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "email",
+      "description": "Standard email claims",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "email",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "config": {
+            "user.attribute": "email",
+            "claim.name": "email",
+            "jsonType.label": "String",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "studio-roles",
+      "description": "Flat top-level 'roles' array, shaped like Microsoft Entra ID app roles",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "false", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "realm roles as top-level roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "name": "basyx-api",
+      "description": "Requests an access token whose audience is the BaSyx API (like an Entra 'api://.../access_as_user' scope)",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "basyx-api audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "basyx-api",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "defaultDefaultClientScopes": ["basic", "profile", "email", "studio-roles"],
+  "defaultOptionalClientScopes": ["basyx-api"],
+  "clients": [
+    {
+      "clientId": "studio-web",
+      "name": "BaSyx Studio (hosted web, dev and production build)",
+      "description": "Confidential client used by the Studio BFF. Authorization code + PKCE only.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "studio-web-test-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:3000/api/studio/v1/auth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:3000/*"
+      },
+      "defaultClientScopes": ["basic", "profile", "email", "studio-roles"],
+      "optionalClientScopes": ["basyx-api"]
+    },
+    {
+      "clientId": "studio-desktop",
+      "name": "BaSyx Studio (installed desktop)",
+      "description": "Public native client (RFC 8252). The local BFF listens on a random loopback port.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://127.0.0.1/api/studio/v1/auth/callback"
+      ],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://127.0.0.1/*"
+      },
+      "defaultClientScopes": ["basic", "profile", "email", "studio-roles"],
+      "optionalClientScopes": ["basyx-api"]
+    },
+    {
+      "clientId": "studio-service",
+      "name": "BaSyx Studio deployment identity",
+      "description": "Client-credentials identity for curated hosted access (InfrastructureSecurityMode deployment_client_credentials).",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "studio-service-test-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true,
+      "redirectUris": [],
+      "webOrigins": [],
+      "defaultClientScopes": ["basic", "studio-roles", "basyx-api"],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "test-cli",
+      "name": "Smoke test client (TEST ONLY)",
+      "description": "Password grant for automated smoke tests. Never configure such a client in a real IdP.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": [],
+      "defaultClientScopes": ["basic", "profile", "email", "studio-roles"],
+      "optionalClientScopes": ["basyx-api"]
+    }
+  ],
+  "users": [
+    {
+      "username": "studio-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "studio-admin@example.test",
+      "firstName": "Studio",
+      "lastName": "Admin",
+      "credentials": [{ "type": "password", "value": "studio-admin", "temporary": false }],
+      "realmRoles": ["studio-admin", "basyx-admin"]
+    },
+    {
+      "username": "alice",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "alice@example.test",
+      "firstName": "Alice",
+      "lastName": "Reader",
+      "credentials": [{ "type": "password", "value": "alice", "temporary": false }],
+      "realmRoles": ["basyx-reader"]
+    },
+    {
+      "username": "carol",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "carol@example.test",
+      "firstName": "Carol",
+      "lastName": "Limited",
+      "credentials": [{ "type": "password", "value": "carol", "temporary": false }],
+      "realmRoles": ["basyx-limited"]
+    },
+    {
+      "username": "bob",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "bob@example.test",
+      "firstName": "Bob",
+      "lastName": "NoAccess",
+      "credentials": [{ "type": "password", "value": "bob", "temporary": false }],
+      "realmRoles": []
+    },
+    {
+      "username": "service-account-studio-service",
+      "enabled": true,
+      "serviceAccountClientId": "studio-service",
+      "realmRoles": ["basyx-reader"]
+    }
+  ]
+}

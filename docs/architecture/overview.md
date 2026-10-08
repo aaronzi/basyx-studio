@@ -119,7 +119,7 @@ Public app contracts must remain backward-compatible within their declared versi
 ## Persistence baseline
 
 - Hosted Studio metadata and sessions: PostgreSQL
-- Desktop metadata and installed-app state: SQLite
+- Desktop metadata and installed-app state: embedded PGlite (same PostgreSQL schema, ADR 0011)
 - Desktop package bytes: user-controlled filesystem
 - Marketplace app artifacts: OCI registry
 
@@ -132,7 +132,7 @@ Redis, MongoDB, Kafka, and MQTT are not baseline requirements. They require a me
 - Pinia Colada may own complex shared remote state with target-aware keys.
 - The BFF owns authentication, authorization, server tokens, and credentialed AAS access.
 - AAS Core/package tooling owns metamodel validation.
-- PostgreSQL or SQLite/filesystem owns persisted state depending on variant.
+- PostgreSQL (server or embedded PGlite) and the filesystem own persisted state depending on variant.
 
 ## Current prototype versus target
 

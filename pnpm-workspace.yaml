@@ -16,3 +16,7 @@ allowBuilds:
   electron-winstaller: true
   esbuild: true
   unrs-resolver: true
+  # Reviewed and denied: its install script only swaps the JS launcher for a
+  # native binary. The devDependency exists for Dependabot version tracking;
+  # the pnpm binary in use comes from Corepack (packageManager field).
+  pnpm: false

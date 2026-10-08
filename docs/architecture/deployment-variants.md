@@ -158,7 +158,7 @@ flowchart LR
         end
 
         subgraph OSResources["Operating-system resources"]
-            LocalDB[("SQLite<br/>infrastructures, apps, views,<br/>preferences and audit")]
+            LocalDB[("PGlite (embedded PostgreSQL)<br/>infrastructures, apps, views,<br/>preferences and audit")]
             Keychain[("OS keychain")]
             LocalFiles[("User-selected files")]
             SystemBrowser["System browser"]
@@ -273,7 +273,7 @@ flowchart LR
         end
 
         subgraph OSResources["Operating-system resources"]
-            LocalDB[("SQLite<br/>projects, apps, views,<br/>preferences and audit")]
+            LocalDB[("PGlite (embedded PostgreSQL)<br/>projects, apps, views,<br/>preferences and audit")]
             WorkspaceFolder[("User workspace folder")]
             AASX[("project.aasx")]
             Snapshots[("Recovery snapshots")]

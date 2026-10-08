@@ -27,8 +27,9 @@ Das Setup muss folgende Regeln einhalten:
 - Browser und Electron-Renderer sprechen ausschließlich mit der versionierten
   Studio API. OAuth-Tokens, Refresh-Tokens und Client Secrets bleiben im BFF.
 - Live-AAS-Zugriffe laufen serverseitig über `basyx-typescript-sdk`.
-- Hosted Metadaten liegen in PostgreSQL; Desktop-Metadaten in SQLite und
-  AASX-Dateien im vom Benutzer kontrollierten Dateisystem.
+- Metadaten liegen in PostgreSQL: hosted in einem PostgreSQL-Server, auf dem
+  Desktop in eingebettetem PGlite (ADR 0011); AASX-Dateien im vom Benutzer
+  kontrollierten Dateisystem.
 - Der Studio Service bleibt ein modularer Nuxt/Nitro-Deployable. Workspace
   Worker und App Runner sind wegen ihrer Trust-/Crash-Grenzen eigene Prozesse.
 - HTTP ist der Standard für Queries und Commands, SSE für einseitige
@@ -57,8 +58,8 @@ Nicht jede lokale Installation benötigt alle externen Dienste.
 | --- | --- | --- |
 | `web` | Node.js, PNPM, Studio Service | UI-, BFF- und SSR-Entwicklung |
 | `hosted-live` | `web`, Docker/Compose, PostgreSQL, OIDC-Test-IdP, eine oder mehrere BaSyx-Go-Testinfrastrukturen | DEP-001, DEP-005, DATA-001/002/011–016, SEC-001–008 |
-| `desktop-live` | `web`, Electron-Toolchain, SQLite, OS-Keychain, OIDC-Test-IdP und erreichbare BaSyx-Infrastruktur | DEP-003, DEP-006–008, SEC-007/009 |
-| `desktop-aasx` | `web`, Electron-Toolchain, SQLite und später qualifizierter Workspace Worker/Package Engine | DEP-004, DATA-005–007/009 |
+| `desktop-live` | `web`, Electron-Toolchain, PGlite, OS-Keychain, OIDC-Test-IdP und erreichbare BaSyx-Infrastruktur | DEP-003, DEP-006–008, SEC-007/009 |
+| `desktop-aasx` | `web`, Electron-Toolchain, PGlite und später qualifizierter Workspace Worker/Package Engine | DEP-004, DATA-005–007/009 |
 | `apps` | OCI-Registry, Cosign/Sigstore-Werkzeuge, Deno-Evaluationsruntime und isolierte Runner | APP-001–016 |
 | `observability` | OTel Collector, Prometheus, Tempo, Loki, Alloy und Grafana | OPS-004–006 |
 
@@ -85,7 +86,7 @@ Container-/Tooling-Lock festgeschrieben.
 | Live AAS | `basyx-typescript-sdk` | Verpflichtend für Live-Zugriffe |
 | AAS-Modell | `@aas-core-works/aas-core3.1-typescript` | Verpflichtender, zum SDK passender Peer |
 | Hosted-Daten | PostgreSQL | Akzeptierte Baseline und eigener Studio-User/eigenes Schema |
-| Desktop-Daten | SQLite und Benutzerdateisystem | Akzeptierte Baseline; konkrete Node-Treiber noch zu qualifizieren |
+| Desktop-Daten | PGlite (eingebettetes PostgreSQL) und Benutzerdateisystem | ADR 0011; Qualifizierungs-Gate in Phase 0 von MVP-1, Fallback `embedded-postgres` |
 | DB-Zugriff | Drizzle ORM/Query Builder | Kandidat, noch nicht automatisch installieren |
 | Background Jobs | Node Worker, PostgreSQL Job Records; gegebenenfalls Graphile Worker | Prozess-/DB-Baseline akzeptiert, Queue-Library erst bei konkretem Bedarf |
 | Desktop | Electron, Electron Builder, Electron Updater, `safeStorage` | Akzeptiert; `safeStorage` ist Electron-Bestandteil |
@@ -211,7 +212,7 @@ Vulnerability-Scans und Cosign-Signaturen auf dem immutable Digest. Siehe
 - macOS: Xcode Command Line Tools; für Releases Apple-Zertifikat und
   Notarisierungszugang
 - Windows: Visual Studio Build Tools, falls eine qualifizierte native
-  SQLite-/Package-Abhängigkeit sie benötigt; für Releases Code-Signing-Zertifikat
+  Package-Abhängigkeit sie benötigt; für Releases Code-Signing-Zertifikat
 - Linux: die von Electron für die Ziel-Distribution benötigten Systembibliotheken
 - Zugriff auf den jeweiligen OS-Keychain/Secret Store für Electron `safeStorage`
 
@@ -390,7 +391,7 @@ vertikaler Slice folgende Punkte beweisen:
 
 - geordnete Migrationen von mindestens N−2 unterstützten Versionen
 - Transaktionen und PostgreSQL Row Locking
-- verständliche PostgreSQL- und SQLite-Repositories
+- ein PostgreSQL-Schema und eine Migrationskette für PostgreSQL-Server und PGlite
 - Electron-Packaging auf allen Zielbetriebssystemen
 - dokumentierter Exit-/Migrationspfad
 
@@ -402,8 +403,8 @@ pnpm add drizzle-orm
 pnpm add -D drizzle-kit
 ```
 
-Der konkrete PostgreSQL- und SQLite-Treiber ist zusammen mit diesem Slice zu
-entscheiden; dieser Guide legt keinen nicht dokumentierten Treiber fest.
+Als Treiber sind `node-postgres` (hosted) und `pglite` (Desktop und Tests)
+vorgesehen (ADR 0011); beide werden mit diesem Slice qualifiziert.
 
 ### 5.5 Electron und Desktop-Abhängigkeiten hinzufügen
 
@@ -557,6 +558,17 @@ pnpm run
 
 ## 7. Lokale Infrastruktur pro Use Case starten
 
+Für den MVP-1-Slice existiert bereits eine validierte Testumgebung mit
+PostgreSQL, OIDC-Test-IdP (Keycloak) sowie einem ungesicherten und einem
+gesicherten BaSyx-Go-Target. Aufbau, Benutzer, IdP-Konfiguration pro Laufzeit
+und das Entra-ID-Mapping beschreibt [test-setup/README.md](test-setup/README.md):
+
+```bash
+pnpm testenv:up
+pnpm testenv:smoke
+pnpm testenv:down
+```
+
 Die folgenden Befehle setzen künftig eingecheckte, validierte Compose-Profile
 voraus. Bis diese Dateien existieren, dürfen sie nicht als funktionsfähiger
 Ist-Zustand dokumentiert oder in CI verwendet werden.
@@ -632,7 +644,7 @@ Bis dahin sind keine erfundenen Environment-Variablen verbindlich.
 Folgende Konfigurationsgruppen sind erforderlich:
 
 - öffentliche Studio-Basis-URL und serverseitige Session-/Cookie-Einstellungen
-- PostgreSQL-Verbindung beziehungsweise SQLite-Dateipfad
+- PostgreSQL-Verbindung beziehungsweise PGlite-Datenverzeichnis
 - Secret-Manager-/Keychain-Integration
 - OIDC Discovery, Client-ID, Redirect URI und serverseitiges Client Secret
 - pro AAS-Target opaque ID, erlaubte Endpunkte, Auth-Strategie und

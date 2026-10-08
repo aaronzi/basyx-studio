@@ -10,7 +10,7 @@ proof. A library should earn its place by removing real Studio code or risk.
 | --- | --- | --- | --- |
 | Package manager | PNPM only, integrity-pinned through Corepack | Development, CI, containers, release builds, isolated app builds | Accepted; one lockfile and deny-by-default dependency build scripts reduce supply-chain exposure |
 | UI | Vue 3, Nuxt 4, Vuetify | Browser or Electron renderer | Accepted; matches team experience and current prototype |
-| Studio API/BFF | Nitro/H3 on Node.js | Hosted container or desktop child process | Accepted; one application and contract surface across web and desktop |
+| Studio API/BFF | Nitro/H3 on Node.js; handlers written against the portable `nuxt/server` API | Hosted container or desktop child process | Accepted; one application and contract surface across web and desktop. Portable handlers run on Nuxt 4 (Nitro v2) and Nuxt 5 (Nitro v3); Nitro-specific code is confined to `server/plugins/` and `server/nitro/` |
 | SSR | Nuxt hybrid/route rules | Hosted Studio Service | Accepted capability; enable where first-load, catalogue, or public routes benefit rather than forcing every editor route through SSR |
 | Desktop host | Electron, Electron Builder, Electron Updater | User computer | Accepted; harden the host and validate N−2 update/migration paths before reconsidering the shell |
 | Live AAS client | `basyx-typescript-sdk` | Studio Service | Required; upgrade the prototype to the SDK's AAS Core 3.1 peer version before core feature work |
@@ -58,14 +58,16 @@ code it removes.
 
 | Concern | Hosted | Desktop | Direction |
 | --- | --- | --- | --- |
-| Relational metadata | PostgreSQL | SQLite | Accepted baseline |
-| Database access | Drizzle ORM/query builder candidate | Same schema tooling where practical | Prove migrations, transactions, PostgreSQL row locking, and Electron packaging in a vertical slice before final adoption |
+| Relational metadata | PostgreSQL server | PGlite (PostgreSQL compiled to WebAssembly) embedded in the local Studio Service | Accepted in ADR 0011, subject to its qualification gate; fallback `embedded-postgres` |
+| Database access | Drizzle ORM/query builder candidate, `node-postgres` driver | Same Drizzle schema, `pglite` driver | One `pgTable` schema and one migration chain; prove migrations, transactions, row locking, and Electron packaging in the MVP-1 slice before final adoption |
 | Secrets | Deployment secret manager | OS keychain/Electron `safeStorage` | Store references in relational metadata, not secret values |
 | Background work | Separate Node worker with PostgreSQL-backed durable job records | Supervised utility process and local job records | Start without Redis; evaluate Graphile Worker or an equivalent PostgreSQL queue when retry/concurrency needs are concrete |
 
-PostgreSQL and SQLite are not assumed to have identical capabilities. Share
-domain repositories and migrations only where doing so stays clear; do not
-degrade hosted behavior merely to force one SQL dialect.
+Hosted and desktop share one PostgreSQL dialect (ADR 0011). Shared repository
+code uses only features PGlite supports; server-only features such as
+cross-process `LISTEN/NOTIFY` or multi-worker `SKIP LOCKED` queues belong in
+hosted-only modules behind an explicit capability check. Only the local Studio
+Service opens the desktop database.
 
 ## Desktop AASX workspace
 

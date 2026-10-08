@@ -1,0 +1,544 @@
+{
+  "assetAdministrationShells": [
+    {
+      "idShort": "PagingShell001",
+      "id": "urn:studio:test:aas:paging:001",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:001"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell002",
+      "id": "urn:studio:test:aas:paging:002",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:002"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell003",
+      "id": "urn:studio:test:aas:paging:003",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:003"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell004",
+      "id": "urn:studio:test:aas:paging:004",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:004"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell005",
+      "id": "urn:studio:test:aas:paging:005",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:005"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell006",
+      "id": "urn:studio:test:aas:paging:006",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:006"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell007",
+      "id": "urn:studio:test:aas:paging:007",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:007"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell008",
+      "id": "urn:studio:test:aas:paging:008",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:008"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell009",
+      "id": "urn:studio:test:aas:paging:009",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:009"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell010",
+      "id": "urn:studio:test:aas:paging:010",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:010"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell011",
+      "id": "urn:studio:test:aas:paging:011",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:011"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell012",
+      "id": "urn:studio:test:aas:paging:012",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:012"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell013",
+      "id": "urn:studio:test:aas:paging:013",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:013"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell014",
+      "id": "urn:studio:test:aas:paging:014",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:014"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell015",
+      "id": "urn:studio:test:aas:paging:015",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:015"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell016",
+      "id": "urn:studio:test:aas:paging:016",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:016"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell017",
+      "id": "urn:studio:test:aas:paging:017",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:017"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell018",
+      "id": "urn:studio:test:aas:paging:018",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:018"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell019",
+      "id": "urn:studio:test:aas:paging:019",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:019"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell020",
+      "id": "urn:studio:test:aas:paging:020",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:020"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell021",
+      "id": "urn:studio:test:aas:paging:021",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:021"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell022",
+      "id": "urn:studio:test:aas:paging:022",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:022"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell023",
+      "id": "urn:studio:test:aas:paging:023",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:023"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell024",
+      "id": "urn:studio:test:aas:paging:024",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:024"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell025",
+      "id": "urn:studio:test:aas:paging:025",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:025"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell026",
+      "id": "urn:studio:test:aas:paging:026",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:026"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell027",
+      "id": "urn:studio:test:aas:paging:027",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:027"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell028",
+      "id": "urn:studio:test:aas:paging:028",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:028"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell029",
+      "id": "urn:studio:test:aas:paging:029",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:029"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell030",
+      "id": "urn:studio:test:aas:paging:030",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:030"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell031",
+      "id": "urn:studio:test:aas:paging:031",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:031"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell032",
+      "id": "urn:studio:test:aas:paging:032",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:032"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell033",
+      "id": "urn:studio:test:aas:paging:033",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:033"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell034",
+      "id": "urn:studio:test:aas:paging:034",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:034"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell035",
+      "id": "urn:studio:test:aas:paging:035",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:035"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell036",
+      "id": "urn:studio:test:aas:paging:036",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:036"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell037",
+      "id": "urn:studio:test:aas:paging:037",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:037"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell038",
+      "id": "urn:studio:test:aas:paging:038",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:038"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell039",
+      "id": "urn:studio:test:aas:paging:039",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:039"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell040",
+      "id": "urn:studio:test:aas:paging:040",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:040"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell041",
+      "id": "urn:studio:test:aas:paging:041",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:041"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell042",
+      "id": "urn:studio:test:aas:paging:042",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:042"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell043",
+      "id": "urn:studio:test:aas:paging:043",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:043"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell044",
+      "id": "urn:studio:test:aas:paging:044",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:044"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell045",
+      "id": "urn:studio:test:aas:paging:045",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:045"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell046",
+      "id": "urn:studio:test:aas:paging:046",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:046"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell047",
+      "id": "urn:studio:test:aas:paging:047",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:047"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell048",
+      "id": "urn:studio:test:aas:paging:048",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:048"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell049",
+      "id": "urn:studio:test:aas:paging:049",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:049"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell050",
+      "id": "urn:studio:test:aas:paging:050",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:050"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell051",
+      "id": "urn:studio:test:aas:paging:051",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:051"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell052",
+      "id": "urn:studio:test:aas:paging:052",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:052"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell053",
+      "id": "urn:studio:test:aas:paging:053",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:053"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell054",
+      "id": "urn:studio:test:aas:paging:054",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:054"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell055",
+      "id": "urn:studio:test:aas:paging:055",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:055"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell056",
+      "id": "urn:studio:test:aas:paging:056",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:056"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell057",
+      "id": "urn:studio:test:aas:paging:057",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:057"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell058",
+      "id": "urn:studio:test:aas:paging:058",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:058"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell059",
+      "id": "urn:studio:test:aas:paging:059",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:059"
+      },
+      "modelType": "AssetAdministrationShell"
+    },
+    {
+      "idShort": "PagingShell060",
+      "id": "urn:studio:test:aas:paging:060",
+      "assetInformation": {
+        "assetKind": "Instance",
+        "globalAssetId": "urn:studio:test:asset:paging:060"
+      },
+      "modelType": "AssetAdministrationShell"
+    }
+  ]
+}

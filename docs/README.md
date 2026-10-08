@@ -40,6 +40,8 @@ ADRs are normative for architecture. If a later decision changes an accepted ADR
 - [Setup guide](../setup.md): PNPM-only bootstrap, dependencies, web, Docker,
   Electron, app-platform, and supply-chain setup
 - [Design guidelines](development/design-guidelines.md): interaction and visual conventions established by the current prototypes
+- [MVP-1 plan](development/mvp-1-plan.md): first vertical slice for live AAS access through the BFF
+- [Test environment](../test-setup/README.md): local IdP and BaSyx targets for dev, build, and Electron testing
 
 ## Document authority
 
