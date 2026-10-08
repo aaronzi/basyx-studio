@@ -181,15 +181,16 @@ operation variables.
 
 ## After MVP-1
 
-- **MVP-2:**
-  - one property edit, save and reload, with revision and conflict results and
-    drafts kept per target;
-  - porting the BaSyx AAS Web UI components onto Studio composables, replacing
-    `useRequestHandling`, the clients, and the global stores rather than
-    wrapping them;
-  - porting the infrastructure management UI.
-- **MVP-3:** registry and discovery resolution, cross-target copy, and
-  runtime-installable modules and apps.
+The order was revised on 2026-10-08:
 
-Open question for MVP-2: which BaSyx AAS Web UI codebase is the source for
+- [MVP-2](mvp-2-plan.md): one property edit on a live target and in a local AASX
+  package through a shared target contract, plus end-to-end tests for both
+  runtimes.
+- [MVP-3](mvp-3-plan.md): runtime-installable apps (submodel views, modules, a
+  backend app); it decides which BaSyx AAS Web UI parts become core components
+  and which become apps.
+- Then: porting BaSyx AAS Web UI components and the infrastructure management
+  UI, registry and discovery resolution, cross-target copy, and the marketplace.
+
+Open question for porting: which BaSyx AAS Web UI codebase is the source for
 components, upstream `main` or a fork branch.

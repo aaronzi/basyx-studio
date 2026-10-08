@@ -41,6 +41,8 @@ ADRs are normative for architecture. If a later decision changes an accepted ADR
   Electron, app-platform, and supply-chain setup
 - [Design guidelines](development/design-guidelines.md): interaction and visual conventions established by the current prototypes
 - [MVP-1 plan](development/mvp-1-plan.md): first vertical slice for live AAS access through the BFF
+- [MVP-2 plan](development/mvp-2-plan.md): one edit on a live target and in a local AASX package
+- [MVP-3 plan](development/mvp-3-plan.md): runtime-installable apps (submodel views, modules, backend apps)
 - [Test environment](../test-setup/README.md): local IdP and BaSyx targets for dev, build, and Electron testing
 
 ## Document authority
