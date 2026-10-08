@@ -285,6 +285,8 @@ function guardUnsavedWorkspaces (win: BrowserWindow): void {
       return
     }
     event.preventDefault()
+    // Preventing a close also cancels a running quit, so resume it afterwards.
+    const quitting = isQuitting
     void callService<{ unsavedWorkspaces: string[] }>('desktop/state')
       .then(state => state.unsavedWorkspaces)
       .catch(() => [])
@@ -304,7 +306,11 @@ function guardUnsavedWorkspaces (win: BrowserWindow): void {
           }
         }
         confirmed = true
-        win.close()
+        if (quitting) {
+          app.quit()
+        } else {
+          win.close()
+        }
       })
   })
 }
@@ -334,6 +340,11 @@ function handleStartupError (error: unknown): void {
   const message = error instanceof Error ? error.message : 'Unknown startup error.'
   dialog.showErrorBox('BaSyx Studio could not start', message)
   app.quit()
+}
+
+// End-to-end tests run the packaged app against a throwaway data directory.
+if (process.env.STUDIO_USER_DATA_DIR) {
+  app.setPath('userData', process.env.STUDIO_USER_DATA_DIR)
 }
 
 // Only one instance may own the local database and its data directory.

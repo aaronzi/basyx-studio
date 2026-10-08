@@ -168,7 +168,10 @@ function N() {
 function P(e) {
 	let t = !1;
 	e.on("close", (n) => {
-		t || (n.preventDefault(), j("desktop/state").then((e) => e.unsavedWorkspaces).catch(() => []).then(async (n) => {
+		if (t) return;
+		n.preventDefault();
+		let r = w;
+		j("desktop/state").then((e) => e.unsavedWorkspaces).catch(() => []).then(async (n) => {
 			if (n.length > 0) {
 				let { response: t } = await u.showMessageBox(e, {
 					type: "warning",
@@ -183,8 +186,8 @@ function P(e) {
 					return;
 				}
 			}
-			t = !0, e.close();
-		}));
+			t = !0, r ? l.quit() : e.close();
+		});
 	});
 }
 async function F() {
@@ -202,7 +205,7 @@ function I(e) {
 	let t = e instanceof Error ? e.message : "Unknown startup error.";
 	u.showErrorBox("BaSyx Studio could not start", t), l.quit();
 }
-l.requestSingleInstanceLock() ? (l.on("second-instance", () => {
+process.env.STUDIO_USER_DATA_DIR && l.setPath("userData", process.env.STUDIO_USER_DATA_DIR), l.requestSingleInstanceLock() ? (l.on("second-instance", () => {
 	let [e] = c.getAllWindows();
 	e && (e.isMinimized() && e.restore(), e.focus());
 }), l.whenReady().then(F).catch(I)) : l.quit(), l.on("activate", () => {

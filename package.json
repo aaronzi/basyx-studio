@@ -27,7 +27,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
-    "test:integration": "STUDIO_TESTENV=1 vitest run"
+    "test:integration": "STUDIO_TESTENV=1 vitest run",
+    "test:e2e:web": "playwright test -c test/e2e/web.config.ts",
+    "test:e2e:desktop": "playwright test -c test/e2e/desktop.config.ts",
+    "build:electron:dir": "pnpm build:electron:app && electron-builder --dir --publish never"
   },
   "dependencies": {
     "@aas-core-works/aas-core3.1-typescript": "^1.0.1",
@@ -57,6 +60,7 @@
     "@nuxt/eslint": "^1.17.0",
     "@nuxt/fonts": "^0.14.0",
     "@pinia/nuxt": "^1.0.2",
+    "@playwright/test": "1.64.0",
     "@types/pg": "^8.23.1",
     "@vuetify/mcp": "^0.12.1",
     "drizzle-kit": "^0.31.11",
