@@ -72,12 +72,23 @@ function toProblem (event: RequestEvent, error: unknown): Problem {
  * enforces the Origin check for state changes, and turns expected failures
  * into `application/problem+json` with a stable code.
  */
-export function defineStudioHandler<T> (handler: (event: RequestEvent) => Promise<T>) {
+export function defineStudioHandler<T> (
+  handler: (event: RequestEvent) => Promise<T>,
+  options: {
+    /**
+     * `false` only for endpoints of the Electron main process, which sends no
+     * Origin and authenticates with the broker secret instead of a cookie.
+     */
+    originCheck?: boolean
+  } = {},
+) {
   return defineEventHandler(async (event): Promise<T | Problem> => {
     event.res.headers.set('X-Request-ID', requestIdOf(event))
     event.res.headers.set('Cache-Control', 'no-store')
     try {
-      await rejectCrossOrigin(event)
+      if (options.originCheck !== false) {
+        await rejectCrossOrigin(event)
+      }
       return await handler(event)
     } catch (error) {
       const problem = toProblem(event, error)

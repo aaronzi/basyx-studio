@@ -89,6 +89,14 @@ kurzlebige opake Handles.
 Nach dem Öffnen laufen AAS-Reads und -Mutationen über die normalen
 `/targets/{targetId}/...`-Endpunkte.
 
+Stand MVP-2: Implementiert sind `POST /workspaces` (öffnet ein AASX aus einem
+Datei-Handle), `POST /workspaces/{workspaceId}/saves`,
+`POST /workspaces/{workspaceId}/exports` (Speichern unter) und
+`DELETE /workspaces/{workspaceId}?force=`. Datei-Handles stellt nur der
+Electron-Main-Prozess über `POST /desktop/file-grants` aus
+([ADR 0015](../adr/0015-desktop-native-bridge-and-file-grants.md)); Details und
+Abweichungen stehen im [MVP-2-Plan](../development/mvp-2-plan.md#results).
+
 ## Cross-Target-Copy
 
 | Methode und Pfad | Zweck |

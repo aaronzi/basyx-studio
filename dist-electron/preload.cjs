@@ -1,0 +1,1 @@
+let e=require("electron");e.contextBridge.exposeInMainWorld(`studioDesktop`,{chooseAasxFile:()=>e.ipcRenderer.invoke(`studio:choose-aasx-file`),chooseSaveLocation:t=>e.ipcRenderer.invoke(`studio:choose-save-location`,String(t).slice(0,255))});

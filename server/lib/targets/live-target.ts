@@ -1,17 +1,25 @@
-import type { EndpointType, Page, ShellSummary } from '#shared/contract'
+import type { ElementValueInput, EndpointType, Page, ShellSummary, TargetCapabilities } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
 import type { InfrastructureRecord } from '../infrastructures'
 import type { FailureRecorder, OutboundPolicy } from '../network/guarded-fetch'
+import type { AasTarget, ElementSnapshot } from './aas-target'
 import type { TargetAccess } from './credentials'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import { jsonization } from '@aas-core-works/aas-core3.1-typescript'
 import { AasRepositoryClient, Configuration, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
-import { encodeKey } from '../aas/keys'
+import { submodelIdOf, toShellSummary } from '../aas/shells'
+import { withValue } from '../aas/values'
 import { endpointUrl } from '../infrastructures'
 import { createGuardedFetch } from '../network/guarded-fetch'
 import { StudioProblem } from '../problem'
+import { contentHash, parseRevision, revisionOf } from './revision'
 
-type SdkResult<T> = { success: true, data: T, statusCode?: number } | { success: false, error: unknown, statusCode?: number }
+type SdkResult<T>
+  = | { success: true, data: T, statusCode?: number, etag?: string }
+    | { success: false, error: unknown, statusCode?: number, etag?: string, preconditionFailed?: boolean }
+
+/** Attempts per write when the submodel revision changes between read and write. */
+const writeAttempts = 3
 
 export interface LiveTargetOptions {
   record: InfrastructureRecord
@@ -31,34 +39,9 @@ function toJson (value: types.Class): JsonObject {
   return jsonization.toJsonable(value) as JsonObject
 }
 
-function langStrings (value: unknown): Array<{ language: string, text: string }> {
-  return Array.isArray(value)
-    ? value.filter((entry): entry is { language: string, text: string } => typeof entry?.language === 'string' && typeof entry?.text === 'string')
-    : []
-}
-
-export function toShellSummary (shell: JsonObject): ShellSummary {
-  const assetInformation = (shell.assetInformation ?? {}) as JsonObject
-  return {
-    key: encodeKey(String(shell.id)),
-    id: String(shell.id),
-    idShort: typeof shell.idShort === 'string' ? shell.idShort : null,
-    displayName: langStrings(shell.displayName),
-    description: langStrings(shell.description),
-    assetKind: typeof assetInformation.assetKind === 'string' ? assetInformation.assetKind : null,
-    globalAssetId: typeof assetInformation.globalAssetId === 'string' ? assetInformation.globalAssetId : null,
-  }
-}
-
-/** The submodel identifier of a submodel reference (`ModelReference` to a `Submodel`). */
-export function submodelIdOf (reference: JsonObject): string | null {
-  const keys = Array.isArray(reference.keys) ? reference.keys as JsonObject[] : []
-  const key = keys.findLast(entry => entry.type === 'Submodel') ?? keys[0]
-  return typeof key?.value === 'string' ? key.value : null
-}
-
 /** Live AAS target backed by `basyx-typescript-sdk`, scoped to one request. */
-export class LiveAasTarget {
+export class LiveAasTarget implements AasTarget {
+  readonly capabilities: TargetCapabilities = { write: true, persistence: 'immediate' }
   readonly #aasClient = new AasRepositoryClient()
   readonly #submodelClient = new SubmodelRepositoryClient()
 
@@ -111,9 +94,53 @@ export class LiveAasTarget {
       this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: id })))
   }
 
-  async element (submodelId: string, idShortPath: string): Promise<JsonObject> {
-    return toJson(await this.#call('submodelRepository', configuration =>
-      this.#submodelClient.getSubmodelElementByPath({ configuration, submodelIdentifier: submodelId, idShortPath })))
+  async element (submodelId: string, idShortPath: string): Promise<ElementSnapshot> {
+    const { value, etag } = await this.#read(submodelId, idShortPath)
+    return { value, revision: revisionOf(value), concurrency: etag ? 'strong' : 'best_effort' }
+  }
+
+  /**
+   * Reads the element again, checks that it still matches the revision the
+   * user edited, and writes it. With a downstream ETag the write is
+   * conditional, so a change after the check is detected (`strong`); BaSyx Go
+   * shares one revision per submodel, so a 412 caused by another element is
+   * retried. Without an ETag the check is all there is (`best_effort`).
+   */
+  async setElementValue (submodelId: string, idShortPath: string, value: ElementValueInput['value'], revision: string): Promise<ElementSnapshot> {
+    const token = parseRevision(revision)
+    for (let attempt = 1; ; attempt++) {
+      const current = await this.#read(submodelId, idShortPath)
+      if (contentHash(current.value) !== token.hash) {
+        throw new StudioProblem('revision_conflict')
+      }
+      const { instance } = withValue(current.value, value)
+      const result = await this.#send('submodelRepository', configuration =>
+        this.#submodelClient.patchSubmodelElementByPath({
+          configuration,
+          submodelIdentifier: submodelId,
+          idShortPath,
+          submodelElement: instance,
+          ifMatch: current.etag,
+        }))
+      if (result.success) {
+        return this.element(submodelId, idShortPath)
+      }
+      if (!result.preconditionFailed) {
+        throw await this.#problem(result.statusCode, result.recorder)
+      }
+      if (attempt === writeAttempts) {
+        throw new StudioProblem('revision_conflict', 'The submodel kept changing while saving. Try again.')
+      }
+    }
+  }
+
+  async #read (submodelId: string, idShortPath: string): Promise<{ value: JsonObject, etag: string | undefined }> {
+    const result = await this.#send('submodelRepository', configuration =>
+      this.#submodelClient.getSubmodelElementByPath({ configuration, submodelIdentifier: submodelId, idShortPath }))
+    if (!result.success) {
+      throw await this.#problem(result.statusCode, result.recorder)
+    }
+    return { value: toJson(result.data), etag: result.etag }
   }
 
   #configuration (type: EndpointType, recorder: FailureRecorder): Configuration {
@@ -132,12 +159,16 @@ export class LiveAasTarget {
   }
 
   async #call<T> (type: EndpointType, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<T> {
-    const recorder: FailureRecorder = {}
-    const result = await operation(this.#configuration(type, recorder))
+    const result = await this.#send(type, operation)
     if (result.success) {
       return result.data
     }
-    throw await this.#problem(result.statusCode, recorder)
+    throw await this.#problem(result.statusCode, result.recorder)
+  }
+
+  async #send<T> (type: EndpointType, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<SdkResult<T> & { recorder: FailureRecorder }> {
+    const recorder: FailureRecorder = {}
+    return { ...await operation(this.#configuration(type, recorder)), recorder }
   }
 
   async #problem (status: number | undefined, recorder: FailureRecorder): Promise<StudioProblem> {
@@ -171,6 +202,9 @@ export class LiveAasTarget {
       }
       case 403: {
         return new StudioProblem('target_forbidden')
+      }
+      case 428: {
+        return new StudioProblem('target_request_rejected', 'The target requires a revision (If-Match) for this write.')
       }
       case 404: {
         return new StudioProblem('target_resource_not_found')

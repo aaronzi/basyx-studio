@@ -56,6 +56,7 @@
             <ElementTree
               v-if="submodelKey"
               :key="`${targetId}:${submodelKey}`"
+              ref="tree"
               v-model:selected="elementKey"
               :submodel-key="submodelKey"
               :target-id="targetId"
@@ -71,10 +72,25 @@
           <v-card-title class="text-title-medium">{{ t('shell.details') }}</v-card-title>
           <v-divider />
 
-          <div class="flex-grow-1 overflow-auto">
+          <div class="flex-grow-1 overflow-auto d-flex flex-column">
             <v-progress-linear v-if="details.isLoading.value" />
             <ProblemAlert v-else-if="details.error.value" class="ma-2" :error="details.error.value" />
-            <JsonPanel v-else-if="details.data.value" :label="details.data.value.label" :value="details.data.value.value" />
+
+            <template v-else-if="details.data.value">
+              <template v-if="editable && details.data.value.element && submodelKey">
+                <ElementValueEditor
+                  :detail="details.data.value.element"
+                  :explicit-save="target.data.value?.capabilities.persistence === 'explicit_save'"
+                  :submodel-key="submodelKey"
+                  :target-id="targetId"
+                  @changed="onElementChanged"
+                />
+
+                <v-divider />
+              </template>
+
+              <JsonPanel class="flex-grow-1" :label="details.data.value.label" :value="details.data.value.value" />
+            </template>
           </div>
         </v-card-pane>
       </v-col>
@@ -84,8 +100,9 @@
 
 <script lang="ts" setup>
   import type { ElementDetail, ShellDetail, SubmodelDetail, SubmodelRef } from '#shared/contract'
-  import { useQuery } from '@pinia/colada'
+  import { useQuery, useQueryCache } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
+  import { isEditableModelType } from '~/utils/aas'
 
   const { t } = useI18n()
   const route = useRoute()
@@ -117,22 +134,42 @@
   })
 
   // The JSON pane shows the selected element, else the submodel, else the shell.
+  const detailsKey = () => ['targets', targetId.value, 'details', shellKey.value, submodelKey.value ?? '', elementKey.value ?? '']
   const details = useQuery({
-    key: () => ['targets', targetId.value, 'details', shellKey.value, submodelKey.value ?? '', elementKey.value ?? ''],
+    key: detailsKey,
     query: async ({ signal }) => {
       if (submodelKey.value && elementKey.value) {
         const detail = await api<ElementDetail>(`/targets/${targetId.value}/submodels/${submodelKey.value}/elements/${elementKey.value}`, { signal })
-        return { label: detail.path, value: detail.value }
+        return { label: detail.path, value: detail.value, element: detail }
       }
       if (submodelKey.value) {
         const detail = await api<SubmodelDetail>(`/targets/${targetId.value}/submodels/${submodelKey.value}`, { signal })
-        return { label: String(detail.submodel.idShort ?? detail.submodel.id), value: detail.submodel }
+        return { label: String(detail.submodel.idShort ?? detail.submodel.id), value: detail.submodel, element: null }
       }
       const detail = await api<ShellDetail>(`/targets/${targetId.value}/shells/${shellKey.value}`, { signal })
-      return { label: String(detail.shell.idShort ?? detail.shell.id), value: detail.shell }
+      return { label: String(detail.shell.idShort ?? detail.shell.id), value: detail.shell, element: null }
     },
     enabled: ready,
   })
+
+  const tree = useTemplateRef('tree')
+  const queryCache = useQueryCache()
+
+  // Only values of properties can be edited, and only with a revision to base the write on.
+  const editable = computed(() => {
+    const element = details.data.value?.element
+    return Boolean(target.data.value?.capabilities.write && element?.revision
+      && isEditableModelType((element.value as Record<string, unknown>).modelType))
+  })
+
+  async function onElementChanged (detail: ElementDetail) {
+    queryCache.setQueryData(detailsKey(), { label: detail.path, value: detail.value, element: detail })
+    await Promise.all([
+      tree.value?.refresh(detail.key),
+      // A workspace now has unsaved changes.
+      queryCache.invalidateQueries({ key: ['targets', targetId.value], exact: true }),
+    ])
+  }
 
   const authRequired = computed(() => [shell.error.value, refs.error.value]
     .some(error => error instanceof StudioApiError && error.code === 'target_auth_required'))

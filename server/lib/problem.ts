@@ -13,6 +13,9 @@ const definitions: Record<ProblemCode, ProblemDefinition> = {
   invalid_request: { status: 400, title: 'Invalid request', retryable: false },
   not_found: { status: 404, title: 'Not found', retryable: false },
   revision_conflict: { status: 412, title: 'The resource was changed by someone else', retryable: false },
+  precondition_required: { status: 428, title: 'The request needs the revision it is based on (If-Match)', retryable: false },
+  unsupported_operation: { status: 422, title: 'This operation is not supported here', retryable: false },
+  validation_failed: { status: 422, title: 'The value is not valid', retryable: false },
   internal_error: { status: 500, title: 'Internal error', retryable: true },
   endpoint_rejected: { status: 422, title: 'Endpoint not permitted by the network policy', retryable: false },
   infrastructure_unreachable: { status: 422, title: 'Infrastructure could not be reached', retryable: true },
@@ -25,6 +28,8 @@ const definitions: Record<ProblemCode, ProblemDefinition> = {
   target_blocked: { status: 502, title: 'The request was blocked by the network policy', retryable: false },
   target_error: { status: 502, title: 'The target reported an error', retryable: true },
   target_invalid_response: { status: 502, title: 'The target returned an invalid response', retryable: false },
+  workspace_unsaved_changes: { status: 409, title: 'The workspace has unsaved changes', retryable: false },
+  package_rejected: { status: 422, title: 'The package cannot be opened', retryable: false },
 }
 
 export interface Violation {

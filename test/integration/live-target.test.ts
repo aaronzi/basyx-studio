@@ -1,37 +1,8 @@
-import type { InfrastructureRecord } from '~~/server/lib/infrastructures'
 import type { OutboundPolicy } from '~~/server/lib/network/guarded-fetch'
 import { describe, expect, it, vi } from 'vitest'
 import { LiveAasTarget } from '~~/server/lib/targets/live-target'
+import { delegated, policy, record } from '../support/live'
 import { openTargetUrl, securedTargetUrl, testenvAvailable, testUserAccessToken } from '../support/testenv'
-
-function record (url: string, security: InfrastructureRecord['security']): InfrastructureRecord {
-  return {
-    id: 'test',
-    name: 'test',
-    description: null,
-    endpoints: [{ type: 'aasRepository', url }, { type: 'submodelRepository', url }],
-    security,
-    secretCiphertext: null,
-    allowPrivateNetwork: true,
-    revision: 1,
-    createdBy: 'test',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
-}
-
-function policy (url: string, overrides: Partial<OutboundPolicy> = {}): OutboundPolicy {
-  return { allowedOrigins: new Set([new URL(url).origin]), allowPrivateNetwork: true, timeoutMs: 10_000, maxResponseBytes: 10_000_000, ...overrides }
-}
-
-const delegated: InfrastructureRecord['security'] = {
-  mode: 'delegated_user',
-  issuer: 'http://keycloak.localhost:18080/realms/basyx-studio',
-  clientId: 'studio-web',
-  scopes: ['openid', 'basyx-api'],
-  clientSecret: null,
-  desktopLoopbackHost: '127.0.0.1',
-}
 
 describe.runIf(testenvAvailable)('LiveAasTarget against the test environment', () => {
   const open = (overrides: Partial<OutboundPolicy> = {}) => new LiveAasTarget({
@@ -69,9 +40,9 @@ describe.runIf(testenvAvailable)('LiveAasTarget against the test environment', (
 
   it('reads nested elements and lists of lists as JSON', async () => {
     const target = open()
-    expect(await target.element('urn:studio:test:sm:edge-cases', 'Level1.Level2.Items[1].Details.Deepest'))
+    expect((await target.element('urn:studio:test:sm:edge-cases', 'Level1.Level2.Items[1].Details.Deepest')).value)
       .toMatchObject({ modelType: 'Property', value: 'deepest value of item 1' })
-    expect(await target.element('urn:studio:test:sm:edge-cases', 'NestedLists[1][0]'))
+    expect((await target.element('urn:studio:test:sm:edge-cases', 'NestedLists[1][0]')).value)
       .toMatchObject({ modelType: 'Property', value: 'c' })
   })
 

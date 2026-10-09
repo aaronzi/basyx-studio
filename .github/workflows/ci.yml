@@ -121,6 +121,25 @@ jobs:
       - name: Integration tests
         run: pnpm test:integration
 
+      - name: Build hosted Studio
+        run: pnpm build
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: End-to-end tests (hosted web)
+        run: pnpm test:e2e:web
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-web
+          path: |
+            playwright-report/web
+            test-results/web
+          retention-days: 7
+
       - name: Dump test environment logs on failure
         if: failure()
         working-directory: test-setup
@@ -132,3 +151,63 @@ jobs:
         if: always()
         working-directory: test-setup
         run: docker compose down -v
+
+  desktop-e2e:
+    name: End-to-end tests of the packaged desktop app (Linux)
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: Enable and verify pnpm
+        id: pnpm
+        run: bash .github/scripts/setup-pnpm.sh
+
+      - name: Restore pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm.outputs.store-path }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # A display, a Secret Service for Electron safeStorage (Studio refuses
+      # plain-text key storage), and unprivileged user namespaces for the
+      # Chromium sandbox, which Ubuntu restricts by default.
+      - name: Prepare display, keyring and sandbox
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb gnome-keyring dbus-x11
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
+      - name: Build the unpacked desktop app
+        run: pnpm build:electron:dir --linux --x64
+
+      - name: End-to-end tests (packaged desktop)
+        run: |
+          dbus-run-session -- bash -c '
+            echo -n "ci" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
+            xvfb-run --auto-servernum pnpm test:e2e:desktop
+          '
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-desktop
+          path: |
+            playwright-report/desktop
+            test-results/desktop
+          retention-days: 7

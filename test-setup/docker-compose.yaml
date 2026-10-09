@@ -66,7 +66,8 @@ services:
 
   # --- Target "open": unsecured BaSyx Go AAS environment ----------------------
   basyx-open-schema:
-    image: eclipsebasyx/basyxconfigurationservice-go:1.1.0
+    image: eclipsebasyx/basyxconfigurationservice-go:SNAPSHOT
+    pull_policy: always
     environment:
       <<: *basyx-env
       POSTGRES_DBNAME: basyx_open
@@ -75,7 +76,8 @@ services:
         condition: service_healthy
 
   basyx-open:
-    image: eclipsebasyx/aasenvironment-go:1.1.0
+    image: eclipsebasyx/aasenvironment-go:SNAPSHOT
+    pull_policy: always
     command: ["/app/aasenvironmentservice"]
     environment:
       <<: *basyx-env
@@ -93,7 +95,8 @@ services:
 
   # --- Target "secured": BaSyx Go with OIDC (Keycloak) and ABAC ---------------
   basyx-secured-schema:
-    image: eclipsebasyx/basyxconfigurationservice-go:1.1.0
+    image: eclipsebasyx/basyxconfigurationservice-go:SNAPSHOT
+    pull_policy: always
     environment:
       <<: *basyx-env
       POSTGRES_DBNAME: basyx_secured
@@ -102,7 +105,8 @@ services:
         condition: service_healthy
 
   basyx-secured:
-    image: eclipsebasyx/aasenvironment-go:1.1.0
+    image: eclipsebasyx/aasenvironment-go:SNAPSHOT
+    pull_policy: always
     command: ["/app/aasenvironmentservice"]
     environment:
       <<: *basyx-env

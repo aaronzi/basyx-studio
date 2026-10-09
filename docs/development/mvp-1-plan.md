@@ -1,6 +1,6 @@
 # MVP-1 plan: live AAS access through the Studio BFF
 
-- Status: Implemented; decision gate pending (see [results](#results))
+- Status: Implemented; decision gate closed in MVP-2 (see [results](#results))
 - Date: 2026-10-06
 - Scope decision gate: the first representative vertical slice
 
@@ -172,7 +172,7 @@ operation variables.
 
 | Risk | Mitigation |
 | --- | --- |
-| PGlite footprint (about 0.6–0.9 GB RSS) is not accepted | Measure the `embedded-postgres` fallback with the same schema (ADR 0011) |
+| PGlite footprint (about 0.6–0.9 GB RSS) is not accepted | Accepted for the MVP phase on 2026-10-09; `embedded-postgres` is measured before the first public desktop release (ADR 0011) |
 | BaSyx Go 1.1.0 sends no `ETag` | Not needed in read-only MVP-1. MVP-2 needs a fallback, such as comparing against a fresh read, or ETag support upstream. |
 | The SDK bundles its own aas-core copy | Use type helpers instead of `instanceof`; propose externalizing aas-core in the SDK build |
 | aas-core 1.0.1 ESM build fails in plain Node | Confirm bundler behavior in phase 0; report upstream |
@@ -181,15 +181,16 @@ operation variables.
 
 ## After MVP-1
 
-- **MVP-2:**
-  - one property edit, save and reload, with revision and conflict results and
-    drafts kept per target;
-  - porting the BaSyx AAS Web UI components onto Studio composables, replacing
-    `useRequestHandling`, the clients, and the global stores rather than
-    wrapping them;
-  - porting the infrastructure management UI.
-- **MVP-3:** registry and discovery resolution, cross-target copy, and
-  runtime-installable modules and apps.
+The order was revised on 2026-10-08:
 
-Open question for MVP-2: which BaSyx AAS Web UI codebase is the source for
+- [MVP-2](mvp-2-plan.md): one property edit on a live target and in a local AASX
+  package through a shared target contract, plus end-to-end tests for both
+  runtimes.
+- [MVP-3](mvp-3-plan.md): runtime-installable apps (submodel views, modules, a
+  backend app); it decides which BaSyx AAS Web UI parts become core components
+  and which become apps.
+- Then: porting BaSyx AAS Web UI components and the infrastructure management
+  UI, registry and discovery resolution, cross-target copy, and the marketplace.
+
+Open question for porting: which BaSyx AAS Web UI codebase is the source for
 components, upstream `main` or a fork branch.

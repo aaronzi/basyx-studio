@@ -14,6 +14,16 @@ const electronOptions: ElectronOptions = {
       // Main-Process entry file of the Electron App.
       entry: 'electron/main.ts',
     },
+    {
+      // Sandboxed preloads must be CommonJS (dist-electron/preload.cjs).
+      entry: 'electron/preload.ts',
+      onstart: ({ reload }) => reload(),
+      vite: {
+        build: {
+          lib: { entry: 'electron/preload.ts', formats: ['cjs'], fileName: () => 'preload.cjs' },
+        },
+      },
+    },
   ],
 }
 
@@ -57,6 +67,9 @@ export default defineNuxtConfig({
     studio: {
       // Overridable at runtime with NUXT_STUDIO_DEPLOYMENT_MODE.
       deploymentMode: 'hosted',
+      // Path of the bundled Workspace Worker; set for `nuxt dev` by
+      // modules/workspace-worker.ts, next to the server entry otherwise.
+      workspaceWorker: '',
     },
   },
 

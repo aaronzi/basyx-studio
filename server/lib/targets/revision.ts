@@ -1,0 +1,49 @@
+import { createHash } from 'node:crypto'
+import { StudioProblem } from '../problem'
+
+/**
+ * Studio revision tokens are opaque to the UI. `h.<hash>` is the hash of an
+ * element as read: a write compares it with the element's current content
+ * before changing it. Live targets add the downstream ETag check for the
+ * write itself; workspaces check and write in one step.
+ */
+export interface RevisionToken {
+  hash: string
+}
+
+const hashPattern = /^[\w-]{43}$/
+
+/** Key-order independent JSON, so equal content always hashes equally. */
+function canonical (value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(item => canonical(item)).join(',')}]`
+  }
+  if (value && typeof value === 'object') {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .toSorted(([a], [b]) => (a < b ? -1 : (a > b ? 1 : 0)))
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`).join(',')}}`
+  }
+  return JSON.stringify(value)
+}
+
+export function contentHash (value: unknown): string {
+  return createHash('sha256').update(canonical(value)).digest('base64url')
+}
+
+export function revisionOf (value: unknown): string {
+  return `h.${contentHash(value)}`
+}
+
+/** Parses an `If-Match` value as sent by the UI (quoted or bare). */
+export function parseRevision (value: string | undefined): RevisionToken {
+  if (!value) {
+    throw new StudioProblem('precondition_required')
+  }
+  const text = value.trim().replace(/^"(.*)"$/, '$1')
+  const [kind, hash, ...rest] = text.split('.')
+  if (kind === 'h' && hash && rest.length === 0 && hashPattern.test(hash)) {
+    return { hash }
+  }
+  throw new StudioProblem('invalid_request', 'Malformed revision.')
+}

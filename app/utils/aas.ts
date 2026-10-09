@@ -1,4 +1,5 @@
-import type { LangString } from '#shared/contract'
+import type { EditableModelType, LangString, Target } from '#shared/contract'
+import { editableModelTypes } from '#shared/contract'
 
 const modelTypeIcons: Record<string, string> = {
   Submodel: 'mdi-file-tree-outline',
@@ -35,4 +36,13 @@ export const securityModeIcons: Record<string, string> = {
   unsecured: 'mdi-lock-open-variant-outline',
   deployment_client_credentials: 'mdi-shield-key-outline',
   delegated_user: 'mdi-account-key-outline',
+}
+
+/** Icon of a target: its security mode, or a package for local workspaces. */
+export function targetIcon (target: Target): string {
+  return target.securityMode ? securityModeIcons[target.securityMode]! : 'mdi-package-variant-closed'
+}
+
+export function isEditableModelType (modelType: unknown): modelType is EditableModelType {
+  return (editableModelTypes as readonly unknown[]).includes(modelType)
 }

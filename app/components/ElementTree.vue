@@ -119,5 +119,28 @@
     }
   }
 
+  /** Reloads the level that contains `key`, so its preview shows a changed value. */
+  async function refresh (key: string) {
+    const current = generation
+    const parentKey = Object.keys(children.value).find(parent => children.value[parent]!.some(node => node.key === key))
+    try {
+      const result = await api<{ items: ElementNode[] }>(elementsUrl(), { query: parentKey ? { parentElementKey: parentKey } : {} })
+      if (current !== generation) {
+        return
+      }
+      if (parentKey) {
+        children.value = { ...children.value, [parentKey]: result.items }
+      } else {
+        rootNodes.value = result.items
+      }
+    } catch (error_) {
+      if (current === generation) {
+        error.value = error_
+      }
+    }
+  }
+
+  defineExpose({ refresh })
+
   watch(() => [props.targetId, props.submodelKey], reload, { immediate: true })
 </script>

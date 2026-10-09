@@ -13,6 +13,7 @@
       { "name": "studio-admin", "description": "May administer Studio (infrastructures, apps)." },
       { "name": "basyx-admin", "description": "Full access to the secured BaSyx test infrastructure." },
       { "name": "basyx-reader", "description": "Read access to everything in the secured BaSyx test infrastructure." },
+      { "name": "basyx-editor", "description": "Read and update access to everything in the secured BaSyx test infrastructure." },
       { "name": "basyx-limited", "description": "Read access to the public shell and nameplate only." }
     ]
   },
@@ -234,6 +235,16 @@
       "realmRoles": ["basyx-reader"]
     },
     {
+      "username": "dave",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "dave@example.test",
+      "firstName": "Dave",
+      "lastName": "Editor",
+      "credentials": [{ "type": "password", "value": "dave", "temporary": false }],
+      "realmRoles": ["basyx-editor"]
+    },
+    {
       "username": "carol",
       "enabled": true,
       "emailVerified": true,
@@ -257,7 +268,7 @@
       "username": "service-account-studio-service",
       "enabled": true,
       "serviceAccountClientId": "studio-service",
-      "realmRoles": ["basyx-reader"]
+      "realmRoles": ["basyx-editor"]
     }
   ]
 }

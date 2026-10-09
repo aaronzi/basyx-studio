@@ -90,7 +90,12 @@ result—not reusable source/destination credentials.
 
 ## Desktop AASX workspace
 
-The Electron main process exposes constrained native file selection. A trusted Workspace Worker parses and serializes packages outside the renderer and outside the local Studio Service request loop.
+The Electron main process exposes constrained native file selection and turns
+the chosen paths into single-use file grants
+([ADR 0015](../adr/0015-desktop-native-bridge-and-file-grants.md)). A trusted
+Workspace Worker, a separate process supervised by the local Studio Service,
+parses and serializes packages outside the renderer and outside the Studio
+Service process ([ADR 0014](../adr/0014-workspace-worker-and-package-engine.md)).
 
 The worker uses the AAS package library and AAS Core verification. The client-oriented BaSyx SDK is not forced into the package data path, although its stable AAS types and semantic utilities may be reused.
 
@@ -117,9 +122,12 @@ Editing must distinguish three states:
 2. editor draft derived from that revision
 3. save result with a new revision
 
-Live targets use server ETags/revision facilities when available. The desktop
-AASX workspace defines its own monotonically advancing revision. A conflicting
-save returns a structured conflict and preserves the user's draft.
+Both kinds of target use the same opaque revision token: the hash of the
+element as read. Live targets additionally write with `If-Match` on the
+server's current ETag when the server supports conditional requests; the
+desktop Workspace Worker checks and writes in one step. A conflicting save
+returns a structured conflict and preserves the user's draft
+([ADR 0013](../adr/0013-revision-tokens-and-conditional-writes.md)).
 
 This model is a prerequisite for reliable autosave, history, and collaboration.
 

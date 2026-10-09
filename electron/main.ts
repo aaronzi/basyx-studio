@@ -8,11 +8,18 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { createServer } from 'node:net'
 import { join } from 'node:path'
 
-import { app, BrowserWindow, dialog, safeStorage, session, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, session, shell } from 'electron'
 
 const launchSecretHeader = 'X-Studio-Launch-Secret'
+const brokerSecretHeader = 'X-Studio-Broker-Secret'
 const loopbackHost = '127.0.0.1'
 const serviceStartupTimeoutMs = 15_000
+const aasxFilters = [{ name: 'AASX package', extensions: ['aasx'] }]
+
+// Authenticates this process to the Studio Service when it turns a path the
+// user chose into a file grant. Unlike the launch secret, the renderer never
+// receives it. `nuxt dev` shares it through the environment (modules/desktop-dev.ts).
+const brokerSecret = process.env.STUDIO_BROKER_SECRET ?? randomBytes(32).toString('base64url')
 
 let rendererUrl: string | undefined
 let rendererLaunchSecret: string | undefined
@@ -140,6 +147,7 @@ async function startStudioService (): Promise<{ launchSecret: string, url: strin
       STUDIO_DATA_DIR: join(app.getPath('userData'), 'studio-data'),
       STUDIO_DATA_KEY: dataKey,
       STUDIO_LAUNCH_SECRET: launchSecret,
+      STUDIO_BROKER_SECRET: brokerSecret,
     },
     stdio: ['ignore', 'inherit', 'inherit'],
   })
@@ -184,8 +192,10 @@ async function createWindow (url: string, launchSecret?: string): Promise<void> 
       nodeIntegration: false,
       sandbox: true,
       session: rendererSession,
+      preload: join(import.meta.dirname, 'preload.cjs'),
     },
   })
+  guardUnsavedWorkspaces(win)
 
   const allowedOrigin = new URL(url).origin
   win.webContents.on('will-navigate', (event, targetUrl) => {
@@ -210,7 +220,104 @@ async function createWindow (url: string, launchSecret?: string): Promise<void> 
   }
 }
 
+/** Calls a Studio Service endpoint reserved for this process. */
+async function callService<T> (path: string, init: { method?: string, body?: unknown } = {}): Promise<T> {
+  if (!rendererUrl) {
+    throw new Error('The Studio Service is not running.')
+  }
+  const response = await fetch(new URL(`api/studio/v1/${path}`, rendererUrl), {
+    method: init.method ?? 'GET',
+    headers: {
+      [brokerSecretHeader]: brokerSecret,
+      ...(rendererLaunchSecret ? { [launchSecretHeader]: rendererLaunchSecret } : {}),
+      ...(init.body === undefined ? {} : { 'Content-Type': 'application/json' }),
+    },
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    signal: AbortSignal.timeout(10_000),
+  })
+  if (!response.ok) {
+    throw new Error(`The Studio Service answered with HTTP ${response.status}.`)
+  }
+  return await response.json() as T
+}
+
+/** Only the Studio page in a Studio window may use the native bridge. */
+function isTrustedSender (event: Electron.IpcMainInvokeEvent): boolean {
+  const frame = event.senderFrame
+  return Boolean(rendererUrl && frame && frame === event.sender.mainFrame
+    && new URL(frame.url).origin === new URL(rendererUrl).origin)
+}
+
+function registerDesktopBridge (): void {
+  ipcMain.handle('studio:choose-aasx-file', async event => {
+    if (!isTrustedSender(event)) {
+      throw new Error('Untrusted sender.')
+    }
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options = { properties: ['openFile' as const], filters: aasxFilters }
+    const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options)
+    if (result.canceled || !result.filePaths[0]) {
+      return null
+    }
+    return callService('desktop/file-grants', { method: 'POST', body: { path: result.filePaths[0], purpose: 'open' } })
+  })
+
+  ipcMain.handle('studio:choose-save-location', async (event, suggestedName: unknown) => {
+    if (!isTrustedSender(event)) {
+      throw new Error('Untrusted sender.')
+    }
+    const window = BrowserWindow.fromWebContents(event.sender)
+    const options = { defaultPath: typeof suggestedName === 'string' ? suggestedName.replaceAll(/[/\\]/g, '_') : undefined, filters: aasxFilters }
+    const result = window ? await dialog.showSaveDialog(window, options) : await dialog.showSaveDialog(options)
+    if (result.canceled || !result.filePath) {
+      return null
+    }
+    const path = result.filePath.toLowerCase().endsWith('.aasx') ? result.filePath : `${result.filePath}.aasx`
+    return callService('desktop/file-grants', { method: 'POST', body: { path, purpose: 'save' } })
+  })
+}
+
+/** Asks before a window with unsaved workspace changes closes. */
+function guardUnsavedWorkspaces (win: BrowserWindow): void {
+  let confirmed = false
+  win.on('close', event => {
+    if (confirmed) {
+      return
+    }
+    event.preventDefault()
+    // Preventing a close also cancels a running quit, so resume it afterwards.
+    const quitting = isQuitting
+    void callService<{ unsavedWorkspaces: string[] }>('desktop/state')
+      .then(state => state.unsavedWorkspaces)
+      .catch(() => [])
+      .then(async unsaved => {
+        if (unsaved.length > 0) {
+          const { response } = await dialog.showMessageBox(win, {
+            type: 'warning',
+            buttons: ['Cancel', 'Close without saving'],
+            defaultId: 0,
+            cancelId: 0,
+            message: 'Some packages have unsaved changes.',
+            detail: unsaved.join('\n'),
+          })
+          if (response !== 1) {
+            isQuitting = false
+            return
+          }
+        }
+        confirmed = true
+        if (quitting) {
+          app.quit()
+        } else {
+          win.close()
+        }
+      })
+  })
+}
+
 async function start (): Promise<void> {
+  registerDesktopBridge()
+
   const devServerUrl = process.env.VITE_DEV_SERVER_URL
 
   if (!app.isPackaged) {
@@ -233,6 +340,11 @@ function handleStartupError (error: unknown): void {
   const message = error instanceof Error ? error.message : 'Unknown startup error.'
   dialog.showErrorBox('BaSyx Studio could not start', message)
   app.quit()
+}
+
+// End-to-end tests run the packaged app against a throwaway data directory.
+if (process.env.STUDIO_USER_DATA_DIR) {
+  app.setPath('userData', process.env.STUDIO_USER_DATA_DIR)
 }
 
 // Only one instance may own the local database and its data directory.
@@ -259,6 +371,10 @@ app.on('activate', () => {
 
 app.on('before-quit', () => {
   isQuitting = true
+})
+
+// Windows close first (and may ask about unsaved workspaces), then the service stops.
+app.on('will-quit', () => {
   studioService?.kill()
   studioService = undefined
 })

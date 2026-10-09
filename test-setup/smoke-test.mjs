@@ -32,8 +32,18 @@ function expect (condition, message) {
 }
 
 async function get (url, token) {
+  return request('GET', url, token)
+}
+
+async function request (method, url, token, { headers = {}, body: payload } = {}) {
   const response = await fetch(url, {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    method,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(payload === undefined ? {} : { 'Content-Type': 'application/json' }),
+      ...headers,
+    },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
     redirect: 'manual',
   })
   const text = await response.text()
@@ -90,7 +100,7 @@ await check('IdP discovery issuer matches the configured issuer', () => {
 })
 
 const tokens = {}
-for (const user of ['studio-admin', 'alice', 'carol', 'bob']) {
+for (const user of ['studio-admin', 'alice', 'dave', 'carol', 'bob']) {
   tokens[user] = (await userTokens(user)).access_token
 }
 const service = await serviceTokens()
@@ -123,7 +133,7 @@ await check('BaSyx audience is only issued when the basyx-api scope is requested
 await check('Client-credentials token for the Studio deployment identity', () => {
   const claims = decodeJwt(tokens.service)
   expect([claims.aud].flat().includes('basyx-api'), `aud is ${JSON.stringify(claims.aud)}`)
-  expect(claims.roles?.includes('basyx-reader'), `roles is ${JSON.stringify(claims.roles)}`)
+  expect(claims.roles?.includes('basyx-editor'), `roles is ${JSON.stringify(claims.roles)}`)
   expect(service.refresh_token === undefined, 'client credentials should not return a refresh token')
   return `azp=${claims.azp} roles=${claims.roles}`
 })
@@ -215,9 +225,11 @@ await check('open: operation with input/output/inoutput variables', async () => 
 await check('open: dangling submodel reference resolves to 404', () =>
   expectStatus(`${openUrl}/submodels/${b64url('urn:studio:test:sm:missing')}`, undefined, 404).then(() => '404'))
 
-await check('open: ETag support (informational, needed for MVP-2 conflict handling)', async () => {
-  const { headers } = await get(`${openUrl}/submodels/${edgeSm}/submodel-elements/SimpleString`)
-  return headers.get('etag') ? `ETag ${headers.get('etag')}` : 'no ETag returned by BaSyx Go'
+await check('open: submodel elements carry a strong ETag', async () => {
+  const { headers } = await expectStatus(`${openUrl}/submodels/${edgeSm}/submodel-elements/SimpleString`, undefined, 200)
+  const etag = headers.get('etag')
+  expect(etag && !etag.startsWith('W/'), `ETag is ${etag}`)
+  return etag
 })
 
 // --- Target "secured" ----------------------------------------------------------
@@ -264,6 +276,31 @@ await check('secured: carol is denied the restricted submodel (partial access)',
 
 await check('secured: carol is denied the internal shell', () =>
   expectStatus(`${securedUrl}/shells/${b64url('urn:studio:test:secured:aas:internal')}`, tokens.carol, 403).then(() => '403'))
+
+// Conditional writes. Rewriting the current value changes only the revision.
+const serialNumber = `${securedUrl}/submodels/${b64url('urn:studio:test:secured:sm:public-nameplate')}/submodel-elements/SerialNumber`
+
+await check('secured: dave (basyx-editor) updates a value with If-Match', async () => {
+  const { headers } = await expectStatus(serialNumber, tokens.dave, 200)
+  const etag = headers.get('etag')
+  expect(etag, 'no ETag returned')
+  const update = await request('PATCH', `${serialNumber}/$value`, tokens.dave, { headers: { 'If-Match': etag }, body: 'SEC-0001' })
+  expect(update.status === 204, `expected HTTP 204, got ${update.status}`)
+  expect(update.headers.get('etag') && update.headers.get('etag') !== etag, 'PATCH did not return a new ETag')
+  return `${update.status}, new ETag`
+})
+
+await check('secured: a stale If-Match is rejected with 412', async () => {
+  const update = await request('PATCH', `${serialNumber}/$value`, tokens.dave, { headers: { 'If-Match': '"0-00000000"' }, body: 'SEC-0001' })
+  expect(update.status === 412, `expected HTTP 412, got ${update.status}`)
+  return '412'
+})
+
+await check('secured: alice (basyx-reader) may not update values', async () => {
+  const update = await request('PATCH', `${serialNumber}/$value`, tokens.alice, { body: 'SEC-0001' })
+  expect(update.status === 403, `expected HTTP 403, got ${update.status}`)
+  return '403'
+})
 
 // --- Report ----------------------------------------------------------------------
 

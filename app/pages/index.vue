@@ -13,12 +13,26 @@
     </v-empty-state>
 
     <template v-else>
-      <div class="mb-6">
-        <h1 class="text-headline-medium">{{ t('home.title') }}</h1>
-        <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
+      <div class="d-flex flex-wrap align-start ga-4 mb-6">
+        <div>
+          <h1 class="text-headline-medium">{{ t('home.title') }}</h1>
+          <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
+        </div>
+
+        <v-spacer />
+
+        <v-btn-primary
+          v-if="bridge"
+          :loading="opening"
+          prepend-icon="mdi-folder-open-outline"
+          :text="t('workspace.open')"
+          @click="openPackage"
+        />
       </div>
 
       <ProblemAlert v-if="authError" class="mb-4" :error="authErrorProblem" />
+
+      <ProblemAlert v-if="openError" class="mb-4" :error="openError" />
 
       <ProblemAlert
         v-if="targets.error.value"
@@ -33,7 +47,7 @@
       <v-row v-else-if="targets.data.value?.items.length">
         <v-col v-for="target in targets.data.value.items" :key="target.id" cols="12" md="6">
           <v-card class="h-100" :to="`/targets/${target.id}`">
-            <v-card-item :prepend-icon="securityModeIcons[target.securityMode]" :title="target.name" />
+            <v-card-item :prepend-icon="targetIcon(target)" :title="target.name" />
 
             <v-card-text>
               <p v-if="target.description" class="text-medium-emphasis mb-3">{{ target.description }}</p>
@@ -59,10 +73,11 @@
 
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
+  import type { DesktopBridge } from '~/composables/useDesktopBridge'
   import { useQuery } from '@pinia/colada'
   import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
-  import { securityModeIcons } from '~/utils/aas'
+  import { targetIcon } from '~/utils/aas'
 
   const { t } = useI18n()
   const route = useRoute()
@@ -84,6 +99,28 @@
     requestId: '-',
     retryable: false,
   }))
+
+  // Desktop only: open a local AASX package as a workspace target.
+  const bridge = ref<DesktopBridge | null>(null)
+  onMounted(() => (bridge.value = useDesktopBridge()))
+  const opening = ref(false)
+  const openError = ref<unknown>(null)
+
+  async function openPackage () {
+    opening.value = true
+    openError.value = null
+    try {
+      const grant = await bridge.value?.chooseAasxFile()
+      if (grant) {
+        const target = await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } })
+        await navigateTo(`/targets/${target.id}`)
+      }
+    } catch (error) {
+      openError.value = error
+    } finally {
+      opening.value = false
+    }
+  }
 
   const signingIn = ref(false)
   async function signIn () {
