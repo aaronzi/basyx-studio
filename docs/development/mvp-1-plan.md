@@ -1,6 +1,6 @@
 # MVP-1 plan: live AAS access through the Studio BFF
 
-- Status: Implemented; decision gate pending (see [results](#results))
+- Status: Implemented; decision gate closed in MVP-2 (see [results](#results))
 - Date: 2026-10-06
 - Scope decision gate: the first representative vertical slice
 
