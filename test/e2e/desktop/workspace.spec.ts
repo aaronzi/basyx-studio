@@ -78,7 +78,7 @@ async function editSerialNumber (value: string, select = true) {
   await field.fill(value)
   await window.getByRole('button', { name: 'Apply' }).click()
   await expect(window.getByText('Applied. Save the package to keep the change.')).toBeVisible()
-  await expect(window.getByText('Unsaved changes')).toBeVisible()
+  await expect(window.getByText('Unsaved changes', { exact: true })).toBeVisible()
 }
 
 async function openPackage (path: string) {
@@ -134,6 +134,6 @@ test('asks before closing a package or the window with unsaved changes', async (
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0]!.close())
   await expect.poll(() => app.evaluate(() => (globalThis as { studioE2eMessageBoxes?: unknown[] }).studioE2eMessageBoxes?.length ?? 0)).toBe(1)
   // "Cancel" keeps the window open with the unsaved change.
-  await expect(window.getByText('Unsaved changes')).toBeVisible()
+  await expect(window.getByText('Unsaved changes', { exact: true })).toBeVisible()
   expect(await contentXml(path)).not.toContain('SN-E2E-UNSAVED')
 })
