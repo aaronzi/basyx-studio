@@ -172,7 +172,7 @@ operation variables.
 
 | Risk | Mitigation |
 | --- | --- |
-| PGlite footprint (about 0.6–0.9 GB RSS) is not accepted | Measure the `embedded-postgres` fallback with the same schema (ADR 0011) |
+| PGlite footprint (about 0.6–0.9 GB RSS) is not accepted | Accepted for the MVP phase on 2026-10-09; `embedded-postgres` is measured before the first public desktop release (ADR 0011) |
 | BaSyx Go 1.1.0 sends no `ETag` | Not needed in read-only MVP-1. MVP-2 needs a fallback, such as comparing against a fresh read, or ETag support upstream. |
 | The SDK bundles its own aas-core copy | Use type helpers instead of `instanceof`; propose externalizing aas-core in the SDK build |
 | aas-core 1.0.1 ESM build fails in plain Node | Confirm bundler behavior in phase 0; report upstream |

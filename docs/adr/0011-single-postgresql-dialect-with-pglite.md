@@ -92,6 +92,14 @@ phase 0 of MVP-1. The evidence required:
 6. **Semantics:** the transaction, constraint, and row-locking behavior that
    Studio repositories rely on is identical on both drivers.
 
+**Gate outcome (2026-10-09):** gates 1, 2, 4, 5 and 6 passed in MVP-1 (gate 1
+on macOS arm64 so far). For gate 3, the maintainers accept the measured
+footprint (about 0.6 GB RSS under Node, 0.9 GB inside packaged Electron, 25 MB
+larger package) for the MVP phase only. Before the first public desktop
+release, `embedded-postgres` is measured with the same schema, and the engine
+with the clearly better footprint and packaging cost is chosen. Switching keeps
+the dialect and migrations and moves data by dump and restore.
+
 **Fallback:** if the gate fails, use `embedded-postgres` instead. It runs
 supervised, per-platform PostgreSQL server binaries as a local child process.
 The dialect, schema, and migrations stay the same; the costs are heavier

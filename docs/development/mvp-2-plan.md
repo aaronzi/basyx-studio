@@ -1,6 +1,6 @@
 # MVP-2 plan: one edit on a live target and in a local AASX package
 
-- Status: Implemented; decision gate pending (see [results](#results))
+- Status: Implemented (see [results](#results))
 - Date: 2026-10-08
 - Depends on: [MVP-1](mvp-1-plan.md) and its decision gate
 - Scope decision gate: the target abstraction and the write path are proven for
@@ -166,7 +166,7 @@ build, and the packaged macOS arm64 app (unpacked, ad-hoc signed).
 | 6. Package safety | Done | Path traversal, absolute names, more than 10 000 entries, a decompression bomb, non-ZIP files and invalid AAS XML are rejected; the worker keeps serving; a request over its time limit kills and restarts the worker |
 | 7. Round trip | Done | `IESEDriveMotorDM3000.aasx` (XML) and an edge-case JSON package: equal AAS content, byte-identical supplementary files |
 | 8. End-to-end in CI | Implemented | `pnpm test:e2e:web` and `pnpm test:e2e:desktop` pass locally (web: Chromium; desktop: packaged macOS app). CI runs both; the Linux desktop job (Xvfb, gnome-keyring) first runs on the MVP-2 pull request |
-| 9. MVP-1 gate closed | **Open** | The PGlite footprint decision is the maintainers' |
+| 9. MVP-1 gate closed | Done | PGlite accepted for the MVP phase; measuring `embedded-postgres` is a gate before the first public desktop release ([ADR 0011](../adr/0011-single-postgresql-dialect-with-pglite.md#qualification-gate)) |
 
 Automated checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (unit, including
 the worker process), `pnpm test:integration` (98 tests), `pnpm testenv:smoke`
@@ -240,7 +240,8 @@ are authoritative):
   property reads as an empty string at BaSyx Go.
 
 **Not done yet**
-- PGlite footprint decision (DoD 9);
+- measuring `embedded-postgres` against PGlite (gate before the first public
+  desktop release);
 - Windows and macOS e2e in CI; Windows and Linux packages beyond the CI build;
 - recovery snapshots, new packages, attachments, AAS 3.0 packages;
 - syncing the `openapi.yaml` draft.
