@@ -1,10 +1,14 @@
 # MVP-4 plan: the BaSyx AAS Web UI viewer, registries, discovery and query search
 
-- Status: Draft
+- Status: Planned
 - Date: 2026-10-13
 - Depends on: [MVP-3](mvp-3-plan.md) (implemented: submodel views and
   modules as apps, classification of the BaSyx AAS Web UI's plugins and
-  modules)
+  modules), and a `basyx-typescript-sdk` release with
+  [eclipse-basyx/basyx-typescript-sdk#549](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/549)
+  (query clients) and
+  [eclipse-basyx/basyx-typescript-sdk#550](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/550)
+  (descriptor endpoint resolution), which are implemented first
 - Scope decision gate: Studio's core browsing matches the BaSyx AAS Web UI's
   viewer on a large environment and on registry-based infrastructures, so that
   ports of submodel apps, previews and editors can build on it
@@ -50,20 +54,21 @@ validation and discovery run in the BFF, behind the target contract
 | Valid combinations | At least one of `aasRepository` and `aasRegistry`, and at least one of `submodelRepository` and `submodelRegistry`. Registry-only infrastructures are allowed (the Web UI's registry-based templates). |
 | Single-URL shortcut | The admin form can fill all six endpoint types from one AAS environment base URL (the Web UI's `mono-all`), and the admin removes the ones the server does not offer. Stored as individual endpoints; there are no templates in the data model. |
 | List source | With both an AAS registry and an AAS repository, the administrator chooses the list source (`registry` default, or `repository`). No automatic fallback when the registry is empty, as the Web UI does: an empty registry is shown as empty, so a missing registry integration is visible. |
-| Trusted descriptor origins | Descriptor endpoints are untrusted data. Studio follows a descriptor's endpoint only if its origin is one of the configured endpoint origins or listed in the new `trustedOrigins` of the infrastructure. Everything else is `blocked`, shown on the row, and never contacted, so the target token never leaves the configured hosts. The address policy (`allowPrivateNetwork`) applies to trusted origins as to endpoints. No URL rewriting of internal host names: the registry must publish reachable URLs (BaSyx Go: `GENERAL_EXTERNALURL`). |
+| Descriptor endpoints | Used as in the BaSyx AAS Web UI, as long as they point into a component of the infrastructure: a descriptor's `href` is followed only if it lies under the base URL of one of the infrastructure's configured endpoints (same scheme, host and port, and the base path as a prefix at a segment boundary). Anything else is `blocked`, shown on the row, and never contacted, so the target token never leaves the configured services. The outbound policy for targets checks these base URLs instead of only their origins. No URL rewriting of internal host names: the registry must publish the URLs Studio is configured with (BaSyx Go: `GENERAL_EXTERNALURL`). |
 | Service profiles | The probe reads `/description` of every endpoint and stores the profiles with the infrastructure, at create, update and every probe. Query support is derived from them (below). |
-| Security | One security mode per infrastructure, as today: the same token is sent to all its endpoints and trusted origins. Different credentials per endpoint are out of scope. |
+| Security | One security mode per infrastructure, as today: the same token is sent to all its endpoints. Different credentials per endpoint are out of scope. |
 
 ### Resolution
 
 | Topic | MVP-4 decision |
 | --- | --- |
+| Where data comes from | The SDK's `AasService` and `SubmodelService` decide where to read from, so Studio does not keep its own registry-then-repository logic. Per request, Studio configures them with the infrastructure's endpoints, the guarded fetch and the target token, and with the endpoint hook from #550 that applies the base-URL rule above before a descriptor endpoint is contacted. |
 | Shell list | From the list source: `GET /shell-descriptors` or `GET /shells`, cursor-paged. Rows from descriptors carry idShort, ID, display name, asset kind and global asset ID, so the list needs no request per row. |
-| Opening a shell | With a registry: descriptor by ID → AAS endpoint (interface `AAS-3.x`, then `AAS-REPOSITORY-3.x`, the Web UI's order) → GET through the guarded fetch. Without one, or if the descriptor has no usable endpoint: the configured AAS repository. |
+| Opening a shell | With a registry: descriptor by ID → AAS endpoint (interface `AAS-3.x`, then `AAS-REPOSITORY-3.x`, the Web UI's order, #550) → GET. Without one, or if the descriptor has no usable endpoint: the configured AAS repository. |
 | Submodels | Per submodel reference: with a submodel registry, descriptor → `SUBMODEL-3.x` endpoint; otherwise the configured submodel repository. Writes go to the resolved endpoint with the MVP-2 revision rules. Submodel refs gain the status `blocked` next to `forbidden`, `not_found` and `error`. |
 | Row availability | The Web UI's online/offline marker. The UI asks for the rows in view (± a few), at most 50 keys per request; the BFF resolves them with at most 4 concurrent requests per target and answers `available`, `forbidden`, `not_found`, `blocked` or `unreachable`. No timer: checks run when rows come into view and on reload. |
 | Discovery | Asset ID → AAS IDs through `/lookup/shells` (global asset ID, and specific asset IDs as `name=value`). Used by `/targets/{targetId}?globalAssetId=…` deep links and by the asset ID search (below); one result opens the shell, several show a picker. Discovery writes (asset links on create and delete) come with editing. |
-| SDK | Registry, discovery and repository calls use the SDK clients (`AasRegistryClient`, `SubmodelRegistryClient`, `AasDiscoveryClient`) or `AasService` where it fits Studio's guarded fetch. Two SDK changes are needed and are made upstream, not worked around in Studio: query clients for `/query/shells`, `/query/shell-descriptors`, `/query/submodels`, `/query/submodel-descriptors` and `/query/concept-descriptions`; and descriptor endpoint selection that accepts `AAS-3.x`/`SUBMODEL-3.x` (the SDK matches `AAS-3.0` exactly, while BaSyx Go's registry sync writes `AAS-3.2`). Studio moves to the release that contains both, under the release-age exception of [ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md). |
+| SDK | All registry, discovery, repository and query calls go through `basyx-typescript-sdk` (DATA-001). Two upstream changes come first: query clients for `/query/shells`, `/query/shell-descriptors`, `/query/submodels`, `/query/submodel-descriptors` and `/query/concept-descriptions` (#549); and descriptor endpoint resolution that accepts `AAS-3.x`/`SUBMODEL-3.x` (the SDK matches `AAS-3.0` exactly, while BaSyx Go's registry sync writes `AAS-3.2`), selects submodel endpoints by interface, and lets the caller control the configuration of every descriptor endpoint request (#550). Studio moves to the release that contains both, under the release-age exception of [ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md). |
 
 ### Search
 
@@ -99,7 +104,7 @@ validation and discovery run in the BFF, behind the target contract
 | --- | --- |
 | Registry-based target | `basyx-open` enables BaSyx Go's registry integration (`GENERAL_AASREGISTRYINTEGRATION`, `GENERAL_SUBMODELREGISTRYINTEGRATION`, `GENERAL_EXTERNALURL`), so its registries are filled from the fixtures, and its Studio infrastructure is configured with all six endpoint types. Its registry, discovery and query endpoints are already served by `aasenvironment-go`. |
 | Repository-based target | `basyx-secured` stays repository-only, so both resolution paths are tested, and the secured target keeps its current ABAC rules. |
-| Untrusted descriptors | A fixture descriptor in `basyx-open` points to an origin that is not trusted, to test `blocked`. |
+| Foreign descriptors | A fixture descriptor in `basyx-open` points outside the configured base URLs, to test `blocked`. |
 | Large profile | A `large` Compose profile adds a third `aasenvironment-go` with registry integration, 2,000 shells, a submodel with 5,000 elements across levels, and a SubmodelElementList with 1,000 entries. The default environment and its tests stay unchanged. |
 
 ## Design
@@ -149,16 +154,16 @@ validation and discovery run in the BFF, behind the target contract
 
 ### Server
 
-- `server/lib/aas/resolution.ts`: list source, descriptor endpoint selection,
-  trusted-origin check, fallback to the configured repositories.
+- `server/lib/aas/services.ts`: builds `AasService`, `SubmodelService` and the
+  discovery client for one request (endpoint configurations with the guarded
+  fetch and token, list source, the base-URL check as endpoint hook).
 - `server/lib/aas/query.ts`: expression to `$condition`, Ajv validation of raw
   queries (schema vendored from IDTA-01002-3 into `shared/aas/`), root check.
-- `server/lib/aas/discovery.ts`: asset ID lookup.
-- `LiveAasTarget` gains `searchShells`, `shellAvailability` and
-  `shellsByAssetId`; the workspace target implements `searchShells` for
-  expressions.
-- `server/lib/infrastructures.ts`: endpoint types and combinations,
-  `trustedOrigins` in the outbound policy, profiles stored at probe.
+- `LiveAasTarget` reads through the services and gains `searchShells`,
+  `shellAvailability` and `shellsByAssetId`; the workspace target implements
+  `searchShells` for expressions.
+- `server/lib/infrastructures.ts`: endpoint types and combinations, base URLs
+  in the outbound policy, profiles stored at probe.
 
 ### Tree and right pane
 
@@ -174,14 +179,14 @@ validation and discovery run in the BFF, behind the target contract
 
 | Change | Reason |
 | --- | --- |
-| Infrastructure: endpoint types `aasRegistry`, `submodelRegistry`, `aasDiscovery`; `trustedOrigins`; `listSource`; probe results with `profiles` per endpoint | Registry and discovery configuration |
+| Infrastructure: endpoint types `aasRegistry`, `submodelRegistry`, `aasDiscovery`; `listSource`; probe results with `profiles` per endpoint | Registry and discovery configuration |
 | Target capabilities: `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `advancedQuery: boolean`, `assetLookup: boolean` | The UI offers only what the target supports |
 | `POST /targets/{targetId}/shell-searches?limit=&cursor=` with `{ expression }` or `{ query }` → `Page<ShellSummary>` and the endpoint used | Server-side search; a POST because queries are JSON |
 | `GET /targets/{targetId}/shells?assetId=` (repeatable, `name=value` or a global asset ID) | Discovery lookup |
 | `POST /targets/{targetId}/shell-availability` with up to 50 keys → status per key | Row markers |
-| `SubmodelRef.status` gains `blocked` | Untrusted descriptor endpoints |
 | `ElementDetail.ancestors: { key, label, modelType }[]` | Deep links and breadcrumb |
 | Problems: `query_invalid` (with findings), `query_unsupported`, `descriptor_endpoint_blocked` | Explain refusals |
+| `SubmodelRef.status` `blocked` and the row status `blocked` | Descriptor endpoints outside the configured base URLs |
 
 `openapi.yaml` and `endpoints.md` are updated with these changes.
 
@@ -197,9 +202,9 @@ environment, and against the `large` profile where stated:
    are refused with findings.
 2. **Registry listing and resolution.** On the open target, the list comes
    from the AAS registry, shells open through their descriptor endpoints, and
-   submodels through the submodel registry. The descriptor that points to an
-   untrusted origin is shown as `blocked` and never contacted (verified in
-   the network log). The secured target still works from its repositories.
+   submodels through the submodel registry. The descriptor that points outside
+   the configured base URLs is shown as `blocked` and never contacted
+   (verified in the network log). The secured target still works from its repositories.
 3. **Query search.** On the open target, free text, `field:value`,
    `field=value` and exclusion chips return the matching shells through
    `/query/shell-descriptors` and, with the list source set to repository,
@@ -250,21 +255,33 @@ environment, and against the `large` profile where stated:
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| 0. Spikes and SDK | `@vuetify/v0` splitter in Nuxt SSR and Electron; `v-treeview` with 1,000 and 5,000 nodes; `v-virtual-scroll` with cursor paging; registry integration and query endpoints of `aasenvironment-go` in the test environment; profile detection; SDK query clients and descriptor endpoint selection (upstream PR and release) | Decisions and budgets recorded; SDK released; ADR drafts |
-| A. Infrastructures | Endpoint types, combinations, `trustedOrigins`, list source, stored profiles, admin form with the single-URL shortcut; test environment changes | DoD 1 |
-| B. Resolution and discovery | Registry listing, descriptor resolution, trusted origins, availability, discovery lookup, `?globalAssetId=` | DoD 2, 4 |
+| S. SDK | #549 and #550 in `basyx-typescript-sdk`, released; Studio updates the dependency | SDK release |
+| 0. Spikes | `@vuetify/v0` splitter in Nuxt SSR and Electron; `v-treeview` with 1,000 and 5,000 nodes; `v-virtual-scroll` with cursor paging; registry integration and query endpoints of `aasenvironment-go` in the test environment; profile detection | Decisions and budgets recorded; ADR drafts |
+| A. Infrastructures | Endpoint types, combinations, base-URL policy, list source, stored profiles, admin form with the single-URL shortcut; test environment changes | DoD 1 |
+| B. Resolution and discovery | Registry listing and descriptor resolution through `AasService` and `SubmodelService`, availability, discovery lookup, `?globalAssetId=` | DoD 2, 4 |
 | C. Search | Shared expression parser, query building and validation, search route, workspace evaluation, search field and dialog | DoD 3 |
 | D. Layout and list | `AppBar.vue`, `viewer` layout, drawer, `ViewerSplit`, remembered layout, small screens, `ShellList`, `ShellDetails` | DoD 5–6, 9 |
 | E. Tree and right pane | `ancestors`, `SubmodelTree`, element header and type views, *Visualization*, *JSON* | DoD 7–8 |
 | F. Wrap-up | Workspace check, performance runs, screenshots, parity list, results, ADRs, `openapi.yaml` | DoD 10–12 |
 
 D and E do not depend on A to C and can start right after phase 0 against
-the repository-based targets. B and C need the SDK release from phase 0;
+the repository-based targets. B and C need the SDK release from phase S;
 C needs B's list source.
 
 ### Work breakdown
 
-**0. Spikes and SDK**
+**S. SDK**
+
+- [eclipse-basyx/basyx-typescript-sdk#549](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/549):
+  query clients for the five `/query/*` endpoints, cursor paging, `$select`
+  results.
+- [eclipse-basyx/basyx-typescript-sdk#550](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/550):
+  `AAS-3.x`/`SUBMODEL-3.x` endpoint selection in `AasService` and
+  `SubmodelService`, and an endpoint hook that gives the caller control over
+  the configuration of every descriptor endpoint request, or rejects it.
+- A release, then the dependency update in Studio under ADR 0012.
+
+**0. Spikes**
 
 - Add `@vuetify/v0` as a direct dependency pinned to the version `vuetify`
   resolves; `pnpm why @vuetify/v0` still shows one version.
@@ -281,30 +298,29 @@ C needs B's list source.
   that discovery asset links are filled; run each `/query/*` endpoint once.
 - `/description` profiles of `aasenvironment-go` and of the standalone
   services; the rule that derives query support.
-- `basyx-typescript-sdk`: query clients and `AAS-3.x`/`SUBMODEL-3.x`
-  endpoint selection with tests, upstream PR, release; Studio updates the
-  dependency.
 
 **A. Infrastructures**
 
 - `shared/contract/infrastructure.ts`: endpoint types, combination rules,
-  `trustedOrigins`, `listSource`; probe result with profiles.
-- Migration `0002`: `trusted_origins`, `list_source`, `service_profiles` and
+  `listSource`; probe result with profiles.
+- Migration `0002`: `list_source`, `service_profiles` and
   `probed_at` on `infrastructures`.
-- `targetPolicy` includes trusted origins; `probeEndpoints` stores profiles.
+- `targetPolicy` checks the configured base URLs; `probeEndpoints` stores
+  profiles.
 - Admin page: new endpoint fields, the single-URL shortcut, list source,
-  trusted origins, profiles and query support in the details.
-- `test-setup`: registry integration, the untrusted descriptor fixture, the
+  profiles and query support in the details.
+- `test-setup`: registry integration, the foreign descriptor fixture, the
   `large` profile and its generator (`pnpm testenv:fixtures --profile large`),
   updated smoke test.
 
 **B. Resolution and discovery**
 
-- `server/lib/aas/resolution.ts`, `discovery.ts`; `LiveAasTarget` reads through
-  them; `SubmodelRef.status` `blocked`.
+- `server/lib/aas/services.ts`; `LiveAasTarget` reads through `AasService`,
+  `SubmodelService` and the discovery client; `SubmodelRef.status` `blocked`.
 - `shell-availability` route; `?assetId=` on the shell list.
-- Unit tests for endpoint selection and the origin check (port, scheme,
-  userinfo, IDN, trailing dots); integration tests on both targets.
+- Unit tests for the base-URL check (scheme, port, path prefix at a segment
+  boundary, dot segments, percent-encoding, userinfo, IDN, trailing dots);
+  integration tests on both targets.
 
 **C. Search**
 
@@ -342,8 +358,9 @@ C needs B's list source.
 
 ## ADRs to write
 
-- ADR 0020: registries, discovery and descriptor endpoint trust (endpoint
-  types, list source, resolution order, trusted origins, no URL rewriting).
+- ADR 0020: registries, discovery and descriptor endpoints (endpoint types,
+  list source, resolution through the SDK services, the base-URL rule, no URL
+  rewriting).
 - ADR 0021: AAS Query Language through the BFF (expression syntax, validation,
   root restriction, support detection, workspace evaluation).
 - ADR 0022: viewer layout and headless `@vuetify/v0` components where Vuetify
@@ -353,10 +370,10 @@ C needs B's list source.
 
 | Risk | Mitigation |
 | --- | --- |
-| Registries publish internal host names (for example Docker service names) that Studio cannot reach | Shown as `blocked` or `unreachable` with the origin, not silently replaced; the deployment guide names `GENERAL_EXTERNALURL`; URL rewriting stays out of scope until a real deployment needs it |
-| Trusted origins widen where the target token goes | Explicit admin list, same address policy, audited on change; the default is the configured endpoint origins only |
+| Registries publish internal host names (for example Docker service names) instead of the configured URLs | Shown as `blocked` with the URL's origin, not silently replaced; the deployment guide names `GENERAL_EXTERNALURL`; URL rewriting stays out of scope until a real deployment needs it |
 | Query profile URIs differ between servers and versions | Profiles plus the first-use check; a wrong guess degrades to the client filter |
-| The SDK release slips | D and E do not need it; B and C wait rather than call BaSyx with raw `fetch` |
+| The SDK release takes longer than planned | Phase S comes first; D and E do not need it and can start; B and C wait rather than call BaSyx with raw `fetch` |
+| `AasService` and `SubmodelService` do not fit every Studio path (for example availability checks or per-row resolution) | Use the SDK clients directly for those paths, still through the endpoint hook and the guarded fetch |
 | A per-request descriptor lookup slows down opening shells and loading submodels | Measure on `large`; cache descriptors per target and session for a short time if needed |
 | `@vuetify/v0` is young (1.x) and its API may change | Pinned to the version `vuetify` itself depends on; used only inside `ViewerSplit.vue` |
 | The splitter's handle needs a drag cursor or hover state that Vuetify utilities cannot express | Check in phase 0; decide in ADR 0022 between a Vuetify class, a v0 data attribute, or one documented exception |
