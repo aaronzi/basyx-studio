@@ -3,7 +3,8 @@ import type { InfrastructureRecord } from '../infrastructures'
 import type { FailureRecorder, OutboundPolicy } from '../network/guarded-fetch'
 import type { TargetAccess } from './credentials'
 import { Configuration } from 'basyx-typescript-sdk'
-import { endpointUrl } from '../infrastructures'
+import { serviceUrl } from '#shared/contract'
+import { environmentUrl } from '../infrastructures'
 import { createGuardedFetch } from '../network/guarded-fetch'
 import { StudioProblem } from '../problem'
 
@@ -44,9 +45,9 @@ export class TargetHttp {
     return this.options.record.security.mode
   }
 
-  /** The base URL of a service, or `null` if the target has no such endpoint. */
+  /** The base URL of a service (or of the AAS environment itself), or `null` if the target has no such endpoint. */
   baseUrl (type: EndpointType): string | null {
-    return endpointUrl(this.options.record, type) ?? null
+    return (type === 'aasEnvironment' ? environmentUrl(this.options.record) : serviceUrl(this.options.record, type)) ?? null
   }
 
   configuration (type: EndpointType, recorder: FailureRecorder): Configuration {

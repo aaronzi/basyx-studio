@@ -172,6 +172,3 @@ export function toEffectiveRights (document: JsonObject): EffectiveRights {
 }
 
 export const allRights: EffectiveRights = Object.fromEntries(rightActions.map(action => [action, true])) as EffectiveRights
-
-/** The ReBAC service profile in `GET /description`. */
-export const rebacProfile = 'https://basyx.org/aas/API/3/2/RelationshipBasedAccessControl/1.0'

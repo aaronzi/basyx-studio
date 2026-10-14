@@ -1,4 +1,4 @@
-import type { EndpointInput, Preferences, SecuritySummary } from '#shared/contract'
+import type { EndpointInput, InfrastructureTemplate, ListSource, Preferences, SecuritySummary, ServiceProfiles, SyncSettings } from '#shared/contract'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
@@ -13,7 +13,13 @@ export const infrastructures = pgTable('infrastructures', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
   description: text('description'),
+  template: text('template').$type<InfrastructureTemplate>().notNull().default('full'),
   endpoints: jsonb('endpoints').$type<EndpointInput[]>().notNull(),
+  listSource: text('list_source').$type<ListSource>().notNull().default('registry'),
+  sync: jsonb('sync').$type<SyncSettings>().notNull().default({ serverSyncsRegistry: true, serverSyncsDiscovery: true, studioDefault: 'autoCreate', userOverride: false }),
+  /** `/description` profiles per endpoint at the last probe (MVP-4 plan, I6). */
+  serviceProfiles: jsonb('service_profiles').$type<ServiceProfiles>().notNull().default({}),
+  probedAt: timestamp('probed_at', { withTimezone: true }),
   security: jsonb('security').$type<StoredSecurity>().notNull(),
   /** Encrypted client secret for desktop `stored` secrets; never returned by the API. */
   secretCiphertext: text('secret_ciphertext'),

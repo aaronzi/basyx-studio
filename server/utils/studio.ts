@@ -12,7 +12,6 @@ import { openDatabase } from '../lib/database/client'
 import { applyMigrations } from '../lib/database/migrate'
 import { ensureDesktopSession } from '../lib/sessions'
 import { CredentialBroker } from '../lib/targets/credentials'
-import { FeatureCache } from '../lib/targets/features'
 import { WorkspaceWorkerClient } from '../lib/workspaces/client'
 import { WorkspaceManager } from '../lib/workspaces/manager'
 import { loadBundledApps } from '../nitro/bundled-apps'
@@ -24,8 +23,6 @@ export interface StudioRuntime extends StudioDeps {
   workspaces: WorkspaceManager | null
   /** Checks uploads in the Workspace Worker process (ADR 0014); `null` when the worker is missing. */
   inspector: WorkspaceWorkerClient | null
-  /** Optional BaSyx Go features detected per infrastructure. */
-  features: FeatureCache
   /** Backend apps in Deno; `null` when apps are disabled. */
   backends: BackendRunner | null
   /** Signs the capability tokens of backend app calls. */
@@ -103,7 +100,6 @@ async function initialize (): Promise<StudioRuntime> {
       broker: new CredentialBroker(deps),
       workspaces,
       inspector,
-      features: new FeatureCache(),
       backends,
       capabilityKey: capabilityTokenKey(config.dataKey),
       close: async () => {

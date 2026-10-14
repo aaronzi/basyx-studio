@@ -1,12 +1,12 @@
 import type { AuthenticationState, Target } from '#shared/contract'
 import type { Actor } from '../lib/deps'
 import type { InfrastructureRecord } from '../lib/infrastructures'
-import type { AasTarget, DetectedFeatures } from '../lib/targets/aas-target'
+import type { AasTarget } from '../lib/targets/aas-target'
 import type { RequestEvent } from 'nuxt/server'
 import { recordAudit } from '../lib/audit'
 import { getInfrastructure, targetPolicy } from '../lib/infrastructures'
 import { StudioProblem } from '../lib/problem'
-import { liveCapabilities, noDetectedFeatures } from '../lib/targets/capabilities'
+import { liveCapabilities } from '../lib/targets/capabilities'
 import { LiveAasTarget } from '../lib/targets/live-target'
 import { isWorkspaceId } from '../lib/workspaces/manager'
 import { requireActor } from './auth'
@@ -17,8 +17,6 @@ import { useStudio } from './studio'
 export interface OpenedTarget {
   actor: Actor
   target: AasTarget
-  /** Detects the optional features (cached); `null` for targets without any. */
-  detect: (() => Promise<DetectedFeatures>) | null
   /** Records the outcome of a write in the audit log. */
   auditWrite: (outcome: 'success' | 'failure', details: Record<string, unknown>) => Promise<void>
 }
@@ -50,7 +48,6 @@ export async function openTargetFor (access: TargetAccess): Promise<OpenedTarget
     return {
       actor,
       target: requireWorkspaces(studio).target(targetId),
-      detect: null,
       auditWrite: (outcome, details) => recordAudit(studio, {
         action: 'workspace.write',
         outcome,
@@ -87,13 +84,11 @@ export async function openTargetFor (access: TargetAccess): Promise<OpenedTarget
     policy: targetPolicy(studio, record),
     requestId,
     onUnauthorized: () => studio.broker.invalidate(record, actor.sessionId),
-    detected: studio.features.peek(record),
   })
   return {
     actor,
     auditWrite: (outcome, details) => audit('target.write', outcome, details),
     target,
-    detect: () => studio.features.get(record, () => target.detectFeatures()),
   }
 }
 
@@ -108,7 +103,7 @@ export async function openTarget (event: RequestEvent): Promise<OpenedTarget> {
   })
 }
 
-export function toTarget (record: InfrastructureRecord, authenticationState: AuthenticationState, detected: DetectedFeatures | null): Target {
+export function toTarget (record: InfrastructureRecord, authenticationState: AuthenticationState): Target {
   return {
     id: record.id,
     kind: 'live',
@@ -116,44 +111,16 @@ export function toTarget (record: InfrastructureRecord, authenticationState: Aut
     description: record.description,
     securityMode: record.security.mode,
     authenticationState,
-    capabilities: liveCapabilities(record, detected),
+    capabilities: liveCapabilities(record),
     workspace: null,
-  }
-}
-
-/**
- * The optional features of a live target, detected with the user's
- * credentials and cached per infrastructure. Detection never fails the
- * caller: an unreachable or unauthorized target simply has none (yet).
- */
-export async function detectedFeatures (access: Omit<TargetAccess, 'operation' | 'read'>): Promise<DetectedFeatures> {
-  const studio = await useStudio()
-  const record = await getInfrastructure(studio, access.targetId)
-  try {
-    return await studio.features.get(record, async () => {
-      const { target } = await openTargetFor({ ...access, operation: 'feature-detection', read: false })
-      return target.detectFeatures()
-    })
-  } catch {
-    return noDetectedFeatures
   }
 }
 
 type FlagCapability = Exclude<keyof Target['capabilities'], 'persistence' | 'search'>
 
-/**
- * Fails unless the target supports a capability, before any downstream
- * request. Optional features are detected first if they are not known yet.
- */
+/** Fails unless the target supports a capability, before any downstream request. */
 export async function requireCapability (opened: OpenedTarget, capability: FlagCapability): Promise<void> {
-  if (opened.target.capabilities[capability]) {
-    return
+  if (!opened.target.capabilities[capability]) {
+    throw new StudioProblem('unsupported_operation', 'This target does not support this operation.')
   }
-  if (opened.detect && capability in noDetectedFeatures) {
-    const features = await opened.detect()
-    if (features[capability as keyof DetectedFeatures]) {
-      return
-    }
-  }
-  throw new StudioProblem('unsupported_operation', 'This target does not support this operation.')
 }

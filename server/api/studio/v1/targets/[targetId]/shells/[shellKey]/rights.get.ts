@@ -12,6 +12,5 @@ import { openTarget } from '~~/server/utils/target'
 export default defineStudioHandler(async (event): Promise<EffectiveRights> => {
   const shellId = decodeKey(routeParam(event, 'shellKey'), 'shell key')
   const opened = await openTarget(event)
-  const sharing = opened.target.capabilities.sharing || (opened.detect ? (await opened.detect()).sharing : false)
-  return sharing ? opened.target.effectiveRights(shellId) : allRights
+  return opened.target.capabilities.sharing ? opened.target.effectiveRights(shellId) : allRights
 })

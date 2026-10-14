@@ -1,4 +1,4 @@
-import type { EndpointType, Infrastructure, ProbeResult, SecretInput } from '#shared/contract'
+import type { Infrastructure, ProbeResult, SecretInput, ServiceProfiles } from '#shared/contract'
 import type { StoredSecurity } from '../database/schema'
 import type { Actor, StudioDeps } from './deps'
 import type { OutboundPolicy } from './network/guarded-fetch'
@@ -11,6 +11,7 @@ import { randomToken } from './crypto/cipher'
 import { checkHost, createGuardedFetch, NetworkFailure } from './network/guarded-fetch'
 import { forgetOidcClients } from './oidc/client'
 import { StudioProblem } from './problem'
+import { announcedFeatures } from './targets/profiles'
 
 export type InfrastructureRecord = typeof infrastructures.$inferSelect
 
@@ -26,7 +27,13 @@ export function toInfrastructure (record: InfrastructureRecord): Infrastructure 
     id: record.id,
     name: record.name,
     description: record.description,
+    template: record.template,
     endpoints: record.endpoints,
+    listSource: record.listSource,
+    sync: record.sync,
+    serviceProfiles: record.serviceProfiles,
+    probedAt: record.probedAt?.toISOString() ?? null,
+    announced: announcedFeatures(record),
     security: record.security,
     allowPrivateNetwork: record.allowPrivateNetwork,
     revision: record.revision,
@@ -35,19 +42,9 @@ export function toInfrastructure (record: InfrastructureRecord): Infrastructure 
   }
 }
 
-/**
- * The base URL for a service type: its own endpoint, else the AAS
- * environment, which serves every repository and discovery from one URL.
- */
-export function endpointUrl (record: Pick<InfrastructureRecord, 'endpoints'>, type: EndpointType): string | undefined {
-  const endpoint = record.endpoints.find(entry => entry.type === type)
-    ?? record.endpoints.find(entry => entry.type === 'aasEnvironment')
-  return endpoint?.url.replace(/\/+$/, '')
-}
-
-/** Whether the infrastructure is an AAS environment (serialization, upload, element queries). */
-export function isEnvironment (record: Pick<InfrastructureRecord, 'endpoints'>): boolean {
-  return record.endpoints.some(entry => entry.type === 'aasEnvironment')
+/** The AAS environment's base URL (serialization, upload), if the infrastructure has one. */
+export function environmentUrl (record: Pick<InfrastructureRecord, 'endpoints'>): string | undefined {
+  return record.endpoints.find(entry => entry.type === 'aasEnvironment')?.url.replace(/\/+$/, '')
 }
 
 /** The outbound policy for requests to a target's own endpoints. */
@@ -183,43 +180,81 @@ export async function resolveClientSecret (deps: StudioDeps, record: Infrastruct
   return value
 }
 
+/** The `profiles` of a `/description` answer, or `null` if it has none. */
+async function profilesOf (response: Response): Promise<string[] | null> {
+  if (!response.ok) {
+    await response.body?.cancel()
+    return null
+  }
+  try {
+    const body = await response.json() as { profiles?: unknown }
+    return Array.isArray(body.profiles) ? body.profiles.filter((profile): profile is string => typeof profile === 'string').slice(0, 200) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Asks every endpoint for its self-description. Any HTTP answer proves
+ * reachability (`/description` may need authorization); its profiles say
+ * which optional features the service offers (MVP-4 plan, I6).
+ */
 export async function probeEndpoints (deps: StudioDeps, record: Pick<InfrastructureRecord, 'endpoints' | 'allowPrivateNetwork'>): Promise<ProbeResult> {
   const policy = targetPolicy(deps, record as InfrastructureRecord)
   const guardedFetch = createGuardedFetch(policy)
   const results = await Promise.all(record.endpoints.map(async endpoint => {
     const started = performance.now()
     try {
-      // `/description` is the AAS service self-description; it may require
-      // authorization, but any HTTP answer proves reachability.
-      const response = await guardedFetch(`${endpoint.url.replace(/\/+$/, '')}/description`)
-      await response.body?.cancel()
-      return { type: endpoint.type, reachable: response.status < 500, status: response.status, latencyMs: Math.round(performance.now() - started), error: null }
+      const response = await guardedFetch(`${endpoint.url.replace(/\/+$/, '')}/description`, { headers: { Accept: 'application/json' } })
+      const latencyMs = Math.round(performance.now() - started)
+      return { type: endpoint.type, reachable: response.status < 500, status: response.status, latencyMs, error: null, profiles: await profilesOf(response) }
     } catch (error) {
-      return { type: endpoint.type, reachable: false, status: null, latencyMs: null, error: error instanceof Error ? error.message : 'request failed' }
+      return { type: endpoint.type, reachable: false, status: null, latencyMs: null, error: error instanceof Error ? error.message : 'request failed', profiles: null }
     }
   }))
   return { checkedAt: new Date().toISOString(), endpoints: results }
 }
 
-async function requireReachable (deps: StudioDeps, record: Pick<InfrastructureRecord, 'endpoints' | 'allowPrivateNetwork'>): Promise<void> {
+/** The profiles of a probe, per endpoint type, as stored with the infrastructure. */
+function storedProfiles (probe: ProbeResult): ServiceProfiles {
+  return Object.fromEntries(probe.endpoints.map(endpoint => [endpoint.type, endpoint.profiles]))
+}
+
+async function requireReachable (deps: StudioDeps, record: Pick<InfrastructureRecord, 'endpoints' | 'allowPrivateNetwork'>): Promise<ProbeResult> {
   const probe = await probeEndpoints(deps, record)
   const failed = probe.endpoints.filter(endpoint => !endpoint.reachable)
   if (failed.length > 0) {
     throw new StudioProblem('infrastructure_unreachable', failed.map(endpoint => `${endpoint.type}: ${endpoint.error ?? `HTTP ${endpoint.status}`}`).join('; '))
   }
+  return probe
+}
+
+/** Probes an infrastructure again and stores the profiles it reports. */
+export async function reprobeInfrastructure (deps: StudioDeps, id: string): Promise<ProbeResult> {
+  const record = await getInfrastructure(deps, id)
+  const probe = await probeEndpoints(deps, record)
+  await deps.db.update(infrastructures)
+    .set({ serviceProfiles: storedProfiles(probe), probedAt: new Date(probe.checkedAt) })
+    .where(eq(infrastructures.id, id))
+  return probe
 }
 
 export async function createInfrastructure (deps: StudioDeps, actor: Actor, raw: unknown, requestId: string): Promise<InfrastructureRecord> {
   const input = parseInput(deps, raw)
   await validateUrls(input)
   const { security, secretCiphertext } = resolveSecurityInput(deps, input.security, undefined)
-  await requireReachable(deps, input)
+  const probe = await requireReachable(deps, input)
 
   const [record] = await deps.db.insert(infrastructures).values({
     id: randomToken(12),
     name: input.name,
     description: input.description ?? null,
+    template: input.template,
     endpoints: input.endpoints,
+    listSource: input.listSource,
+    sync: input.sync,
+    serviceProfiles: storedProfiles(probe),
+    probedAt: new Date(probe.checkedAt),
     security,
     secretCiphertext,
     allowPrivateNetwork: input.allowPrivateNetwork,
@@ -241,12 +276,17 @@ export async function updateInfrastructure (
   const input = parseInput(deps, raw)
   await validateUrls(input)
   const { security, secretCiphertext } = resolveSecurityInput(deps, input.security, previous)
-  await requireReachable(deps, input)
+  const probe = await requireReachable(deps, input)
 
   const [record] = await deps.db.update(infrastructures).set({
     name: input.name,
     description: input.description ?? null,
+    template: input.template,
     endpoints: input.endpoints,
+    listSource: input.listSource,
+    sync: input.sync,
+    serviceProfiles: storedProfiles(probe),
+    probedAt: new Date(probe.checkedAt),
     security,
     secretCiphertext,
     allowPrivateNetwork: input.allowPrivateNetwork,

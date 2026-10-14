@@ -1,0 +1,50 @@
+import type { EndpointType, InfrastructureTemplate, ServiceProfiles, ServiceType } from '#shared/contract'
+import { templateRules } from '#shared/contract'
+
+// Optional server features, as announced in the `/description` profiles
+// (MVP-4 plan, I6). Studio offers a feature only where a server announces it,
+// because BaSyx Go is not the only possible backend.
+
+/** Submodels as they were at a point in time (IDTA-01002-3, Submodel Repository SSP-007), any 3.x API version. */
+const submodelHistory = /^https:\/\/admin-shell\.io\/aas\/API\/3\/\d+\/SubmodelRepositoryServiceSpecification\/SSP-007$/
+/** The BaSyx Event Feed (`/events`), until the AAS API publishes event profiles. */
+const eventFeed = /^https:\/\/basyx\.org\/aas\/API\/3\/\d+\/EventFeed\/1\.\d+$/
+/** BaSyx relationship-based access control (`$access`). */
+const rebac = /^https:\/\/basyx\.org\/aas\/API\/3\/\d+\/RelationshipBasedAccessControl\/1\.\d+$/
+
+interface ProfiledInfrastructure {
+  template: InfrastructureTemplate
+  endpoints: ReadonlyArray<{ type: EndpointType }>
+  serviceProfiles: ServiceProfiles
+}
+
+/** The endpoint that serves a service type: its own, else the AAS environment where the template lets it. */
+function servingEndpoint (infrastructure: ProfiledInfrastructure, type: ServiceType): EndpointType | null {
+  if (infrastructure.endpoints.some(endpoint => endpoint.type === type)) {
+    return type
+  }
+  const environment = infrastructure.endpoints.some(endpoint => endpoint.type === 'aasEnvironment')
+  return environment && templateRules[infrastructure.template].environmentServes.includes(type) ? 'aasEnvironment' : null
+}
+
+function announces (infrastructure: ProfiledInfrastructure, type: ServiceType, profile: RegExp): boolean {
+  const endpoint = servingEndpoint(infrastructure, type)
+  return endpoint !== null && (infrastructure.serviceProfiles[endpoint] ?? []).some(entry => profile.test(entry))
+}
+
+export interface AnnouncedFeatures {
+  /** Submodels can be read as they were at a point in time. */
+  history: boolean
+  /** The shell's and its submodels' changes can be read. */
+  changeFeed: boolean
+  /** Access to shells can be granted (ReBAC). */
+  rebac: boolean
+}
+
+export function announcedFeatures (infrastructure: ProfiledInfrastructure): AnnouncedFeatures {
+  return {
+    history: announces(infrastructure, 'submodelRepository', submodelHistory),
+    changeFeed: announces(infrastructure, 'aasRepository', eventFeed) || announces(infrastructure, 'submodelRepository', eventFeed),
+    rebac: announces(infrastructure, 'aasRepository', rebac),
+  }
+}

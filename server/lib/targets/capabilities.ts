@@ -1,28 +1,31 @@
 import type { TargetCapabilities } from '#shared/contract'
 import type { InfrastructureRecord } from '../infrastructures'
-import type { DetectedFeatures } from './aas-target'
-import { endpointUrl, isEnvironment } from '../infrastructures'
-
-export const noDetectedFeatures: DetectedFeatures = { history: false, changeFeed: false, sharing: false }
+import { serviceUrl } from '#shared/contract'
+import { environmentUrl } from '../infrastructures'
+import { announcedFeatures } from './profiles'
 
 /**
- * Capabilities of a live infrastructure: what its configured endpoints
- * offer, plus the optional features detected on the server.
+ * Capabilities of a live infrastructure: what its configured endpoints offer
+ * and what its services announce in `/description` (MVP-4 plan, I6).
  */
-export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints'>, detected: DetectedFeatures | null): TargetCapabilities {
-  const environment = isEnvironment(record)
+export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints' | 'template' | 'serviceProfiles' | 'security'>): TargetCapabilities {
+  const environment = environmentUrl(record) !== undefined
+  const announced = announcedFeatures(record)
   return {
     write: true,
     persistence: 'immediate',
     deleteShells: true,
     files: true,
     operations: true,
-    conceptDescriptions: endpointUrl(record, 'conceptDescriptionRepository') !== undefined,
+    conceptDescriptions: serviceUrl(record, 'conceptDescriptionRepository') !== undefined,
     search: environment ? 'elements' : 'shells',
-    discovery: endpointUrl(record, 'discovery') !== undefined,
+    discovery: serviceUrl(record, 'aasDiscovery') !== undefined,
     export: environment,
     upload: environment,
-    ...(detected ?? noDetectedFeatures),
+    history: announced.history,
+    changeFeed: announced.changeFeed,
+    // Grants and rights mean something only when the target sees the user (D15).
+    sharing: announced.rebac && record.security.mode === 'delegated_user',
   }
 }
 
@@ -38,5 +41,7 @@ export const workspaceCapabilities: TargetCapabilities = {
   discovery: false,
   export: false,
   upload: false,
-  ...noDetectedFeatures,
+  history: false,
+  changeFeed: false,
+  sharing: false,
 }

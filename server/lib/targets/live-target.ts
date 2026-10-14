@@ -18,7 +18,7 @@ import type {
 } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
 import type { FailureRecorder } from '../network/guarded-fetch'
-import type { AasTarget, BinaryContent, ChangesQuery, DetectedFeatures, ElementSnapshot } from './aas-target'
+import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot } from './aas-target'
 import type { TargetHttpOptions } from './http'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import type { Configuration } from 'basyx-typescript-sdk'
@@ -29,7 +29,6 @@ import {
   handleFromLocation,
   invocationBody,
   invocationOutputs,
-  rebacProfile,
   shellQuery,
   subjectFilter,
   toAccessGrants,
@@ -42,7 +41,6 @@ import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
 import { liveCapabilities } from './capabilities'
-import { isAuthorizationProblem } from './features'
 import { encodeIdentifier, TargetHttp } from './http'
 import { contentHash, parseRevision, revisionOf } from './revision'
 
@@ -62,10 +60,7 @@ const exportMediaTypes: Record<ExportFormat, string> = {
   xml: 'application/xml',
 }
 
-export interface LiveTargetOptions extends TargetHttpOptions {
-  /** Optional features detected earlier, if known. */
-  detected?: DetectedFeatures | null
-}
+export type LiveTargetOptions = TargetHttpOptions
 
 /**
  * Converts SDK results to plain JSON at the adapter boundary. The SDK bundles
@@ -112,34 +107,7 @@ export class LiveAasTarget implements AasTarget {
 
   constructor (options: LiveTargetOptions) {
     this.#http = new TargetHttp(options)
-    this.capabilities = liveCapabilities(options.record, options.detected ?? null)
-  }
-
-  /**
-   * Probes the optional BaSyx Go features. A feature the server rejects is
-   * absent; a probe that could not reach the server or needed authorization
-   * fails the detection, so the result is not cached as "absent".
-   */
-  async detectFeatures (): Promise<DetectedFeatures> {
-    const ok = (request: Promise<Response>) => request.then(async response => {
-      await response.body?.cancel()
-      return response.ok
-    }, (error: unknown) => {
-      if (isAuthorizationProblem(error) || (error instanceof StudioProblem && error.code === 'target_unreachable')) {
-        throw error
-      }
-      return false
-    })
-    const passStatuses = [400, 403, 404, 405, 422, 501]
-    const [history, changeFeed, sharing] = await Promise.all([
-      ok(this.#http.request('submodelRepository', '/submodels/$recent-changes', { query: { limit: 1 }, passStatuses })),
-      ok(this.#http.request('aasRepository', '/.well-known/event-feed.json', { passStatuses })),
-      this.#http.json<{ profiles?: unknown }>('aasRepository', '/description')
-        .then(description => Array.isArray(description.profiles) && description.profiles.includes(rebacProfile), () => false)
-        .then(async listed => listed || ok(this.#http.request('aasRepository', '/security/rebac/principal', { passStatuses }))),
-    ])
-    // Grants and rights are only meaningful when the target sees the user (D15).
-    return { history, changeFeed, sharing: sharing && this.#http.securityMode === 'delegated_user' }
+    this.capabilities = liveCapabilities(options.record)
   }
 
   async listShells (limit: number, cursor: string | undefined): Promise<Page<ShellSummary>> {
@@ -353,7 +321,7 @@ export class LiveAasTarget implements AasTarget {
   async lookupShells (assetId: string): Promise<ShellSummary[]> {
     let ids: string[] = []
     if (this.capabilities.discovery) {
-      const data = await this.#call('discovery', configuration =>
+      const data = await this.#call('aasDiscovery', configuration =>
         this.#discoveryClient.getAllAssetAdministrationShellIdsByAssetLink({ configuration, assetIds: [{ name: 'globalAssetId', value: assetId }], limit: 20 }))
       ids = data.result
     }

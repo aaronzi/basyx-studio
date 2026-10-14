@@ -38,8 +38,6 @@ export interface ChangesQuery {
 }
 
 /** Optional target features that Studio detects (they depend on the server's configuration). */
-export type DetectedFeatures = Pick<TargetCapabilities, 'history' | 'changeFeed' | 'sharing'>
-
 /**
  * The AAS operations the Studio API needs, independent of where the data
  * lives (ADR 0003). Implemented by live infrastructures and desktop AASX
@@ -49,9 +47,6 @@ export type DetectedFeatures = Pick<TargetCapabilities, 'history' | 'changeFeed'
  */
 export interface AasTarget {
   readonly capabilities: TargetCapabilities
-
-  /** Probes optional server features; workspaces have none. */
-  detectFeatures: () => Promise<DetectedFeatures>
 
   listShells: (limit: number, cursor: string | undefined) => Promise<Page<ShellSummary>>
   shell: (id: string) => Promise<JsonObject>

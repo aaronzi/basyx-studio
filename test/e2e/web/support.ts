@@ -63,7 +63,9 @@ async function registerTarget (page: Page, name: string, url: string, security: 
   }
   const response = await api.post('/infrastructures', {
     name,
+    template: environment ? 'mono-all' : 'full',
     endpoints: environment ? [{ type: 'aasEnvironment', url }] : [{ type: 'aasRepository', url }, { type: 'submodelRepository', url }],
+    listSource: 'repository',
     security,
     allowPrivateNetwork: true,
   })

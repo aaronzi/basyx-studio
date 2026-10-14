@@ -183,11 +183,6 @@
     "cancel": "Cancel",
     "name": "Name",
     "description": "Description",
-    "endpoints": "Endpoints",
-    "aasRepository": "AAS repository URL",
-    "submodelRepository": "Submodel repository URL",
-    "conceptDescriptionRepository": "Concept description repository URL (optional)",
-    "sameUrlHint": "For a BaSyx AAS environment, use the same URL for all repositories.",
     "allowPrivateNetwork": "Allow loopback and private-network addresses",
     "security": "Security",
     "securityMode": "Access mode",
@@ -209,16 +204,74 @@
     "revision": "Revision",
     "noInfrastructures": "No infrastructures configured.",
     "deployment": "Deployment",
-    "environment": "AAS environment",
-    "services": "Separate services",
-    "deploymentHelp": {
-      "environment": "One base URL that serves shells, submodels and concept descriptions (BaSyx AAS environment). Enables export, upload and element search.",
-      "services": "Separate repositories. Export, upload and element search are not available."
+    "sharingNote": "Sharing needs your own account as access mode: with other modes, the infrastructure cannot tell users apart.",
+    "template": "Template",
+    "templates": {
+      "full": {
+        "title": "Separate services",
+        "short": "Every service has its own URL",
+        "help": "Registries, discovery and repositories each have their own URL. You need an AAS repository or registry and a submodel repository or registry."
+      },
+      "mono-all": {
+        "title": "AAS environment",
+        "short": "One URL serves everything",
+        "help": "One base URL serves repositories, registries and discovery, as the BaSyx AAS environment does. Enables export and upload."
+      },
+      "mono-repo": {
+        "title": "AAS environment with separate registries",
+        "short": "One URL for the repositories, own URLs for registries and discovery",
+        "help": "The AAS environment serves the repositories; registries and discovery run as separate services. Enables export and upload."
+      },
+      "identifiable": {
+        "title": "AAS repository only",
+        "short": "Submodels through their shells",
+        "help": "Only an AAS repository; submodels are read through the shells that reference them."
+      }
     },
-    "aasEnvironment": "AAS environment URL",
-    "discovery": "Discovery URL (optional)",
-    "discoveryHint": "Finds shells by asset ID. An AAS environment usually includes it.",
-    "sharingNote": "Sharing needs your own account as access mode: with other modes, the infrastructure cannot tell users apart."
+    "endpointTypes": {
+      "aasEnvironment": "AAS environment URL",
+      "aasRegistry": "AAS registry URL",
+      "submodelRegistry": "Submodel registry URL",
+      "aasDiscovery": "Discovery URL",
+      "aasRepository": "AAS repository URL",
+      "submodelRepository": "Submodel repository URL",
+      "conceptDescriptionRepository": "Concept description repository URL"
+    },
+    "endpointHints": {
+      "aasEnvironment": "Base URL without /shells, e.g. https://aas.example.com/api",
+      "aasRegistry": "Lists shells by their descriptors.",
+      "submodelRegistry": "Finds where submodels are served.",
+      "aasDiscovery": "Finds shells by asset ID. Optional.",
+      "aasRepository": "Serves the shells.",
+      "submodelRepository": "Serves the submodels.",
+      "conceptDescriptionRepository": "Serves concept descriptions. Optional."
+    },
+    "oneOf": "Enter at least one of: {types}",
+    "listSource": "Shell list",
+    "listSources": {
+      "registry": "From the registry",
+      "repository": "From the repository"
+    },
+    "listSourceHelp": {
+      "registry": "Shows the shells the registry knows. An empty or outdated registry shows as such.",
+      "repository": "Shows the shells stored in the AAS repository."
+    },
+    "sync": "Registry and discovery entries",
+    "serverSyncsRegistry": "The server keeps its registries up to date",
+    "serverSyncsDiscovery": "The server keeps discovery up to date",
+    "studioDefault": "Where the server does not",
+    "studioDefaultHint": "Applies when shells are uploaded or deleted in Studio.",
+    "syncModes": {
+      "autoCreate": "Studio creates and removes the entries",
+      "dontCreate": "Studio leaves them alone"
+    },
+    "userOverride": "Users may choose differently in their settings",
+    "announced": {
+      "history": "History",
+      "changeFeed": "Change feed",
+      "rebac": "Access control (ReBAC)"
+    },
+    "probedAt": "Checked {time}"
   },
   "apps": {
     "title": "Apps",

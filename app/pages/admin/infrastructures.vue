@@ -29,21 +29,30 @@
           v-for="item in list.data.value.items"
           :key="item.id"
           :prepend-icon="securityModeIcons[item.security.mode]"
-          :subtitle="`${t(`security.${item.security.mode}`)} · ${item.endpoints.map(endpoint => endpoint.url).filter((url, index, all) => all.indexOf(url) === index).join(', ')}`"
+          :subtitle="`${t(`admin.templates.${item.template}.title`)} · ${t(`security.${item.security.mode}`)} · ${item.endpoints.map(endpoint => endpoint.url).filter((url, index, all) => all.indexOf(url) === index).join(', ')}`"
           :title="item.name"
         >
-          <template v-if="probes[item.id]" #default>
-            <div class="mt-1">
-              <v-chip
-                v-for="endpoint in probes[item.id]!.endpoints"
-                :key="endpoint.type"
-                class="mr-1"
-                :color="endpoint.reachable ? 'success' : 'error'"
-                size="x-small"
-                :text="`${endpoint.type}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
-              />
-            </div>
-          </template>
+          <div class="d-flex flex-wrap ga-1 mt-1">
+            <v-chip v-if="serviceUrl(item, 'aasRegistry') && serviceUrl(item, 'aasRepository')" prepend-icon="mdi-format-list-bulleted" :text="t(`admin.listSources.${item.listSource}`)" />
+
+            <v-chip
+              v-for="feature in announcedFeatures(item)"
+              :key="feature"
+              color="primary"
+              :text="t(`admin.announced.${feature}`)"
+            />
+
+            <v-chip v-if="item.probedAt" prepend-icon="mdi-clock-outline" :text="t('admin.probedAt', { time: new Date(item.probedAt).toLocaleString(locale) })" variant="text" />
+          </div>
+
+          <div v-if="probes[item.id]" class="d-flex flex-wrap ga-1 mt-1">
+            <v-chip
+              v-for="endpoint in probes[item.id]!.endpoints"
+              :key="endpoint.type"
+              :color="endpoint.reachable ? 'success' : 'error'"
+              :text="`${t(`admin.endpointTypes.${endpoint.type}`)}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
+            />
+          </div>
 
           <template #append>
             <v-btn
@@ -90,11 +99,17 @@
 <script lang="ts" setup>
   import type { Infrastructure, ProbeResult } from '#shared/contract'
   import { useQuery } from '@pinia/colada'
+  import { serviceUrl } from '#shared/contract'
   import { securityModeIcons } from '~/utils/aas'
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const api = useStudioApi()
   const invalidate = useInvalidate()
+
+  /** The features an infrastructure's services announce, for the row chips. */
+  function announcedFeatures (item: Infrastructure): Array<keyof Infrastructure['announced']> {
+    return (Object.keys(item.announced) as Array<keyof Infrastructure['announced']>).filter(feature => item.announced[feature])
+  }
 
   const list = useQuery({
     key: ['admin', 'infrastructures'],
@@ -123,6 +138,8 @@
     actionError.value = null
     try {
       probes.value = { ...probes.value, [item.id]: await api<ProbeResult>(`/infrastructures/${item.id}/probe`, { method: 'POST' }) }
+      // The probe stored the profiles the services announce now.
+      await refresh()
     } catch (error) {
       actionError.value = error
     } finally {

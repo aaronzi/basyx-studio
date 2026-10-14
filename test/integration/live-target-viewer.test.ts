@@ -15,21 +15,31 @@ const edgeSubmodel = 'urn:studio:test:sm:edge-cases'
 const motorShell = 'urn:fraunhofer:iese:dte:aas:drivemotor-dm3000:001'
 const motorAsset = 'urn:fraunhofer:iese:dte:asset:drivemotor-dm3000:serial-0042'
 
-function environmentRecord (): InfrastructureRecord {
-  return { ...record(openTargetUrl, { mode: 'unsecured' }), endpoints: [{ type: 'aasEnvironment', url: openTargetUrl }] }
+/** The open target as an AAS environment, with the profiles its `/description` announces now. */
+async function environmentRecord (): Promise<InfrastructureRecord> {
+  const description = await (await fetch(`${openTargetUrl}/description`)).json() as { profiles: string[] }
+  return {
+    ...record(openTargetUrl, { mode: 'unsecured' }),
+    template: 'mono-all',
+    endpoints: [{ type: 'aasEnvironment', url: openTargetUrl }],
+    serviceProfiles: { aasEnvironment: description.profiles },
+  }
 }
 
-describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', () => {
+describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => {
+  const environment = testenvAvailable ? await environmentRecord() : null
   const target = (endpoints: 'environment' | 'services' = 'environment') => new LiveAasTarget({
-    record: endpoints === 'environment' ? environmentRecord() : record(openTargetUrl, { mode: 'unsecured' }),
+    record: endpoints === 'environment' ? environment! : record(openTargetUrl, { mode: 'unsecured' }),
     access: { accessToken: undefined, downstreamIdentity: null },
     policy: policy(openTargetUrl, { maxResponseBytes: 50_000_000 }),
     requestId: 'test-request',
     onUnauthorized: async () => {},
   })
 
-  it('detects history and the event feed, and no sharing without ReBAC', async () => {
-    expect(await target().detectFeatures()).toEqual({ history: true, changeFeed: true, sharing: false })
+  it('offers history and the event feed as announced, and no sharing without ReBAC', () => {
+    expect(target().capabilities).toMatchObject({ history: true, changeFeed: true, sharing: false })
+    // The same server configured without its profiles offers neither.
+    expect(target('services').capabilities).toMatchObject({ history: false, changeFeed: false })
   })
 
   it('offers environment-only operations only for an AAS environment', () => {

@@ -1,14 +1,106 @@
 import { z } from 'zod'
 
 /**
- * Service endpoints of an infrastructure. An `aasEnvironment` serves every
- * repository from one base URL and adds environment-only operations
- * (serialization, upload, queries across submodel elements); it is the
- * fallback for every repository type that has no endpoint of its own.
+ * Service endpoints of an infrastructure. An `aasEnvironment` serves several
+ * services from one base URL (which ones, the template decides) and adds the
+ * environment-only operations (serialization, upload).
  */
-export const endpointTypes = ['aasEnvironment', 'aasRepository', 'submodelRepository', 'conceptDescriptionRepository', 'discovery'] as const
+export const endpointTypes = [
+  'aasEnvironment',
+  'aasRegistry',
+  'submodelRegistry',
+  'aasDiscovery',
+  'aasRepository',
+  'submodelRepository',
+  'conceptDescriptionRepository',
+] as const
 export const endpointTypeSchema = z.enum(endpointTypes)
 export type EndpointType = z.infer<typeof endpointTypeSchema>
+
+/** The service types that answer AAS API requests (everything but the environment itself). */
+export type ServiceType = Exclude<EndpointType, 'aasEnvironment'>
+export const serviceTypes = endpointTypes.filter((type): type is ServiceType => type !== 'aasEnvironment')
+
+/**
+ * How an infrastructure is deployed, as in the BaSyx AAS Web UI (MVP-4 plan, I1):
+ * - `full`: every service has its own URL;
+ * - `mono-all`: one AAS environment URL serves every service;
+ * - `mono-repo`: an AAS environment serves the repositories, registries and
+ *   discovery have their own URLs;
+ * - `identifiable`: an AAS repository only; submodels are reached through the
+ *   shells that reference them.
+ */
+export const infrastructureTemplates = ['full', 'mono-all', 'mono-repo', 'identifiable'] as const
+export const infrastructureTemplateSchema = z.enum(infrastructureTemplates)
+export type InfrastructureTemplate = z.infer<typeof infrastructureTemplateSchema>
+
+interface TemplateRules {
+  /** Endpoint types the template accepts. */
+  allowed: readonly EndpointType[]
+  /** Groups of alternatives; each group needs at least one endpoint. */
+  required: ReadonlyArray<readonly EndpointType[]>
+  /** Services the AAS environment serves unless they have an endpoint of their own. */
+  environmentServes: readonly ServiceType[]
+}
+
+export const templateRules: Record<InfrastructureTemplate, TemplateRules> = {
+  'full': {
+    allowed: serviceTypes,
+    required: [['aasRepository', 'aasRegistry'], ['submodelRepository', 'submodelRegistry']],
+    environmentServes: [],
+  },
+  'mono-all': {
+    allowed: ['aasEnvironment'],
+    required: [['aasEnvironment']],
+    environmentServes: serviceTypes,
+  },
+  'mono-repo': {
+    allowed: ['aasEnvironment', 'aasRegistry', 'submodelRegistry', 'aasDiscovery'],
+    required: [['aasEnvironment']],
+    environmentServes: ['aasRepository', 'submodelRepository', 'conceptDescriptionRepository'],
+  },
+  'identifiable': {
+    allowed: ['aasRepository', 'conceptDescriptionRepository', 'aasDiscovery'],
+    required: [['aasRepository']],
+    environmentServes: [],
+  },
+}
+
+/**
+ * The base URL that serves a service type: its own endpoint, else the AAS
+ * environment where the template lets it serve that type.
+ */
+export function serviceUrl (
+  infrastructure: { template: InfrastructureTemplate, endpoints: ReadonlyArray<{ type: EndpointType, url: string }> },
+  type: ServiceType,
+): string | undefined {
+  const own = infrastructure.endpoints.find(endpoint => endpoint.type === type)
+  const environment = templateRules[infrastructure.template].environmentServes.includes(type)
+    ? infrastructure.endpoints.find(endpoint => endpoint.type === 'aasEnvironment')
+    : undefined
+  return (own ?? environment)?.url.replace(/\/+$/, '')
+}
+
+/** Where the shell list comes from when both an AAS registry and an AAS repository are there (I3). */
+export const listSources = ['registry', 'repository'] as const
+export type ListSource = (typeof listSources)[number]
+
+/** What Studio does about registry descriptors and discovery links the server does not maintain (I5). */
+export const syncModes = ['autoCreate', 'dontCreate'] as const
+export type SyncMode = (typeof syncModes)[number]
+
+export const syncSettingsSchema = z.object({
+  /** The server keeps its registries in step with its repositories (BaSyx Go registry integration). */
+  serverSyncsRegistry: z.boolean().default(true),
+  /** The server keeps the discovery's asset links in step with its shells. */
+  serverSyncsDiscovery: z.boolean().default(true),
+  /** Where the server does not: Studio writes descriptors and asset links after uploads and deletes, or not. */
+  studioDefault: z.enum(syncModes).default('autoCreate'),
+  /** Whether users may choose differently for themselves (in Settings). */
+  userOverride: z.boolean().default(false),
+})
+export type SyncSettings = z.infer<typeof syncSettingsSchema>
+export const defaultSyncSettings: SyncSettings = syncSettingsSchema.parse({})
 
 export const securityModes = ['unsecured', 'deployment_client_credentials', 'delegated_user'] as const
 export const securityModeSchema = z.enum(securityModes)
@@ -83,30 +175,49 @@ export type EndpointInput = z.infer<typeof endpointInputSchema>
 export const infrastructureInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
   description: z.string().trim().max(2000).optional(),
+  template: infrastructureTemplateSchema.default('full'),
   endpoints: z
     .array(endpointInputSchema)
     .min(1)
     .max(endpointTypes.length)
-    .refine(endpoints => new Set(endpoints.map(endpoint => endpoint.type)).size === endpoints.length, 'each endpoint type may occur only once')
-    .refine(
-      endpoints => endpoints.some(endpoint => endpoint.type === 'aasEnvironment' || endpoint.type === 'aasRepository'),
-      'an AAS environment or an AAS repository endpoint is required',
-    )
-    .refine(
-      endpoints => endpoints.some(endpoint => endpoint.type === 'aasEnvironment' || endpoint.type === 'submodelRepository'),
-      'an AAS environment or a submodel repository endpoint is required',
-    ),
+    .refine(endpoints => new Set(endpoints.map(endpoint => endpoint.type)).size === endpoints.length, 'each endpoint type may occur only once'),
+  listSource: z.enum(listSources).default('registry'),
+  sync: syncSettingsSchema.default(defaultSyncSettings),
   security: securityInputSchema,
   /** Permit loopback and private-network addresses; subject to the deployment policy. */
   allowPrivateNetwork: z.boolean().default(false),
+}).superRefine((input, context) => {
+  const rules = templateRules[input.template]
+  for (const [index, endpoint] of input.endpoints.entries()) {
+    if (!rules.allowed.includes(endpoint.type)) {
+      context.addIssue({ code: 'custom', path: ['endpoints', index, 'type'], message: `the template ${input.template} has no ${endpoint.type} endpoint` })
+    }
+  }
+  for (const group of rules.required) {
+    if (!input.endpoints.some(endpoint => group.includes(endpoint.type))) {
+      context.addIssue({ code: 'custom', path: ['endpoints'], message: `the template ${input.template} needs ${group.join(' or ')}` })
+    }
+  }
 })
 export type InfrastructureInput = z.input<typeof infrastructureInputSchema>
+
+/** The `/description` profiles of each endpoint at the last probe; `null` where the endpoint did not answer with them. */
+export const serviceProfilesSchema = z.partialRecord(endpointTypeSchema, z.array(z.string()).nullable())
+export type ServiceProfiles = z.infer<typeof serviceProfilesSchema>
 
 export const infrastructureSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable(),
+  template: infrastructureTemplateSchema,
   endpoints: z.array(endpointInputSchema),
+  listSource: z.enum(listSources),
+  sync: syncSettingsSchema,
+  serviceProfiles: serviceProfilesSchema,
+  /** When the profiles were read; `null` before the first successful probe. */
+  probedAt: z.string().nullable(),
+  /** The optional features the services announce in their profiles. */
+  announced: z.object({ history: z.boolean(), changeFeed: z.boolean(), rebac: z.boolean() }),
   security: securitySummarySchema,
   allowPrivateNetwork: z.boolean(),
   revision: z.number().int(),
@@ -123,6 +234,8 @@ export const probeResultSchema = z.object({
     status: z.number().int().nullable(),
     latencyMs: z.number().nullable(),
     error: z.string().nullable(),
+    /** The service profiles from `/description`, if it answered with them. */
+    profiles: z.array(z.string()).nullable(),
   })),
 })
 export type ProbeResult = z.infer<typeof probeResultSchema>

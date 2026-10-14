@@ -1,55 +1,83 @@
-import { describe, expect, it, vi } from 'vitest'
-import { endpointUrl } from '~~/server/lib/infrastructures'
-import { StudioProblem } from '~~/server/lib/problem'
+import type { EndpointInput, InfrastructureTemplate, SecuritySummary, ServiceProfiles } from '#shared/contract'
+import { describe, expect, it } from 'vitest'
 import { liveCapabilities, workspaceCapabilities } from '~~/server/lib/targets/capabilities'
-import { FeatureCache } from '~~/server/lib/targets/features'
+import { infrastructureInputSchema, serviceUrl } from '#shared/contract'
 
-const services = { endpoints: [{ type: 'aasRepository' as const, url: 'http://aas/' }, { type: 'submodelRepository' as const, url: 'http://sm' }] }
-const environment = { endpoints: [{ type: 'aasEnvironment' as const, url: 'http://env/' }] }
+const history = 'https://admin-shell.io/aas/API/3/2/SubmodelRepositoryServiceSpecification/SSP-007'
+const eventFeed = 'https://basyx.org/aas/API/3/2/EventFeed/1.0'
+const rebac = 'https://basyx.org/aas/API/3/2/RelationshipBasedAccessControl/1.0'
 
-describe('target capabilities', () => {
-  it('derives environment-only operations from the endpoint configuration', () => {
-    expect(liveCapabilities(services, null)).toMatchObject({ export: false, upload: false, search: 'shells', conceptDescriptions: false, discovery: false, history: false })
-    expect(liveCapabilities(environment, null)).toMatchObject({ export: true, upload: true, search: 'elements', conceptDescriptions: true, discovery: true })
-    expect(liveCapabilities(environment, { history: true, changeFeed: true, sharing: false })).toMatchObject({ history: true, changeFeed: true, sharing: false })
+const unsecured: SecuritySummary = { mode: 'unsecured' }
+
+function infrastructure (template: InfrastructureTemplate, endpoints: EndpointInput[], serviceProfiles: ServiceProfiles = {}, security = unsecured) {
+  return { template, endpoints, serviceProfiles, security }
+}
+
+const environment = infrastructure('mono-all', [{ type: 'aasEnvironment', url: 'http://env/' }])
+const separate = infrastructure('full', [
+  { type: 'aasRegistry', url: 'http://registry' },
+  { type: 'aasRepository', url: 'http://aas/' },
+  { type: 'submodelRepository', url: 'http://sm' },
+])
+
+describe('infrastructure templates', () => {
+  it('resolves services from their own endpoint or the AAS environment the template names', () => {
+    expect(serviceUrl(environment, 'submodelRepository')).toBe('http://env')
+    expect(serviceUrl(environment, 'aasDiscovery')).toBe('http://env')
+    const monoRepo = infrastructure('mono-repo', [{ type: 'aasEnvironment', url: 'http://env' }, { type: 'aasRegistry', url: 'http://registry' }])
+    expect(serviceUrl(monoRepo, 'aasRepository')).toBe('http://env')
+    expect(serviceUrl(monoRepo, 'aasRegistry')).toBe('http://registry')
+    // In mono-repo, registries and discovery come only from their own endpoints.
+    expect(serviceUrl(monoRepo, 'submodelRegistry')).toBeUndefined()
+    expect(serviceUrl(separate, 'aasRepository')).toBe('http://aas')
+    expect(serviceUrl(separate, 'conceptDescriptionRepository')).toBeUndefined()
   })
 
-  it('resolves every service of an AAS environment from its one URL', () => {
-    expect(endpointUrl(environment, 'submodelRepository')).toBe('http://env')
-    expect(endpointUrl({ endpoints: [...environment.endpoints, { type: 'discovery', url: 'http://discovery' }] }, 'discovery')).toBe('http://discovery')
-    expect(endpointUrl(services, 'conceptDescriptionRepository')).toBeUndefined()
+  it('accepts only the endpoints of the chosen template', () => {
+    const base = { name: 'Test', security: { mode: 'unsecured' } }
+    const issues = (input: object) => {
+      const result = infrastructureInputSchema.safeParse({ ...base, ...input })
+      return result.success ? [] : result.error.issues.map(issue => issue.message)
+    }
+    expect(issues({ template: 'mono-all', endpoints: [{ type: 'aasEnvironment', url: 'http://env' }] })).toEqual([])
+    expect(issues({ template: 'mono-all', endpoints: [{ type: 'aasEnvironment', url: 'http://env' }, { type: 'aasRegistry', url: 'http://r' }] }))
+      .toEqual(['the template mono-all has no aasRegistry endpoint'])
+    expect(issues({ template: 'full', endpoints: [{ type: 'aasRegistry', url: 'http://r' }] }))
+      .toEqual(['the template full needs submodelRepository or submodelRegistry'])
+    expect(issues({ template: 'identifiable', endpoints: [{ type: 'aasRepository', url: 'http://aas' }] })).toEqual([])
+    expect(issues({ endpoints: [{ type: 'aasRepository', url: 'http://aas' }, { type: 'aasRepository', url: 'http://aas2' }, { type: 'submodelRepository', url: 'http://sm' }] }))
+      .toContain('each endpoint type may occur only once')
+  })
+})
+
+describe('target capabilities', () => {
+  it('derives environment operations and services from the configuration', () => {
+    expect(liveCapabilities(separate)).toMatchObject({ export: false, upload: false, search: 'shells', conceptDescriptions: false, discovery: false })
+    expect(liveCapabilities(environment)).toMatchObject({ export: true, upload: true, search: 'elements', conceptDescriptions: true, discovery: true })
+  })
+
+  it('offers history, the change feed and sharing only where the services announce them', () => {
+    expect(liveCapabilities(environment)).toMatchObject({ history: false, changeFeed: false, sharing: false })
+    const announcing = infrastructure('mono-all', environment.endpoints, { aasEnvironment: [history, eventFeed, rebac] })
+    expect(liveCapabilities(announcing)).toMatchObject({ history: true, changeFeed: true, sharing: false })
+    const asUser = infrastructure('mono-all', environment.endpoints, { aasEnvironment: [rebac] }, {
+      mode: 'delegated_user',
+      issuer: 'http://idp',
+      clientId: 'studio',
+      scopes: [],
+      clientSecret: null,
+      desktopLoopbackHost: '127.0.0.1',
+    })
+    expect(liveCapabilities(asUser).sharing).toBe(true)
+    // Profiles count only for the endpoint that serves the service.
+    const elsewhere = infrastructure('full', separate.endpoints, { aasRegistry: [history, eventFeed] })
+    expect(liveCapabilities(elsewhere)).toMatchObject({ history: false, changeFeed: false })
+    // Any 3.x API version of a profile counts.
+    const older = infrastructure('full', separate.endpoints, { submodelRepository: [history.replace('/3/2/', '/3/3/')] })
+    expect(liveCapabilities(older).history).toBe(true)
   })
 
   it('offers no server-only features on workspaces', () => {
     expect(workspaceCapabilities).toMatchObject({ operations: false, upload: false, history: false, sharing: false, deleteShells: true, files: true })
-  })
-})
-
-describe('feature cache', () => {
-  const record = { id: 'infra', revision: 1 }
-  const features = { history: true, changeFeed: false, sharing: false }
-
-  it('detects once per configuration and expires', async () => {
-    let now = 0
-    const cache = new FeatureCache(() => now)
-    const detect = vi.fn(async () => features)
-    await Promise.all([cache.get(record, detect), cache.get(record, detect)])
-    expect(detect).toHaveBeenCalledTimes(1)
-    expect(cache.peek(record)).toEqual(features)
-    expect(cache.peek({ id: 'infra', revision: 2 })).toBeNull()
-    now += 10 * 60 * 1000
-    expect(cache.peek(record)).toBeNull()
-    await cache.get(record, detect)
-    expect(detect).toHaveBeenCalledTimes(2)
-    cache.forget('infra')
-    expect(cache.peek(record)).toBeNull()
-  })
-
-  it('does not cache a failed detection', async () => {
-    const cache = new FeatureCache()
-    await expect(cache.get(record, async () => {
-      throw new StudioProblem('target_auth_required')
-    })).rejects.toThrow(StudioProblem)
-    expect(cache.peek(record)).toBeNull()
   })
 })

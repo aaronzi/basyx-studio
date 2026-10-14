@@ -8,7 +8,7 @@ import { stat } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute } from 'node:path'
 import { allRights } from '../aas/basyx-go'
 import { StudioProblem } from '../problem'
-import { noDetectedFeatures, workspaceCapabilities } from '../targets/capabilities'
+import { workspaceCapabilities } from '../targets/capabilities'
 
 export type FileGrantPurpose = 'open' | 'save'
 
@@ -69,7 +69,6 @@ class WorkspaceAasTarget implements AasTarget {
   setElementValue: AasTarget['setElementValue'] = (submodelId, idShortPath, value, revision) =>
     this.#call('setElementValue', submodelId, idShortPath, value, revision)
 
-  detectFeatures = async () => noDetectedFeatures
   deleteShell = (id: string) => this.#call('deleteShell', id)
   thumbnail = (shellId: string) => this.#call('thumbnail', shellId)
   attachment = (submodelId: string, idShortPath: string) => this.#call('attachment', submodelId, idShortPath)
