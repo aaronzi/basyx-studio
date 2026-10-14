@@ -74,3 +74,7 @@ export const changeMeta = {
   updated: { color: 'info', icon: 'mdi-pencil-circle-outline' },
   deleted: { color: 'error', icon: 'mdi-minus-circle-outline' },
 } as const
+
+/** Modes of the details drawer (MVP-4 plan, T2), as `mode` in the URL. */
+export const detailsModes = ['details', 'visualization', 'json', 'xml', 'uml'] as const
+export type DetailsMode = (typeof detailsModes)[number]

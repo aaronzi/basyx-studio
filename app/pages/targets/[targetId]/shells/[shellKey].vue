@@ -142,68 +142,71 @@
         <v-tabs-window v-model="tab">
           <v-tabs-window-item value="submodels">
             <v-card>
-              <v-toolbar class="px-3" color="transparent" density="comfortable">
+              <!-- Wraps instead of squeezing the filter when the drawer or a phone leaves little room (D10). -->
+              <div class="d-flex flex-wrap align-center ga-2 px-3 py-2">
                 <v-text-field
                   v-model="treeSearch"
+                  class="flex-grow-1"
                   clearable
                   density="compact"
-                  max-width="320"
+                  max-width="360"
+                  min-width="200"
                   :placeholder="t('shell.filterElements')"
                   prepend-inner-icon="mdi-filter-variant"
                 />
 
-                <v-spacer />
+                <div class="d-flex align-center ga-1 ms-auto">
+                  <v-menu v-if="capabilities.history" v-model="historyMenu" :close-on-content-click="false">
+                    <template #activator="{ props: activator }">
+                      <v-btn
+                        v-bind="activator"
+                        append-icon="mdi-chevron-down"
+                        class="me-1"
+                        :color="asOf ? 'warning' : undefined"
+                        prepend-icon="mdi-history"
+                        :text="asOf ? asOfLabel : (smAndUp ? t('history.now') : undefined)"
+                        :variant="asOf ? 'tonal' : 'text'"
+                      />
+                    </template>
 
-                <v-menu v-if="capabilities.history" v-model="historyMenu" :close-on-content-click="false">
-                  <template #activator="{ props: activator }">
-                    <v-btn
-                      v-bind="activator"
-                      append-icon="mdi-chevron-down"
-                      class="me-1"
-                      :color="asOf ? 'warning' : undefined"
-                      prepend-icon="mdi-history"
-                      :text="asOf ? asOfLabel : (smAndUp ? t('history.now') : undefined)"
-                      :variant="asOf ? 'tonal' : 'text'"
-                    />
-                  </template>
+                    <v-card>
+                      <v-date-picker
+                        :max="new Date()"
+                        :model-value="asOf"
+                        show-adjacent-months
+                        :title="t('history.pick')"
+                        @update:model-value="pickDate"
+                      />
+                    </v-card>
+                  </v-menu>
 
-                  <v-card>
-                    <v-date-picker
-                      :max="new Date()"
-                      :model-value="asOf"
-                      show-adjacent-months
-                      :title="t('history.pick')"
-                      @update:model-value="pickDate"
-                    />
-                  </v-card>
-                </v-menu>
+                  <v-switch
+                    class="flex-grow-0"
+                    color="success"
+                    :disabled="Boolean(asOf)"
+                    :label="smAndUp ? t('shell.autoRefresh') : undefined"
+                    :model-value="preferences.preferences.value.autoRefresh"
+                    @update:model-value="value => preferences.update(current => ({ ...current, autoRefresh: Boolean(value) }))"
+                  />
 
-                <v-switch
-                  class="me-2 flex-grow-0"
-                  color="success"
-                  :disabled="Boolean(asOf)"
-                  :label="smAndUp ? t('shell.autoRefresh') : undefined"
-                  :model-value="preferences.preferences.value.autoRefresh"
-                  @update:model-value="value => preferences.update(current => ({ ...current, autoRefresh: Boolean(value) }))"
-                />
+                  <v-btn
+                    v-tooltip="t('shell.expandAll')"
+                    :aria-label="t('shell.expandAll')"
+                    icon="mdi-unfold-more-horizontal"
+                    :loading="expanding"
+                    size="small"
+                    @click="expandAll"
+                  />
 
-                <v-btn
-                  v-tooltip="t('shell.expandAll')"
-                  :aria-label="t('shell.expandAll')"
-                  icon="mdi-unfold-more-horizontal"
-                  :loading="expanding"
-                  size="small"
-                  @click="expandAll"
-                />
-
-                <v-btn
-                  v-tooltip="t('shell.collapseAll')"
-                  :aria-label="t('shell.collapseAll')"
-                  icon="mdi-unfold-less-horizontal"
-                  size="small"
-                  @click="opened = []"
-                />
-              </v-toolbar>
+                  <v-btn
+                    v-tooltip="t('shell.collapseAll')"
+                    :aria-label="t('shell.collapseAll')"
+                    icon="mdi-unfold-less-horizontal"
+                    size="small"
+                    @click="opened = []"
+                  />
+                </div>
+              </div>
 
               <v-divider />
 
@@ -325,6 +328,8 @@
 
     <ElementDetailsDrawer
       v-if="target.data.value && shell.data.value"
+      v-model:mode="detailsMode"
+      v-model:view="detailsView"
       :at="asOfIso"
       :can-invoke="canInvoke"
       :can-write="canWrite"
@@ -332,10 +337,11 @@
       :history="selectedItem ? (trees.history.value.get(selectedItem.id) ?? []) : []"
       :item="selectedItem"
       :refreshing="Boolean(refreshSeconds)"
-      :shell-key="shellKey"
+      :shell-id="shellId"
       :shell-label="shellLabel"
       :submodel-label="selectedSubmodelLabel"
-      :target-id="targetId"
+      :submodel-ref="selectedRef"
+      :target="target.data.value"
       @changed="onElementChanged"
       @select="select"
     />
@@ -345,12 +351,13 @@
 <script lang="ts" setup>
   import type { EffectiveRights, ElementDetail, ShellDetail, SubmodelRef, TargetCapabilities } from '#shared/contract'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
+  import type { DetailsMode } from '~/utils/aas'
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { apiBasePath, noCapabilities } from '#shared/contract'
   import { expandAllCap, itemId, levelPageSize } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
-  import { langText, modelTypeIcon } from '~/utils/aas'
+  import { detailsModes, langText, modelTypeIcon } from '~/utils/aas'
 
   const { t, locale } = useI18n()
   const route = useRoute()
@@ -495,6 +502,23 @@
 
   const selectedItem = computed(() => selectedId.value ? trees.lookup(selectedId.value) : null)
   const selectedSubmodelLabel = computed(() => trees.items.value.find(item => item.id === selectedItem.value?.submodelKey)?.title ?? null)
+  const selectedRef = computed(() => submodelRefs.value.find(ref => ref.key === selectedItem.value?.submodelKey) ?? null)
+
+  // The drawer's mode and app view (R3); a `view` alone (MVP-3 links) opens the visualization.
+  const detailsMode = computed<DetailsMode>({
+    get: () => {
+      const value = route.query.mode
+      if (typeof value === 'string' && (detailsModes as readonly string[]).includes(value)) {
+        return value as DetailsMode
+      }
+      return typeof route.query.view === 'string' ? 'visualization' : 'details'
+    },
+    set: (value: DetailsMode) => router.replace({ query: { ...route.query, mode: value === 'details' ? undefined : value, view: value === 'visualization' ? route.query.view : undefined } }),
+  })
+  const detailsView = computed<string | null>({
+    get: () => (typeof route.query.view === 'string' ? route.query.view : null),
+    set: (value: string | null) => router.replace({ query: { ...route.query, view: value ?? undefined } }),
+  })
 
   function select (id: string | null) {
     const found = id ? trees.lookup(id) : null

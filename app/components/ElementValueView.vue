@@ -1,14 +1,13 @@
 <template>
-  <!-- Property and MultiLanguageProperty: edited with the shared value editor -->
-  <v-card v-if="editable" border="0" color="surface-light">
-    <ElementValueEditor
-      :detail="detail"
-      :explicit-save="explicitSave"
-      :submodel-key="submodelKey"
-      :target-id="targetId"
-      @changed="value => emit('changed', value)"
-    />
-  </v-card>
+  <!-- Editable types get the edit area's editor instead of their view -->
+  <ElementEditArea
+    v-if="editable"
+    :detail="detail"
+    :explicit-save="explicitSave"
+    :submodel-key="submodelKey"
+    :target-id="targetId"
+    @changed="value => emit('changed', value)"
+  />
 
   <v-card v-else-if="modelType === 'Property'" border="0" color="surface-light">
     <v-card-item>
@@ -24,7 +23,7 @@
     </v-card-item>
 
     <v-card-text class="d-flex align-baseline ga-2 pt-0">
-      <span class="text-display-small font-weight-medium text-high-emphasis text-break" data-test="property-value">
+      <span class="text-body-large font-weight-medium text-high-emphasis text-break" data-test="property-value">
         {{ display || t('editor.emptyValue') }}
       </span>
     </v-card-text>

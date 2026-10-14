@@ -234,6 +234,20 @@ export const pointInTimeQuerySchema = z.object({
   at: z.iso.datetime({ offset: true }).optional(),
 })
 
+/** An element as JSON (`ElementDetail`) or as AAS XML (MVP-4 plan, T2). */
+export const elementQuerySchema = pointInTimeQuerySchema.extend({
+  format: z.enum(['json', 'xml']).default('json'),
+})
+
+/**
+ * A submodel: its metadata without elements (the default), the whole
+ * submodel as JSON, or the whole submodel as AAS XML.
+ */
+export const submodelQuerySchema = pointInTimeQuerySchema.extend({
+  content: z.enum(['metadata', 'full']).default('metadata'),
+  format: z.enum(['json', 'xml']).default('json'),
+})
+
 /**
  * One tree request (MVP-4 plan, T1): the children of the submodel or of
  * `parentElementKey`, with as many complete levels below them as fit into

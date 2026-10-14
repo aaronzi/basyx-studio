@@ -5,18 +5,28 @@
     border="s"
     disable-route-watcher
     location="end"
-    :temporary="!xlAndUp"
-    :width="smAndUp ? 440 : 360"
+    :temporary="!lgAndUp"
+    :width="drawerWidth"
   >
-    <template v-if="item">
+    <div v-if="item" class="d-flex flex-column h-100">
       <v-toolbar color="transparent" density="compact">
-        <v-breadcrumbs class="text-label-medium ps-4" density="compact" :items="crumbs">
+        <v-breadcrumbs class="text-label-medium ps-4 overflow-hidden" density="compact" :items="crumbs">
           <template #divider>
             <v-icon icon="mdi-chevron-right" size="small" />
           </template>
         </v-breadcrumbs>
 
         <v-spacer />
+
+        <v-btn
+          v-if="lgAndUp"
+          v-tooltip="wide ? t('details.narrow') : t('details.widen')"
+          :aria-label="wide ? t('details.narrow') : t('details.widen')"
+          :icon="wide ? 'mdi-arrow-collapse-right' : 'mdi-arrow-expand-left'"
+          size="small"
+          @click="wide = !wide"
+        />
+
         <v-btn :aria-label="t('common.close')" icon="mdi-close" size="small" @click="ui.detailsDrawer = false" />
       </v-toolbar>
 
@@ -27,8 +37,8 @@
           </v-avatar>
         </template>
 
-        <v-card-title class="text-title-large">{{ item.variableGroup ? t(`variables.${item.variableGroup}`) : item.title }}</v-card-title>
-        <v-card-subtitle>{{ item.modelType }}</v-card-subtitle>
+        <v-card-title class="text-title-large text-wrap text-break">{{ title }}</v-card-title>
+        <v-card-subtitle>{{ item.variableGroup ? t('details.variableGroup') : item.modelType }}</v-card-subtitle>
 
         <template v-if="path" #append>
           <v-btn
@@ -41,18 +51,38 @@
         </template>
       </v-card-item>
 
+      <!-- Not mandatory: a mode from the URL may wait for its tab (app views load later). -->
+      <v-tabs
+        v-model="mode"
+        class="flex-shrink-0"
+        density="compact"
+        :mandatory="false"
+        show-arrows
+      >
+        <v-tab
+          v-for="entry in modes"
+          :key="entry.value"
+          :prepend-icon="entry.icon"
+          :text="entry.title"
+          :value="entry.value"
+        />
+      </v-tabs>
+
+      <v-divider />
+
       <ProblemAlert
-        v-if="details.error.value"
-        class="mx-4 mb-4"
-        :error="details.error.value"
+        v-if="activeQuery.error.value"
+        class="ma-4"
+        :error="activeQuery.error.value"
         retry
-        @retry="details.refetch()"
+        @retry="activeQuery.refetch()"
       />
 
-      <v-skeleton-loader v-else-if="details.isLoading.value" type="card" />
+      <v-skeleton-loader v-else-if="mode !== 'xml' && mode !== 'visualization' && !activeQuery.data.value" type="card, list-item-two-line@3" />
 
-      <template v-else-if="detail">
-        <div v-if="item.elementKey" class="px-4 pb-4">
+      <!-- Details -->
+      <div v-else-if="mode === 'details' && detail" class="flex-grow-1 overflow-y-auto">
+        <div v-if="item.elementKey" class="pa-4">
           <ElementValueView
             :can-invoke="canInvoke"
             :can-replace="canWrite && capabilities.files"
@@ -69,8 +99,6 @@
           />
         </div>
 
-        <v-divider />
-
         <v-list class="px-2" lines="two">
           <v-list-subheader :title="t('details.metadata')" />
 
@@ -79,8 +107,9 @@
             :key="row.label"
             :prepend-icon="row.icon"
             :subtitle="row.label"
-            :title="row.value"
           >
+            <v-list-item-title class="text-wrap text-break">{{ row.value }}</v-list-item-title>
+
             <template v-if="row.copy" #append>
               <v-btn :aria-label="t('common.copy')" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
             </template>
@@ -105,15 +134,38 @@
               <span v-else class="text-body-medium text-medium-emphasis">{{ t('details.noQualifiers') }}</span>
             </v-expansion-panel-text>
           </v-expansion-panel>
-
-          <v-expansion-panel :title="t('details.rawJson')" value="json">
-            <v-expansion-panel-text>
-              <v-code class="text-body-small text-pre overflow-auto" tag="pre">{{ JSON.stringify(value, null, 2) }}</v-code>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
         </v-expansion-panels>
-      </template>
-    </template>
+      </div>
+
+      <div v-else-if="mode === 'visualization' && submodelRef" class="flex-grow-1 overflow-y-auto">
+        <ElementVisualizationPanel
+          v-model:view="view"
+          :shell-id="shellId"
+          :submodel="{ id: submodelRef.submodelId, semanticId: submodelRef.semanticId }"
+          :submodel-label="submodelLabel ?? submodelRef.submodelId"
+          :target="target"
+          :views="views"
+        />
+      </div>
+
+      <div v-else-if="mode === 'json'" class="flex-grow-1 overflow-hidden">
+        <JsonPanel :label="t('details.modes.jsonLabel')" :value="fullValue" />
+      </div>
+
+      <div v-else-if="mode === 'xml'" class="flex-grow-1 overflow-hidden">
+        <ElementXmlPanel
+          :at="at"
+          :element-key="item.elementKey"
+          :file-name="fileName"
+          :submodel-key="item.submodelKey"
+          :target-id="targetId"
+        />
+      </div>
+
+      <div v-else-if="mode === 'uml'" class="flex-grow-1 overflow-hidden">
+        <ElementUmlPanel :file-name="fileName" :value="fullValue" />
+      </div>
+    </div>
 
     <v-empty-state
       v-else
@@ -126,17 +178,22 @@
 </template>
 
 <script lang="ts" setup>
-  import type { ElementDetail, SubmodelDetail, TargetCapabilities } from '#shared/contract'
+  import type { ElementDetail, SubmodelDetail, SubmodelRef, SubmodelViewContributionInfo, Target, TargetCapabilities } from '#shared/contract'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
+  import type { DetailsMode } from '~/utils/aas'
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { decodeResourceKey, isEditableModelType, langText, modelTypeIcon } from '~/utils/aas'
 
+  // The details drawer (MVP-4 plan, T2): the selected submodel or element in
+  // the modes of the Web UI's right pane. The mode and the app view are in the
+  // URL (`mode`, `view`).
   const props = defineProps<{
-    targetId: string
-    shellKey: string
+    target: Target
+    shellId: string
     shellLabel: string
     submodelLabel: string | null
+    submodelRef: SubmodelRef | null
     item: ShellTreeItem | null
     capabilities: TargetCapabilities
     /** The user may change values and files (edit mode, rights, not a past state). */
@@ -152,6 +209,8 @@
     /** An element changed at its source; reload what shows it. */
     changed: [detail: ElementDetail]
   }>()
+  const mode = defineModel<DetailsMode>('mode', { required: true })
+  const view = defineModel<string | null>('view', { required: true })
 
   const { t } = useI18n()
   const ui = useUiStore()
@@ -159,48 +218,119 @@
   const copy = useClipboard()
   const queryCache = useQueryCache()
   const preferences = usePreferences().preferences
-  const { smAndUp, xlAndUp } = useDisplay()
+  const { smAndUp, lgAndUp, width } = useDisplay()
+
+  const targetId = computed(() => props.target.id)
+
+  // Widened to the whole content area; a layout choice kept in this browser (P1).
+  const wideKey = 'studio.detailsDrawer.wide'
+  const wide = ref(false)
+  onMounted(() => {
+    try {
+      wide.value = localStorage.getItem(wideKey) === 'true'
+    } catch {
+      // Without storage the drawer starts narrow.
+    }
+  })
+  watch(wide, value => {
+    try {
+      localStorage.setItem(wideKey, String(value))
+    } catch {
+      // Not remembered without storage.
+    }
+  })
+  // The rail (56 px) stays visible.
+  const drawerWidth = computed(() => (wide.value && lgAndUp.value ? Math.max(440, width.value - 56) : (smAndUp.value ? 440 : 360)))
 
   // Same key prefix as before (MVP-2/3): app writes invalidate `['targets', id, 'details']`.
-  const detailsKey = () => ['targets', props.targetId, 'details', props.shellKey, props.item?.submodelKey ?? '', props.item?.elementKey ?? '', props.at ?? '']
+  const detailsKey = () => ['targets', targetId.value, 'details', props.shellId, props.item?.submodelKey ?? '', props.item?.elementKey ?? '', props.at ?? '']
   const details = useQuery({
     key: detailsKey,
     query: async ({ signal }) => {
       const item = props.item!
       const at = props.at ?? undefined
       if (item.elementKey) {
-        return api<ElementDetail>(`/targets/${props.targetId}/submodels/${item.submodelKey}/elements/${item.elementKey}`, { query: { at }, signal })
+        return api<ElementDetail>(`/targets/${targetId.value}/submodels/${item.submodelKey}/elements/${item.elementKey}`, { query: { at }, signal })
       }
-      const submodel = await api<SubmodelDetail>(`/targets/${props.targetId}/submodels/${item.submodelKey}`, { signal })
+      const submodel = await api<SubmodelDetail>(`/targets/${targetId.value}/submodels/${item.submodelKey}`, { query: { at }, signal })
       return { key: submodel.key, path: '', value: submodel.submodel, revision: null, concurrency: null, ancestors: [] } satisfies ElementDetail
     },
-    enabled: () => props.item !== null && !props.item.unavailable,
+    enabled: () => props.item !== null && !props.item.unavailable && !props.item.more,
   })
 
+  // JSON and UML of a submodel need its elements, which its details leave out.
+  const usesFullSubmodel = computed(() => props.item?.elementKey === null && (mode.value === 'json' || mode.value === 'uml'))
+  const fullSubmodel = useQuery({
+    key: () => ['targets', targetId.value, 'details', props.shellId, props.item?.submodelKey ?? '', 'full', props.at ?? ''],
+    query: ({ signal }) => api<SubmodelDetail>(`/targets/${targetId.value}/submodels/${props.item!.submodelKey}`, { query: { content: 'full', at: props.at ?? undefined }, signal }),
+    enabled: () => props.item !== null && !props.item.unavailable && usesFullSubmodel.value,
+  })
+
+  const activeQuery = computed(() => (usesFullSubmodel.value ? fullSubmodel : details))
   const detail = computed(() => details.data.value ?? null)
   const value = computed(() => (detail.value?.value ?? {}) as Record<string, any>)
+  const fullValue = computed(() => (usesFullSubmodel.value ? fullSubmodel.data.value?.submodel : detail.value?.value) ?? null)
   const path = computed(() => props.item?.elementKey ? decodeResourceKey(props.item.elementKey) : null)
+  const title = computed(() => props.item?.variableGroup ? t(`variables.${props.item.variableGroup}`) : (props.item?.title ?? ''))
+  const fileName = computed(() => (path.value ?? props.submodelLabel ?? 'submodel').replaceAll(/[^\w-]/g, '_'))
 
   const crumbs = computed(() => [
     props.shellLabel,
     ...(props.item?.elementKey ? [props.submodelLabel ?? ''] : []),
     ...(detail.value?.ancestors.map(ancestor => ancestor.label) ?? []),
-  ].filter(Boolean).map(title => ({ title })))
+  ].filter(Boolean).map(text => ({ title: text })))
+
+  // App views of the selected submodel (or the submodel of the selected element).
+  const contributions = useAppContributions(() => props.submodelRef?.semanticId ?? null)
+  const views = computed<SubmodelViewContributionInfo[]>(() => (contributions.data.value?.submodelViews ?? [])
+    .filter(item => item.reason.semanticId === props.submodelRef?.semanticId)
+    .toSorted((a, b) => Number(b.bundled) - Number(a.bundled)))
+
+  const modes = computed<Array<{ value: DetailsMode, title: string, icon: string }>>(() => [
+    { value: 'details', title: t('details.modes.details'), icon: 'mdi-information-outline' },
+    ...(views.value.length > 0 ? [{ value: 'visualization' as const, title: t('details.modes.visualization'), icon: 'mdi-puzzle-outline' }] : []),
+    { value: 'json', title: t('details.modes.json'), icon: 'mdi-code-json' },
+    // Operation variable groups have no AAS serialization of their own.
+    ...(props.item?.variableGroup ? [] : [{ value: 'xml' as const, title: t('details.modes.xml'), icon: 'mdi-xml' }]),
+    { value: 'uml', title: t('details.modes.uml'), icon: 'mdi-sitemap-outline' },
+  ])
+  // A mode the selection does not offer (no app view, a variable group)
+  // shows the details; app views are known once the contributions arrived.
+  watch([modes, () => contributions.data.value], ([available, data]) => {
+    const known = mode.value !== 'visualization' || data !== undefined
+    if (props.item && known && !available.some(entry => entry.value === mode.value)) {
+      mode.value = 'details'
+    }
+  })
 
   const description = computed(() => langText(Array.isArray(value.value.description) ? value.value.description : [], preferences.value.valueLanguage))
 
   const qualifiers = computed(() => ((value.value.qualifiers ?? []) as Array<{ type?: string, value?: string }>)
     .map(qualifier => `${qualifier.type ?? '?'}: ${qualifier.value ?? ''}`))
 
+  // The Web UI's header fields (D6), where the element has them.
   const metadata = computed(() => {
     const element = value.value
     const semanticId = (element.semanticId?.keys?.[0]?.value as string | undefined) ?? props.item?.semanticId ?? null
+    const displayName = langText(Array.isArray(element.displayName) ? element.displayName : [], preferences.value.valueLanguage)
     const rows: Array<{ label: string, value: string, icon: string, copy?: boolean }> = []
     if (props.item?.modelType === 'Submodel') {
       rows.push({ label: t('details.identifier'), value: String(element.id ?? decodeResourceKey(props.item.submodelKey)), icon: 'mdi-identifier', copy: true })
     }
+    if (typeof element.idShort === 'string') {
+      rows.push({ label: t('details.idShort'), value: element.idShort, icon: 'mdi-label-outline', copy: true })
+    }
+    if (displayName && displayName !== element.idShort) {
+      rows.push({ label: t('details.displayName'), value: displayName, icon: 'mdi-format-title' })
+    }
     if (semanticId) {
       rows.push({ label: t('details.semanticId'), value: semanticId, icon: 'mdi-identifier', copy: true })
+    }
+    if (element.kind) {
+      rows.push({ label: t('details.kind'), value: String(element.kind), icon: 'mdi-shape-outline' })
+    }
+    if (element.category) {
+      rows.push({ label: t('details.category'), value: String(element.category), icon: 'mdi-tag-outline' })
     }
     if (element.valueType) {
       rows.push({ label: t('details.valueType'), value: String(element.valueType), icon: 'mdi-code-tags' })
@@ -212,7 +342,7 @@
       rows.push({ label: t('details.version'), value: [element.administration.version, element.administration.revision].filter(Boolean).join('.'), icon: 'mdi-file-certificate-outline' })
     }
     if (props.item?.children) {
-      rows.push({ label: t('details.children'), value: t('details.elements', props.item.children.length), icon: 'mdi-file-tree-outline' })
+      rows.push({ label: t('details.children'), value: t('details.elements', props.item.children.filter(child => !child.more).length), icon: 'mdi-file-tree-outline' })
     }
     if (path.value) {
       rows.push({ label: t('details.idShortPath'), value: path.value, icon: 'mdi-map-marker-path', copy: true })
