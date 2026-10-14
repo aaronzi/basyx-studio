@@ -58,7 +58,8 @@ export function targetPolicy (deps: StudioDeps, record: InfrastructureRecord): O
 }
 
 export async function listInfrastructures (deps: StudioDeps): Promise<InfrastructureRecord[]> {
-  return deps.db.select().from(infrastructures).orderBy(asc(infrastructures.name))
+  const records = await deps.db.select().from(infrastructures).orderBy(asc(infrastructures.name))
+  return Promise.all(records.map(record => withProfiles(deps, record)))
 }
 
 export async function getInfrastructure (deps: StudioDeps, id: string): Promise<InfrastructureRecord> {
@@ -66,7 +67,27 @@ export async function getInfrastructure (deps: StudioDeps, id: string): Promise<
   if (!record) {
     throw new StudioProblem('not_found', 'No such target.')
   }
-  return record
+  return withProfiles(deps, record)
+}
+
+/**
+ * Infrastructures saved before Studio stored profiles (migration 0003) are
+ * probed once when first loaded, so their features do not wait for an
+ * administrator. A failed probe leaves them unprobed for the next load.
+ */
+async function withProfiles (deps: StudioDeps, record: InfrastructureRecord): Promise<InfrastructureRecord> {
+  if (record.probedAt) {
+    return record
+  }
+  const probe = await probeEndpoints(deps, record)
+  if (probe.endpoints.every(endpoint => !endpoint.reachable)) {
+    return record
+  }
+  const [updated] = await deps.db.update(infrastructures)
+    .set({ serviceProfiles: storedProfiles(probe), probedAt: new Date(probe.checkedAt) })
+    .where(eq(infrastructures.id, record.id))
+    .returning()
+  return updated ?? record
 }
 
 function parseInput (deps: StudioDeps, raw: unknown): ReturnType<typeof infrastructureInputSchema.parse> {
@@ -231,7 +252,10 @@ async function requireReachable (deps: StudioDeps, record: Pick<InfrastructureRe
 
 /** Probes an infrastructure again and stores the profiles it reports. */
 export async function reprobeInfrastructure (deps: StudioDeps, id: string): Promise<ProbeResult> {
-  const record = await getInfrastructure(deps, id)
+  const [record] = await deps.db.select().from(infrastructures).where(eq(infrastructures.id, id))
+  if (!record) {
+    throw new StudioProblem('not_found', 'No such infrastructure.')
+  }
   const probe = await probeEndpoints(deps, record)
   await deps.db.update(infrastructures)
     .set({ serviceProfiles: storedProfiles(probe), probedAt: new Date(probe.checkedAt) })
