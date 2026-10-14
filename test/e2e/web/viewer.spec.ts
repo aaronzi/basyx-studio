@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
 import { edgeCasesShell, key, registerOpenEnvironment, setMode, signIn, studioApi } from './support'
 
-// The AAS viewer port (docs/development/aas-viewer-port-plan.md) in the
+// The AAS viewer port (docs/development/mvp-4-plan.md) in the
 // hosted build, against the open test environment registered as an AAS
 // environment (history and change feed enabled).
 
