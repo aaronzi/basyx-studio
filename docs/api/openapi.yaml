@@ -174,7 +174,7 @@ paths:
       tags: [Preferences]
       operationId: getPreferences
       summary: Get the signed-in user's preferences
-      description: Stored by Studio per user. Favorites and recently opened shells are kept per target, so a target never shows another target's shells.
+      description: Stored by Studio per user. Recently opened shells are kept per target, so a target never shows another target's shells.
       x-requirements: [PROD-001, DATA-020]
       responses:
         '200':
@@ -3748,15 +3748,6 @@ components:
       additionalProperties: false
       description: Per-user settings stored by Studio. Every field has a default, so a client may send only what it knows.
       properties:
-        favorites:
-          type: object
-          description: Favorite shell keys per target ID.
-          propertyNames: { maxLength: 100 }
-          additionalProperties:
-            type: array
-            maxItems: 50
-            items: { $ref: '#/components/schemas/ResourceKey' }
-          default: {}
         recent:
           type: object
           description: Recently opened shells per target ID, newest first.

@@ -18,7 +18,6 @@
           <v-chip filter :text="t('shells.all')" value="all" />
           <v-chip filter :text="t('shells.instances')" value="Instance" />
           <v-chip filter :text="t('shells.types')" value="Type" />
-          <v-chip filter prepend-icon="mdi-star-outline" :text="t('shells.favorites')" value="favorites" />
         </v-chip-group>
       </div>
 
@@ -87,13 +86,6 @@
                   color="warning"
                   size="x-small"
                   :text="t('shells.type')"
-                />
-
-                <v-btn
-                  :aria-label="t('shells.favorite')"
-                  :color="preferences.isFavorite(targetId, shell.key) ? 'warning' : undefined"
-                  :icon="preferences.isFavorite(targetId, shell.key) ? 'mdi-star' : 'mdi-star-outline'"
-                  @click.stop.prevent="preferences.toggleFavorite(targetId, shell.key)"
                 />
               </template>
             </v-list-item>
@@ -167,7 +159,7 @@
   const route = useRoute()
   const router = useRouter()
 
-  const filter = ref<'all' | 'Instance' | 'Type' | 'favorites'>('all')
+  const filter = ref<'all' | 'Instance' | 'Type'>('all')
 
   // The search (MVP-4 plan, S2): the Web UI's expression syntax, or a raw
   // query from the advanced dialog, kept in the URL as `?search=` and
@@ -287,9 +279,6 @@
   const filtered = computed(() => {
     const local = parseSearch(applied.value)
     const list = items.value.filter(shell => {
-      if (filter.value === 'favorites' && !preferences.isFavorite(props.targetId, shell.key)) {
-        return false
-      }
       // Server searches include the kind, except raw queries, which stay as written.
       const kindOnServer = searching.value && rawQuery.value === null
       if (!kindOnServer && (filter.value === 'Instance' || filter.value === 'Type') && shell.assetKind !== filter.value) {

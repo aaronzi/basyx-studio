@@ -34,18 +34,6 @@ export function usePreferences () {
     }
   }
 
-  function isFavorite (targetId: string, shellKey: string): boolean {
-    return preferences.value.favorites[targetId]?.includes(shellKey) ?? false
-  }
-
-  function toggleFavorite (targetId: string, shellKey: string) {
-    return update(current => {
-      const list = current.favorites[targetId] ?? []
-      current.favorites[targetId] = list.includes(shellKey) ? list.filter(key => key !== shellKey) : [shellKey, ...list].slice(0, 50)
-      return current
-    })
-  }
-
   function recent (targetId: string): RecentShell[] {
     return preferences.value.recent[targetId] ?? []
   }
@@ -62,5 +50,5 @@ export function usePreferences () {
     })
   }
 
-  return { preferences, query, update, isFavorite, toggleFavorite, recent, rememberShell }
+  return { preferences, query, update, recent, rememberShell }
 }

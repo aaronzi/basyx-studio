@@ -46,25 +46,16 @@ test('shows the bundled apps on the overview', async ({ page }) => {
   await expect(page.frameLocator('iframe[title="App: Documents"]').getByText('Operating Manual DriveMotor DM-3000')).toBeVisible()
 })
 
-test('filters the tree, opens details and keeps favorites for the user', async ({ page }) => {
+test('filters the tree, opens details and remembers the shell for the user', async ({ page }) => {
   await page.goto(`/targets/${targetId}/shells/${key(edgeCasesShell)}`)
   await page.getByPlaceholder('Filter elements').fill('Deepest')
   await page.getByRole('button', { name: 'Expand all' }).click()
   await treeItem(page, 'Deepest').first().click()
   await expect(page.getByText('Level1.Level2.Items[0].Details.Deepest')).toBeVisible()
 
-  // The header's star; the shell list has one per row.
-  await page.locator('.v-card').filter({ has: page.getByRole('heading', { level: 1 }) }).getByRole('button', { name: 'Favorite' }).click()
-  await page.reload()
-  await page.getByText('Favorites', { exact: true }).click()
-  await expect(page.locator('.v-navigation-drawer').getByText('EdgeCasesShell').first()).toBeVisible()
-  // Clean up for later runs.
-  const api = await studioApi(page)
-  const preferences = await (await api.get('/me/preferences')).json() as Record<string, unknown>
-  await page.request.put('/api/studio/v1/me/preferences', {
-    headers: { 'Origin': new URL(page.url()).origin, 'X-CSRF-Token': (await (await api.get('/session')).json() as { csrfToken: string }).csrfToken },
-    data: { ...preferences, favorites: {} },
-  })
+  // Recently opened shells are stored per user and offered on the shells page.
+  await page.goto(`/targets/${targetId}/shells`)
+  await expect(page.getByRole('main').getByRole('link', { name: 'EdgeCasesShell' }).first()).toBeVisible()
 })
 
 test('searches elements across shells with the command palette', async ({ page }) => {

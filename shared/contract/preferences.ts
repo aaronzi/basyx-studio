@@ -2,7 +2,6 @@ import { z } from 'zod'
 import { syncModes } from './infrastructure'
 
 const shellKey = z.string().regex(/^[\w-]{1,4000}$/)
-const keyList = z.array(shellKey).max(50)
 
 /** A recently opened shell with the title it had; older entries are a bare key. */
 const recentShell = z.union([
@@ -12,12 +11,12 @@ const recentShell = z.union([
 export type RecentShell = z.infer<typeof recentShell>
 
 /**
- * Per-user settings, stored by Studio (PostgreSQL or PGlite). Favorites and
- * recently opened shells are shell keys per target, so switching targets
- * never shows another target's shells.
+ * Per-user settings, stored by Studio (PostgreSQL or PGlite). Recently
+ * opened shells are kept per target, so switching targets never shows
+ * another target's shells. Favorites were dropped after the MVP-4 review:
+ * keys stored by earlier versions are ignored and removed on the next save.
  */
 export const preferencesSchema = z.object({
-  favorites: z.record(z.string().max(100), keyList).default({}),
   recent: z.record(z.string().max(100), z.array(recentShell).max(50)).default({}),
   /** Preferred language of multi-language values, e.g. `en` or `de`. */
   valueLanguage: z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/).default('en'),

@@ -45,14 +45,6 @@
               <div class="d-flex align-center ga-1">
                 <WorkspaceActions v-if="target.data.value.workspace" :target="target.data.value" @error="error => (actionError = error)" />
 
-                <v-btn
-                  v-tooltip="t('shells.favorite')"
-                  :aria-label="t('shells.favorite')"
-                  :color="favorite ? 'warning' : undefined"
-                  :icon="favorite ? 'mdi-star' : 'mdi-star-outline'"
-                  @click="preferences.toggleFavorite(targetId, shellKey)"
-                />
-
                 <template v-if="smAndUp">
                   <v-btn
                     v-if="canShare"
@@ -445,7 +437,6 @@
   ])
   const hasThumbnail = computed(() => typeof shellJson.value.assetInformation?.defaultThumbnail?.path === 'string')
   const submodelRefs = computed(() => refs.data.value?.items ?? [])
-  const favorite = computed(() => preferences.isFavorite(targetId.value, shellKey.value))
 
   const identifiers = computed(() => [
     { label: t('shell.identifier'), value: shellId.value, icon: 'mdi-identifier' },

@@ -121,7 +121,7 @@ earlier MVP-4 decisions where they differ.
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| P1 | Preferences | `user_preferences` in the database per user: favorites and recently opened shells per target, theme, MultiLanguageProperty language, auto-refresh, and the sync overrides of I5. Layout state (drawer widths, open panels) stays in `localStorage`. |
+| P1 | Preferences | `user_preferences` in the database per user: recently opened shells per target, theme, MultiLanguageProperty language, auto-refresh, and the sync overrides of I5. Layout state (drawer widths, open panels) stays in `localStorage`. |
 | X1 | Extra features | Kept and polished: history, the *Changes* tab, ReBAC sharing (only with ReBAC and `delegated_user`, as the port decided), upload (100 MiB, DATA-006 checks), export (AASX, JSON, XML), deleting shells (with confirmation, UX-003), operations (sync and async), file download and replacement, thumbnails, the concept descriptions page and auto-refresh. AASX workspaces offer delete, files and search, not the live-only features. |
 | Q1 | Quality bar | The full definition of done for every feature: hosted web and packaged Electron, `large` profile performance, AASX workspaces, lint, typecheck, unit, integration and e2e tests, at least one e2e test per feature, screenshots in the results. |
 
@@ -206,7 +206,7 @@ environment, and against the `large` profile where stated.
    of L2 on every page, admin and app pages included. Screenshots in the
    results.
 6. **Shell list.** On `large`, paging through 2,000 shells with virtual
-   scrolling, filter chips, favorites and sort, the open shell highlighted and
+   scrolling, filter chips, the open shell highlighted and
    pinned on a deep link, nothing of the previous target after a switch.
 7. **Tree and deep links.** Submodel roots with status, levels on demand,
    *expand all* within the cap, a deep link three levels down opens the path,
@@ -244,7 +244,7 @@ environment, and against the `large` profile where stated.
 18. **Files and thumbnails.** File elements download and, in edit mode, are
     replaced; shells show their thumbnails.
 19. **Concept descriptions, preferences, apps.** The concept descriptions page
-    lists and shows them; favorites, recent shells and settings survive a new
+    lists and shows them; recent shells and settings survive a new
     session and another browser; the four bundled apps are installed on a
     fresh start and cannot be uninstalled.
 20. **Landing page.** `/targets/{targetId}` shows the placeholder of R1.
@@ -266,7 +266,7 @@ the `large` profile on demand) in the dev server, the hosted production build
 | 3. Search | Done | Integration tests on both query endpoints (case-insensitive text, filters, exclusions, empty search, raw query, `$select` and foreign roots refused with findings, element search); parser unit tests; workspace expressions in the worker model tests; web e2e for the palette's element search. The list search, its chips, the advanced dialog, URL state and the local-filter hint were checked in the browser; no e2e test covers them yet |
 | 4. Discovery | Done | Web e2e: `?globalAssetId=` opens the shell; the picker and the unknown-asset message were checked in the browser |
 | 5. Layout and look | Done | Screenshots at 1440, 768 and 375 px during phases A, D and E; no hydration warnings after the hotkey fix (D25); the app bar, rail, drawers and tree toolbar fixed (D1–D10). Dark mode was checked in phase A and again for the drawer modes and the list search in phase G |
-| 6. Shell list | Done | On `large`: 2,000 shells in a virtual scroll (15 rows in the DOM), filter chips, favorites (web e2e), sort, the open shell highlighted, scrolled to and pinned when not loaded; the target switch test (web e2e) |
+| 6. Shell list | Done | On `large`: 2,000 shells in a virtual scroll (15 rows in the DOM), filter chips, the open shell highlighted, scrolled to and pinned when not loaded; the target switch test (web e2e) |
 | 7. Tree and deep links | Done | Levels with a node budget, *expand all* within its cap, `Deep.Level1.Level2.Level3.Leaf` on `large` opened from a link with its path and the drawer; MVP-1 to MVP-3 links (`submodel`, `element`, `view`) work; web e2e for filter and details |
 | 8. Details drawer | Done | A typed view for every element type of the fixtures; *Visualization* with the Nameplate app for nameplate submodels only; *JSON*, *XML* and *UML* of submodels and elements (screenshots) |
 | 9. Editing | Done | Web e2e: read-only in view mode, Property edit with reload, conflict with kept draft, value-type errors; app writes with conflicts and rights (web e2e); File replacement as in MVP-2 |
@@ -279,7 +279,7 @@ the `large` profile on demand) in the dev server, the hosted production build
 | 16. Delete | Done | Web e2e: only in edit mode, after confirmation; descriptor and asset links removed per sync setting (integration) |
 | 17. Operations | Partly | The drawer's operation panel runs synchronous and asynchronous invocations, and a refused call explains why (integration test). The test environment's operation has no delegation target, so no successful run was verified |
 | 18. Files and thumbnails | Done | Integration tests for attachments and thumbnails; thumbnails in the list and header |
-| 19. Concept descriptions, preferences, apps | Done | Web e2e: concept descriptions, favorites and settings per user; the four bundled apps on the overview, without an uninstall button |
+| 19. Concept descriptions, preferences, apps | Done | Web e2e: concept descriptions, recent shells and settings per user; the four bundled apps on the overview, without an uninstall button |
 | 20. Landing page | Done | Web e2e |
 | 21. Parity list | Done | [Parity](#parity-with-the-web-ui-and-the-port) |
 
@@ -311,6 +311,11 @@ Automated checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (153 tests),
   auto-sized views do not suit dialogs; the bundled Nameplate edits in place.
 - **Apps** receive Studio's mode in their context (`mode`), so they offer edit
   controls only in edit mode, as Studio does.
+- **Dropped after review**: the port's favorites and the shell list's sort.
+  Both worked only on the shells already loaded, so on a large target they
+  gave incomplete results; *recently opened* covers returning to a shell.
+  Favorites stored by earlier builds are ignored and removed on the next
+  save. Auto-refresh is off by default, as auto-sync in the Web UI.
 
 ### Not done yet
 
@@ -365,6 +370,7 @@ Against the BaSyx AAS Web UI `main` of 2026-10-14 and the viewer port.
 | Ecosystem modules (Catena-X, company lookup, DPP, PCF) | Later | As apps |
 | Port's dashboard | Dropped | Replaced by the landing placeholder (R1) until its requirements exist |
 | Port's whole-submodel tree route | Dropped | Replaced by levels with a node budget |
+| Port's favorites and shell list sort | Dropped | Client-side only, incomplete on large targets; recently opened shells instead |
 
 ## Phases
 

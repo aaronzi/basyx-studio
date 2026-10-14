@@ -119,7 +119,7 @@ export const appFiles = pgTable('app_files', {
   contentType: text('content_type').notNull(),
 }, table => [primaryKey({ columns: [table.installationId, table.path] }), index('app_files_digest_idx').on(table.digest)])
 
-/** Per-user preferences (favorites, recent shells, display settings), keyed by the user's subject. */
+/** Per-user preferences (recent shells, display settings), keyed by the user's subject. */
 export const userPreferences = pgTable('user_preferences', {
   subject: text('subject').primaryKey(),
   preferences: jsonb('preferences').$type<Preferences>().notNull(),

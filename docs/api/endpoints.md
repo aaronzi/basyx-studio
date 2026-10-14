@@ -29,7 +29,7 @@ Funktionsebene, ohne die OpenAPI-Schemas zu duplizieren.
 | `POST /auth/login` | Startet OIDC Authorization Code mit PKCE. Antwort enthält nur eine validierte Navigations-URL. |
 | `GET /auth/callback` | Nimmt den OIDC-Code entgegen; BFF prüft State/Nonce, tauscht serverseitig Tokens und setzt/resumiert die Session. Gilt auch für Target-Reauth. |
 | `POST /auth/logout` | Beendet die Studio-Session und serverseitige Target-Kontexte. |
-| `GET/PUT /me/preferences` | Einstellungen des angemeldeten Benutzers lesen bzw. ersetzen: Favoriten und zuletzt geöffnete Shells (`{ key, title }`) je Target, Theme, Sprache mehrsprachiger Werte, Auto-Refresh und `syncOverrides` je Infrastruktur (MVP-4). |
+| `GET/PUT /me/preferences` | Einstellungen des angemeldeten Benutzers lesen bzw. ersetzen: zuletzt geöffnete Shells (`{ key, title }`) je Target, Theme, Sprache mehrsprachiger Werte, Auto-Refresh und `syncOverrides` je Infrastruktur (MVP-4). |
 
 ## Targets und Infrastrukturen
 
