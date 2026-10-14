@@ -2,7 +2,7 @@
   <v-container max-width="560">
     <v-card prepend-icon="mdi-account-multiple-check-outline" :title="t('invite.title')">
       <v-card-text>
-        <p>{{ t('invite.text', { name: target.data.value?.name ?? '' }) }}</p>
+        <p class="my-0">{{ t('invite.text', { name: target.data.value?.name ?? '' }) }}</p>
         <ProblemAlert v-if="error" class="mt-4" :error="error" />
         <v-alert v-if="accepted" class="mt-4" :text="t('invite.accepted')" type="success" />
       </v-card-text>

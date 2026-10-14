@@ -95,7 +95,8 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   await expect(alice.locator('iframe[title="App: Test view"]')).toBeVisible({ timeout: 45_000 })
   await expect(appFrame(alice, 'Test view').locator('#submodel')).toHaveText(motorNameplate)
 
-  // Bundled apps have no uninstall button; the test view's is the only one.
+  // Bundled apps have no uninstall button; row actions show on hover.
+  await page.getByRole('listitem').filter({ hasText: 'org.example.nameplate-test-view' }).hover()
   await page.getByRole('button', { name: 'Uninstall' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Uninstall' }).click()
   await expect(page.getByText('org.example.nameplate-test-view')).toHaveCount(0)

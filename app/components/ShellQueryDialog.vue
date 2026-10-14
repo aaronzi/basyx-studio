@@ -13,7 +13,7 @@
       <v-divider />
 
       <v-card-text>
-        <p class="text-body-medium text-medium-emphasis mb-4">
+        <p class="text-body-medium text-medium-emphasis mt-0 mb-4">
           {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
         </p>
 

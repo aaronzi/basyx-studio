@@ -67,6 +67,9 @@ export default defineVuetifyConfiguration({
     VBtnPrimary: 'VBtn',
     // Pane container of a full-height page area: fixed height, scrolling body.
     VCardPane: 'VCard',
+    // Records in a bordered card (infrastructures, targets, apps), divided by
+    // v-divider: slim, so the icon gap matches the card's inset, and square rows.
+    VListRecords: 'VList',
   },
 
   defaults: {
@@ -100,6 +103,7 @@ export default defineVuetifyConfiguration({
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },
+    VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false } },
     VChip: { label: true, size: 'small', variant: 'tonal' },
     VAlert: { border: 'start', variant: 'tonal', VBtn: { size: 'small' } },
     VTextField: field,

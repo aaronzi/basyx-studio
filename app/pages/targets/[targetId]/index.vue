@@ -12,13 +12,8 @@
 
     <template v-else>
       <!-- The landing page of a target; a later MVP turns it into a dashboard (MVP-4 plan, R1). -->
-      <div class="d-flex flex-wrap align-center ga-4 mb-6">
-        <div class="flex-grow-1">
-          <h1 class="text-headline-small">{{ target.data.value.name }}</h1>
-          <p class="text-body-large text-medium-emphasis">{{ target.data.value.description ?? t('landing.subtitle') }}</p>
-        </div>
-
-        <div class="d-flex flex-wrap ga-2">
+      <PageHeader :subtitle="target.data.value.description ?? t('landing.subtitle')" :title="target.data.value.name">
+        <template #actions>
           <v-btn
             v-if="capabilities.upload"
             prepend-icon="mdi-upload"
@@ -28,10 +23,10 @@
           />
 
           <v-btn-primary prepend-icon="$aas" :text="t('landing.openViewer')" :to="`/targets/${targetId}/shells`" />
-        </div>
-      </div>
+        </template>
+      </PageHeader>
 
-      <v-card class="mb-6">
+      <v-card class="mb-4">
         <v-card-item>
           <template #prepend>
             <v-avatar :color="target.data.value.authenticationState === 'required' ? 'warning' : 'success'" variant="tonal">

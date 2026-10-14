@@ -17,9 +17,13 @@
     "edit": "Edit",
     "account": "Account"
   },
+  "lists": {
+    "noMatches": "Nothing matches the search and filters."
+  },
   "home": {
     "title": "AAS targets",
     "subtitle": "Choose an infrastructure to browse its Asset Administration Shells.",
+    "search": "Search targets",
     "signInTitle": "Sign in to BaSyx Studio",
     "signInText": "Studio accesses your AAS infrastructures on your behalf. Sign in with your organization's account to continue.",
     "noTargets": "No infrastructures are configured yet.",
@@ -181,6 +185,7 @@
   "admin": {
     "title": "Infrastructures",
     "subtitle": "AAS infrastructures available to Studio users. Endpoints are probed before they are saved.",
+    "search": "Search infrastructures",
     "add": "Add infrastructure",
     "edit": "Edit infrastructure",
     "delete": "Delete",
@@ -284,6 +289,8 @@
   },
   "apps": {
     "title": "Apps",
+    "search": "Search apps",
+    "uploaded": "Uploaded",
     "subtitle": "Apps add submodel views and modules to Studio. They run isolated from Studio and can only do what their permissions and your own rights allow.",
     "install": "Install app",
     "installHint": "Developer mode: an app package (.zip) with studio-app.json at its root.",

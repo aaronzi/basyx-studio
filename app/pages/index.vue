@@ -13,13 +13,8 @@
     </v-empty-state>
 
     <template v-else>
-      <v-row align="center" class="mb-2">
-        <v-col cols="12" md>
-          <h1 class="text-headline-medium font-weight-semibold">{{ t('home.title') }}</h1>
-          <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
-        </v-col>
-
-        <v-col class="d-flex ga-2 flex-wrap" cols="12" md="auto">
+      <PageHeader :subtitle="t('home.subtitle')" :title="t('home.title')">
+        <template #actions>
           <v-btn
             v-if="session.isAdmin"
             prepend-icon="mdi-plus"
@@ -35,8 +30,8 @@
             :text="t('workspace.open')"
             @click="openPackage"
           />
-        </v-col>
-      </v-row>
+        </template>
+      </PageHeader>
 
       <ProblemAlert v-if="authError" class="mb-4" :error="authErrorProblem" />
       <ProblemAlert v-if="openError" class="mb-4" :error="openError" />
@@ -49,32 +44,49 @@
         @retry="targets.refetch()"
       />
 
-      <v-row v-if="targets.isPending.value">
-        <v-col v-for="index in 2" :key="index" cols="12" md="6">
-          <v-skeleton-loader type="list-item-avatar-two-line, chip@3" />
-        </v-col>
-      </v-row>
+      <v-card v-if="targets.isPending.value">
+        <v-skeleton-loader type="list-item-avatar-two-line@3" />
+      </v-card>
 
-      <v-row v-else-if="targets.data.value?.items.length">
-        <v-col v-for="target in targets.data.value.items" :key="target.id" cols="12" md="6">
-          <v-card class="h-100" :to="`/targets/${target.id}`">
-            <v-card-item>
+      <v-card v-else-if="items.length > 0">
+        <ListFilterBar
+          v-model:search="search"
+          v-model:selected="selected"
+          :options="filterOptions"
+          :placeholder="t('home.search')"
+        />
+
+        <v-divider />
+
+        <v-list-records v-if="filtered.length > 0">
+          <template v-for="(target, index) in filtered" :key="target.id">
+            <v-divider v-if="index > 0" />
+
+            <RecordListItem :subtitle="target.description ?? undefined" :title="target.name" :to="`/targets/${target.id}`">
               <template #prepend>
-                <v-avatar :color="target.authenticationState === 'required' ? 'warning' : 'primary'" variant="tonal">
-                  <v-icon :icon="targetIcon(target)" />
+                <v-avatar class="me-3" :color="target.authenticationState === 'required' ? 'warning' : 'primary'" size="36" variant="tonal">
+                  <v-icon :icon="targetIcon(target)" size="20" />
                 </v-avatar>
               </template>
 
-              <v-card-title class="text-title-medium">{{ target.name }}</v-card-title>
-              <v-card-subtitle v-if="target.description">{{ target.description }}</v-card-subtitle>
-            </v-card-item>
+              <template #meta>
+                <TargetChips :target="target" />
+              </template>
 
-            <v-card-text>
-              <TargetChips :target="target" />
-            </v-card-text>
-          </v-card>
-        </v-col>
-      </v-row>
+              <template #actions>
+                <v-btn
+                  v-tooltip="t('landing.openViewer')"
+                  :aria-label="t('landing.openViewer')"
+                  icon="$aas"
+                  @click.stop.prevent="navigateTo(`/targets/${target.id}/shells`)"
+                />
+              </template>
+            </RecordListItem>
+          </template>
+        </v-list-records>
+
+        <v-card-text v-else class="text-medium-emphasis">{{ t('lists.noMatches') }}</v-card-text>
+      </v-card>
 
       <v-empty-state
         v-else-if="targets.data.value"
@@ -93,10 +105,12 @@
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
   import type { DesktopBridge } from '~/composables/useDesktopBridge'
+  import type { FilterOption } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
-  import { targetIcon } from '~/utils/aas'
+  import { securityModeIcons, targetIcon } from '~/utils/aas'
+  import { filterRecords } from '~/utils/records'
 
   const { t } = useI18n()
   const route = useRoute()
@@ -108,6 +122,31 @@
     query: ({ signal }) => api<{ items: Target[] }>('/targets', { signal }),
     enabled: () => !session.needsLogin,
   })
+
+  const items = computed(() => targets.data.value?.items ?? [])
+  const search = ref<string | null>(null)
+  const selected = ref<string[]>([])
+
+  /** Security mode, or `workspace` for a local package. */
+  function kindOf (target: Target): string {
+    return target.securityMode ?? 'workspace'
+  }
+
+  // Filters for the security modes and sign-in states that occur.
+  const filterOptions = computed<FilterOption[]>(() => [
+    ...[...new Set(items.value.map(target => kindOf(target)))].map(kind => ({
+      value: `security:${kind}`,
+      title: kind === 'workspace' ? t('workspace.localFile') : t(`security.${kind}`),
+      icon: kind === 'workspace' ? 'mdi-package-variant-closed' : securityModeIcons[kind],
+    })),
+    ...[...new Set(items.value.filter(target => target.securityMode).map(target => target.authenticationState))]
+      .map(state => ({ value: `state:${state}`, title: t(`authState.${state}`) })),
+  ])
+
+  const filtered = computed(() => filterRecords(items.value, search.value, selected.value, target => ({
+    text: [target.name, target.description],
+    facets: [`security:${kindOf(target)}`, `state:${target.authenticationState}`],
+  })))
 
   const authError = computed(() => typeof route.query.authError === 'string' ? route.query.authError : null)
   const authErrorProblem = computed(() => new StudioApiError({

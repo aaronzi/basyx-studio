@@ -1,7 +1,6 @@
 <template>
   <v-container>
-    <h1 class="text-headline-medium font-weight-semibold">{{ t('concepts.title') }}</h1>
-    <p class="text-body-large text-medium-emphasis mb-4">{{ t('concepts.subtitle') }}</p>
+    <PageHeader :subtitle="t('concepts.subtitle')" :title="t('concepts.title')" />
 
     <ProblemAlert
       v-if="error"

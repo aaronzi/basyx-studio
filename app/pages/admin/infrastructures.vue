@@ -1,15 +1,10 @@
 <template>
   <v-container>
-    <div class="d-flex flex-wrap align-center ga-4 mb-6">
-      <div>
-        <h1 class="text-headline-medium">{{ t('admin.title') }}</h1>
-        <p class="text-body-large text-medium-emphasis">{{ t('admin.subtitle') }}</p>
-      </div>
-
-      <v-spacer />
-
-      <v-btn-primary prepend-icon="mdi-plus" :text="t('admin.add')" @click="edit(null)" />
-    </div>
+    <PageHeader :subtitle="t('admin.subtitle')" :title="t('admin.title')">
+      <template #actions>
+        <v-btn-primary prepend-icon="mdi-plus" :text="t('admin.add')" @click="edit(null)" />
+      </template>
+    </PageHeader>
 
     <ProblemAlert
       v-if="list.error.value"
@@ -24,58 +19,81 @@
     <v-progress-linear v-if="list.isPending.value" />
 
     <v-card v-else>
-      <v-list v-if="list.data.value?.items.length" lines="two">
-        <v-list-item
-          v-for="item in list.data.value.items"
-          :key="item.id"
-          :prepend-icon="securityModeIcons[item.security.mode]"
-          :subtitle="`${t(`admin.templates.${item.template}.title`)} · ${t(`security.${item.security.mode}`)} · ${item.endpoints.map(endpoint => endpoint.url).filter((url, index, all) => all.indexOf(url) === index).join(', ')}`"
-          :title="item.name"
-        >
-          <div class="d-flex flex-wrap ga-1 mt-1">
-            <v-chip v-if="serviceUrl(item, 'aasRegistry') && serviceUrl(item, 'aasRepository')" prepend-icon="mdi-format-list-bulleted" :text="t(`admin.listSources.${item.listSource}`)" />
+      <template v-if="items.length > 0">
+        <ListFilterBar
+          v-model:search="search"
+          v-model:selected="selected"
+          :options="filterOptions"
+          :placeholder="t('admin.search')"
+        />
 
-            <v-chip
-              v-for="feature in announcedFeatures(item)"
-              :key="feature"
-              color="primary"
-              :text="t(`admin.announced.${feature}`)"
-            />
+        <v-divider />
+      </template>
 
-            <v-chip v-if="item.probedAt" prepend-icon="mdi-clock-outline" :text="t('admin.probedAt', { time: new Date(item.probedAt).toLocaleString(locale) })" variant="text" />
-          </div>
+      <v-list-records v-if="filtered.length > 0">
+        <template v-for="(item, index) in filtered" :key="item.id">
+          <v-divider v-if="index > 0" />
 
-          <div v-if="probes[item.id]" class="d-flex flex-wrap ga-1 mt-1">
-            <v-chip
-              v-for="endpoint in probes[item.id]!.endpoints"
-              :key="endpoint.type"
-              :color="endpoint.reachable ? 'success' : 'error'"
-              :text="`${t(`admin.endpointTypes.${endpoint.type}`)}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
-            />
-          </div>
+          <RecordListItem
+            :prepend-icon="securityModeIcons[item.security.mode]"
+            :subtitle="`${t(`admin.templates.${item.template}.title`)} · ${t(`security.${item.security.mode}`)} · ${endpointUrls(item)}`"
+            :title="item.name"
+            @click="edit(item)"
+          >
+            <div class="d-flex flex-wrap ga-1 mt-1">
+              <v-chip v-if="serviceUrl(item, 'aasRegistry') && serviceUrl(item, 'aasRepository')" prepend-icon="mdi-format-list-bulleted" :text="t(`admin.listSources.${item.listSource}`)" />
 
-          <template #append>
-            <v-btn
-              :aria-label="t('admin.probe')"
-              icon="mdi-lan-connect"
-              :loading="probing === item.id"
-              @click="probe(item)"
-            />
+              <v-chip
+                v-for="feature in announcedFeatures(item)"
+                :key="feature"
+                color="primary"
+                :text="t(`admin.announced.${feature}`)"
+              />
+            </div>
 
-            <v-btn
-              :aria-label="t('admin.edit')"
-              icon="mdi-pencil-outline"
-              @click="edit(item)"
-            />
+            <div v-if="probes[item.id]" class="d-flex flex-wrap ga-1 mt-1">
+              <v-chip
+                v-for="endpoint in probes[item.id]!.endpoints"
+                :key="endpoint.type"
+                :color="endpoint.reachable ? 'success' : 'error'"
+                :text="`${t(`admin.endpointTypes.${endpoint.type}`)}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
+              />
+            </div>
 
-            <v-btn
-              :aria-label="t('admin.delete')"
-              icon="mdi-delete-outline"
-              @click="confirmDelete = item"
-            />
-          </template>
-        </v-list-item>
-      </v-list>
+            <template #meta>
+              <span v-if="item.probedAt" class="text-body-small text-medium-emphasis text-no-wrap">
+                {{ t('admin.probedAt', { time: new Date(item.probedAt).toLocaleString(locale) }) }}
+              </span>
+            </template>
+
+            <template #actions>
+              <v-btn
+                v-tooltip="t('admin.probe')"
+                :aria-label="t('admin.probe')"
+                icon="mdi-lan-connect"
+                :loading="probing === item.id"
+                @click.stop="probe(item)"
+              />
+
+              <v-btn
+                v-tooltip="t('admin.edit')"
+                :aria-label="t('admin.edit')"
+                icon="mdi-pencil-outline"
+                @click.stop="edit(item)"
+              />
+
+              <v-btn
+                v-tooltip="t('admin.delete')"
+                :aria-label="t('admin.delete')"
+                icon="mdi-delete-outline"
+                @click.stop="confirmDelete = item"
+              />
+            </template>
+          </RecordListItem>
+        </template>
+      </v-list-records>
+
+      <v-card-text v-else-if="items.length > 0" class="text-medium-emphasis">{{ t('lists.noMatches') }}</v-card-text>
 
       <v-card-text v-else class="text-medium-emphasis">{{ t('admin.noInfrastructures') }}</v-card-text>
     </v-card>
@@ -98,23 +116,44 @@
 
 <script lang="ts" setup>
   import type { Infrastructure, ProbeResult } from '#shared/contract'
+  import type { FilterOption } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { serviceUrl } from '#shared/contract'
   import { securityModeIcons } from '~/utils/aas'
+  import { filterRecords } from '~/utils/records'
 
   const { t, locale } = useI18n()
   const api = useStudioApi()
   const invalidate = useInvalidate()
 
-  /** The features an infrastructure's services announce, for the row chips. */
+  /** The features an infrastructure's services announce, for the row chips (the server also sends `query`, an object). */
   function announcedFeatures (item: Infrastructure): Array<keyof Infrastructure['announced']> {
-    return (Object.keys(item.announced) as Array<keyof Infrastructure['announced']>).filter(feature => item.announced[feature])
+    return (Object.keys(item.announced) as Array<keyof Infrastructure['announced']>).filter(feature => item.announced[feature] === true)
   }
 
   const list = useQuery({
     key: ['admin', 'infrastructures'],
     query: ({ signal }) => api<{ items: Infrastructure[] }>('/infrastructures', { signal }),
   })
+
+  const items = computed(() => list.data.value?.items ?? [])
+  const search = ref<string | null>(null)
+  const selected = ref<string[]>([])
+
+  function endpointUrls (item: Infrastructure): string {
+    return [...new Set(item.endpoints.map(endpoint => endpoint.url))].join(', ')
+  }
+
+  // Filters for the security modes and kinds that occur.
+  const filterOptions = computed<FilterOption[]>(() => [
+    ...new Set(items.value.map(item => item.security.mode)),
+  ].map(mode => ({ value: `security:${mode}`, title: t(`security.${mode}`), icon: securityModeIcons[mode] })).concat([...new Set(items.value.map(item => item.template))]
+    .map(template => ({ value: `template:${template}`, title: t(`admin.templates.${template}.title`), icon: undefined }))))
+
+  const filtered = computed(() => filterRecords(items.value, search.value, selected.value, item => ({
+    text: [item.name, endpointUrls(item), t(`admin.templates.${item.template}.title`)],
+    facets: [`security:${item.security.mode}`, `template:${item.template}`],
+  })))
 
   const dialogOpen = ref(false)
   const editing = ref<Infrastructure | null>(null)

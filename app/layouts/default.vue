@@ -23,9 +23,10 @@
 
       <v-btn
         v-if="!session.needsLogin && mdAndUp"
-        class="me-3 justify-start text-medium-emphasis"
+        class="me-3 text-medium-emphasis"
         min-width="320"
         prepend-icon="mdi-magnify"
+        spaced="end"
         variant="tonal"
         @click="ui.commandOpen = true"
       >

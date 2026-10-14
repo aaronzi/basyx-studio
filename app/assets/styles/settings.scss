@@ -18,4 +18,9 @@
   $list-item-title-line-height: 1.25rem,
   $list-item-title-letter-spacing: 0.0178571429em,
   $list-item-subtitle-font-size: 0.75rem,
+  // Card titles at title-medium (16 px) instead of title-large (22 px): close
+  // to their 14 px subtitles, so the two read as one block, as in shadcn.
+  $card-title-font-size: 1rem,
+  $card-title-line-height: 1.5rem,
+  $card-title-letter-spacing: 0.009375em,
 );

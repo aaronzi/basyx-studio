@@ -1,7 +1,6 @@
 <template>
   <v-container max-width="960">
-    <h1 class="text-headline-medium font-weight-semibold">{{ t('settings.title') }}</h1>
-    <p class="text-body-large text-medium-emphasis mb-4">{{ t('settings.subtitle') }}</p>
+    <PageHeader :subtitle="t('settings.subtitle')" :title="t('settings.title')" />
 
     <v-row>
       <v-col cols="12" md="6">

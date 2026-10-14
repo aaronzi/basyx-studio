@@ -58,7 +58,7 @@
         :title="t('changes.none')"
       />
 
-      <p v-if="items.length > 0" class="text-body-small text-medium-emphasis mt-2">{{ t('changes.feedLimits') }}</p>
+      <p v-if="items.length > 0" class="text-body-small text-medium-emphasis mt-2 mb-0">{{ t('changes.feedLimits') }}</p>
     </v-card-text>
   </v-card>
 </template>

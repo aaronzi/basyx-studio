@@ -2,7 +2,7 @@
   <v-container max-width="none">
     <TargetHeader v-if="targetId" :target="target?.data.value" :trail="trail" />
 
-    <h1 v-else class="text-headline-medium mb-4">{{ title }}</h1>
+    <PageHeader v-else :title="title" />
 
     <ProblemAlert v-if="contributions.error.value" :error="contributions.error.value" retry @retry="contributions.refetch()" />
 
