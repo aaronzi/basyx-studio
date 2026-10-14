@@ -1,6 +1,17 @@
 <template>
   <v-row>
-    <v-col v-for="view in views" :key="`${view.submodel.key}:${view.contribution.installationId}:${view.contribution.id}`" cols="12" lg="6">
+    <v-col
+      v-for="view in views"
+      :key="`${view.submodel.key}:${view.contribution.installationId}:${view.contribution.id}`"
+      cols="12"
+      lg="6"
+    >
+      <div class="d-flex align-center ga-2 mb-1 px-1 text-body-small text-medium-emphasis">
+        <span class="text-truncate">{{ t('overview.reason', { app: label(view.contribution.appTitle), submodel: view.submodel.idShort ?? view.submodel.submodelId }) }}</span>
+        <v-chip v-if="view.contribution.unsigned" color="warning" size="x-small" :text="t('apps.unsigned')" />
+        <v-tooltip activator="parent" :text="t('apps.matchReason', { semanticId: view.contribution.reason.semanticId })" />
+      </div>
+
       <AppFrame
         :contribution="view.contribution"
         fit
@@ -33,21 +44,14 @@
   const props = defineProps<{ target: Target, shellId: string, refs: SubmodelRef[] }>()
 
   const { t } = useI18n()
+  const label = useLocalizedLabel()
 
   const available = computed(() => props.refs.filter(ref => ref.status === 'available' && ref.semanticId))
   const contributions = useAppContributions(() => available.value.map(ref => ref.semanticId!))
 
-  const views = computed(() => {
-    const result: Array<{ submodel: SubmodelRef, contribution: SubmodelViewContributionInfo }> = []
-    for (const submodel of available.value) {
-      // One card per submodel: the first matching view (bundled apps first).
-      const matching = (contributions.data.value?.submodelViews ?? [])
-        .filter(view => view.reason.semanticId === submodel.semanticId)
-        .toSorted((a, b) => Number(b.bundled) - Number(a.bundled))
-      if (matching[0]) {
-        result.push({ submodel, contribution: matching[0] })
-      }
-    }
-    return result
-  })
+  // Every matching view; the apps shipped with Studio come first.
+  const views = computed(() => available.value.flatMap(submodel => (contributions.data.value?.submodelViews ?? [])
+    .filter(view => view.reason.semanticId === submodel.semanticId)
+    .toSorted((a, b) => Number(b.bundled) - Number(a.bundled))
+    .map(contribution => ({ submodel, contribution }) satisfies { submodel: SubmodelRef, contribution: SubmodelViewContributionInfo })))
 </script>

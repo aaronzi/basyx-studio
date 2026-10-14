@@ -8,7 +8,7 @@
       v-if="mounted"
       ref="frame"
       :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1']"
-      :height="fit ? (height ?? 120) : undefined"
+      :height="fit ? (height ?? 480) : undefined"
       referrerpolicy="no-referrer"
       sandbox="allow-scripts"
       :src="contribution.entryUrl"

@@ -431,7 +431,8 @@
   },
   "overview": {
     "none": "No views for this shell",
-    "noneText": "No installed app offers a view for this shell's submodels. Use the Submodels tab to browse the structure."
+    "noneText": "No installed app offers a view for this shell's submodels. Use the Submodels tab to browse the structure.",
+    "reason": "{app} · {submodel}"
   },
   "changes": {
     "title": "Changes",
