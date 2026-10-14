@@ -5,6 +5,10 @@
 // width of the device class is assumed instead. It travels to the client with
 // the payload, so hydration starts from the same layout and Vuetify switches
 // to the real width afterwards.
+//
+// Hotkeys have the same problem: VHotkey detects macOS from the browser, so the
+// server rendered "Ctrl" where the client renders ⌘. The platform is taken
+// from the request once and set as VHotkey's default on both sides.
 interface DisplaySize {
   clientWidth: number
   clientHeight: number
@@ -27,10 +31,16 @@ export default defineNuxtPlugin({
       const mobile = headers['sec-ch-ua-mobile'] === '?1' || /mobi|android|iphone|ipod/i.test(headers['user-agent'] ?? '')
       return mobile ? phone : desktop
     })
+    const platform = useState<'mac' | 'pc'>('studio-hotkey-platform', () => {
+      const headers = useRequestHeaders(['sec-ch-ua-platform', 'user-agent'])
+      const named = headers['sec-ch-ua-platform']?.replaceAll('"', '')
+      return (named ? /^(?:macOS|iOS)$/i.test(named) : /mac os x|macintosh|iphone|ipad/i.test(headers['user-agent'] ?? '')) ? 'mac' : 'pc'
+    })
     nuxtApp.hook('vuetify:before-create', ({ vuetifyOptions }) => {
       if (vuetifyOptions.ssr === true) {
         vuetifyOptions.ssr = fallback.value
       }
+      vuetifyOptions.defaults = { ...vuetifyOptions.defaults, VHotkey: { ...vuetifyOptions.defaults?.VHotkey, platform: platform.value } }
     })
   },
 })

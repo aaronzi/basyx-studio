@@ -174,7 +174,7 @@ export type EndpointInput = z.infer<typeof endpointInputSchema>
 
 export const infrastructureInputSchema = z.object({
   name: z.string().trim().min(1).max(200),
-  description: z.string().trim().max(2000).optional(),
+  description: z.string().trim().max(2000).nullish(),
   template: infrastructureTemplateSchema.default('full'),
   endpoints: z
     .array(endpointInputSchema)

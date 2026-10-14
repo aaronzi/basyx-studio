@@ -382,13 +382,13 @@ loaded from the server rather than reached by navigation in the app.
 | D8 | Shell header | The chip row runs off the screen at 375 px without a scroll hint; identifiers are truncated without a way to read them | Wrapping chips; full identifier on hover and on copy | A | Fixed (A) |
 | D9 | Tablet | Below 960 px the target switcher is hidden, so the active target is not visible; the search icon floats in the app bar | Active target always visible (design guidelines) | A | Fixed (A) |
 | D10 | Phone | Five bottom-navigation items, the last label cut; the tree toolbar squeezes the filter to "Filte"; no values in the tree | Fewer or shorter navigation items; a toolbar that wraps or collapses into a menu | A, E | App bar and navigation fixed (A); tree toolbar in E |
-| D11 | Palette | Search is case-sensitive and ignores display names: "Servo" and "dm3000" find nothing, "DM3000" finds the shell | Case-insensitive search over the Web UI's fields (S2) and, in the palette, display names of loaded shells | D | Open |
+| D11 | Palette | Search is case-sensitive and ignores display names: "Servo" and "dm3000" find nothing, "DM3000" finds the shell | Case-insensitive search over the Web UI's fields (S2) and, in the palette, display names of loaded shells | D | Fixed (D): the palette searches through `POST /searches` with the Web UI's case-insensitive expression, element search where announced, and matches display names of the loaded shells |
 | D12 | JSON tab | Long lines are cut off without horizontal scrolling or wrapping | All content reachable | E | Open |
 | D13 | Changes tab, dashboard cards | The card header icon is not aligned with the title; events do not say what changed or who changed it | Aligned headers; element or value and actor where the feed provides them | F | Open |
 | D14 | App frames | The Nameplate app's *Save* button is out of reach inside its frame (web e2e `apps.spec`); a frame that fails to load stays blank | Frames sized to or scrolling their content; loading and error states | E, F | Open |
-| D15 | History detection | Probes `$recent-changes`, which BaSyx Go serves in every history mode, so history is offered without recorded versions | Detection from the history profiles (I6) | C | Open |
+| D15 | History detection | Probes `$recent-changes`, which BaSyx Go serves in every history mode, so history is offered without recorded versions | Detection from the history profiles (I6) | C | Fixed (B): history and the event feed are offered only where `/description` announces their profiles |
 | D16 | Accessibility | Icon buttons without accessible names in the app bar and the shell list | A label on every icon button | A | No defect: every icon button has a label or text; the walkthrough tool listed only `aria-label` names |
-| D17 | Infrastructure dialog | Fields have placeholders but no labels; the sharing notice is shown for *Unsecured* | Labelled fields; notices only where they apply | B | Open |
+| D17 | Infrastructure dialog | Fields have placeholders but no labels; the sharing notice is shown for *Unsecured* | Labelled fields; notices only where they apply | B | Fixed (B): every field is labelled; the sharing notice shows only for client credentials |
 | D18 | Concept descriptions | *Unit* and *Source* are empty for every entry | Values where the data has them, else no empty columns | F | Open |
 | D19 | Lists | *Recently opened* shows identifiers; shell rows repeat the idShort as subtitle | Names first, identifier as subtitle (as in the Web UI) | A | Fixed (A) |
 | D20 | e2e web | `viewer.spec` "shows a read-only past state" clicks Vuetify 3 classes (`v-date-picker-month__day--today`) | Role-based locators | F | Open |
@@ -396,6 +396,7 @@ loaded from the server rather than reached by navigation in the app.
 | D22 | Console | Three 503 responses on every full load in the dev server; no matching server log | Explained or gone in the production build | A | Open |
 | D24 | Routes | A URL with an unknown target (for example after the test environment was reset) breaks server rendering with a 500 | The target's problem shown on the page | A | Fixed (A) |
 | D23 | Test environment | Event-feed schema links pointed to the container port (`localhost:5004//…`); the feed variable used an undocumented name | External URL and documented variable | 0 | Fixed |
+| D25 | App bar | The ⌘K hotkey renders "Ctrl" on the server and ⌘ in a Mac browser, a hydration mismatch on every load; its accessible label reads "$COMMAND plus K" | Same rendering on both sides; a readable label | D | Fixed (D): the platform comes from the request and is VHotkey's default on both sides. The label is a Vuetify defect (icon keys are looked up by icon name), to be reported upstream |
 
 ## ADRs to write
 

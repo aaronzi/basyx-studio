@@ -387,7 +387,7 @@
     "sort": "Sort",
     "sortName": "Name",
     "sortServer": "Order of the infrastructure",
-    "filter": "Filter by name, ID or asset ID",
+    "filter": "Search, e.g. motor assetKind=Type",
     "all": "All",
     "instances": "Instances",
     "types": "Types",
@@ -395,8 +395,8 @@
     "type": "Type",
     "favorite": "Favorite",
     "none": "No shells found",
-    "noneText": "Try another filter, or search the whole target with ⌘K.",
-    "reset": "Reset filters",
+    "noneText": "Try another search, or search the whole target with ⌘K.",
+    "reset": "Reset search",
     "refreshOn": "Auto-refresh every {seconds} s",
     "refreshOff": "Auto-refresh off",
     "availability": {
@@ -405,6 +405,27 @@
       "not_found": "The registry lists this shell, but it was not found",
       "blocked": "The registry points outside this infrastructure",
       "unreachable": "The shell's server cannot be reached"
+    },
+    "localOnly": "Filters the loaded shells only: this infrastructure announces no query endpoint.",
+    "syntax": {
+      "title": "Search syntax",
+      "text": "Text in the ID, idShort or asset IDs, any case",
+      "contains": "Field contains the value",
+      "equals": "Field equals the value",
+      "excludes": "Leaves out matching shells",
+      "quoted": "Values with spaces in quotes"
+    },
+    "query": {
+      "title": "Advanced query",
+      "active": "AAS query",
+      "registry": "Runs on the AAS registry",
+      "repository": "Runs on the AAS repository",
+      "text": "An AAS Query Language query (IDTA-01002-3) as JSON. Fields start with {roots}; $select is not supported.",
+      "label": "Query",
+      "fromSearch": "From the search",
+      "apply": "Search",
+      "invalidJson": "Not valid JSON: {message}",
+      "notObject": "A query is a JSON object with $condition."
     }
   },
   "viewer": {
