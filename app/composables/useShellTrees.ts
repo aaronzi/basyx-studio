@@ -14,7 +14,7 @@ export interface ShellTreeItem {
   valueType: string | null
   variableGroup: ElementNode['variableGroup']
   /** A submodel that cannot be shown (no access, missing, or absent at the chosen time). */
-  unavailable: 'forbidden' | 'not_found' | 'error' | 'absent' | null
+  unavailable: 'forbidden' | 'not_found' | 'blocked' | 'error' | 'absent' | null
   /** Has numeric properties whose values are re-read. */
   refreshable: boolean
   children?: ShellTreeItem[]

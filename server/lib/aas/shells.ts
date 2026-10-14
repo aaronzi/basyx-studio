@@ -22,6 +22,21 @@ export function toShellSummary (shell: JsonObject): ShellSummary {
   }
 }
 
+/** The list entry for a shell from its registry descriptor, which carries the asset fields at the top level. */
+export function descriptorSummary (descriptor: JsonObject): ShellSummary {
+  return {
+    key: encodeKey(String(descriptor.id)),
+    id: String(descriptor.id),
+    idShort: typeof descriptor.idShort === 'string' ? descriptor.idShort : null,
+    displayName: langStrings(descriptor.displayName),
+    description: langStrings(descriptor.description),
+    assetKind: typeof descriptor.assetKind === 'string' ? descriptor.assetKind : null,
+    globalAssetId: typeof descriptor.globalAssetId === 'string' ? descriptor.globalAssetId : null,
+    // Descriptors name no thumbnail; the shell page shows it.
+    thumbnail: false,
+  }
+}
+
 /** The submodel identifier of a submodel reference (`ModelReference` to a `Submodel`). */
 export function submodelIdOf (reference: JsonObject): string | null {
   const keys = Array.isArray(reference.keys) ? reference.keys as JsonObject[] : []

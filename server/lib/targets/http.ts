@@ -8,6 +8,13 @@ import { environmentUrl } from '../infrastructures'
 import { createGuardedFetch } from '../network/guarded-fetch'
 import { StudioProblem } from '../problem'
 
+/**
+ * Where a request goes: a configured service type, or an explicit base URL
+ * that a registry descriptor resolved to (already checked against the
+ * infrastructure's base URLs).
+ */
+export type TargetBase = EndpointType | { url: string }
+
 export interface TargetHttpOptions {
   record: InfrastructureRecord
   access: TargetAccess
@@ -50,14 +57,14 @@ export class TargetHttp {
     return (type === 'aasEnvironment' ? environmentUrl(this.options.record) : serviceUrl(this.options.record, type)) ?? null
   }
 
-  configuration (type: EndpointType, recorder: FailureRecorder): Configuration {
-    return new Configuration({ basePath: this.#requireBase(type), fetchApi: this.#fetch(recorder) })
+  configuration (base: TargetBase, recorder: FailureRecorder): Configuration {
+    return new Configuration({ basePath: this.#requireBase(base), fetchApi: this.#fetch(recorder) })
   }
 
   /** Sends a request to a service endpoint; non-2xx answers become problems unless passed. */
-  async request (type: EndpointType, path: string, request: TargetRequest = {}): Promise<Response> {
+  async request (base: TargetBase, path: string, request: TargetRequest = {}): Promise<Response> {
     const recorder: FailureRecorder = {}
-    const url = new URL(`${this.#requireBase(type)}${path}`)
+    const url = new URL(`${this.#requireBase(base)}${path}`)
     for (const [name, value] of Object.entries(request.query ?? {})) {
       for (const item of Array.isArray(value) ? value : [value]) {
         if (item !== undefined) {
@@ -86,8 +93,8 @@ export class TargetHttp {
     throw await this.problem(response.status, recorder, detail)
   }
 
-  async json<T> (type: EndpointType, path: string, request: TargetRequest = {}): Promise<T> {
-    const response = await this.request(type, path, request)
+  async json<T> (base: TargetBase, path: string, request: TargetRequest = {}): Promise<T> {
+    const response = await this.request(base, path, request)
     try {
       return await response.json() as T
     } catch {
@@ -157,12 +164,15 @@ export class TargetHttp {
     }
   }
 
-  #requireBase (type: EndpointType): string {
-    const base = this.baseUrl(type)
-    if (!base) {
-      throw new StudioProblem('unsupported_operation', `The target has no ${type} endpoint.`)
+  #requireBase (base: TargetBase): string {
+    if (typeof base === 'object') {
+      return base.url
     }
-    return base
+    const url = this.baseUrl(base)
+    if (!url) {
+      throw new StudioProblem('unsupported_operation', `The target has no ${base} endpoint.`)
+    }
+    return url
   }
 
   #fetch (recorder: FailureRecorder): typeof fetch {

@@ -60,6 +60,7 @@
     "refStatus": {
       "forbidden": "No access",
       "not_found": "Not found",
+      "blocked": "Endpoint outside this infrastructure",
       "error": "Unavailable"
     },
     "copyJson": "Copy JSON",
@@ -155,6 +156,7 @@
     "target_request_rejected": "The infrastructure rejected the request.",
     "target_unreachable": "The infrastructure could not be reached.",
     "target_blocked": "The request was blocked by Studio's network policy.",
+    "descriptor_endpoint_blocked": "The registry points to an endpoint outside this infrastructure's services, so Studio does not contact it.",
     "target_error": "The infrastructure reported an error.",
     "target_invalid_response": "The infrastructure returned an invalid response.",
     "network": "Studio could not be reached.",

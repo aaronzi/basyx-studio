@@ -19,11 +19,12 @@ import type {
 import type { JsonObject } from '../aas/outline'
 import type { FailureRecorder } from '../network/guarded-fetch'
 import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot } from './aas-target'
-import type { TargetHttpOptions } from './http'
+import type { TargetBase, TargetHttpOptions } from './http'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import type { Configuration } from 'basyx-typescript-sdk'
 import { jsonization } from '@aas-core-works/aas-core3.1-typescript'
-import { AasDiscoveryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
+import { AasDiscoveryClient, AasRegistryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, Lib, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
+import { serviceUrl } from '#shared/contract'
 import {
   elementQuery,
   handleFromLocation,
@@ -36,12 +37,13 @@ import {
   toConceptDescriptionSummary,
   toEffectiveRights,
 } from '../aas/basyx-go'
-import { submodelIdOf, toShellSummary } from '../aas/shells'
+import { descriptorSummary, submodelIdOf, toShellSummary } from '../aas/shells'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
 import { liveCapabilities } from './capabilities'
 import { encodeIdentifier, TargetHttp } from './http'
+import { EndpointResolver } from './resolution'
 import { contentHash, parseRevision, revisionOf } from './revision'
 
 type SdkResult<T>
@@ -104,13 +106,28 @@ export class LiveAasTarget implements AasTarget {
   readonly #submodelClient = new SubmodelRepositoryClient()
   readonly #cdClient = new ConceptDescriptionRepositoryClient()
   readonly #discoveryClient = new AasDiscoveryClient()
+  readonly #registryClient = new AasRegistryClient()
+  readonly #record: LiveTargetOptions['record']
+  readonly #resolver: EndpointResolver
 
   constructor (options: LiveTargetOptions) {
     this.#http = new TargetHttp(options)
+    this.#record = options.record
+    this.#resolver = new EndpointResolver(options.record, this.#http)
     this.capabilities = liveCapabilities(options.record)
   }
 
+  /** The shell list from the list source: the AAS registry's descriptors or the AAS repository (I3). */
   async listShells (limit: number, cursor: string | undefined): Promise<Page<ShellSummary>> {
+    if (this.#listsFromRegistry()) {
+      const data = await this.#call('aasRegistry', configuration =>
+        this.#registryClient.getAllAssetAdministrationShellDescriptors({ configuration, limit, cursor }))
+      const nextCursor = data.pagedResult?.cursor ?? null
+      return {
+        items: data.result.map(descriptor => descriptorSummary(Lib.toJsonableAssetAdministrationShellDescriptor(descriptor) as JsonObject)),
+        page: { nextCursor, hasMore: nextCursor !== null },
+      }
+    }
     const data = await this.#call('aasRepository', configuration =>
       this.#aasClient.getAllAssetAdministrationShells({ configuration, limit, cursor }))
     const nextCursor = data.pagedResult?.cursor ?? null
@@ -121,7 +138,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async shell (id: string): Promise<JsonObject> {
-    return toJson(await this.#call('aasRepository', configuration =>
+    return toJson(await this.#call(await this.#shellBase(id), configuration =>
       this.#aasClient.getAssetAdministrationShellById({ configuration, aasIdentifier: id })))
   }
 
@@ -130,7 +147,7 @@ export class LiveAasTarget implements AasTarget {
     const ids: string[] = []
     let cursor: string | undefined
     for (let page = 0; page < 20; page++) {
-      const data = await this.#call('aasRepository', configuration =>
+      const data = await this.#call(await this.#shellBase(shellId), configuration =>
         this.#aasClient.getAllSubmodelReferencesAasRepository({ configuration, aasIdentifier: shellId, limit: 100, cursor }))
       for (const reference of data.result) {
         const id = submodelIdOf(toJson(reference))
@@ -148,12 +165,12 @@ export class LiveAasTarget implements AasTarget {
 
   async submodelMetadata (id: string): Promise<JsonObject> {
     // `$metadata` responses are plain JSON in the SDK (no aas-core instance).
-    return await this.#call('submodelRepository', configuration =>
+    return await this.#call(await this.#submodelBase(id), configuration =>
       this.#submodelClient.getSubmodelByIdMetadata({ configuration, submodelIdentifier: id })) as unknown as JsonObject
   }
 
   async submodel (id: string): Promise<JsonObject> {
-    return toJson(await this.#call('submodelRepository', configuration =>
+    return toJson(await this.#call(await this.#submodelBase(id), configuration =>
       this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: id })))
   }
 
@@ -183,12 +200,12 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async deleteShell (id: string): Promise<void> {
-    await this.#call('aasRepository', configuration =>
+    await this.#call(await this.#shellBase(id), configuration =>
       this.#aasClient.deleteAssetAdministrationShellById({ configuration, aasIdentifier: id }))
   }
 
   async thumbnail (shellId: string): Promise<BinaryContent | null> {
-    const result = await this.#send('aasRepository', configuration =>
+    const result = await this.#send(await this.#shellBase(shellId), configuration =>
       this.#aasClient.getThumbnail({ configuration, aasIdentifier: shellId }))
     if (!result.success) {
       if (result.statusCode === 404) {
@@ -205,7 +222,7 @@ export class LiveAasTarget implements AasTarget {
     if (value.modelType !== 'File') {
       throw new StudioProblem('unsupported_operation', 'Only File elements have an attachment.')
     }
-    const blob = await this.#call('submodelRepository', configuration =>
+    const blob = await this.#call(await this.#submodelBase(submodelId), configuration =>
       this.#submodelClient.getFileByPath({ configuration, submodelIdentifier: submodelId, idShortPath })) as Blob
     const location = typeof value.value === 'string' ? value.value : ''
     return {
@@ -237,13 +254,13 @@ export class LiveAasTarget implements AasTarget {
     const operation = await this.#operation(submodelId, idShortPath)
     const base = `/submodels/${encodeIdentifier(submodelId)}/submodel-elements/${path(idShortPath)}`
     if (!async) {
-      const result = await this.#http.json<JsonObject>('submodelRepository', `${base}/invoke/$value`, {
+      const result = await this.#http.json<JsonObject>(await this.#submodelBase(submodelId), `${base}/invoke/$value`, {
         method: 'POST',
         body: invocationBody(operation, args),
       })
       return toInvocation(operation, result, null)
     }
-    const response = await this.#http.request('submodelRepository', `${base}/invoke-async/$value`, {
+    const response = await this.#http.request(await this.#submodelBase(submodelId), `${base}/invoke-async/$value`, {
       method: 'POST',
       body: invocationBody(operation, args, asyncInvocationTimeout),
     })
@@ -258,12 +275,13 @@ export class LiveAasTarget implements AasTarget {
   async invocation (submodelId: string, idShortPath: string, handle: string): Promise<Invocation> {
     const operation = await this.#operation(submodelId, idShortPath)
     const base = `/submodels/${encodeIdentifier(submodelId)}/submodel-elements/${path(idShortPath)}`
-    const status = await this.#http.json<JsonObject>('submodelRepository', `${base}/operation-status/${encodeURIComponent(handle)}`)
+    const submodelBase = await this.#submodelBase(submodelId)
+    const status = await this.#http.json<JsonObject>(submodelBase, `${base}/operation-status/${encodeURIComponent(handle)}`)
     const state = toInvocation(operation, status, handle)
     if (state.state !== 'completed') {
       return state
     }
-    const result = await this.#http.json<JsonObject>('submodelRepository', `${base}/operation-results/${encodeURIComponent(handle)}/$value`)
+    const result = await this.#http.json<JsonObject>(submodelBase, `${base}/operation-results/${encodeURIComponent(handle)}/$value`)
     return toInvocation(operation, result, handle)
   }
 
@@ -373,7 +391,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async submodelAt (id: string, date: string): Promise<JsonObject> {
-    return this.#http.json<JsonObject>('submodelRepository', `/submodels/${encodeIdentifier(id)}/$history`, { query: { date } })
+    return this.#http.json<JsonObject>(await this.#submodelBase(id), `/submodels/${encodeIdentifier(id)}/$history`, { query: { date } })
   }
 
   /**
@@ -412,9 +430,9 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async access (shellId: string): Promise<AccessDocument> {
-    const response = await this.#http.request('aasRepository', `/shells/${encodeIdentifier(shellId)}/$access`)
+    const response = await this.#http.request(await this.#shellBase(shellId), `/shells/${encodeIdentifier(shellId)}/$access`)
     const document = await response.json() as JsonObject
-    const principal = await this.#http.json<JsonObject>('aasRepository', '/security/rebac/principal').catch(() => ({} as JsonObject))
+    const principal = await this.#http.json<JsonObject>(await this.#shellBase(shellId), '/security/rebac/principal').catch(() => ({} as JsonObject))
     return {
       grants: toAccessGrants(document),
       revision: response.headers.get('etag'),
@@ -423,7 +441,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async setAccess (shellId: string, grants: AccessGrant[], revision: string): Promise<AccessDocument> {
-    const response = await this.#http.request('aasRepository', `/shells/${encodeIdentifier(shellId)}/$access/grants`, {
+    const response = await this.#http.request(await this.#shellBase(shellId), `/shells/${encodeIdentifier(shellId)}/$access/grants`, {
       method: 'PUT',
       body: { grants },
       headers: { 'If-Match': revision },
@@ -433,11 +451,11 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async effectiveRights (shellId: string): Promise<EffectiveRights> {
-    return toEffectiveRights(await this.#http.json<JsonObject>('aasRepository', `/shells/${encodeIdentifier(shellId)}/$access/effective`))
+    return toEffectiveRights(await this.#http.json<JsonObject>(await this.#shellBase(shellId), `/shells/${encodeIdentifier(shellId)}/$access/effective`))
   }
 
   async invite (shellId: string, relation: string, expiresAt: string, maxUses: number): Promise<InvitationResult> {
-    const result = await this.#http.json<JsonObject>('aasRepository', `/shells/${encodeIdentifier(shellId)}/$access/invitations`, {
+    const result = await this.#http.json<JsonObject>(await this.#shellBase(shellId), `/shells/${encodeIdentifier(shellId)}/$access/invitations`, {
       method: 'POST',
       body: { relation, expiresAt, maxUses },
     })
@@ -473,7 +491,7 @@ export class LiveAasTarget implements AasTarget {
       if (contentHash(current.value) !== token.hash) {
         throw new StudioProblem('revision_conflict')
       }
-      const result = await this.#send('submodelRepository', configuration => write(current, configuration))
+      const result = await this.#send(await this.#submodelBase(submodelId), configuration => write(current, configuration))
       if (result.success) {
         return this.element(submodelId, idShortPath)
       }
@@ -487,7 +505,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async #read (submodelId: string, idShortPath: string): Promise<{ value: JsonObject, etag: string | undefined }> {
-    const result = await this.#send('submodelRepository', configuration =>
+    const result = await this.#send(await this.#submodelBase(submodelId), configuration =>
       this.#submodelClient.getSubmodelElementByPath({ configuration, submodelIdentifier: submodelId, idShortPath }))
     if (!result.success) {
       throw await this.#http.problem(result.statusCode, result.recorder)
@@ -495,16 +513,28 @@ export class LiveAasTarget implements AasTarget {
     return { value: toJson(result.data), etag: result.etag }
   }
 
-  async #call<T> (type: EndpointType, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<T> {
-    const result = await this.#send(type, operation)
+  #listsFromRegistry (): boolean {
+    return this.#record.listSource === 'registry' && serviceUrl(this.#record, 'aasRegistry') !== undefined
+  }
+
+  async #shellBase (id: string): Promise<TargetBase> {
+    return { url: await this.#resolver.shellBase(id) }
+  }
+
+  async #submodelBase (id: string): Promise<TargetBase> {
+    return { url: await this.#resolver.submodelBase(id) }
+  }
+
+  async #call<T> (base: TargetBase, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<T> {
+    const result = await this.#send(base, operation)
     if (result.success) {
       return result.data
     }
     throw await this.#http.problem(result.statusCode, result.recorder)
   }
 
-  async #send<T> (type: EndpointType, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<SdkResult<T> & { recorder: FailureRecorder }> {
+  async #send<T> (base: TargetBase, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<SdkResult<T> & { recorder: FailureRecorder }> {
     const recorder: FailureRecorder = {}
-    return { ...await operation(this.#http.configuration(type, recorder)), recorder }
+    return { ...await operation(this.#http.configuration(base, recorder)), recorder }
   }
 }

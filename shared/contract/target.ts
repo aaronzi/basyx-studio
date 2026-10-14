@@ -116,7 +116,17 @@ export const shellDetailSchema = z.object({
 })
 export type ShellDetail = z.infer<typeof shellDetailSchema>
 
-export const submodelRefStatuses = ['available', 'forbidden', 'not_found', 'error'] as const
+/** Whether a shell of the list can be opened (the Web UI's online/offline marker). */
+export const shellAvailabilityStatuses = ['available', 'forbidden', 'not_found', 'blocked', 'unreachable'] as const
+export const shellAvailabilityRequestSchema = z.object({
+  keys: z.array(z.string().regex(/^[\w-]{1,4000}$/)).min(1).max(50),
+})
+export const shellAvailabilitySchema = z.object({
+  items: z.array(z.object({ key: z.string(), status: z.enum(shellAvailabilityStatuses) })),
+})
+export type ShellAvailability = z.infer<typeof shellAvailabilitySchema>
+
+export const submodelRefStatuses = ['available', 'forbidden', 'not_found', 'blocked', 'error'] as const
 export const submodelRefSchema = z.object({
   key: z.string(),
   submodelId: z.string(),

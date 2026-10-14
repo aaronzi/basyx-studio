@@ -27,6 +27,7 @@ export const problemCodes = [
   'target_request_rejected',
   'target_unreachable',
   'target_blocked',
+  'descriptor_endpoint_blocked',
   'target_error',
   'target_invalid_response',
   // Desktop workspaces
