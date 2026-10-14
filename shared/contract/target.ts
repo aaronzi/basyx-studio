@@ -318,7 +318,6 @@ export const exportFormats = ['aasx', 'json', 'xml'] as const
 export type ExportFormat = (typeof exportFormats)[number]
 export const exportQuerySchema = z.object({ format: z.enum(exportFormats) })
 
-/** Result of an upload: the shells it added. */
 /** The outcome of one descriptor or asset-link write after an upload or delete (MVP-4 plan, I5). */
 export interface SyncStep {
   resource: 'shellDescriptor' | 'submodelDescriptor' | 'assetLinks'
@@ -327,6 +326,7 @@ export interface SyncStep {
   detail?: string
 }
 
+/** Result of an upload: the shells it added. */
 export interface UploadResult {
   shells: ShellSummary[]
   /** Descriptors and asset links Studio wrote; empty where the server keeps them itself. */

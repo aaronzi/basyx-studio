@@ -167,13 +167,13 @@ Changes against MVP-3, combining the port's routes with the plan's:
 | Area | Routes and fields |
 | --- | --- |
 | Infrastructures | `template`; endpoint types of I2; `listSource`; `sync` (`server` flags, default, user override allowed); probe results with profiles |
-| Capabilities | the port's set, plus `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `advancedQuery`, `elementSearch`, `assetLookup` (replaces `discovery`); all derived from profiles |
+| Capabilities | the port's set, plus `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `queryTarget` (where raw queries run), `elementSearch`; derived from profiles. `discovery` stays; the asset-ID lookup also works without it, through a repository query |
 | Shells | list (registry or repository), `shell-availability`, `?globalAssetId=` lookup (the port's `/lookup`), delete, export, thumbnail, rights, access and invitations |
 | Search | `POST /targets/{targetId}/searches` with `{ expression }` or `{ query }` and a scope (`shells`, `elements`), cursor-paged; replaces the port's `GET /search` |
 | Submodels and elements | `submodel-refs` with `blocked`; elements per level with a node budget and `at` ([Phase E measurements](#phase-e-measurements)); `ElementDetail.ancestors`; `GET …/elements/{key}?format=xml`; attachments; invocations |
 | Target | `changes`, `concept-descriptions`, `uploads`, `invitations` |
 | User | `GET`/`PUT /me/preferences` |
-| Problems | `query_invalid` (findings), `query_unsupported`, `descriptor_endpoint_blocked`, `package_rejected`, `sync_incomplete` (per-resource results) |
+| Problems | `query_invalid` (findings), `query_unsupported`, `descriptor_endpoint_blocked`; sync outcomes come per resource in the upload and delete results (`SyncStep`) instead of a problem |
 
 `openapi.yaml` and `endpoints.md` are updated with the implementation.
 

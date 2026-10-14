@@ -28,11 +28,11 @@ export const problemCodes = [
   'target_unreachable',
   'target_blocked',
   'descriptor_endpoint_blocked',
+  'target_error',
+  'target_invalid_response',
   // Search
   'query_invalid',
   'query_unsupported',
-  'target_error',
-  'target_invalid_response',
   // Desktop workspaces
   'workspace_unsaved_changes',
   'package_rejected',
