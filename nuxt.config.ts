@@ -46,6 +46,10 @@ export default defineNuxtConfig({
       ssr: false,
       modules: ['nuxt-electron'],
       electron: electronOptions,
+      // The Studio Service's public URL and the RFC 8252 loopback redirect use
+      // 127.0.0.1; `localhost` may bind only [::1], and the IdP's redirect
+      // would then miss the dev server.
+      devServer: { host: '127.0.0.1' },
       runtimeConfig: {
         studio: {
           deploymentMode: 'desktop',
