@@ -118,6 +118,66 @@
           />
         </template>
 
+        <v-divider />
+        <div class="text-title-small">{{ t('admin.clientCertificate') }}</div>
+        <div class="text-body-small text-medium-emphasis">{{ t('admin.clientCertificateHelp') }}</div>
+
+        <v-list-item
+          v-if="storedCertificate"
+          border
+          prepend-icon="mdi-certificate-outline"
+          :subtitle="t('admin.clientCertificateIssuer', { issuer: storedCertificate.issuer, date: certificateExpiry })"
+          :title="storedCertificate.subject"
+        >
+          <template #append>
+            <v-btn
+              :aria-label="t('admin.clientCertificateRemove')"
+              icon="mdi-delete-outline"
+              @click="model.removeCertificate = true"
+            />
+          </template>
+        </v-list-item>
+
+        <template v-if="session.isDesktop">
+          <v-file-input
+            v-model="model.certificateFile"
+            accept=".p12,.pfx,application/x-pkcs12"
+            :hint="t(storedCertificate ? 'admin.clientCertificateFileReplaceHint' : 'admin.clientCertificateFileHint')"
+            :label="t('admin.clientCertificateFile')"
+            persistent-hint
+            prepend-icon=""
+            prepend-inner-icon="mdi-certificate-outline"
+            :rules="[certificateSize]"
+          />
+
+          <v-text-field
+            v-if="model.certificateFile"
+            v-model="model.certificatePassphrase"
+            autocomplete="off"
+            :label="t('admin.clientCertificatePassphrase')"
+            type="password"
+          />
+        </template>
+
+        <template v-else>
+          <v-text-field
+            v-model="model.certificateRef"
+            :hint="t('admin.clientCertificateRefHint')"
+            :label="t('admin.clientCertificateRef')"
+            persistent-hint
+            placeholder="file:/run/secrets/client.p12"
+          />
+
+          <v-text-field
+            v-if="model.certificateRef.trim()"
+            v-model="model.certificatePassphraseRef"
+            :hint="t('admin.clientCertificatePassphraseRefHint')"
+            :label="t('admin.clientCertificatePassphraseRef')"
+            persistent-hint
+            placeholder="env:CLIENT_CERTIFICATE_PASSPHRASE"
+          />
+        </template>
+
         <ProblemAlert v-if="error" :error="error" />
 
         <ul v-if="violations.length > 0" class="text-body-small my-0">
@@ -136,14 +196,14 @@
 <script lang="ts" setup>
   import type { EndpointType, Infrastructure, InfrastructureInput, InfrastructureTemplate, ListSource, SecurityMode, SyncSettings } from '#shared/contract'
   import { useDisplay } from 'vuetify'
-  import { defaultSyncSettings, endpointTypes, infrastructureTemplates, securityModes, serviceUrl, syncModes, templateRules } from '#shared/contract'
+  import { defaultSyncSettings, endpointTypes, infrastructureTemplates, maxClientCertificateLength, securityModes, serviceUrl, syncModes, templateRules } from '#shared/contract'
   import { StudioApiError } from '~/composables/useStudioApi'
 
   const props = defineProps<{ existing: Infrastructure | null }>()
   const emit = defineEmits<{ saved: [Infrastructure] }>()
   const open = defineModel<boolean>({ required: true })
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const api = useStudioApi()
   const session = useSessionStore()
   const { xs } = useDisplay()
@@ -168,6 +228,11 @@
       secretRef: '',
       secretValue: '',
       loopbackHost: '127.0.0.1' as '127.0.0.1' | 'localhost',
+      certificateFile: null as File | null,
+      certificatePassphrase: '',
+      certificateRef: '',
+      certificatePassphraseRef: '',
+      removeCertificate: false,
     }
   }
   const model = ref(emptyModel())
@@ -234,13 +299,46 @@
     }
     return rules
   }
+  /** The saved certificate, until it is removed or replaced. */
+  const storedCertificate = computed(() => model.value.removeCertificate ? null : props.existing?.clientCertificate ?? null)
+
+  const certificateExpiry = computed(() => storedCertificate.value
+    ? new Date(storedCertificate.value.notAfter).toLocaleDateString(locale.value, { day: 'numeric', month: 'short', year: 'numeric' })
+    : '')
+
+  // The server's limit is on the base64 text, which is a third larger than the file.
+  const maxCertificateBytes = Math.floor(maxClientCertificateLength * 3 / 4)
+  const certificateSize = (file: File | null) => !file || file.size <= maxCertificateBytes || t('admin.clientCertificateTooLarge')
+
+  /** The file's content as base64, read in the renderer: the Studio Service never sees the user's file system. */
+  function readBase64 (file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.addEventListener('load', () => resolve(String(reader.result).replace(/^data:[^,]*,/, '')))
+      reader.addEventListener('error', () => reject(reader.error))
+      reader.readAsDataURL(file)
+    })
+  }
+
+  /** A new certificate, `null` to remove the saved one, or `undefined` to keep it. */
+  async function certificateInput (): Promise<InfrastructureInput['clientCertificate']> {
+    const m = model.value
+    if (session.isDesktop && m.certificateFile) {
+      return { value: await readBase64(m.certificateFile), passphrase: m.certificatePassphrase }
+    }
+    if (!session.isDesktop && m.certificateRef.trim()) {
+      return { ref: m.certificateRef.trim(), passphraseRef: m.certificatePassphraseRef.trim() || undefined }
+    }
+    return m.removeCertificate ? null : undefined
+  }
+
   const violations = computed(() => error.value instanceof StudioApiError ? error.value.problem?.violations ?? [] : [])
 
   const required = (value: string) => !!value.trim() || 'Required'
   const httpUrl = (value: string) => /^https?:\/\/\S+$/.test(value.trim()) || 'http(s) URL required'
   const optionalHttpUrl = (value: string) => !value.trim() || httpUrl(value)
 
-  function toInput (): InfrastructureInput {
+  async function toInput (): Promise<InfrastructureInput> {
     const m = model.value
     const endpoints: InfrastructureInput['endpoints'] = filled.value.endpoints
     let security: InfrastructureInput['security'] = { mode: 'unsecured' }
@@ -266,6 +364,7 @@
       listSource: m.listSource,
       sync: m.sync,
       security,
+      clientCertificate: await certificateInput(),
       allowPrivateNetwork: m.allowPrivateNetwork,
     }
   }
@@ -278,13 +377,14 @@
     error.value = null
     try {
       const existing = props.existing
+      const body = await toInput()
       const saved = existing
         ? await api<Infrastructure>(`/infrastructures/${existing.id}`, {
           method: 'PUT',
-          body: toInput(),
+          body,
           headers: { 'If-Match': `"${existing.revision}"` },
         })
-        : await api<Infrastructure>('/infrastructures', { method: 'POST', body: toInput() })
+        : await api<Infrastructure>('/infrastructures', { method: 'POST', body })
       emit('saved', saved)
       open.value = false
     } catch (error_) {

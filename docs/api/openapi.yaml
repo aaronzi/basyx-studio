@@ -365,7 +365,8 @@ paths:
         profiles. `If-Match` carries the revision that was read as `"<revision>"`;
         without it the request fails with `invalid_request`, with a stale one
         with `revision_conflict`. Omit `security.clientSecret` to keep the stored
-        secret.
+        secret; omit `clientCertificate` to keep the stored client certificate,
+        or send `null` to remove it.
       x-requirements: [DATA-002, SEC-003, SEC-007, SEC-008]
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
@@ -3125,6 +3126,39 @@ components:
         ref:
           type: [string, 'null']
           description: The reference for env and file secrets; never the secret value.
+    ClientCertificateInput:
+      description: |
+        A TLS client certificate (mutual TLS) as a PKCS#12 bundle (ADR 0025):
+        a file reference with an optional passphrase reference (hosted and
+        desktop), or an uploaded bundle with its passphrase that the desktop
+        Studio stores encrypted (rejected in hosted Studio). The bundle must open
+        with the passphrase, contain a key and a matching certificate, and be
+        valid now; problems are violations on `clientCertificate`.
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [ref]
+          properties:
+            ref: { type: string, pattern: '^file:/\S+$' }
+            passphraseRef: { type: string, pattern: '^(?:env:[A-Z_][A-Z0-9_]*|file:/\S+)$' }
+        - type: object
+          additionalProperties: false
+          required: [value]
+          properties:
+            value: { type: string, format: byte, maxLength: 131072, writeOnly: true, description: The .p12/.pfx file, base64-encoded. }
+            passphrase: { type: string, maxLength: 4096, default: '', writeOnly: true }
+    ClientCertificateSummary:
+      type: object
+      additionalProperties: false
+      description: The stored client certificate; never the bundle, key or passphrase.
+      required: [kind, ref, passphraseRef, subject, issuer, notAfter]
+      properties:
+        kind: { type: string, enum: [file, stored] }
+        ref: { type: [string, 'null'], description: The bundle's path for file certificates. }
+        passphraseRef: { type: [string, 'null'], description: The passphrase reference for file certificates. }
+        subject: { type: string }
+        issuer: { type: string }
+        notAfter: { $ref: '#/components/schemas/Timestamp' }
     OidcClientSettings:
       type: object
       required: [issuer, clientId, scopes]
@@ -3222,6 +3256,11 @@ components:
             - { $ref: '#/components/schemas/InfrastructureSyncSettings' }
           default: {}
         security: { $ref: '#/components/schemas/InfrastructureSecurityInput' }
+        clientCertificate:
+          oneOf:
+            - { $ref: '#/components/schemas/ClientCertificateInput' }
+            - { type: 'null' }
+          description: Presented on every HTTPS connection for this infrastructure, including its IdP, in every access mode. Omit on update to keep the stored certificate; `null` removes it.
         allowPrivateNetwork:
           type: boolean
           default: false
@@ -3236,7 +3275,7 @@ components:
     Infrastructure:
       type: object
       additionalProperties: false
-      required: [id, name, description, template, endpoints, listSource, sync, serviceProfiles, probedAt, announced, security, allowPrivateNetwork, revision, createdAt, updatedAt]
+      required: [id, name, description, template, endpoints, listSource, sync, serviceProfiles, probedAt, announced, security, clientCertificate, allowPrivateNetwork, revision, createdAt, updatedAt]
       properties:
         id: { $ref: '#/components/schemas/TargetId' }
         name: { type: string }
@@ -3265,6 +3304,10 @@ components:
             changeFeed: { type: boolean }
             rebac: { type: boolean }
         security: { $ref: '#/components/schemas/InfrastructureSecuritySummary' }
+        clientCertificate:
+          oneOf:
+            - { $ref: '#/components/schemas/ClientCertificateSummary' }
+            - { type: 'null' }
         allowPrivateNetwork: { type: boolean }
         revision:
           type: integer
@@ -5183,10 +5226,12 @@ components:
         `precondition_required` 428; `unsupported_operation`,
         `validation_failed`, `endpoint_rejected`, `infrastructure_unreachable`,
         `query_invalid`, `query_unsupported`, `package_rejected`,
-        `app_package_rejected`, `app_incompatible` 422; `internal_error` 500;
+        `app_package_rejected`, `app_incompatible`,
+        `client_certificate_invalid` 422; `internal_error` 500;
         `target_credentials_rejected`, `target_unreachable`, `target_blocked`,
         `descriptor_endpoint_blocked`, `target_error`,
-        `target_invalid_response`, `app_backend_failed` 502;
+        `target_invalid_response`, `target_client_certificate_required`,
+        `target_client_certificate_rejected`, `app_backend_failed` 502;
         `app_backend_unavailable` 503.
 
         MVP-4 added `descriptor_endpoint_blocked` (a registry descriptor points
@@ -5194,6 +5239,14 @@ components:
         `query_invalid` (a raw query failed its checks; findings in
         `violations`) and `query_unsupported` (the target cannot run queries or
         element searches).
+
+        Client certificates (ADR 0025) added
+        `target_client_certificate_required` (the target or its IdP requires a
+        TLS client certificate that Studio did not present or the target did
+        not accept), `target_client_certificate_rejected` (a TLS alert rejected
+        the certificate, e.g. unknown CA, expired or revoked) and
+        `client_certificate_invalid` (the stored certificate cannot be used,
+        e.g. an unreadable file, wrong passphrase or expiry).
       enum:
         - unauthenticated
         - forbidden
@@ -5219,6 +5272,9 @@ components:
         - query_unsupported
         - target_error
         - target_invalid_response
+        - target_client_certificate_required
+        - target_client_certificate_rejected
+        - client_certificate_invalid
         - workspace_unsaved_changes
         - package_rejected
         - app_package_rejected

@@ -30,6 +30,9 @@ export const problemCodes = [
   'descriptor_endpoint_blocked',
   'target_error',
   'target_invalid_response',
+  'target_client_certificate_required',
+  'target_client_certificate_rejected',
+  'client_certificate_invalid',
   // Search
   'query_invalid',
   'query_unsupported',

@@ -1,4 +1,4 @@
-import type { EndpointInput, InfrastructureTemplate, ListSource, Preferences, SecuritySummary, ServiceProfiles, SyncSettings } from '#shared/contract'
+import type { ClientCertificateSummary, EndpointInput, InfrastructureTemplate, ListSource, Preferences, SecuritySummary, ServiceProfiles, SyncSettings } from '#shared/contract'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
@@ -23,6 +23,10 @@ export const infrastructures = pgTable('infrastructures', {
   security: jsonb('security').$type<StoredSecurity>().notNull(),
   /** Encrypted client secret for desktop `stored` secrets; never returned by the API. */
   secretCiphertext: text('secret_ciphertext'),
+  /** TLS client certificate (mutual TLS) without its material; `null` without one. */
+  clientCertificate: jsonb('client_certificate').$type<ClientCertificateSummary>(),
+  /** Encrypted PKCS#12 bundle and passphrase of desktop `stored` certificates; never returned by the API. */
+  clientCertificateCiphertext: text('client_certificate_ciphertext'),
   allowPrivateNetwork: boolean('allow_private_network').notNull().default(false),
   revision: integer('revision').notNull().default(1),
   createdBy: text('created_by').notNull(),

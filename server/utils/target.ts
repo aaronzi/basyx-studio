@@ -8,7 +8,7 @@ import { serviceUrl } from '#shared/contract'
 import { decodeKey } from '../lib/aas/keys'
 import { syncPlan } from '../lib/aas/sync'
 import { recordAudit } from '../lib/audit'
-import { getInfrastructure, targetPolicy } from '../lib/infrastructures'
+import { getInfrastructure, resolveClientCertificate, targetPolicy } from '../lib/infrastructures'
 import { getPreferences } from '../lib/preferences'
 import { StudioProblem } from '../lib/problem'
 import { liveCapabilities } from '../lib/targets/capabilities'
@@ -91,7 +91,7 @@ export async function openTargetFor (access: TargetAccess): Promise<OpenedTarget
   const target = new LiveAasTarget({
     record,
     access: grant,
-    policy: targetPolicy(studio, record),
+    policy: targetPolicy(studio, record, await resolveClientCertificate(studio, record)),
     requestId,
     onUnauthorized: () => studio.broker.invalidate(record, actor.sessionId),
     shellContext: access.shellId,

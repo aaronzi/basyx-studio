@@ -113,8 +113,10 @@ const scopesSchema = z.array(z.string().regex(/^[\u0021\u0023-\u005B\u005D-\u007
  * (`env:NAME`, `file:/path`; hosted) or a value that the desktop Studio stores
  * encrypted with a key held in the OS credential store.
  */
+const secretRefSchema = z.string().regex(/^(?:env:[A-Z_][A-Z0-9_]*|file:\/\S+)$/, 'use env:NAME or file:/absolute/path')
+
 export const secretInputSchema = z.union([
-  z.object({ ref: z.string().regex(/^(?:env:[A-Z_][A-Z0-9_]*|file:\/\S+)$/, 'use env:NAME or file:/absolute/path') }),
+  z.object({ ref: secretRefSchema }),
   z.object({ value: z.string().min(1).max(4096) }),
 ])
 export type SecretInput = z.infer<typeof secretInputSchema>
@@ -124,6 +126,41 @@ export const secretSummarySchema = z.object({
   /** The reference for env/file secrets; never the secret value. */
   ref: z.string().nullable(),
 })
+
+/** Largest accepted PKCS#12 bundle, base64-encoded (about 96 KiB of DER). */
+export const maxClientCertificateLength = 131_072
+
+/**
+ * A TLS client certificate (mutual TLS) as a PKCS#12 bundle, like a client
+ * secret either a reference to deployment-provided files (hosted) or an
+ * uploaded bundle that the desktop Studio stores encrypted.
+ */
+export const clientCertificateInputSchema = z.union([
+  z.object({
+    ref: z.string().regex(/^file:\/\S+$/, 'use file:/absolute/path'),
+    /** `env:NAME` or `file:/path`; omit for a bundle without passphrase. */
+    passphraseRef: secretRefSchema.optional(),
+  }),
+  z.object({
+    /** The .p12/.pfx file, base64-encoded. */
+    value: z.base64().min(1).max(maxClientCertificateLength),
+    passphrase: z.string().max(4096).default(''),
+  }),
+])
+export type ClientCertificateInput = z.input<typeof clientCertificateInputSchema>
+
+/** The stored client certificate; never the bundle or its passphrase. */
+export const clientCertificateSummarySchema = z.object({
+  kind: z.enum(['file', 'stored']),
+  /** The bundle's path for `file` certificates. */
+  ref: z.string().nullable(),
+  /** The passphrase reference (`env:NAME`, `file:/path`) for `file` certificates. */
+  passphraseRef: z.string().nullable(),
+  subject: z.string(),
+  issuer: z.string(),
+  notAfter: z.string(),
+})
+export type ClientCertificateSummary = z.infer<typeof clientCertificateSummarySchema>
 
 const oidcFields = {
   issuer: z.url({ protocol: /^https?$/ }).max(2000),
@@ -184,6 +221,8 @@ export const infrastructureInputSchema = z.object({
   listSource: z.enum(listSources).default('registry'),
   sync: syncSettingsSchema.default(defaultSyncSettings),
   security: securityInputSchema,
+  /** Presented on every HTTPS connection, including the IdP's. Omit on update to keep the stored certificate; `null` removes it. */
+  clientCertificate: clientCertificateInputSchema.nullish(),
   /** Permit loopback and private-network addresses; subject to the deployment policy. */
   allowPrivateNetwork: z.boolean().default(false),
 }).superRefine((input, context) => {
@@ -219,6 +258,7 @@ export const infrastructureSchema = z.object({
   /** The optional features the services announce in their profiles. */
   announced: z.object({ history: z.boolean(), changeFeed: z.boolean(), rebac: z.boolean() }),
   security: securitySummarySchema,
+  clientCertificate: clientCertificateSummarySchema.nullable(),
   allowPrivateNetwork: z.boolean(),
   revision: z.number().int(),
   createdAt: z.string(),

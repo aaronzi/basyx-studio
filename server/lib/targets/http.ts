@@ -115,6 +115,12 @@ export class TargetHttp {
         case 'timeout': {
           return new StudioProblem('target_unreachable', `The target did not answer in time (${failure.message}).`)
         }
+        case 'client_certificate_required': {
+          return new StudioProblem('target_client_certificate_required', failure.message)
+        }
+        case 'client_certificate_rejected': {
+          return new StudioProblem('target_client_certificate_rejected', failure.message)
+        }
         default: {
           return new StudioProblem('target_unreachable', failure.message)
         }

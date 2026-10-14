@@ -41,9 +41,9 @@ Funktionsebene, ohne die OpenAPI-Schemas zu duplizieren.
 | `POST /targets/{targetId}/authorization` | Startet oder resumiert die Authentifizierung genau dieses Targets. Andere Target-Sessions bleiben unverändert. |
 | `DELETE /targets/{targetId}/authorization` | Trennt nur den Credential-Kontext dieses Targets. |
 | `GET /infrastructures` | Listet administrativ verwaltete Live-Infrastrukturen. |
-| `POST /infrastructures` | Nimmt eine Admin-Konfiguration an (Template, Endpoints, `listSource`, `sync`, Security), validiert Template- und SSRF-/Netzwerkregeln, führt einen Probe aus und registriert sie erst danach. Secrets werden nur als Secret-Referenz verarbeitet. |
+| `POST /infrastructures` | Nimmt eine Admin-Konfiguration an (Template, Endpoints, `listSource`, `sync`, Security), validiert Template- und SSRF-/Netzwerkregeln sowie ein optionales Client-Zertifikat (`clientCertificate`, PKCS#12), führt einen Probe aus und registriert sie erst danach. Secrets und Zertifikate werden gehostet nur als Referenz verarbeitet; der Desktop speichert hochgeladene Werte verschlüsselt. |
 | `GET /infrastructures/{infrastructureId}` | Liefert sanitisierte Konfigurationsdetails, Endpoints, Service-Profile (`serviceProfiles`, `probedAt`, `announced`) und Revision. |
-| `PUT /infrastructures/{infrastructureId}` | Ersetzt die Konfiguration mit `If-Match`, erneuter Validierung und Probe. |
+| `PUT /infrastructures/{infrastructureId}` | Ersetzt die Konfiguration mit `If-Match`, erneuter Validierung und Probe. Ein weggelassenes `clientCertificate` bleibt erhalten, `null` entfernt es. |
 | `DELETE /infrastructures/{infrastructureId}` | Entfernt die Studio-Konfiguration, nicht die Daten der Infrastruktur. |
 | `POST /infrastructures/{infrastructureId}/probe` | Fragt `/description` jedes Endpoints erneut ab, liefert Erreichbarkeit und Profile je Endpoint und ersetzt die gespeicherten Profile. |
 
@@ -109,6 +109,14 @@ pflegt und der wirksame Sync-Modus `autoCreate` ist
 Neue Problem-Codes: `descriptor_endpoint_blocked`, `query_invalid` und
 `query_unsupported`. Details stehen im
 [MVP-4-Plan](../development/mvp-4-plan.md#studio-api).
+
+Infrastrukturen können ein TLS-Client-Zertifikat (mTLS) haben, unabhängig vom
+Zugriffsmodus ([ADR 0025](../adr/0025-client-certificates-for-infrastructures.md)).
+Der Studio Service präsentiert es bei jedem HTTPS-Request an die Endpoints und
+an den IdP. Die API liefert nur Subject, Issuer, Ablaufdatum und gegebenenfalls
+die Referenz, nie Bundle, Schlüssel oder Passphrase. Neue Problem-Codes:
+`target_client_certificate_required`, `target_client_certificate_rejected` und
+`client_certificate_invalid`.
 
 ## Desktop-Workspaces und AASX
 

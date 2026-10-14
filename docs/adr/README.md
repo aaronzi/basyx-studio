@@ -33,6 +33,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0022](0022-basyx-go-endpoints-outside-the-sdk.md) | Accepted | The SDK for standard endpoints; a guarded raw layer for BaSyx Go-specific ones |
 | [0023](0023-bundled-first-party-apps.md) | Accepted | Four first-party apps shipped with Studio on the app platform |
 | [0024](0024-aas-query-language-through-the-bff.md) | Accepted | Web UI search syntax and checked raw queries, run through the BFF |
+| [0025](0025-client-certificates-for-infrastructures.md) | Accepted | PKCS#12 client certificates per infrastructure, presented by the Studio Service on every HTTPS request |
 
 ## Template
 
