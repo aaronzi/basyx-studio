@@ -84,10 +84,17 @@ services:
       POSTGRES_DBNAME: basyx_open
       ABAC_ENABLED: "false"
       GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
-      # Optional BaSyx Go features that Studio detects per target: point-in-time
-      # history and the CloudEvents change feed.
+      # Optional BaSyx Go features that Studio detects per target from the
+      # /description profiles: point-in-time history and the CloudEvents change
+      # feed.
       BASYX_HISTORY_MODE: api
-      EVENTING_FEED_ENABLED: "true"
+      BASYX_EVENTING_FEED_ENABLED: "true"
+      # Registry sync (MVP-4): repository writes keep the AAS and submodel
+      # registries filled, so the target can list shells from its registry.
+      # Descriptor endpoints and feed links use the URL Studio is configured with.
+      GENERAL_AASREGISTRYINTEGRATION: "true"
+      GENERAL_SUBMODELREGISTRYINTEGRATION: "true"
+      GENERAL_EXTERNALURL: http://localhost:18081
     ports:
       - "18081:5004"
     volumes:

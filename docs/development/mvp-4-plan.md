@@ -113,7 +113,7 @@ earlier MVP-4 decisions where they differ.
 | # | Topic | Decision |
 | --- | --- | --- |
 | T1 | Tree | Submodel refs as roots with their status (`forbidden`, `blocked`, `not_found`, `error`); element levels loaded on demand; `ElementDetail.ancestors` for deep links. *Expand all* loads the remaining levels of the open submodels breadth-first up to a configurable cap; the filter covers loaded nodes. The whole-submodel route is kept only for history (`at`), where the snapshot is one document. |
-| T2 | Details drawer | Modes *Details*, *Visualization*, *JSON*, *XML*, *UML* for the selected submodel or element, like the Web UI's right pane. *Visualization* hosts the selected submodel's app views; the drawer can be widened to full width. XML uses aas-core's `xmlization` on the server; UML uses Mermaid (new dependency). The shell-wide *Overview* tab with all matching app views stays. |
+| T2 | Details drawer | Modes *Details*, *Visualization*, *JSON*, *XML*, *UML* for the selected submodel or element, like the Web UI's right pane. *Visualization* hosts the selected submodel's app views; the drawer can be widened to full width. XML uses aas-core's `xmlization` on the server; UML uses PlantUML as in the Web UI: Studio generates the PlantUML source from the AAS and renders it with `@plantuml/core` (one package without dependencies; decided 2026-10-14 instead of Mermaid, which brings 23 dependencies). The shell-wide *Overview* tab with all matching app views stays. |
 | T3 | Editing | The global View/Edit toggle stays, with today's abilities: Property and MultiLanguageProperty values (MVP-2 write path) and replacing File contents. The drawer's edit area is generic, so a later editing MVP can add element types, creation and deletion without restructuring. |
 | T4 | Bundled apps | The four bundled apps stay, installed at startup and not uninstallable. The bundled Nameplate replaces `examples/apps/nameplate`; the MVP-3 tests move to it. Shell Explorer, the backend demo and the isolation probe stay examples. A later MVP refines the apps. |
 
@@ -256,7 +256,7 @@ environment, and against the `large` profile where stated.
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| 0. Inventory | Run the port in web and Electron at three widths and record every visual and content defect in [Defects](#defects); integration, e2e and desktop baseline; BaSyx Go tickets for the history and event-feed profiles; registry integration in the test environment; Mermaid and lazy-tree measurements | Defect list; baseline; tickets |
+| 0. Inventory (done) | Run the port in web and Electron at three widths and record every visual and content defect in [Defects](#defects); integration, e2e and desktop baseline; BaSyx Go tickets for the history and event-feed profiles; registry integration in the test environment; lazy-tree measurements | Defect list; baseline; tickets |
 | A. Look and shell | L2 theme without the blueprint, app bar and rail glitches, phones, landing page, routes and deep links | DoD 5, 20 |
 | B. Infrastructures | Templates, endpoint types, list source, sync settings and overrides, stored profiles, admin form | DoD 1 |
 | C. Data access | SDK for standard endpoints, BaSyx Go client for proprietary ones, registry resolution and the base-URL rule, availability, discovery, capabilities from profiles | DoD 2, 4 |
@@ -284,8 +284,8 @@ the area.
 - `basyx-open`: registry integration (`GENERAL_AASREGISTRYINTEGRATION`,
   `GENERAL_SUBMODELREGISTRYINTEGRATION`, `GENERAL_EXTERNALURL`) next to history
   and the event feed; a foreign descriptor fixture; the `large` profile.
-- Lazy tree with 1,000 siblings and 5,000 nodes; Mermaid bundle size and
-  rendering of a large submodel.
+- Lazy tree with 1,000 siblings and 5,000 nodes; `@plantuml/core` bundle size
+  (lazy-loaded) and rendering of a large submodel.
 
 **A. Look and shell**
 
@@ -328,7 +328,7 @@ the area.
 
 - Replace the port's whole-submodel tree with per-level loading and
   `ancestors` (keep `tree?at=` for history); *expand all* with the cap.
-- Drawer modes; XML route; UML with Mermaid; *Visualization* with app views;
+- Drawer modes; XML route; UML with PlantUML (source generation ported from the Web UI's `PlantUMLRenderer.ts`, SVG sanitized as there); *Visualization* with app views;
   generic edit area for the MVP-2 editors and File replacement.
 
 **F. Viewer features**
@@ -344,13 +344,57 @@ the area.
 - ADRs (below), requirements and design guidelines, `openapi.yaml`,
   `endpoints.md`, results section, code map, parity list.
 
+## Phase 0 results
+
+Recorded on 2026-10-14 on `mvp-4` (the port plus SDK 2.4.0), against the test
+environment, the dev server (walkthrough at 1440, 768 and 375 px, light and
+dark) and the builds used by the e2e suites.
+
+| Check | Result |
+| --- | --- |
+| Lint, typecheck, unit tests | Pass (135 unit tests) |
+| `pnpm testenv:smoke`, `pnpm test:integration` | Pass (34 checks, 167 tests), before and after the test environment changes |
+| `pnpm test:e2e:web` | 13 passed, 2 failed, 7 not run (serial groups after the failures): D14, D20 |
+| `pnpm test:e2e:desktop` | 3 of 3 failed: D21 |
+| BaSyx Go profiles | [eclipse-basyx/basyx-go-components#763](https://github.com/eclipse-basyx/basyx-go-components/issues/763), PR [eclipse-basyx/basyx-go-components#764](https://github.com/eclipse-basyx/basyx-go-components/pull/764): IDTA history profiles (AAS Repository SSP-006, Submodel Repository SSP-007) when history is recorded, `https://basyx.org/aas/API/3/2/EventFeed/1.0` when the feed is on |
+| Test environment | `basyx-open` syncs its registries (62 shell and 7 submodel descriptors, endpoints `AAS-3.2` under `http://localhost:18081`), discovery resolves global asset IDs, feed links use the external URL; the feed variable is now the documented `BASYX_EVENTING_FEED_ENABLED` |
+| UML | `@plantuml/core` instead of Mermaid (T2): one package of 7.8 MB without dependencies against 23 dependencies |
+
+Moved to the phases that use them: the foreign descriptor fixture (C), and the
+`large` profile with the lazy-tree and `@plantuml/core` measurements (start of
+E). The app frames could not be inspected in the walkthrough, because the
+browser pane blocks `apps.localhost`; D14 relies on the e2e run.
+
 ## Defects
 
-Filled in phase 0, then worked off by phase. Each entry: area, page and
-width, what is wrong, what is expected, phase.
+Worked off by phase. Widths are viewport widths; "full load" means a page
+loaded from the server rather than reached by navigation in the app.
 
-| # | Area | Defect | Phase | Status |
-| --- | --- | --- | --- | --- |
+| # | Area | Defect | Expected | Phase | Status |
+| --- | --- | --- | --- | --- | --- |
+| D1 | Layout (SSR) | Every full load at desktop width renders the phone layout (bottom navigation, no rail or shell list, content under the app bar) until hydration; the server does not know the viewport | The desktop layout from the first paint (viewport client hint or desktop default) | A | Open |
+| D2 | Images (SSR) | After a full load the app-bar logo and all shell avatars (list and header) stay empty; they appear only after navigation in the app | Logo and avatars after every load; an icon when a shell has no thumbnail | A | Open |
+| D3 | Theme | A theme applied on the client after server rendering leaves server-rendered cards in the previous theme (dark page, light cards) | One theme for the whole page, from the first paint | A | Open |
+| D4 | Dark mode | The app bar's search label and the *View/Edit* labels are dark on dark | Readable labels in both themes | A | Open |
+| D5 | Details drawer | Temporary with a scrim below 1920 px, so at 1440 px it covers the tree | Beside the tree on desktop widths, temporary only on narrow screens | E | Open |
+| D6 | Details drawer | The value is set in display size and wraps for long text; semantic ID, kind and category are missing from the metadata | Body-sized values; the Web UI's header fields | E | Open |
+| D7 | Shell header | The title is cut without ellipsis or wrap at 768 and 375 px; the subtitle repeats the idShort; an empty box instead of an icon without thumbnail | Wrapping title, no repetition, icon fallback | A | Open |
+| D8 | Shell header | The chip row runs off the screen at 375 px without a scroll hint; identifiers are truncated without a way to read them | Wrapping chips; full identifier on hover and on copy | A | Open |
+| D9 | Tablet | Below 960 px the target switcher is hidden, so the active target is not visible; the search icon floats in the app bar | Active target always visible (design guidelines) | A | Open |
+| D10 | Phone | Five bottom-navigation items, the last label cut; the tree toolbar squeezes the filter to "Filte"; no values in the tree | Fewer or shorter navigation items; a toolbar that wraps or collapses into a menu | A, E | Open |
+| D11 | Palette | Search is case-sensitive and ignores display names: "Servo" and "dm3000" find nothing, "DM3000" finds the shell | Case-insensitive search over the Web UI's fields (S2) and, in the palette, display names of loaded shells | D | Open |
+| D12 | JSON tab | Long lines are cut off without horizontal scrolling or wrapping | All content reachable | E | Open |
+| D13 | Changes tab, dashboard cards | The card header icon is not aligned with the title; events do not say what changed or who changed it | Aligned headers; element or value and actor where the feed provides them | F | Open |
+| D14 | App frames | The Nameplate app's *Save* button is out of reach inside its frame (web e2e `apps.spec`); a frame that fails to load stays blank | Frames sized to or scrolling their content; loading and error states | E, F | Open |
+| D15 | History detection | Probes `$recent-changes`, which BaSyx Go serves in every history mode, so history is offered without recorded versions | Detection from the history profiles (I6) | C | Open |
+| D16 | Accessibility | Icon buttons without accessible names in the app bar and the shell list | A label on every icon button | A | Open |
+| D17 | Infrastructure dialog | Fields have placeholders but no labels; the sharing notice is shown for *Unsecured* | Labelled fields; notices only where they apply | B | Open |
+| D18 | Concept descriptions | *Unit* and *Source* are empty for every entry | Values where the data has them, else no empty columns | F | Open |
+| D19 | Lists | *Recently opened* shows identifiers; shell rows repeat the idShort as subtitle | Names first, identifier as subtitle (as in the Web UI) | A | Open |
+| D20 | e2e web | `viewer.spec` "shows a read-only past state" clicks Vuetify 3 classes (`v-date-picker-month__day--today`) | Role-based locators | F | Open |
+| D21 | e2e desktop | `apps.spec` looks for the removed *Browse* link; `workspace.spec` cannot reach a package's shell rows (the list is off-screen at the window size) | Tests updated to the rail; shell list reachable in the desktop window | A | Open |
+| D22 | Console | Three 503 responses on every full load in the dev server; no matching server log | Explained or gone in the production build | A | Open |
+| D23 | Test environment | Event-feed schema links pointed to the container port (`localhost:5004//…`); the feed variable used an undocumented name | External URL and documented variable | 0 | Fixed |
 
 ## ADRs to write
 
