@@ -304,6 +304,8 @@
     "notInstalled": "This app module is not installed (anymore).",
     "needsShell": "Open a shell to use this module.",
     "connecting": "Starting the app…",
+    "notStarted": "The app did not start",
+    "notStartedText": "It did not connect to Studio within 15 seconds. Its files may be unreachable, or it may have failed.",
     "frameTitle": "App: {name}",
     "permission": {
       "studio_aas_read": "Read AAS data you have access to",

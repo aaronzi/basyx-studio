@@ -1,11 +1,25 @@
 <template>
   <div class="d-flex flex-column flex-grow-1">
-    <v-progress-linear v-if="!connected" />
+    <!-- A frame that never connects (D14) says so instead of staying blank. -->
+    <v-alert
+      v-if="timedOut && !connected"
+      class="ma-2"
+      :text="t('apps.notStartedText')"
+      :title="t('apps.notStarted')"
+      type="warning"
+    >
+      <template #append>
+        <v-btn :text="t('problem.retry')" @click="retry" />
+      </template>
+    </v-alert>
+
+    <v-progress-linear v-else-if="!connected" />
 
     <!-- Created only on the client, after the bridge listens: a frame in
          server-rendered HTML would load before hydration. -->
     <iframe
       v-if="mounted"
+      :key="attempt"
       ref="frame"
       :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1']"
       :height="fit ? (height ?? 480) : undefined"
@@ -66,12 +80,36 @@
   }))
 
   const mounted = ref(false)
-  onMounted(() => (mounted.value = true))
+  /** Seconds an app may take to connect before the frame offers a retry. */
+  const startTimeoutMs = 15_000
+  const timedOut = ref(false)
+  const attempt = ref(0)
+  let startTimer: ReturnType<typeof setTimeout> | undefined
+  function watchStart () {
+    timedOut.value = false
+    clearTimeout(startTimer)
+    startTimer = setTimeout(() => (timedOut.value = true), startTimeoutMs)
+  }
+  function retry () {
+    attempt.value++
+    watchStart()
+  }
+  onMounted(() => {
+    mounted.value = true
+    watchStart()
+  })
+  onBeforeUnmount(() => clearTimeout(startTimer))
 
   const { connected, height, onLoad } = useAppBridge(frame, {
     contribution: () => props.contribution,
     targetId: props.target?.id ?? null,
     context: () => context.value,
     onNavigate: subPath => emit('navigate', subPath),
+  })
+  watch(connected, value => {
+    if (value) {
+      clearTimeout(startTimer)
+      timedOut.value = false
+    }
   })
 </script>
