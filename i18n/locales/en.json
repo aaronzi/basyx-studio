@@ -504,7 +504,18 @@
       "umlAlt": "UML class diagram of {name}",
       "fitWidth": "Fit to width",
       "actualSize": "Actual size"
-    }
+    },
+    "blob": "Blob · {type}",
+    "blobEmpty": "No content",
+    "bytes": "{size} bytes",
+    "references": "References",
+    "first": "First",
+    "second": "Second",
+    "observed": "Observed",
+    "openReferenced": "Open the referenced element",
+    "noReference": "No reference",
+    "entityType": "Entity type",
+    "capability": "A capability describes what the asset can do; it has no value."
   },
   "operation": {
     "inputs": "Input variables",

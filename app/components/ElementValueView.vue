@@ -88,7 +88,16 @@
     :target-id="targetId"
   />
 
-  <v-card v-else-if="children.length > 0" border="0" color="surface-light">
+  <ElementStructureView
+    v-else-if="structureTypes.includes(modelType)"
+    :element="element"
+    :submodel-id="decodeResourceKey(submodelKey) ?? ''"
+    :submodel-key="submodelKey"
+    @select="id => emit('select', id)"
+  />
+
+  <!-- Collections, lists, entities and annotated relationships: their children. -->
+  <v-card v-if="children.length > 0 && modelType !== 'Operation'" border="0" :class="isContainer ? undefined : 'mt-3'" color="surface-light">
     <v-card-item>
       <v-card-subtitle class="text-label-medium">{{ t('details.elements', children.length) }}</v-card-subtitle>
     </v-card-item>
@@ -111,7 +120,7 @@
   import type { ElementDetail, LangString } from '#shared/contract'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
   import { useTheme } from 'vuetify'
-  import { langText, modelTypeIcon } from '~/utils/aas'
+  import { decodeResourceKey, langText, modelTypeIcon } from '~/utils/aas'
 
   const props = defineProps<{
     targetId: string
@@ -145,7 +154,10 @@
     }
     return typeof element.value.value === 'string' ? element.value.value : ''
   })
-  const children = computed(() => props.item?.children ?? [])
+  const children = computed(() => (props.item?.children ?? []).filter(child => !child.more))
+  const structureTypes = ['Blob', 'ReferenceElement', 'RelationshipElement', 'AnnotatedRelationshipElement', 'BasicEventElement', 'Entity', 'Capability']
+  // Collections and lists show only their children; other types show them below their own view.
+  const isContainer = computed(() => ['SubmodelElementCollection', 'SubmodelElementList'].includes(modelType.value))
   const gradient = computed(() => {
     const colors = theme.current.value.colors
     return [String(colors.secondary), String(colors.primary)]

@@ -630,8 +630,9 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async #read (submodelId: string, idShortPath: string): Promise<{ value: JsonObject, etag: string | undefined }> {
+    // Blob values are left out unless asked for (AAS API `extent`).
     const result = await this.#send(await this.#submodelBase(submodelId), configuration =>
-      this.#submodelClient.getSubmodelElementByPath({ configuration, submodelIdentifier: submodelId, idShortPath }))
+      this.#submodelClient.getSubmodelElementByPath({ configuration, submodelIdentifier: submodelId, idShortPath, extent: 'withBlobValue' }))
     if (!result.success) {
       throw await this.#http.problem(result.statusCode, result.recorder)
     }

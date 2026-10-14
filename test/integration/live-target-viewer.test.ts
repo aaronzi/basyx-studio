@@ -54,6 +54,11 @@ describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => 
     expect((await target().searchShells({ expression: 'EdgeCases' }, 5, undefined)).items.map(shell => shell.id)).toContain(edgeShell)
   })
 
+  it('reads Blob values with the element', async () => {
+    const blob = await target().element(edgeSubmodel, 'Thumbnail')
+    expect(blob.value).toMatchObject({ modelType: 'Blob', contentType: 'text/plain', value: 'aGVsbG8gc3R1ZGlv' })
+  })
+
   it('finds a shell by its global asset ID', async () => {
     expect((await target().lookupShells(motorAsset)).map(shell => shell.id)).toEqual([motorShell])
     expect(await target().lookupShells('urn:unknown:asset')).toEqual([])
