@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-14
 - Deciders: BaSyx Studio maintainers
-- Requirements: DATA-001, DATA-002, DATA-014, SEC-008, UX-003
+- Requirements: DATA-001, DATA-002, DATA-017, DATA-020, SEC-008, UX-003
 
 ## Context
 

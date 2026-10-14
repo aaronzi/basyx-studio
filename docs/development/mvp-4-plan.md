@@ -252,6 +252,120 @@ environment, and against the `large` profile where stated.
     listed as done, later (with the MVP or prerequisite) or dropped, with a
     reason.
 
+## Results
+
+Implemented on `mvp-4` and verified on 2026-10-14 against the test
+environment (BaSyx Go `SNAPSHOT` with history, event feed and registry sync;
+the `large` profile on demand) in the dev server, the hosted production build
+(Chromium) and the packaged macOS arm64 app (unpacked).
+
+| Definition of done | Status | Evidence |
+| --- | --- | --- |
+| 1. Infrastructures | Done | Admin form with templates, per-template endpoints and findings, list source, sync settings, stored profiles and derived features; user override in *Settings*. Unit tests for template rules and capabilities, migration `0003` upgrade test. No e2e test drives the form yet (the e2e helpers register targets through the API) |
+| 2. Registries | Done | Integration tests: the registry-based list, resolution through descriptors without repositories, a foreign descriptor `blocked` before any request (base-URL rule, unit-tested), availability markers, the identifiable superpath; the repository-only target as before |
+| 3. Search | Done | Integration tests on both query endpoints (case-insensitive text, filters, exclusions, empty search, raw query, `$select` and foreign roots refused with findings, element search); parser unit tests; workspace expressions in the worker model tests; web e2e for the palette's element search. The list search, its chips, the advanced dialog, URL state and the local-filter hint were checked in the browser; no e2e test covers them yet |
+| 4. Discovery | Done | Web e2e: `?globalAssetId=` opens the shell; the picker and the unknown-asset message were checked in the browser |
+| 5. Layout and look | Done | Screenshots at 1440, 768 and 375 px during phases A, D and E; no hydration warnings after the hotkey fix (D25); the app bar, rail, drawers and tree toolbar fixed (D1–D10). Dark mode was checked in phase A |
+| 6. Shell list | Done | On `large`: 2,000 shells in a virtual scroll (15 rows in the DOM), filter chips, favorites (web e2e), sort, the open shell highlighted, scrolled to and pinned when not loaded; the target switch test (web e2e) |
+| 7. Tree and deep links | Done | Levels with a node budget, *expand all* within its cap, `Deep.Level1.Level2.Level3.Leaf` on `large` opened from a link with its path and the drawer; MVP-1 to MVP-3 links (`submodel`, `element`, `view`) work; web e2e for filter and details |
+| 8. Details drawer | Done | A typed view for every element type of the fixtures; *Visualization* with the Nameplate app for nameplate submodels only; *JSON*, *XML* and *UML* of submodels and elements (screenshots) |
+| 9. Editing | Done | Web e2e: read-only in view mode, Property edit with reload, conflict with kept draft, value-type errors; app writes with conflicts and rights (web e2e); File replacement as in MVP-2 |
+| 10. Performance | Done | [Phase E measurements](#phase-e-measurements): first list page 102 ms, no long task while scrolling 2,000 shells, quick search 0.79 s, the 1,000-entry list's first page 0.44 s |
+| 11. Workspaces | Partly | Desktop e2e: open, edit, save, save as, close with unsaved changes, app writes on a local package. Criteria 6–9 on a workspace were not run as a whole in the packaged app |
+| 12. History | Done | Web e2e: a past date shows the submodel read-only; without the profile the control is absent (capability tests) |
+| 13. Changes | Done | Web e2e: the *Changes* tab lists the shell's events; absent without the profile |
+| 14. Sharing | Not verified | Kept from the port and shown only with ReBAC and `delegated_user`, but the test environment has no ReBAC server |
+| 15. Upload and export | Done | Web e2e: JSON export and its upload; invalid packages refused with findings (integration); descriptors and asset links written per sync setting (integration). AASX and XML export were checked by hand |
+| 16. Delete | Done | Web e2e: only in edit mode, after confirmation; descriptor and asset links removed per sync setting (integration) |
+| 17. Operations | Partly | The drawer's operation panel runs synchronous and asynchronous invocations, and a refused call explains why (integration test). The test environment's operation has no delegation target, so no successful run was verified |
+| 18. Files and thumbnails | Done | Integration tests for attachments and thumbnails; thumbnails in the list and header |
+| 19. Concept descriptions, preferences, apps | Done | Web e2e: concept descriptions, favorites and settings per user; the four bundled apps on the overview, without an uninstall button |
+| 20. Landing page | Done | Web e2e |
+| 21. Parity list | Done | [Parity](#parity-with-the-web-ui-and-the-port) |
+
+Automated checks: `pnpm lint`, `pnpm typecheck`, `pnpm test` (153 tests),
+`pnpm test:integration` (204), `pnpm testenv:smoke` (40 checks),
+`pnpm test:e2e:web` (22) and `pnpm test:e2e:desktop` (3).
+
+### Findings and deviations
+
+- **Tree loading** (T1): BaSyx Go reads the whole submodel for every element
+  request, so a request per level costs as much as the whole tree. Levels come
+  with a node budget instead; the `tree` route is gone and the level route
+  serves history ([Phase E measurements](#phase-e-measurements)).
+- **Rendering**: tree rows cost about 2 ms each; closed groups are not
+  rendered, long levels are paged, and the shell list is virtual.
+- **Blob values**: the AAS API leaves them out of element reads unless
+  `extent=withBlobValue` is given.
+- **BaSyx Go**: with registry integration, deleting a shell whose descriptor
+  is already missing fails with 404 ("AAS Descriptor not found"), and the shell
+  stays. Worth an issue upstream.
+- **SDK**: `postInvokeOperationAsync` returns no handle, so asynchronous
+  invocations stay on the raw layer ([ADR 0022](../adr/0022-basyx-go-endpoints-outside-the-sdk.md)).
+- **Vuetify**: `VHotkey` rendered "Ctrl" on the server and ⌘ in a Mac browser;
+  Studio now sets its platform from the request. Its accessible label for
+  icon keys reads "$COMMAND"; to be reported upstream.
+- **vue-tsc 3.3.12** garbles `//` inside bound template expressions; URLs in
+  templates are kept in script constants.
+- **App frames** may not submit forms (sandbox without `allow-forms`), and
+  auto-sized views do not suit dialogs; the bundled Nameplate edits in place.
+- **Apps** receive Studio's mode in their context (`mode`), so they offer edit
+  controls only in edit mode, as Studio does.
+
+### Not done yet
+
+- e2e tests for the admin form, the list search and the advanced query dialog;
+- sharing against a ReBAC server, and operations against a delegation target
+  (a test-environment operation service would cover DoD 17);
+- DoD 11 as a whole in the packaged app;
+- the Web UI features listed as *later* below.
+
+### Code map
+
+| Path | Content |
+| --- | --- |
+| `shared/contract/infrastructure.ts`, `server/lib/infrastructures.ts`, `server/database/migrations/0003_*` | Templates, endpoint types, list source, sync settings, stored profiles |
+| `server/lib/targets/profiles.ts`, `capabilities.ts` | Features from profiles |
+| `server/lib/targets/resolution.ts`, `server/lib/aas/availability.ts` | Registry resolution, base-URL rule, availability |
+| `server/lib/aas/sync.ts` | Descriptors and asset links after uploads and deletes |
+| `shared/search/expression.ts`, `server/lib/aas/query.ts`, `query-schema.json` | Search syntax, query building, raw-query checks |
+| `server/lib/aas/tree.ts`, `app/composables/useShellTrees.ts` | Tree levels with a node budget, lazy tree, paging |
+| `server/lib/aas/xml.ts`, `shared/aas/plantuml.ts`, `app/utils/plantuml.ts` | XML and UML modes |
+| `app/components/ElementDetailsDrawer.vue` and `Element*Panel.vue`, `ElementStructureView.vue`, `ElementEditArea.vue` | Details drawer, modes, typed views, edit area |
+| `app/components/ShellListDrawer.vue`, `ShellQueryDialog.vue`, `CommandPalette.vue` | List, search and palette |
+| `apps/nameplate/` | The bundled Digital Nameplate |
+| `test-setup/` | History, event feed, registry sync, the `large` profile |
+
+### Parity with the Web UI and the port
+
+Against the BaSyx AAS Web UI `main` of 2026-10-14 and the viewer port.
+
+| Feature | Status | Note |
+| --- | --- | --- |
+| Infrastructures with templates, registries, discovery | Done | Catena-X template out of scope |
+| AAS list from registry or repository, availability markers | Done | |
+| Search syntax, query language, advanced dialog | Done | |
+| Command palette, asset-ID lookup | Done | |
+| Submodel tree with values, filter, expand all | Done | |
+| Element views for all element types | Done | |
+| Visualization: Nameplate, Technical Data, Carbon Footprint, Handover Documentation | Done | As bundled apps |
+| Visualization: Contact Information, Time Series, Hierarchical Structures, Models3D, Production Calendar and Plan, File System | Later | As first-party apps, one by one |
+| JSON and UML views | Done | XML added |
+| File previews (PDF, image, CAD, IFC, JSON, XML) | Later | Core feature for `File` and `Blob` (MVP-3 classification); images and downloads work |
+| Editing of Property, MultiLanguageProperty and File | Done | |
+| Full AAS and submodel editor, creation wizard, importer, instance conversion | Later | Editing MVP; the edit area is generic (T3) |
+| Upload, download, delete | Done | With registry and discovery sync |
+| Auto-refresh | Done | Opened levels are re-read |
+| History, changes | Done | Studio additions, shown where announced |
+| ReBAC sharing and invitations | Done | Not verified without a ReBAC server |
+| ABAC editor | Later | Admin feature (MVP-3 classification) |
+| QR code of the global asset ID, QR scanner | Later | Asset-ID deep links exist |
+| Charts and widgets | Later | Dashboards and views (VIEW requirements) |
+| Concept descriptions | Done | Page; per-element concept descriptions later |
+| Ecosystem modules (Catena-X, company lookup, DPP, PCF) | Later | As apps |
+| Port's dashboard | Dropped | Replaced by the landing placeholder (R1) until its requirements exist |
+| Port's whole-submodel tree route | Dropped | Replaced by levels with a node budget |
+
 ## Phases
 
 | Phase | Content | Exit |
@@ -433,17 +547,22 @@ loaded from the server rather than reached by navigation in the app.
 | D23 | Test environment | Event-feed schema links pointed to the container port (`localhost:5004//…`); the feed variable used an undocumented name | External URL and documented variable | 0 | Fixed |
 | D25 | App bar | The ⌘K hotkey renders "Ctrl" on the server and ⌘ in a Mac browser, a hydration mismatch on every load; its accessible label reads "$COMMAND plus K" | Same rendering on both sides; a readable label | D | Fixed (D): the platform comes from the request and is VHotkey's default on both sides. The label is a Vuetify defect (icon keys are looked up by icon name), to be reported upstream |
 
-## ADRs to write
+## ADRs written during MVP-4
 
-The port cites ADR 0020 and 0021, which do not exist yet; the code references
-are updated to these numbers.
+The port cited ADR 0020 and 0021 before they existed; its code references now
+use the numbers below.
 
-- ADR 0020: infrastructure templates, registries, discovery, descriptor
-  endpoints and synchronization (I1–I5).
-- ADR 0021: feature detection from service profiles (I6).
-- ADR 0022: BaSyx Go-specific endpoints outside `basyx-typescript-sdk` (I7).
-- ADR 0023: bundled first-party apps (T4).
-- ADR 0024: AAS Query Language through the BFF (S1, S2).
+- [ADR 0020](../adr/0020-infrastructure-templates-registries-and-sync.md):
+  infrastructure templates, registries, discovery, descriptor endpoints and
+  synchronization (I1–I5).
+- [ADR 0021](../adr/0021-feature-detection-from-service-profiles.md): feature
+  detection from service profiles (I6).
+- [ADR 0022](../adr/0022-basyx-go-endpoints-outside-the-sdk.md): BaSyx
+  Go-specific endpoints outside `basyx-typescript-sdk` (I7).
+- [ADR 0023](../adr/0023-bundled-first-party-apps.md): bundled first-party
+  apps (T4).
+- [ADR 0024](../adr/0024-aas-query-language-through-the-bff.md): AAS Query
+  Language through the BFF (S1, S2).
 
 ## Known risks
 

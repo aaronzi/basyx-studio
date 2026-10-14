@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-14
 - Deciders: BaSyx Studio maintainers
-- Requirements: DATA-001, ARCH-008, UX-002
+- Requirements: DATA-018, ARCH-008, UX-002
 
 ## Context
 

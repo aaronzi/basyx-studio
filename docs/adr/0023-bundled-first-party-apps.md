@@ -3,7 +3,7 @@
 - Status: Accepted
 - Date: 2026-10-14
 - Deciders: BaSyx Studio maintainers
-- Requirements: APP-001, VIEW-006, UX-002
+- Requirements: VIEW-006, UX-002, UX-006
 
 ## Context
 
