@@ -1,6 +1,6 @@
 import type { InfrastructureRecord } from '~~/server/lib/infrastructures'
 import { readFile } from 'node:fs/promises'
-import { describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { submodelChildren } from '~~/server/lib/aas/outline'
 import { buildLevels } from '~~/server/lib/aas/tree'
 import { LiveAasTarget } from '~~/server/lib/targets/live-target'
@@ -15,6 +15,13 @@ const edgeShell = 'urn:studio:test:aas:edge-cases'
 const edgeSubmodel = 'urn:studio:test:sm:edge-cases'
 const motorShell = 'urn:fraunhofer:iese:dte:aas:drivemotor-dm3000:001'
 const motorAsset = 'urn:fraunhofer:iese:dte:asset:drivemotor-dm3000:serial-0042'
+/**
+ * A submodel only this file writes to. BaSyx Go shares one ETag per submodel,
+ * so a File write in the edge-case submodel, which other test files change
+ * at the same time, could lose every attempt to their writes.
+ */
+const attachmentSubmodel = 'urn:studio:test:sm:attachment-writes'
+const encode = (id: string) => Buffer.from(id).toString('base64url')
 
 /** The open target as an AAS environment, with the profiles its `/description` announces now. */
 async function environmentRecord (): Promise<InfrastructureRecord> {
@@ -35,6 +42,25 @@ describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => 
     policy: policy(openTargetUrl, { maxResponseBytes: 50_000_000 }),
     requestId: 'test-request',
     onUnauthorized: async () => {},
+  })
+
+  beforeAll(async () => {
+    await fetch(`${openTargetUrl}/submodels/${encode(attachmentSubmodel)}`, { method: 'DELETE' })
+    const created = await fetch(`${openTargetUrl}/submodels`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        modelType: 'Submodel',
+        id: attachmentSubmodel,
+        idShort: 'AttachmentWrites',
+        submodelElements: [{ modelType: 'File', idShort: 'Notes', contentType: 'text/plain' }],
+      }),
+    })
+    expect(created.status).toBe(201)
+  })
+
+  afterAll(async () => {
+    await fetch(`${openTargetUrl}/submodels/${encode(attachmentSubmodel)}`, { method: 'DELETE' })
   })
 
   it('offers history and the event feed as announced, and no sharing without ReBAC', () => {
@@ -73,12 +99,12 @@ describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => 
 
   it('replaces a File content based on the revision and serves it back', async () => {
     const live = target()
-    const { revision } = await live.element(edgeSubmodel, 'Manual')
-    const snapshot = await live.replaceAttachment(edgeSubmodel, 'Manual', { bytes: new TextEncoder().encode('studio test'), contentType: 'text/plain', fileName: 'notes.txt' }, revision)
+    const { revision } = await live.element(attachmentSubmodel, 'Notes')
+    const snapshot = await live.replaceAttachment(attachmentSubmodel, 'Notes', { bytes: new TextEncoder().encode('studio test'), contentType: 'text/plain', fileName: 'notes.txt' }, revision)
     expect(snapshot.value).toMatchObject({ contentType: 'text/plain' })
-    const file = await live.attachment(edgeSubmodel, 'Manual')
+    const file = await live.attachment(attachmentSubmodel, 'Notes')
     expect(new TextDecoder().decode(file.bytes)).toBe('studio test')
-    await expect(live.replaceAttachment(edgeSubmodel, 'Manual', { bytes: new Uint8Array([1]), contentType: 'text/plain', fileName: 'x.txt' }, revision))
+    await expect(live.replaceAttachment(attachmentSubmodel, 'Notes', { bytes: new Uint8Array([1]), contentType: 'text/plain', fileName: 'x.txt' }, revision))
       .rejects
       .toMatchObject({ code: 'revision_conflict' })
   })
