@@ -126,7 +126,7 @@
     "open": "Open AASX file",
     "save": "Save",
     "saveAs": "Save as…",
-    "close": "Close",
+    "close": "Close package",
     "closeTitle": "Close {name}?",
     "closeText": "The package has unsaved changes. They are lost if you close it now.",
     "closeWithoutSaving": "Close without saving",

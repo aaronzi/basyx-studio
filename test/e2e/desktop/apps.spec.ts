@@ -32,9 +32,12 @@ async function install (file: string | { name: string, mimeType: string, buffer:
   await expect(window.getByText(`Installed ${title}`)).toBeVisible()
 }
 
+/** App modules are entries of the navigation rail (MVP-4 layout). */
 async function openModule (title: string) {
-  await window.getByRole('button', { name: 'App modules' }).click()
-  await window.getByText(title, { exact: true }).click()
+  await window.getByRole('link', { name: title }).click()
+  // The overview's frames are gone once the module's route is shown.
+  await expect(window).toHaveURL(/\/apps\//)
+  await expect(window.locator('iframe[sandbox="allow-scripts"]')).toHaveCount(1)
 }
 
 test('runs installed apps on a local package', async () => {

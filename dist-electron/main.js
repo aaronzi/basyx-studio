@@ -139,6 +139,10 @@ async function I(e, t) {
 	let r = new c({
 		show: !1,
 		title: "BaSyx Studio",
+		width: 1440,
+		height: 900,
+		minWidth: 1024,
+		minHeight: 640,
 		webPreferences: {
 			contextIsolation: !0,
 			nodeIntegration: !1,
