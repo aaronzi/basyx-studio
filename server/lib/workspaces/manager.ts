@@ -76,7 +76,15 @@ class WorkspaceAasTarget implements AasTarget {
     this.#call('replaceAttachment', submodelId, idShortPath, file, revision)
 
   conceptDescriptions = (limit: number, cursor: string | undefined) => this.#call('conceptDescriptions', limit, cursor)
-  search = (text: string, limit: number) => this.#call('search', text, limit)
+  /** Workspaces have no query endpoint; raw queries are not offered (`search: expression`). */
+  searchShells: AasTarget['searchShells'] = async (search, limit, cursor) => {
+    if (!('expression' in search)) {
+      throw new StudioProblem('query_unsupported', 'AASX packages are searched with the search field only.')
+    }
+    return { ...await this.#call('searchShells', search.expression, limit, cursor), endpoint: 'workspace' }
+  }
+
+  searchElements = (text: string, limit: number) => this.#call('searchElements', text, limit)
   effectiveRights = async () => allRights
 
   #call<M extends WorkspaceMethod> (method: M, ...args: Parameters<WorkspaceCalls[M]>): Promise<Awaited<ReturnType<WorkspaceCalls[M]>>> {

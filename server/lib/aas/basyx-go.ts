@@ -17,29 +17,6 @@ function langStrings (value: unknown): LangString[] {
     .map(entry => ({ language: entry.language as string, text: entry.text as string }))
 }
 
-/** An AAS Query Language condition: one field contains the text (case-sensitive on the server). */
-function contains (field: string, text: string): JsonObject {
-  return { $contains: [{ $field: field }, { $strVal: text }] }
-}
-
-/** Shells whose idShort, ID or global asset ID contains the text. */
-export function shellQuery (text: string): JsonObject {
-  return {
-    $condition: {
-      $or: [
-        contains('$aas#idShort', text),
-        contains('$aas#id', text),
-        contains('$aas#assetInformation.globalAssetId', text),
-      ],
-    },
-  }
-}
-
-/** Submodels with an element whose idShort contains the text (AAS environments only). */
-export function elementQuery (text: string): JsonObject {
-  return { $condition: contains('$sme#idShort', text) }
-}
-
 /** The value of the `assetIds` query parameter of the discovery lookup. */
 export function assetIdParameter (name: string, value: string): string {
   return encodeKey(JSON.stringify({ name, value }))

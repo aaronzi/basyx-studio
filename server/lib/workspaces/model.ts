@@ -1,7 +1,8 @@
-import type { ConceptDescriptionSummary, ElementValueInput, Page, SearchResult, ShellSummary } from '#shared/contract'
+import type { ConceptDescriptionSummary, ElementHit, ElementValueInput, Page, ShellSummary } from '#shared/contract'
 import type { LocatorStep } from '../aas/keys'
 import type { JsonObject } from '../aas/outline'
 import type { BinaryContent, ElementSnapshot } from '../targets/aas-target'
+import { matchesShell, parseSearch } from '#shared/search/expression'
 import { toConceptDescriptionSummary } from '../aas/basyx-go'
 import { parseLocator } from '../aas/keys'
 import { submodelIdOf, toShellSummary } from '../aas/shells'
@@ -182,18 +183,21 @@ export class WorkspaceModel {
     return { items: page.items.map(cd => toConceptDescriptionSummary(cd)), page: page.page }
   }
 
-  /** Case-insensitive search in shell names and identifiers and in element idShorts. */
-  search (text: string, limit: number): SearchResult {
-    const needle = text.toLowerCase()
-    const shells = objects(this.environment.assetAdministrationShells)
-    const matches = (value: unknown) => typeof value === 'string' && value.toLowerCase().includes(needle)
-    const shellHits = shells
-      .filter(shell => matches(shell.idShort) || matches(shell.id) || matches((shell.assetInformation as JsonObject | undefined)?.globalAssetId))
-      .slice(0, limit)
-      .map(shell => toShellSummary(shell))
+  /**
+   * Shells matching a search field expression, evaluated here with the same
+   * semantics as the query Studio builds for live targets (MVP-4 plan, S2).
+   */
+  searchShells (expression: string, limit: number, cursor: string | undefined): Page<ShellSummary> {
+    const parsed = parseSearch(expression)
+    const matches = objects(this.environment.assetAdministrationShells).filter(shell => matchesShell(shell, parsed))
+    const page = paged(matches, limit, cursor)
+    return { items: page.items.map(shell => toShellSummary(shell)), page: page.page }
+  }
 
+  /** Submodel elements whose idShort contains a text (case-insensitive), with the shell that references them. */
+  searchElements (text: string, limit: number): ElementHit[] {
     const owner = new Map<string, { key: string, label: string }>()
-    for (const shell of shells) {
+    for (const shell of objects(this.environment.assetAdministrationShells)) {
       const summary = toShellSummary(shell)
       for (const id of this.submodelIds(summary.id)) {
         if (!owner.has(id)) {
@@ -201,14 +205,14 @@ export class WorkspaceModel {
         }
       }
     }
-    const elements = []
+    const elements: ElementHit[] = []
     for (const submodel of objects(this.environment.submodels)) {
       elements.push(...elementHits(submodel, text, limit - elements.length, owner.get(String(submodel.id)) ?? null))
       if (elements.length >= limit) {
         break
       }
     }
-    return { shells: shellHits, elements }
+    return elements
   }
 
   /** The array holding the addressed element and its position, so it can be replaced. */

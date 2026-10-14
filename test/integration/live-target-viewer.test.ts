@@ -43,15 +43,14 @@ describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => 
   })
 
   it('offers environment-only operations only for an AAS environment', () => {
-    expect(target().capabilities).toMatchObject({ export: true, upload: true, search: 'elements' })
-    expect(target('services').capabilities).toMatchObject({ export: false, upload: false, search: 'shells' })
+    expect(target().capabilities).toMatchObject({ export: true, upload: true, search: 'query', elementSearch: true })
+    expect(target('services').capabilities).toMatchObject({ export: false, upload: false, search: 'filter', elementSearch: false })
   })
 
   it('searches shells and submodel elements', async () => {
-    const result = await target().search('SimpleString', 5)
-    expect(result.elements).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'SimpleString', shellLabel: 'EdgeCasesShell' })]))
-    expect((await target().search('EdgeCases', 5)).shells.map(shell => shell.id)).toContain(edgeShell)
-    expect((await target('services').search('SimpleString', 5)).elements).toEqual([])
+    const elements = await target().searchElements('SimpleString', 5)
+    expect(elements).toEqual(expect.arrayContaining([expect.objectContaining({ label: 'SimpleString', shellLabel: 'EdgeCasesShell' })]))
+    expect((await target().searchShells({ expression: 'EdgeCases' }, 5, undefined)).items.map(shell => shell.id)).toContain(edgeShell)
   })
 
   it('finds a shell by its global asset ID', async () => {

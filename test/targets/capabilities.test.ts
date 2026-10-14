@@ -1,4 +1,4 @@
-import type { EndpointInput, InfrastructureTemplate, SecuritySummary, ServiceProfiles } from '#shared/contract'
+import type { EndpointInput, InfrastructureTemplate, ListSource, SecuritySummary, ServiceProfiles } from '#shared/contract'
 import { describe, expect, it } from 'vitest'
 import { liveCapabilities, workspaceCapabilities } from '~~/server/lib/targets/capabilities'
 import { infrastructureInputSchema, serviceUrl } from '#shared/contract'
@@ -6,11 +6,14 @@ import { infrastructureInputSchema, serviceUrl } from '#shared/contract'
 const history = 'https://admin-shell.io/aas/API/3/2/SubmodelRepositoryServiceSpecification/SSP-007'
 const eventFeed = 'https://basyx.org/aas/API/3/2/EventFeed/1.0'
 const rebac = 'https://basyx.org/aas/API/3/2/RelationshipBasedAccessControl/1.0'
+const registryQuery = 'https://admin-shell.io/aas/API/3/2/AssetAdministrationShellRegistryServiceSpecification/SSP-004'
+const repositoryQuery = 'https://admin-shell.io/aas/API/3/2/AssetAdministrationShellRepositoryServiceSpecification/SSP-003'
+const submodelQuery = 'https://basyx.org/aas/API/3/2/SubmodelRepositoryService/1.0'
 
 const unsecured: SecuritySummary = { mode: 'unsecured' }
 
-function infrastructure (template: InfrastructureTemplate, endpoints: EndpointInput[], serviceProfiles: ServiceProfiles = {}, security = unsecured) {
-  return { template, endpoints, serviceProfiles, security }
+function infrastructure (template: InfrastructureTemplate, endpoints: EndpointInput[], serviceProfiles: ServiceProfiles = {}, security = unsecured, listSource: ListSource = 'repository') {
+  return { template, endpoints, serviceProfiles, security, listSource }
 }
 
 const environment = infrastructure('mono-all', [{ type: 'aasEnvironment', url: 'http://env/' }])
@@ -52,8 +55,23 @@ describe('infrastructure templates', () => {
 
 describe('target capabilities', () => {
   it('derives environment operations and services from the configuration', () => {
-    expect(liveCapabilities(separate)).toMatchObject({ export: false, upload: false, search: 'shells', conceptDescriptions: false, discovery: false })
-    expect(liveCapabilities(environment)).toMatchObject({ export: true, upload: true, search: 'elements', conceptDescriptions: true, discovery: true })
+    expect(liveCapabilities(separate)).toMatchObject({ export: false, upload: false, search: 'filter', conceptDescriptions: false, discovery: false })
+    expect(liveCapabilities(environment)).toMatchObject({ export: true, upload: true, search: 'filter', conceptDescriptions: true, discovery: true })
+  })
+
+  it('searches where a query profile is announced, preferring the list source', () => {
+    const all = [registryQuery, repositoryQuery, submodelQuery]
+    expect(liveCapabilities(infrastructure('mono-all', environment.endpoints, { aasEnvironment: all })))
+      .toMatchObject({ search: 'query', queryTarget: 'repository', elementSearch: true })
+    const profiles = { aasRegistry: [registryQuery], aasRepository: [repositoryQuery] }
+    expect(liveCapabilities(infrastructure('full', separate.endpoints, profiles, unsecured, 'registry')))
+      .toMatchObject({ search: 'query', queryTarget: 'registry', elementSearch: false, listSource: 'registry' })
+    // Without a query profile on the list source, the other AAS service answers.
+    expect(liveCapabilities(infrastructure('full', separate.endpoints, { aasRepository: [repositoryQuery] }, unsecured, 'registry')))
+      .toMatchObject({ queryTarget: 'repository' })
+    // BaSyx profiles before 3.2 do not include queries.
+    expect(liveCapabilities(infrastructure('full', separate.endpoints, { aasRepository: ['https://basyx.org/aas/API/3/1/AssetAdministrationShellRepositoryServiceSpecification/SSP-001'] })))
+      .toMatchObject({ search: 'filter', queryTarget: null })
   })
 
   it('offers history, the change feed and sharing only where the services announce them', () => {

@@ -5,12 +5,14 @@ import type {
   ConceptDescriptionSummary,
   ConcurrencyMode,
   EffectiveRights,
+  ElementHit,
   ElementValueInput,
   ExportFormat,
   InvitationResult,
   Invocation,
   Page,
-  SearchResult,
+  ShellSearch,
+  ShellSearchPage,
   ShellSummary,
   TargetCapabilities,
 } from '#shared/contract'
@@ -73,7 +75,10 @@ export interface AasTarget {
   invoke: (submodelId: string, idShortPath: string, args: Array<{ idShort: string, value: string | null }>, async: boolean) => Promise<Invocation>
   invocation: (submodelId: string, idShortPath: string, handle: string) => Promise<Invocation>
   conceptDescriptions: (limit: number, cursor: string | undefined) => Promise<Page<ConceptDescriptionSummary>>
-  search: (text: string, limit: number) => Promise<SearchResult>
+  /** Shells matching the search field's expression or a raw query (MVP-4 plan, S2). */
+  searchShells: (search: ShellSearch, limit: number, cursor: string | undefined) => Promise<ShellSearchPage>
+  /** Submodel elements whose idShort matches a text, with the shell they belong to where it is known. */
+  searchElements: (text: string, limit: number) => Promise<ElementHit[]>
   lookupShells: (assetId: string) => Promise<ShellSummary[]>
   exportShell: (shellId: string, format: ExportFormat) => Promise<BinaryContent>
   /** Adds an already validated AASX, JSON or XML environment. */

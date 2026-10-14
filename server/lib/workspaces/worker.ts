@@ -20,7 +20,7 @@ interface OpenWorkspace {
 
 const callable = new Set<string>([
   'listShells', 'shell', 'submodelIds', 'submodelMetadata', 'submodel', 'element', 'setElementValue',
-  'deleteShell', 'thumbnail', 'attachment', 'replaceAttachment', 'conceptDescriptions', 'search',
+  'deleteShell', 'thumbnail', 'attachment', 'replaceAttachment', 'conceptDescriptions', 'searchShells', 'searchElements',
 ])
 
 /** Largest file a user may add to a package through Studio. */

@@ -28,6 +28,9 @@ export const problemCodes = [
   'target_unreachable',
   'target_blocked',
   'descriptor_endpoint_blocked',
+  // Search
+  'query_invalid',
+  'query_unsupported',
   'target_error',
   'target_invalid_response',
   // Desktop workspaces

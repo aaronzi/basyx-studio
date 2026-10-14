@@ -51,9 +51,9 @@ describe('workspace model operations', () => {
 
   it('searches shells and elements locally and pages concept descriptions', () => {
     const model = new WorkspaceModel(fixture())
-    const result = model.search('edge', 5)
-    expect(result.shells.map(shell => shell.idShort)).toEqual(['EdgeCasesShell'])
-    const elements = model.search('simplestring', 5).elements
+    expect(model.searchShells('edge', 5, undefined).items.map(shell => shell.idShort)).toEqual(['EdgeCasesShell'])
+    expect(model.searchShells('edge assetKind=Type', 5, undefined).items).toEqual([])
+    const elements = model.searchElements('simplestring', 5)
     expect(elements[0]).toMatchObject({ label: 'SimpleString', shellLabel: 'EdgeCasesShell', submodelLabel: 'EdgeCases' })
 
     const first = model.conceptDescriptions(1, undefined)

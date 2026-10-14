@@ -6,13 +6,14 @@ import type {
   ConceptDescriptionSummary,
   EffectiveRights,
   ElementHit,
+
   ElementValueInput,
-  EndpointType,
   ExportFormat,
   InvitationResult,
   Invocation,
   Page,
-  SearchResult,
+  ShellSearch,
+  ShellSearchPage,
   ShellSummary,
   TargetCapabilities,
 } from '#shared/contract'
@@ -25,24 +26,25 @@ import type { Configuration } from 'basyx-typescript-sdk'
 import { jsonization } from '@aas-core-works/aas-core3.1-typescript'
 import { AasDiscoveryClient, AasRegistryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, Lib, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
 import { serviceUrl } from '#shared/contract'
+import { buildShellQuery, escapeRegex, parseSearch } from '#shared/search/expression'
 import {
-  elementQuery,
   handleFromLocation,
   invocationBody,
   invocationOutputs,
-  shellQuery,
   subjectFilter,
   toAccessGrants,
   toChangeEvent,
   toConceptDescriptionSummary,
   toEffectiveRights,
 } from '../aas/basyx-go'
+import { checkRawQuery, toSdkQuery } from '../aas/query'
 import { descriptorSummary, submodelIdOf, toShellSummary } from '../aas/shells'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
 import { liveCapabilities } from './capabilities'
 import { encodeIdentifier, TargetHttp } from './http'
+import { announcedFeatures } from './profiles'
 import { EndpointResolver } from './resolution'
 import { contentHash, parseRevision, revisionOf } from './revision'
 
@@ -78,11 +80,6 @@ function toJson (value: types.Class): JsonObject {
 
 function path (idShortPath: string): string {
   return encodeURIComponent(idShortPath)
-}
-
-function isUnsupported (error: unknown): boolean {
-  return error instanceof StudioProblem
-    && ['target_request_rejected', 'target_resource_not_found', 'unsupported_operation'].includes(error.code)
 }
 
 /** Maps a value-only operation result to Studio's invocation state. */
@@ -299,40 +296,62 @@ export class LiveAasTarget implements AasTarget {
   }
 
   /**
-   * Shells by idShort, ID or global asset ID through the AAS Query Language.
-   * AAS environments also find submodel elements by idShort. A target without
-   * query support yields no results instead of an error.
+   * Shells matching a search, through the AAS Query Language on the service
+   * the capabilities name (`queryTarget`): an expression of the search field
+   * is turned into a query for that service, a raw query is checked first.
+   * An empty expression lists the shells.
    */
-  async search (text: string, limit: number): Promise<SearchResult> {
-    const query = (type: EndpointType, resource: string, body: JsonObject, size: number) =>
-      this.#http.json<{ result?: JsonObject[] }>(type, `/query/${resource}`, { method: 'POST', query: { limit: size }, body })
-        .then(page => page.result ?? [], error => {
-          if (isUnsupported(error)) {
-            return []
-          }
-          throw error
-        })
-
-    const [shells, elementShells, submodels] = await Promise.all([
-      query('aasRepository', 'shells', shellQuery(text), limit),
-      this.capabilities.search === 'elements' ? query('aasEnvironment', 'shells', elementQuery(text), 50) : Promise.resolve([]),
-      this.capabilities.search === 'elements' ? query('aasEnvironment', 'submodels', elementQuery(text), limit) : Promise.resolve([]),
-    ])
-
-    const owner = new Map<string, { key: string, label: string }>()
-    for (const shell of elementShells) {
-      const summary = toShellSummary(shell)
-      for (const reference of Array.isArray(shell.submodels) ? shell.submodels as JsonObject[] : []) {
-        const id = submodelIdOf(reference)
-        if (id && !owner.has(id)) {
-          owner.set(id, { key: summary.key, label: summary.idShort ?? summary.id })
-        }
-      }
+  async searchShells (search: ShellSearch, limit: number, cursor: string | undefined): Promise<ShellSearchPage> {
+    const target = this.capabilities.queryTarget
+    if (!target) {
+      throw new StudioProblem('query_unsupported')
     }
-    const elements: ElementHit[] = submodels
-      .flatMap(submodel => elementHits(submodel, text, limit, owner.get(String(submodel.id)) ?? null))
+    const json = 'query' in search ? checkRawQuery(search.query, target) : buildShellQuery(target, parseSearch(search.expression))
+    if (!json) {
+      return { ...await this.listShells(limit, cursor), endpoint: target }
+    }
+    const query = toSdkQuery(json)
+    const items: ShellSummary[] = []
+    let nextCursor: string | null
+    if (target === 'registry') {
+      const data = await this.#call('aasRegistry', configuration =>
+        this.#registryClient.queryAssetAdministrationShellDescriptors({ configuration, query, limit, cursor }))
+      if (data.resultType !== 'Identifier') {
+        items.push(...data.result.map(descriptor => descriptorSummary(Lib.toJsonableAssetAdministrationShellDescriptor(descriptor) as JsonObject)))
+      }
+      nextCursor = data.pagedResult?.cursor ?? null
+    } else {
+      const data = await this.#call('aasRepository', configuration =>
+        this.#aasClient.queryAssetAdministrationShells({ configuration, query, limit, cursor }))
+      if (data.resultType !== 'Identifier') {
+        items.push(...data.result.map(shell => toShellSummary(toJson(shell))))
+      }
+      nextCursor = data.pagedResult?.cursor ?? null
+    }
+    return { items, page: { nextCursor, hasMore: nextCursor !== null }, endpoint: target }
+  }
+
+  /**
+   * Submodel elements whose idShort matches a text (case-insensitive), for
+   * the palette. The submodel repository finds the submodels; where the AAS
+   * repository can query, it names the shells they belong to, so the hits can
+   * be opened.
+   */
+  async searchElements (text: string, limit: number): Promise<ElementHit[]> {
+    if (!this.capabilities.elementSearch) {
+      throw new StudioProblem('query_unsupported')
+    }
+    const pattern = `(?i)${escapeRegex(text)}`
+    const data = await this.#call('submodelRepository', configuration => this.#submodelClient.querySubmodels({
+      configuration,
+      query: toSdkQuery({ $condition: { $match: [{ $regex: [{ $field: '$sme#idShort' }, { $strVal: pattern }] }] } }),
+      limit,
+    }))
+    const submodels = data.resultType === 'Identifier' ? [] : data.result.map(submodel => toJson(submodel))
+    const owners = await this.#owners(submodels.map(submodel => String(submodel.id)))
+    return submodels
+      .flatMap(submodel => elementHits(submodel, text, limit, owners.get(String(submodel.id)) ?? null))
       .slice(0, limit * 2)
-    return { shells: shells.map(shell => toShellSummary(shell)), elements }
   }
 
   /**
@@ -347,17 +366,15 @@ export class LiveAasTarget implements AasTarget {
       ids = data.result
     }
     if (ids.length === 0) {
-      const matches = await this.#http.json<{ result?: JsonObject[] }>('aasRepository', '/query/shells', {
-        method: 'POST',
-        query: { limit: 20 },
-        body: { $condition: { $eq: [{ $field: '$aas#assetInformation.globalAssetId' }, { $strVal: assetId }] } },
-      }).then(page => page.result ?? [], error => {
-        if (isUnsupported(error)) {
-          return []
-        }
-        throw error
-      })
-      return matches.map(shell => toShellSummary(shell))
+      if (!announcedFeatures(this.#record).query.aasRepository) {
+        return []
+      }
+      const data = await this.#call('aasRepository', configuration => this.#aasClient.queryAssetAdministrationShells({
+        configuration,
+        query: toSdkQuery({ $condition: { $eq: [{ $field: '$aas#assetInformation.globalAssetId' }, { $strVal: assetId }] } }),
+        limit: 20,
+      }))
+      return data.resultType === 'Identifier' ? [] : data.result.map(shell => toShellSummary(toJson(shell)))
     }
     const shells = await Promise.allSettled(ids.map(id => this.shell(id)))
     return shells.filter(result => result.status === 'fulfilled').map(result => toShellSummary(result.value))
@@ -471,6 +488,30 @@ export class LiveAasTarget implements AasTarget {
   async acceptInvitation (token: string): Promise<void> {
     const response = await this.#http.request('aasRepository', '/security/rebac/invitations/accept', { method: 'POST', body: { token } })
     await response.body?.cancel()
+  }
+
+  /** The shells that reference the submodels, if the AAS repository can query. */
+  async #owners (submodelIds: string[]): Promise<Map<string, { key: string, label: string }>> {
+    const owners = new Map<string, { key: string, label: string }>()
+    if (submodelIds.length === 0 || !announcedFeatures(this.#record).query.aasRepository) {
+      return owners
+    }
+    const references = submodelIds.map(id => ({ $eq: [{ $field: '$aas#submodels[].keys[].value' }, { $strVal: id }] }))
+    const data = await this.#call('aasRepository', configuration => this.#aasClient.queryAssetAdministrationShells({
+      configuration,
+      query: toSdkQuery({ $condition: references.length === 1 ? references[0]! : { $or: references } }),
+      limit: 100,
+    }))
+    for (const shell of data.resultType === 'Identifier' ? [] : data.result.map(item => toJson(item))) {
+      const summary = toShellSummary(shell)
+      for (const reference of Array.isArray(shell.submodels) ? shell.submodels as JsonObject[] : []) {
+        const id = submodelIdOf(reference)
+        if (id && !owners.has(id)) {
+          owners.set(id, { key: summary.key, label: summary.idShort ?? summary.id })
+        }
+      }
+    }
+    return owners
   }
 
   async #operation (submodelId: string, idShortPath: string): Promise<JsonObject> {

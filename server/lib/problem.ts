@@ -27,6 +27,8 @@ const definitions: Record<ProblemCode, ProblemDefinition> = {
   target_unreachable: { status: 502, title: 'The target could not be reached', retryable: true },
   target_blocked: { status: 502, title: 'The request was blocked by the network policy', retryable: false },
   descriptor_endpoint_blocked: { status: 502, title: 'The registry points to an endpoint outside this infrastructure', retryable: false },
+  query_invalid: { status: 422, title: 'The query is not valid', retryable: false },
+  query_unsupported: { status: 422, title: 'This target cannot run queries', retryable: false },
   target_error: { status: 502, title: 'The target reported an error', retryable: true },
   target_invalid_response: { status: 502, title: 'The target returned an invalid response', retryable: false },
   workspace_unsaved_changes: { status: 409, title: 'The workspace has unsaved changes', retryable: false },

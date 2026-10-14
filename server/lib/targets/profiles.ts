@@ -9,6 +9,22 @@ import { templateRules } from '#shared/contract'
 const submodelHistory = /^https:\/\/admin-shell\.io\/aas\/API\/3\/\d+\/SubmodelRepositoryServiceSpecification\/SSP-007$/
 /** The BaSyx Event Feed (`/events`), until the AAS API publishes event profiles. */
 const eventFeed = /^https:\/\/basyx\.org\/aas\/API\/3\/\d+\/EventFeed\/1\.\d+$/
+/**
+ * Query operations (IDTA-01002-3: AAS Registry SSP-004, AAS Repository
+ * SSP-003, Submodel Repository SSP-005), or the BaSyx profiles of version 3.2
+ * and later that include them, as the BaSyx AAS Web UI detects them.
+ */
+const queryProfiles = {
+  aasRegistry: [/^https:\/\/admin-shell\.io\/aas\/API\/3\/\d+\/AssetAdministrationShellRegistryServiceSpecification\/SSP-004$/, basyxQuery('AssetAdministrationShellRegistryServiceSpecification')],
+  aasRepository: [/^https:\/\/admin-shell\.io\/aas\/API\/3\/\d+\/AssetAdministrationShellRepositoryServiceSpecification\/SSP-003$/, basyxQuery('AssetAdministrationShellRepositoryServiceSpecification')],
+  submodelRepository: [/^https:\/\/admin-shell\.io\/aas\/API\/3\/\d+\/SubmodelRepositoryServiceSpecification\/SSP-005$/, basyxQuery('SubmodelRepositoryService')],
+} as const
+
+function basyxQuery (service: string): RegExp {
+  // 3.2 and later: minor 2-9 of major 3, or a later major.
+  return new RegExp(String.raw`^https:\/\/basyx\.org\/aas\/API\/(?:3\/(?:[2-9]|\d{2,})|[4-9]\/\d+)\/${service}\/`)
+}
+
 /** BaSyx relationship-based access control (`$access`). */
 const rebac = /^https:\/\/basyx\.org\/aas\/API\/3\/\d+\/RelationshipBasedAccessControl\/1\.\d+$/
 
@@ -27,9 +43,9 @@ function servingEndpoint (infrastructure: ProfiledInfrastructure, type: ServiceT
   return environment && templateRules[infrastructure.template].environmentServes.includes(type) ? 'aasEnvironment' : null
 }
 
-function announces (infrastructure: ProfiledInfrastructure, type: ServiceType, profile: RegExp): boolean {
+function announces (infrastructure: ProfiledInfrastructure, type: ServiceType, ...profiles: RegExp[]): boolean {
   const endpoint = servingEndpoint(infrastructure, type)
-  return endpoint !== null && (infrastructure.serviceProfiles[endpoint] ?? []).some(entry => profile.test(entry))
+  return endpoint !== null && (infrastructure.serviceProfiles[endpoint] ?? []).some(entry => profiles.some(profile => profile.test(entry)))
 }
 
 export interface AnnouncedFeatures {
@@ -39,6 +55,8 @@ export interface AnnouncedFeatures {
   changeFeed: boolean
   /** Access to shells can be granted (ReBAC). */
   rebac: boolean
+  /** Query endpoints of the services. */
+  query: { aasRegistry: boolean, aasRepository: boolean, submodelRepository: boolean }
 }
 
 export function announcedFeatures (infrastructure: ProfiledInfrastructure): AnnouncedFeatures {
@@ -46,5 +64,10 @@ export function announcedFeatures (infrastructure: ProfiledInfrastructure): Anno
     history: announces(infrastructure, 'submodelRepository', submodelHistory),
     changeFeed: announces(infrastructure, 'aasRepository', eventFeed) || announces(infrastructure, 'submodelRepository', eventFeed),
     rebac: announces(infrastructure, 'aasRepository', rebac),
+    query: {
+      aasRegistry: announces(infrastructure, 'aasRegistry', ...queryProfiles.aasRegistry),
+      aasRepository: announces(infrastructure, 'aasRepository', ...queryProfiles.aasRepository),
+      submodelRepository: announces(infrastructure, 'submodelRepository', ...queryProfiles.submodelRepository),
+    },
   }
 }

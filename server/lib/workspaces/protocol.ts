@@ -1,4 +1,4 @@
-import type { ConceptDescriptionSummary, ElementValueInput, Page, SearchResult, ShellSummary } from '#shared/contract'
+import type { ConceptDescriptionSummary, ElementHit, ElementValueInput, Page, ShellSummary } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
 import type { Violation } from '../problem'
 import type { BinaryContent, ElementSnapshot } from '../targets/aas-target'
@@ -28,7 +28,8 @@ export interface WorkspaceCalls {
   attachment: (submodelId: string, idShortPath: string) => Promise<BinaryContent>
   replaceAttachment: (submodelId: string, idShortPath: string, file: BinaryContent, revision: string) => Promise<ElementSnapshot>
   conceptDescriptions: (limit: number, cursor: string | undefined) => Page<ConceptDescriptionSummary>
-  search: (text: string, limit: number) => SearchResult
+  searchShells: (expression: string, limit: number, cursor: string | undefined) => Page<ShellSummary>
+  searchElements: (text: string, limit: number) => ElementHit[]
 }
 export type WorkspaceMethod = keyof WorkspaceCalls
 

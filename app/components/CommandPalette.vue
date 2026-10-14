@@ -78,7 +78,8 @@
 </template>
 
 <script lang="ts" setup>
-  import type { SearchResult, ShellSummary } from '#shared/contract'
+  import type { ElementHit, ElementSearchResult, Page, ShellSearchPage, ShellSummary } from '#shared/contract'
+  import { useQueryCache } from '@pinia/colada'
   import { useDisplay, useTheme } from 'vuetify'
   import { decodeResourceKey, langText, modelTypeIcon } from '~/utils/aas'
 
@@ -108,11 +109,24 @@
   const cursor = ref(0)
   const searching = ref(false)
   const error = ref<unknown>(null)
-  const found = ref<SearchResult>({ shells: [], elements: [] })
+  const found = ref<{ shells: ShellSummary[], elements: ElementHit[] }>({ shells: [], elements: [] })
   const lookedUp = ref<ShellSummary[] | null>(null)
+  const queryCache = useQueryCache()
 
   const trimmed = computed(() => query.value.trim())
   const looksLikeAssetId = computed(() => /[:/]/.test(trimmed.value))
+
+  function shellTitle (shell: ShellSummary): string {
+    return langText(shell.displayName) ?? shell.idShort ?? shell.id
+  }
+
+  // The pages the shell list has loaded (ShellListDrawer's query).
+  const loadedShells = computed(() => {
+    const data = props.targetId
+      ? queryCache.getQueryData<{ pages: Page<ShellSummary>[] }>(['targets', props.targetId, 'shells'])
+      : undefined
+    return data?.pages.flatMap(page => page.items) ?? []
+  })
 
   function openShell (shellKey: string, location: Record<string, string> = {}) {
     void router.push({ path: `/targets/${props.targetId}/shells/${shellKey}`, query: location })
@@ -173,10 +187,16 @@
         run: () => openShell(entry.key),
       })))
     }
-    const shells = found.value.shells.map(shell => ({
+    // Shells of the list that match by display name, which the server search
+    // does not cover, or by any field when the target cannot search.
+    const loaded = needle.length < 2
+      ? []
+      : loadedShells.value.filter(shell => [shellTitle(shell), shell.idShort, shell.id, shell.globalAssetId].some(value => value?.toLowerCase().includes(needle)))
+    const keys = new Set(found.value.shells.map(shell => shell.key))
+    const shells = [...found.value.shells, ...loaded.filter(shell => !keys.has(shell.key))].slice(0, 8).map(shell => ({
       key: `shell:${shell.key}`,
       group: t('palette.groups.shells'),
-      title: langText(shell.displayName) ?? shell.idShort ?? shell.id,
+      title: shellTitle(shell),
       subtitle: shell.id,
       icon: shell.assetKind === 'Type' ? 'mdi-shape-outline' : 'mdi-cube-outline',
       run: () => openShell(shell.key),
@@ -208,10 +228,17 @@
     const signal = controller.signal
     searching.value = true
     error.value = null
+    const capabilities = target.data.value?.capabilities
+    const searches = (scope: 'shells' | 'elements', enabled: boolean) => enabled
+      ? api<ShellSearchPage | ElementSearchResult>(`/targets/${props.targetId}/searches`, { method: 'POST', body: { scope, expression: text, limit: 6 }, signal })
+      : Promise.resolve({ items: [] })
     try {
-      const result = await api<SearchResult>(`/targets/${props.targetId}/search`, { query: { q: text, limit: 6 }, signal })
+      const [shells, elements] = await Promise.all([
+        searches('shells', capabilities !== undefined && capabilities.search !== 'filter'),
+        searches('elements', capabilities?.elementSearch ?? false),
+      ])
       if (!signal.aborted) {
-        found.value = result
+        found.value = { shells: shells.items as ShellSummary[], elements: elements.items as ElementHit[] }
       }
     } catch (error_) {
       if (!signal.aborted) {

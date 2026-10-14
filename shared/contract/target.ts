@@ -8,7 +8,12 @@ export type AuthenticationState = z.infer<typeof authenticationStateSchema>
 export const targetKinds = ['live', 'workspace'] as const
 export type TargetKind = (typeof targetKinds)[number]
 
-export const searchScopes = ['none', 'shells', 'elements'] as const
+/**
+ * How shells are searched (MVP-4 plan, S2): `query` on the server with the
+ * AAS Query Language, `expression` evaluated by Studio (workspaces), or
+ * `filter` over the loaded list only.
+ */
+export const searchModes = ['query', 'expression', 'filter'] as const
 
 /**
  * What a target supports. Feature code branches on capabilities, never on
@@ -27,7 +32,11 @@ export const targetCapabilitiesSchema = z.object({
   files: z.boolean(),
   operations: z.boolean(),
   conceptDescriptions: z.boolean(),
-  search: z.enum(searchScopes),
+  search: z.enum(searchModes),
+  /** Where shell queries run (`search: query`); raw queries use that endpoint's roots. */
+  queryTarget: z.enum(['registry', 'repository']).nullable(),
+  /** Submodel elements can be searched (the palette). */
+  elementSearch: z.boolean(),
   /** Find shells by asset ID. */
   discovery: z.boolean(),
   /** Download a shell with its submodels as AASX, JSON or XML. */
@@ -53,7 +62,9 @@ export const noCapabilities: TargetCapabilities = {
   files: false,
   operations: false,
   conceptDescriptions: false,
-  search: 'none',
+  search: 'filter',
+  queryTarget: null,
+  elementSearch: false,
   discovery: false,
   export: false,
   upload: false,
@@ -244,11 +255,6 @@ export const conceptDescriptionSummarySchema = z.object({
 })
 export type ConceptDescriptionSummary = z.infer<typeof conceptDescriptionSummarySchema>
 
-export const searchQuerySchema = z.object({
-  q: z.string().trim().min(2).max(200),
-  limit: z.coerce.number().int().min(1).max(20).default(6),
-})
-
 /** A submodel element that matched a search, with where to find it. */
 export interface ElementHit {
   shellKey: string | null
@@ -261,9 +267,27 @@ export interface ElementHit {
   path: string
 }
 
-export interface SearchResult {
-  shells: ShellSummary[]
-  elements: ElementHit[]
+/** A shell search (MVP-4 plan, S2): the search field's expression, or a raw query from the advanced dialog. */
+export const searchRequestSchema = z.object({
+  scope: z.enum(['shells', 'elements']).default('shells'),
+  expression: z.string().max(2000).optional(),
+  query: z.record(z.string(), z.unknown()).optional(),
+  limit: z.number().int().min(1).max(200).default(50),
+  cursor: z.string().max(4000).optional(),
+})
+  .refine(input => (input.expression === undefined) !== (input.query === undefined), 'give either an expression or a query')
+  .refine(input => input.scope === 'shells' || input.expression !== undefined, 'elements are searched by text')
+export type SearchRequest = z.input<typeof searchRequestSchema>
+
+export type ShellSearch = { expression: string } | { query: Record<string, unknown> }
+
+export interface ShellSearchPage extends Page<ShellSummary> {
+  /** Which service answered: the AAS registry, the AAS repository, or the workspace itself. */
+  endpoint: 'registry' | 'repository' | 'workspace'
+}
+
+export interface ElementSearchResult {
+  items: ElementHit[]
 }
 
 export const lookupQuerySchema = z.object({
