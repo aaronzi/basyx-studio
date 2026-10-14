@@ -1,12 +1,14 @@
-import type { Target, TargetCapabilities } from '#shared/contract'
+import type { Target } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
-import type { AasTarget, ElementSnapshot } from '../targets/aas-target'
+import type { AasTarget, BinaryContent, ElementSnapshot } from '../targets/aas-target'
 import type { WorkspaceWorkerClient } from './client'
 import type { WorkspaceCalls, WorkspaceInfo, WorkspaceMethod } from './protocol'
 import { randomBytes } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute } from 'node:path'
+import { allRights } from '../aas/basyx-go'
 import { StudioProblem } from '../problem'
+import { noDetectedFeatures, workspaceCapabilities } from '../targets/capabilities'
 
 export type FileGrantPurpose = 'open' | 'save'
 
@@ -17,7 +19,10 @@ interface FileGrant {
 }
 
 const grantTtlMs = 5 * 60 * 1000
-const workspaceCapabilities: TargetCapabilities = { write: true, persistence: 'explicit_save' }
+
+function unsupported (): never {
+  throw new StudioProblem('unsupported_operation', 'Local AASX workspaces do not support this operation.')
+}
 
 export function isWorkspaceId (id: string): boolean {
   return /^ws-[\w-]{12}$/.test(id)
@@ -40,6 +45,19 @@ export function toWorkspaceTarget (info: WorkspaceInfo): Target {
 class WorkspaceAasTarget implements AasTarget {
   readonly capabilities = workspaceCapabilities
 
+  // Server-only features (D13); the capabilities say they are absent.
+  invoke = unsupported
+  invocation = unsupported
+  lookupShells = unsupported
+  exportShell = unsupported
+  upload = unsupported
+  submodelAt = unsupported
+  changes = unsupported
+  access = unsupported
+  setAccess = unsupported
+  invite = unsupported
+  acceptInvitation = unsupported
+
   constructor (private readonly client: WorkspaceWorkerClient, private readonly workspaceId: string) {}
 
   listShells = (limit: number, cursor: string | undefined) => this.#call('listShells', limit, cursor)
@@ -51,8 +69,19 @@ class WorkspaceAasTarget implements AasTarget {
   setElementValue: AasTarget['setElementValue'] = (submodelId, idShortPath, value, revision) =>
     this.#call('setElementValue', submodelId, idShortPath, value, revision)
 
-  #call<M extends WorkspaceMethod> (method: M, ...args: Parameters<WorkspaceCalls[M]>): Promise<ReturnType<WorkspaceCalls[M]>> {
-    return this.client.request({ op: 'call', workspaceId: this.workspaceId, method, args }) as Promise<ReturnType<WorkspaceCalls[M]>>
+  detectFeatures = async () => noDetectedFeatures
+  deleteShell = (id: string) => this.#call('deleteShell', id)
+  thumbnail = (shellId: string) => this.#call('thumbnail', shellId)
+  attachment = (submodelId: string, idShortPath: string) => this.#call('attachment', submodelId, idShortPath)
+  replaceAttachment = (submodelId: string, idShortPath: string, file: BinaryContent, revision: string) =>
+    this.#call('replaceAttachment', submodelId, idShortPath, file, revision)
+
+  conceptDescriptions = (limit: number, cursor: string | undefined) => this.#call('conceptDescriptions', limit, cursor)
+  search = (text: string, limit: number) => this.#call('search', text, limit)
+  effectiveRights = async () => allRights
+
+  #call<M extends WorkspaceMethod> (method: M, ...args: Parameters<WorkspaceCalls[M]>): Promise<Awaited<ReturnType<WorkspaceCalls[M]>>> {
+    return this.client.request({ op: 'call', workspaceId: this.workspaceId, method, args }) as Promise<Awaited<ReturnType<WorkspaceCalls[M]>>>
   }
 }
 

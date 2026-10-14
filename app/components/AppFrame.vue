@@ -7,7 +7,8 @@
     <iframe
       v-if="mounted"
       ref="frame"
-      class="flex-grow-1 w-100 border-0 d-block"
+      :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1']"
+      :height="fit ? (height ?? 120) : undefined"
       referrerpolicy="no-referrer"
       sandbox="allow-scripts"
       :src="contribution.entryUrl"
@@ -31,6 +32,8 @@
     shellId?: string | null
     submodel?: { id: string, semanticId: string | null } | null
     subPath?: string
+    /** Size the frame to the app's content (`studio.ui.setHeight`) instead of filling the container. */
+    fit?: boolean
   }>()
   const emit = defineEmits<{ navigate: [subPath: string] }>()
 
@@ -65,7 +68,7 @@
   const mounted = ref(false)
   onMounted(() => (mounted.value = true))
 
-  const { connected, onLoad } = useAppBridge(frame, {
+  const { connected, height, onLoad } = useAppBridge(frame, {
     contribution: () => props.contribution,
     targetId: props.target?.id ?? null,
     context: () => context.value,

@@ -28,3 +28,4 @@ logs
 !.env.example
 
 .pnpm-store
+/server/bundled-apps/*.zip

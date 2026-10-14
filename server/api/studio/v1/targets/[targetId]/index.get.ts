@@ -3,10 +3,11 @@ import { getInfrastructure } from '~~/server/lib/infrastructures'
 import { isWorkspaceId, toWorkspaceTarget } from '~~/server/lib/workspaces/manager'
 import { requireActor } from '~~/server/utils/auth'
 import { requireWorkspaces } from '~~/server/utils/desktop'
-import { defineStudioHandler, routeParam } from '~~/server/utils/handler'
+import { defineStudioHandler, requestIdOf, routeParam } from '~~/server/utils/handler'
 import { useStudio } from '~~/server/utils/studio'
-import { toTarget } from '~~/server/utils/target'
+import { detectedFeatures, toTarget } from '~~/server/utils/target'
 
+/** One target with its capabilities; optional features are detected once authorized. */
 export default defineStudioHandler(async (event): Promise<Target> => {
   const actor = await requireActor(event)
   const studio = await useStudio()
@@ -15,5 +16,9 @@ export default defineStudioHandler(async (event): Promise<Target> => {
     return toWorkspaceTarget(await requireWorkspaces(studio).info(targetId))
   }
   const record = await getInfrastructure(studio, targetId)
-  return toTarget(record, await studio.broker.authenticationState(record, actor.sessionId))
+  const authenticationState = await studio.broker.authenticationState(record, actor.sessionId)
+  const features = authenticationState === 'required'
+    ? null
+    : await detectedFeatures({ actor, targetId, requestId: requestIdOf(event) })
+  return toTarget(record, authenticationState, features)
 })

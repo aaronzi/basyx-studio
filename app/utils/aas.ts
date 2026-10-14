@@ -47,6 +47,16 @@ export function isEditableModelType (modelType: unknown): modelType is EditableM
   return (editableModelTypes as readonly unknown[]).includes(modelType)
 }
 
+/** The resource key (base64url) of an AAS identifier or element path, as the Studio API uses it. */
+export function resourceKey (value: string): string {
+  const bytes = new TextEncoder().encode(value)
+  let binary = ''
+  for (const byte of bytes) {
+    binary += String.fromCodePoint(byte)
+  }
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+}
+
 /** The AAS identifier behind a resource key (base64url), or `null` if malformed. */
 export function decodeResourceKey (key: string): string | null {
   try {

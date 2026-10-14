@@ -115,6 +115,10 @@ export interface Methods {
   'studio.ui.getContext': { params: Record<string, never>, result: AppContext }
   'studio.ui.notify': { params: { message: string, level?: 'info' | 'success' | 'warning' | 'error' }, result: null }
   'studio.ui.navigate': { params: { subPath: string }, result: null }
+  /** Asks Studio to size the frame to the app's content height in CSS pixels (embedded views). */
+  'studio.ui.setHeight': { params: { height: number }, result: null }
+  /** Opens the content of a File element of the active target in a new browser tab (or downloads it). */
+  'studio.ui.openFile': { params: { submodelId: string, idShortPath: string, download?: boolean }, result: null }
   'studio.aas.listShells': { params: { limit?: number, cursor?: string }, result: Page<ShellSummary> }
   'studio.aas.getShell': { params: { shellId: string }, result: JsonObject }
   'studio.aas.listSubmodels': { params: { shellId: string }, result: { items: SubmodelSummary[] } }
@@ -133,6 +137,8 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.getContext': null,
   'studio.ui.notify': 'studio.ui.notifications',
   'studio.ui.navigate': 'studio.ui.navigation',
+  'studio.ui.setHeight': null,
+  'studio.ui.openFile': 'studio.aas.read',
   'studio.aas.listShells': 'studio.aas.read',
   'studio.aas.getShell': 'studio.aas.read',
   'studio.aas.listSubmodels': 'studio.aas.read',

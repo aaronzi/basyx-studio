@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-export const endpointTypes = ['aasRepository', 'submodelRepository', 'conceptDescriptionRepository'] as const
+/**
+ * Service endpoints of an infrastructure. An `aasEnvironment` serves every
+ * repository from one base URL and adds environment-only operations
+ * (serialization, upload, queries across submodel elements); it is the
+ * fallback for every repository type that has no endpoint of its own.
+ */
+export const endpointTypes = ['aasEnvironment', 'aasRepository', 'submodelRepository', 'conceptDescriptionRepository', 'discovery'] as const
 export const endpointTypeSchema = z.enum(endpointTypes)
 export type EndpointType = z.infer<typeof endpointTypeSchema>
 
@@ -82,8 +88,14 @@ export const infrastructureInputSchema = z.object({
     .min(1)
     .max(endpointTypes.length)
     .refine(endpoints => new Set(endpoints.map(endpoint => endpoint.type)).size === endpoints.length, 'each endpoint type may occur only once')
-    .refine(endpoints => endpoints.some(endpoint => endpoint.type === 'aasRepository'), 'an AAS repository endpoint is required')
-    .refine(endpoints => endpoints.some(endpoint => endpoint.type === 'submodelRepository'), 'a submodel repository endpoint is required'),
+    .refine(
+      endpoints => endpoints.some(endpoint => endpoint.type === 'aasEnvironment' || endpoint.type === 'aasRepository'),
+      'an AAS environment or an AAS repository endpoint is required',
+    )
+    .refine(
+      endpoints => endpoints.some(endpoint => endpoint.type === 'aasEnvironment' || endpoint.type === 'submodelRepository'),
+      'an AAS environment or a submodel repository endpoint is required',
+    ),
   security: securityInputSchema,
   /** Permit loopback and private-network addresses; subject to the deployment policy. */
   allowPrivateNetwork: z.boolean().default(false),

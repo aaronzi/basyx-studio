@@ -15,6 +15,13 @@
       "when": 1791539569512,
       "tag": "0001_apps",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791965088019,
+      "tag": "0002_viewer",
+      "breakpoints": true
     }
   ]
 }

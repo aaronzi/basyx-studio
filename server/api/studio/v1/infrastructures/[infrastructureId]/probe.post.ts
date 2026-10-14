@@ -8,5 +8,8 @@ export default defineStudioHandler(async (event): Promise<ProbeResult> => {
   await requireAdmin(event)
   await requireCsrf(event)
   const studio = await useStudio()
-  return probeEndpoints(studio, await getInfrastructure(studio, routeParam(event, 'infrastructureId')))
+  const record = await getInfrastructure(studio, routeParam(event, 'infrastructureId'))
+  // A probe is the admin's way to make Studio look at the server again.
+  studio.features.forget(record.id)
+  return probeEndpoints(studio, record)
 })

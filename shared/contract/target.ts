@@ -8,15 +8,38 @@ export type AuthenticationState = z.infer<typeof authenticationStateSchema>
 export const targetKinds = ['live', 'workspace'] as const
 export type TargetKind = (typeof targetKinds)[number]
 
+export const searchScopes = ['none', 'shells', 'elements'] as const
+
 /**
  * What a target supports. Feature code branches on capabilities, never on
  * the target kind.
  * - `persistence: immediate` writes reach the source on apply (live targets);
  *   `explicit_save` keeps applied changes until the user saves (workspaces).
+ * - `search`: `shells` matches shell fields, `elements` also submodel elements.
+ * - `history`, `changeFeed` and `sharing` are optional BaSyx Go features that
+ *   Studio detects on the target; they are `false` until detected.
  */
 export const targetCapabilitiesSchema = z.object({
   write: z.boolean(),
   persistence: z.enum(['immediate', 'explicit_save']),
+  deleteShells: z.boolean(),
+  /** Read File elements and thumbnails, and replace File contents. */
+  files: z.boolean(),
+  operations: z.boolean(),
+  conceptDescriptions: z.boolean(),
+  search: z.enum(searchScopes),
+  /** Find shells by asset ID. */
+  discovery: z.boolean(),
+  /** Download a shell with its submodels as AASX, JSON or XML. */
+  export: z.boolean(),
+  /** Add the content of an AASX, JSON or XML file. */
+  upload: z.boolean(),
+  /** Read submodels and shells as they were at a point in time. */
+  history: z.boolean(),
+  /** Read the change events of shells, submodels and assets. */
+  changeFeed: z.boolean(),
+  /** Grant other users access to a shell (BaSyx Go ReBAC, as the signed-in user). */
+  sharing: z.boolean(),
 })
 export type TargetCapabilities = z.infer<typeof targetCapabilitiesSchema>
 
@@ -152,3 +175,167 @@ export const listQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   cursor: z.string().max(4000).optional(),
 })
+
+/** A node of a fully loaded submodel tree, with its children. */
+export interface TreeNode extends ElementNode {
+  /** Value type of a Property or Range (`xs:double`, …). */
+  valueType: string | null
+  children?: TreeNode[]
+}
+
+/**
+ * A submodel with all its elements, for client-side filtering and
+ * auto-refresh. `truncated` means the submodel exceeded Studio's size cap and
+ * `root` holds only the top level; the UI then loads levels on demand.
+ */
+export interface SubmodelTree {
+  key: string
+  submodelId: string
+  idShort: string | null
+  semanticId: string | null
+  truncated: boolean
+  root: TreeNode[]
+}
+
+export const submodelTreeQuerySchema = z.object({
+  /** Point in time (ISO 8601) for a historic version; needs the `history` capability. */
+  at: z.iso.datetime({ offset: true }).optional(),
+})
+
+export const conceptDescriptionSummarySchema = z.object({
+  id: z.string(),
+  idShort: z.string().nullable(),
+  preferredName: z.array(langStringSchema),
+  definition: z.array(langStringSchema),
+  dataType: z.string().nullable(),
+  unit: z.string().nullable(),
+})
+export type ConceptDescriptionSummary = z.infer<typeof conceptDescriptionSummarySchema>
+
+export const searchQuerySchema = z.object({
+  q: z.string().trim().min(2).max(200),
+  limit: z.coerce.number().int().min(1).max(20).default(6),
+})
+
+/** A submodel element that matched a search, with where to find it. */
+export interface ElementHit {
+  shellKey: string | null
+  shellLabel: string | null
+  submodelKey: string
+  submodelLabel: string
+  elementKey: string
+  label: string
+  modelType: string
+  path: string
+}
+
+export interface SearchResult {
+  shells: ShellSummary[]
+  elements: ElementHit[]
+}
+
+export const lookupQuerySchema = z.object({
+  assetId: z.string().trim().min(1).max(2000),
+})
+
+export const exportFormats = ['aasx', 'json', 'xml'] as const
+export type ExportFormat = (typeof exportFormats)[number]
+export const exportQuerySchema = z.object({ format: z.enum(exportFormats) })
+
+/** Result of an upload: the shells it added. */
+export interface UploadResult {
+  shells: ShellSummary[]
+}
+
+export const operationArgumentSchema = z.object({
+  idShort: z.string().min(1).max(128),
+  value: z.string().max(100_000).nullable(),
+})
+
+export const invocationInputSchema = z.object({
+  /** Values of the input and in-out variables, as typed by the user. */
+  arguments: z.array(operationArgumentSchema).max(100),
+  async: z.boolean().default(false),
+})
+export type InvocationInput = z.infer<typeof invocationInputSchema>
+
+export interface OperationArgument {
+  idShort: string
+  valueType: string | null
+  value: unknown
+}
+
+export interface Invocation {
+  /** Handle of an asynchronous invocation, to poll its state. */
+  handle: string | null
+  state: 'running' | 'completed' | 'failed'
+  outputs: OperationArgument[]
+  message: string | null
+}
+
+export const changeActions = ['created', 'updated', 'deleted'] as const
+export const changeEntities = ['aas', 'submodel', 'asset'] as const
+
+export interface ChangeEvent {
+  id: string
+  time: string
+  action: (typeof changeActions)[number]
+  entity: (typeof changeEntities)[number]
+  /** The AAS or submodel identifier. */
+  subject: string
+  /** The resource key of the subject, to link to it. */
+  subjectKey: string
+}
+
+export interface ChangePage {
+  items: ChangeEvent[]
+  /** Pass as `after` to read newer events. */
+  lastEventId: string | null
+}
+
+export const changesQuerySchema = z.object({
+  /** Only events newer than this event. */
+  after: z.string().max(200).optional(),
+  /** ISO 8601; ignored with `after`. */
+  since: z.iso.datetime({ offset: true }).optional(),
+  /** Only events about these identifiers (a shell and its submodels). */
+  subjects: z.union([z.string().max(2000), z.array(z.string().max(2000)).max(200)]).optional().transform(value => value === undefined ? undefined : (Array.isArray(value) ? value : [value])),
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+})
+
+/** Relations the share dialog offers; the target defines which it accepts. */
+export const accessRelations = ['viewer', 'editor', 'executor', 'owner'] as const
+const relationSchema = z.string().regex(/^[a-z][\w-]{0,63}$/, 'invalid relation')
+export const accessGrantSchema = z.object({
+  relation: relationSchema,
+  subjectType: z.enum(['user', 'group']),
+  issuer: z.string().min(1).max(2000),
+  subject: z.string().min(1).max(500),
+})
+export type AccessGrant = z.infer<typeof accessGrantSchema>
+
+export const accessGrantsInputSchema = z.object({ grants: z.array(accessGrantSchema).max(500) })
+
+export interface AccessDocument {
+  grants: AccessGrant[]
+  /** Opaque revision; send it back as `If-Match` when replacing the grants. */
+  revision: string | null
+  /** Issuer of the signed-in user, for new grants. */
+  issuer: string | null
+}
+
+export const rightActions = ['read', 'update', 'delete', 'execute', 'manage'] as const
+export type RightAction = (typeof rightActions)[number]
+/** The signed-in user's rights on a shell; every action is `true` without sharing. */
+export type EffectiveRights = Record<RightAction, boolean>
+
+export const invitationInputSchema = z.object({
+  relation: relationSchema,
+  expiresInDays: z.number().int().min(1).max(90).default(7),
+  maxUses: z.number().int().min(1).max(100).default(1),
+})
+
+export interface InvitationResult {
+  token: string
+  expiresAt: string
+}

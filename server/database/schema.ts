@@ -1,4 +1,4 @@
-import type { EndpointInput, SecuritySummary } from '#shared/contract'
+import type { EndpointInput, Preferences, SecuritySummary } from '#shared/contract'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
@@ -93,6 +93,8 @@ export const appInstallations = pgTable('app_installations', {
   /** The validated manifest, as installed. */
   manifest: jsonb('manifest').$type<AppManifest>().notNull(),
   unsigned: boolean('unsigned').notNull(),
+  /** Shipped with Studio and installed at startup (ADR 0021); not uninstallable by users. */
+  bundled: boolean('bundled').notNull().default(false),
   installedBy: text('installed_by').notNull(),
   installedAt: timestamp('installed_at', { withTimezone: true }).notNull().defaultNow(),
 }, table => [uniqueIndex('app_installations_app_id_idx').on(table.appId)])
@@ -110,3 +112,10 @@ export const appFiles = pgTable('app_files', {
   digest: text('digest').notNull().references(() => appBlobs.digest),
   contentType: text('content_type').notNull(),
 }, table => [primaryKey({ columns: [table.installationId, table.path] }), index('app_files_digest_idx').on(table.digest)])
+
+/** Per-user preferences (favorites, recent shells, display settings), keyed by the user's subject. */
+export const userPreferences = pgTable('user_preferences', {
+  subject: text('subject').primaryKey(),
+  preferences: jsonb('preferences').$type<Preferences>().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})

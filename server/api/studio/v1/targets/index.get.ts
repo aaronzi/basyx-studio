@@ -14,7 +14,7 @@ export default defineStudioHandler(async (event): Promise<{ items: Target[] }> =
   return {
     items: [
       ...workspaces.map(info => toWorkspaceTarget(info)),
-      ...await Promise.all(records.map(async record => toTarget(record, await studio.broker.authenticationState(record, actor.sessionId)))),
+      ...await Promise.all(records.map(async record => toTarget(record, await studio.broker.authenticationState(record, actor.sessionId), studio.features.peek(record)))),
     ],
   }
 })

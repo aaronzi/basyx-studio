@@ -35,8 +35,19 @@ export function toInfrastructure (record: InfrastructureRecord): Infrastructure 
   }
 }
 
-export function endpointUrl (record: InfrastructureRecord, type: EndpointType): string | undefined {
-  return record.endpoints.find(endpoint => endpoint.type === type)?.url.replace(/\/+$/, '')
+/**
+ * The base URL for a service type: its own endpoint, else the AAS
+ * environment, which serves every repository and discovery from one URL.
+ */
+export function endpointUrl (record: Pick<InfrastructureRecord, 'endpoints'>, type: EndpointType): string | undefined {
+  const endpoint = record.endpoints.find(entry => entry.type === type)
+    ?? record.endpoints.find(entry => entry.type === 'aasEnvironment')
+  return endpoint?.url.replace(/\/+$/, '')
+}
+
+/** Whether the infrastructure is an AAS environment (serialization, upload, element queries). */
+export function isEnvironment (record: Pick<InfrastructureRecord, 'endpoints'>): boolean {
+  return record.endpoints.some(entry => entry.type === 'aasEnvironment')
 }
 
 /** The outbound policy for requests to a target's own endpoints. */
