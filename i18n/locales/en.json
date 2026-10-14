@@ -557,9 +557,9 @@
     "none": "No changes",
     "noneText": "Events are kept only for the retention period of the infrastructure.",
     "aas": {
-      "created": "Shell created",
-      "updated": "Shell updated",
-      "deleted": "Shell deleted"
+      "created": "Shell {name} created",
+      "updated": "Shell {name} updated",
+      "deleted": "Shell {name} deleted"
     },
     "submodel": {
       "created": "Submodel {name} created",
@@ -570,7 +570,10 @@
       "created": "Asset information created",
       "updated": "Asset information updated",
       "deleted": "Asset information deleted"
-    }
+    },
+    "times": "{count} time | {count} times",
+    "since": "since {time}",
+    "feedLimits": "The infrastructure's event feed names the changed shell or submodel, not the element or who changed it."
   },
   "landing": {
     "subtitle": "AAS infrastructure",

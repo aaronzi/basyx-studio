@@ -24,9 +24,14 @@
 
         <v-spacer />
 
-        <v-chip-group v-if="smAndUp" v-model="source" selected-class="text-primary">
-          <v-chip filter text="ECLASS" value="ECLASS" />
-          <v-chip filter text="IDTA" value="IDTA" />
+        <v-chip-group v-if="smAndUp && sources.length > 0" v-model="source" selected-class="text-primary">
+          <v-chip
+            v-for="entry in sources"
+            :key="entry"
+            filter
+            :text="entry"
+            :value="entry"
+          />
         </v-chip-group>
       </v-toolbar>
 
@@ -107,18 +112,25 @@
   const search = ref<string | null>('')
   const source = ref<string | null>(null)
 
+  // Columns and filters only for what the data has (D18).
+  const sources = computed(() => [...new Set(rows.value.map(row => row.source))].filter(entry => entry !== 'Other').toSorted())
+  const hasUnits = computed(() => items.value.some(cd => cd.unit))
   const headers = computed(() => [
     { title: t('concepts.concept'), key: 'idShort' },
     { title: t('concepts.dataType'), key: 'dataType', width: 160 },
-    { title: t('concepts.unit'), key: 'unit', width: 100 },
-    { title: t('concepts.source'), key: 'source', width: 120 },
+    ...(hasUnits.value ? [{ title: t('concepts.unit'), key: 'unit', width: 100 }] : []),
+    ...(sources.value.length > 0 ? [{ title: t('concepts.source'), key: 'source', width: 120 }] : []),
     { title: '', key: 'actions', sortable: false, align: 'end' as const, width: 64 },
   ])
 
-  // ECLASS IDs start with the IRDI prefix 0173-; IDTA templates live under admin-shell.io.
+  // By IRDI prefix: ECLASS (0173-) and the IEC Common Data Dictionary (0112/);
+  // IDTA templates live under admin-shell.io.
   function sourceOf (id: string): string {
     if (id.startsWith('0173-')) {
       return 'ECLASS'
+    }
+    if (id.startsWith('0112/')) {
+      return 'IEC CDD'
     }
     return id.includes('admin-shell.io') ? 'IDTA' : 'Other'
   }

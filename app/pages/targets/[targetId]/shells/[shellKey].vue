@@ -292,7 +292,13 @@
           </v-tabs-window-item>
 
           <v-tabs-window-item value="changes">
-            <ShellChanges v-if="tab === 'changes'" :refs="submodelRefs" :shell-id="shellId" :target-id="targetId" />
+            <ShellChanges
+              v-if="tab === 'changes'"
+              :refs="submodelRefs"
+              :shell-id="shellId"
+              :shell-label="shellLabel"
+              :target-id="targetId"
+            />
           </v-tabs-window-item>
 
           <v-tabs-window-item value="json">
