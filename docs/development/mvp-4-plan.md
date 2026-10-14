@@ -377,6 +377,13 @@ about 5,000 elements, and `Deep.Level1.Level2.Level3.Leaf`).
 | BaSyx Go, any element or level (`level=core`, from 130 B) | 325–345 ms: the server reads the whole submodel for every element request |
 | Studio level request, list of 1,000 collections (217 KB) | 374 ms, Studio's own share negligible |
 | Rendering tree rows (production build, headless Chromium) | about 2 ms per row: 1,000 rows took 2.0 s, closed groups rendered too |
+| Shell list, 2,000 shells (production build, before) | infinite scroll without virtualization: 34 long tasks over 200 ms while scrolling, the longest 5.6 s; a quick search took 2.1 s |
+| Shell list, 2,000 shells (after) | virtual scroll: 15 rows in the DOM, no long task; first page on screen 102 ms after navigation (list API 12 ms); a quick search 0.79 s including the 300 ms debounce |
+| Expanding the 1,000-entry list (after) | first page of 200 rows in 0.44 s |
+
+DoD 10 holds with these numbers. The shell list became a virtual scroll that
+loads the next page when its last rows come into view, scrolls to the open
+shell, and pins a deep-linked shell that is not loaded yet.
 
 Consequences for T1, without changing its intent:
 

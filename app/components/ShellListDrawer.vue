@@ -1,177 +1,199 @@
 <template>
   <v-navigation-drawer v-model="open" width="340">
-    <v-toolbar color="transparent" density="comfortable">
-      <v-toolbar-title class="text-title-medium font-weight-semibold">
-        {{ t('shells.title') }}
-        <v-chip class="ms-1" :text="hasMore ? `${filtered.length}+` : String(filtered.length)" />
-      </v-toolbar-title>
+    <div class="d-flex flex-column h-100">
+      <v-toolbar class="flex-shrink-0" color="transparent" density="comfortable">
+        <v-toolbar-title class="text-title-medium font-weight-semibold">
+          {{ t('shells.title') }}
+          <v-chip class="ms-1" :text="hasMore ? `${filtered.length}+` : String(filtered.length)" />
+        </v-toolbar-title>
 
-      <v-menu>
-        <template #activator="{ props: activator }">
-          <v-btn
-            v-tooltip="t('shells.sort')"
-            v-bind="activator"
-            :aria-label="t('shells.sort')"
-            class="me-2"
-            icon="mdi-sort"
-            size="small"
-          />
-        </template>
-
-        <v-card>
-          <v-list v-model:selected="sortBy" density="compact" mandatory>
-            <v-list-item prepend-icon="mdi-sort-alphabetical-ascending" :title="t('shells.sortName')" value="name" />
-            <v-list-item prepend-icon="mdi-database-outline" :title="t('shells.sortServer')" value="server" />
-          </v-list>
-        </v-card>
-      </v-menu>
-    </v-toolbar>
-
-    <div class="px-4 pb-2">
-      <v-text-field
-        v-model="search"
-        clearable
-        density="compact"
-        :disabled="rawQuery !== null"
-        :hint="localOnly && search ? t('shells.localOnly') : undefined"
-        persistent-hint
-        :placeholder="t('shells.filter')"
-        prepend-inner-icon="mdi-magnify"
-      >
-        <template #append-inner>
-          <v-menu location="bottom end">
-            <template #activator="{ props: activator }">
-              <v-icon v-bind="activator" :aria-label="t('shells.syntax.title')" icon="mdi-help-circle-outline" size="small" />
-            </template>
-
-            <v-card max-width="320">
-              <v-list density="compact" lines="two">
-                <v-list-subheader :title="t('shells.syntax.title')" />
-
-                <v-list-item
-                  v-for="example in syntaxExamples"
-                  :key="example"
-                  :subtitle="t(`shells.syntax.${example}`)"
-                  :title="syntaxSamples[example]"
-                />
-              </v-list>
-            </v-card>
-          </v-menu>
-        </template>
-
-        <template v-if="queryTarget" #append>
-          <v-btn
-            v-tooltip="t('shells.query.title')"
-            :aria-label="t('shells.query.title')"
-            :color="rawQuery ? 'primary' : undefined"
-            icon="mdi-code-json"
-            size="small"
-            @click="queryDialog = true"
-          />
-        </template>
-      </v-text-field>
-
-      <div v-if="rawQuery || parsed.filters.length > 0" class="d-flex flex-wrap ga-1 mt-2">
-        <v-chip
-          v-if="rawQuery"
-          closable
-          color="primary"
-          prepend-icon="mdi-code-json"
-          :text="t('shells.query.active')"
-          @click="queryDialog = true"
-          @click:close="rawQuery = null"
-        />
-
-        <v-chip
-          v-for="(item, index) in rawQuery ? [] : parsed.filters"
-          :key="`${item.field}:${index}`"
-          closable
-          :color="item.operator === 'not-equals' ? 'error' : undefined"
-          :text="formatFilter(item)"
-          @click:close="search = withoutFilter(parsed, index)"
-        />
-      </div>
-
-      <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">
-        <v-chip filter :text="t('shells.all')" value="all" />
-        <v-chip filter :text="t('shells.instances')" value="Instance" />
-        <v-chip filter :text="t('shells.types')" value="Type" />
-        <v-chip filter prepend-icon="mdi-star-outline" :text="t('shells.favorites')" value="favorites" />
-      </v-chip-group>
-    </div>
-
-    <v-divider />
-
-    <ProblemAlert
-      v-if="source.error.value && items.length === 0"
-      class="ma-2"
-      :error="source.error.value"
-      retry
-      @retry="source.refetch()"
-    />
-
-    <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-avatar-two-line@6" />
-
-    <v-infinite-scroll v-else-if="filtered.length > 0" :items="filtered" @load="loadMore">
-      <v-list class="px-2" lines="two" nav>
-        <v-list-item
-          v-for="shell in filtered"
-          :key="shell.key"
-          v-intersect.once="(visible: boolean) => visible && seen(shell.key)"
-          :active="shell.key === activeKey"
-          :title="shellTitle(shell)"
-          :to="{ path: `/targets/${targetId}/shells/${shell.key}`, query: searchState }"
-          @click="onOpen"
-        >
-          <template #prepend>
-            <ShellAvatar :shell="shell" size="44" :target-id="targetId" :thumbnails="thumbnails" />
-          </template>
-
-          <template #subtitle>{{ shell.id }}</template>
-
-          <template #append>
-            <v-icon
-              v-if="availability[shell.key] && availability[shell.key] !== 'available'"
-              v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
-              :aria-label="t(`shells.availability.${availability[shell.key]}`)"
-              class="me-1"
-              color="error"
-              :icon="availabilityIcons[availability[shell.key]!]"
+        <v-menu>
+          <template #activator="{ props: activator }">
+            <v-btn
+              v-tooltip="t('shells.sort')"
+              v-bind="activator"
+              :aria-label="t('shells.sort')"
+              class="me-2"
+              icon="mdi-sort"
               size="small"
             />
+          </template>
 
-            <v-chip
-              v-if="shell.assetKind === 'Type'"
-              class="me-1"
-              color="warning"
-              size="x-small"
-              :text="t('shells.type')"
-            />
+          <v-card>
+            <v-list v-model:selected="sortBy" density="compact" mandatory>
+              <v-list-item prepend-icon="mdi-sort-alphabetical-ascending" :title="t('shells.sortName')" value="name" />
+              <v-list-item prepend-icon="mdi-database-outline" :title="t('shells.sortServer')" value="server" />
+            </v-list>
+          </v-card>
+        </v-menu>
+      </v-toolbar>
 
+      <div class="px-4 pb-2">
+        <v-text-field
+          v-model="search"
+          clearable
+          density="compact"
+          :disabled="rawQuery !== null"
+          :hint="localOnly && search ? t('shells.localOnly') : undefined"
+          persistent-hint
+          :placeholder="t('shells.filter')"
+          prepend-inner-icon="mdi-magnify"
+        >
+          <template #append-inner>
+            <v-menu location="bottom end">
+              <template #activator="{ props: activator }">
+                <v-icon v-bind="activator" :aria-label="t('shells.syntax.title')" icon="mdi-help-circle-outline" size="small" />
+              </template>
+
+              <v-card max-width="320">
+                <v-list density="compact" lines="two">
+                  <v-list-subheader :title="t('shells.syntax.title')" />
+
+                  <v-list-item
+                    v-for="example in syntaxExamples"
+                    :key="example"
+                    :subtitle="t(`shells.syntax.${example}`)"
+                    :title="syntaxSamples[example]"
+                  />
+                </v-list>
+              </v-card>
+            </v-menu>
+          </template>
+
+          <template v-if="queryTarget" #append>
             <v-btn
-              :aria-label="t('shells.favorite')"
-              :color="preferences.isFavorite(targetId, shell.key) ? 'warning' : undefined"
-              :icon="preferences.isFavorite(targetId, shell.key) ? 'mdi-star' : 'mdi-star-outline'"
-              @click.stop.prevent="preferences.toggleFavorite(targetId, shell.key)"
+              v-tooltip="t('shells.query.title')"
+              :aria-label="t('shells.query.title')"
+              :color="rawQuery ? 'primary' : undefined"
+              icon="mdi-code-json"
+              size="small"
+              @click="queryDialog = true"
             />
           </template>
-        </v-list-item>
+        </v-text-field>
+
+        <div v-if="rawQuery || parsed.filters.length > 0" class="d-flex flex-wrap ga-1 mt-2">
+          <v-chip
+            v-if="rawQuery"
+            closable
+            color="primary"
+            prepend-icon="mdi-code-json"
+            :text="t('shells.query.active')"
+            @click="queryDialog = true"
+            @click:close="rawQuery = null"
+          />
+
+          <v-chip
+            v-for="(item, index) in rawQuery ? [] : parsed.filters"
+            :key="`${item.field}:${index}`"
+            closable
+            :color="item.operator === 'not-equals' ? 'error' : undefined"
+            :text="formatFilter(item)"
+            @click:close="search = withoutFilter(parsed, index)"
+          />
+        </div>
+
+        <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">
+          <v-chip filter :text="t('shells.all')" value="all" />
+          <v-chip filter :text="t('shells.instances')" value="Instance" />
+          <v-chip filter :text="t('shells.types')" value="Type" />
+          <v-chip filter prepend-icon="mdi-star-outline" :text="t('shells.favorites')" value="favorites" />
+        </v-chip-group>
+      </div>
+
+      <v-divider />
+
+      <!-- A deep link to a shell the list has not loaded yet keeps it in sight (DoD 6). -->
+      <v-list v-if="pinned" class="flex-shrink-0 px-2 py-1" lines="two" nav>
+        <v-list-item
+          active
+          prepend-icon="mdi-pin-outline"
+          :subtitle="pinned.id"
+          :title="pinned.title"
+          :to="{ path: `/targets/${targetId}/shells/${activeKey}`, query: searchState }"
+        />
       </v-list>
 
-      <template #empty />
-    </v-infinite-scroll>
+      <ProblemAlert
+        v-if="source.error.value && items.length === 0"
+        class="ma-2"
+        :error="source.error.value"
+        retry
+        @retry="source.refetch()"
+      />
 
-    <v-empty-state
-      v-else-if="source.data.value"
-      icon="mdi-cube-off-outline"
-      size="64"
-      :text="t('shells.noneText')"
-      :title="t('shells.none')"
-    >
-      <template #actions>
-        <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
-      </template>
-    </v-empty-state>
+      <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-avatar-two-line@6" />
+
+      <!-- Virtualized (DoD 6): only the visible rows exist, so thousands of shells scroll smoothly.
+         Rows near the end load the next page. -->
+      <v-list
+        v-else-if="filtered.length > 0"
+        class="flex-grow-1 px-2 py-0"
+        height="0"
+        lines="two"
+        nav
+      >
+        <v-virtual-scroll ref="scroller" height="100%" item-key="key" :items="filtered">
+          <template #default="{ item: shell, index }">
+            <v-list-item
+              v-intersect.once="(visible: boolean) => visible && onRowSeen(shell.key, index)"
+              :active="shell.key === activeKey"
+              :title="shellTitle(shell)"
+              :to="{ path: `/targets/${targetId}/shells/${shell.key}`, query: searchState }"
+              @click="onOpen"
+            >
+              <template #prepend>
+                <ShellAvatar :shell="shell" size="44" :target-id="targetId" :thumbnails="thumbnails" />
+              </template>
+
+              <template #subtitle>{{ shell.id }}</template>
+
+              <template #append>
+                <v-icon
+                  v-if="availability[shell.key] && availability[shell.key] !== 'available'"
+                  v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
+                  :aria-label="t(`shells.availability.${availability[shell.key]}`)"
+                  class="me-1"
+                  color="error"
+                  :icon="availabilityIcons[availability[shell.key]!]"
+                  size="small"
+                />
+
+                <v-chip
+                  v-if="shell.assetKind === 'Type'"
+                  class="me-1"
+                  color="warning"
+                  size="x-small"
+                  :text="t('shells.type')"
+                />
+
+                <v-btn
+                  :aria-label="t('shells.favorite')"
+                  :color="preferences.isFavorite(targetId, shell.key) ? 'warning' : undefined"
+                  :icon="preferences.isFavorite(targetId, shell.key) ? 'mdi-star' : 'mdi-star-outline'"
+                  @click.stop.prevent="preferences.toggleFavorite(targetId, shell.key)"
+                />
+              </template>
+            </v-list-item>
+          </template>
+        </v-virtual-scroll>
+      </v-list>
+
+      <v-empty-state
+        v-else-if="source.data.value"
+        icon="mdi-cube-off-outline"
+        size="64"
+        :text="t('shells.noneText')"
+        :title="t('shells.none')"
+      >
+        <template #actions>
+          <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
+        </template>
+      </v-empty-state>
+
+      <!-- Outside the v-if chain above: the next page is loading below the rows. -->
+      <v-progress-linear v-if="loadingMore" class="flex-shrink-0" />
+    </div>
 
     <template #append>
       <v-divider />
@@ -199,14 +221,12 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Page, ShellAvailability, ShellSearchPage, ShellSummary } from '#shared/contract'
+  import type { LangString, Page, ShellAvailability, ShellDetail, ShellSearchPage, ShellSummary } from '#shared/contract'
   import type { ParsedSearch } from '#shared/search/expression'
-  import { useInfiniteQuery } from '@pinia/colada'
+  import { useInfiniteQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { formatFilter, parseSearch, withoutFilter } from '#shared/search/expression'
   import { decodeResourceKey, langText, resourceKey, targetIcon } from '~/utils/aas'
-
-  type LoadStatus = 'ok' | 'empty' | 'error' | 'loading'
 
   const props = defineProps<{ targetId: string, activeKey: string | null }>()
 
@@ -361,14 +381,43 @@
     return sortBy.value[0] === 'name' ? list.toSorted((a, b) => shellTitle(a).localeCompare(shellTitle(b))) : list
   })
 
-  async function loadMore ({ done }: { done: (status: LoadStatus) => void }) {
+  // The open shell stays in sight: the list scrolls to it once it is loaded,
+  // and until then it is pinned above the list (DoD 6).
+  const scroller = useTemplateRef<{ scrollToIndex: (index: number) => void }>('scroller')
+  const queryCache = useQueryCache()
+  let scrolledTo: string | null = null
+  watch([() => props.activeKey, () => filtered.value.length], async ([key]) => {
+    const index = key ? filtered.value.findIndex(shell => shell.key === key) : -1
+    if (key && index >= 0 && scrolledTo !== key) {
+      scrolledTo = key
+      await nextTick()
+      scroller.value?.scrollToIndex(Math.max(0, index - 2))
+    }
+  }, { immediate: true })
+  const pinned = computed(() => {
+    const key = props.activeKey
+    if (!key || items.value.some(shell => shell.key === key)) {
+      return null
+    }
+    const detail = queryCache.getQueryData<ShellDetail>(['targets', props.targetId, 'shells', key])
+    const shell = detail?.shell as { id?: string, idShort?: string, displayName?: LangString[] } | undefined
+    return shell?.id ? { id: shell.id, title: langText(shell.displayName ?? []) ?? shell.idShort ?? shell.id } : null
+  })
+
+  // The next page, once one of the last rows is on screen.
+  const loadingMore = ref(false)
+  async function onRowSeen (key: string, index: number) {
+    seen(key)
     const list = source.value
-    if (!list.hasNextPage.value) {
-      done('empty')
+    if (index < filtered.value.length - 20 || !list.hasNextPage.value || loadingMore.value) {
       return
     }
-    await list.loadNextPage()
-    done(list.error.value ? 'error' : (list.hasNextPage.value ? 'ok' : 'empty'))
+    loadingMore.value = true
+    try {
+      await list.loadNextPage()
+    } finally {
+      loadingMore.value = false
+    }
   }
 
   // Online markers (as in the BaSyx AAS Web UI): registry entries may point to
