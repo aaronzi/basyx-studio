@@ -17,38 +17,32 @@
       <v-skeleton-loader v-else-if="!shell.data.value || !target.data.value" type="card, article" />
 
       <template v-else>
-        <!-- Shell header -->
+        <!-- Shell header: title and a muted meta line, then the identifiers
+             as a description list. Phones keep the star and a menu. -->
         <v-card class="mb-3">
           <v-card-item class="pa-3">
-            <template v-if="smAndUp" #prepend>
+            <template #prepend>
               <ShellAvatar
-                class="me-2"
-                icon-size="32"
+                class="me-1"
+                :icon-size="smAndUp ? 28 : 24"
                 :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail }"
-                size="56"
+                :size="smAndUp ? 48 : 40"
                 :target-id="targetId"
                 :thumbnails="capabilities.files"
               />
             </template>
 
-            <!-- The title is the heading itself, so title and subtitle form one block centred with the avatar. -->
             <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-title-large' : 'text-title-medium'" tag="h1">{{ shellLabel }}</v-card-title>
 
-            <v-card-subtitle class="text-body-small text-wrap">{{ headerSubtitle }}</v-card-subtitle>
-
-            <div class="d-flex flex-wrap ga-1 mt-2">
-              <v-chip
-                v-if="assetKind"
-                :color="assetKind === 'Type' ? 'warning' : 'primary'"
-                prepend-icon="mdi-shape-outline"
-                :text="t('shell.assetKind', { kind: assetKind })"
-              />
-
-              <v-chip prepend-icon="mdi-folder-multiple-outline" :text="t('shell.submodelCount', submodelRefs.length)" />
+            <div class="d-flex flex-wrap align-center gc-3 text-body-small text-medium-emphasis">
+              <span v-for="item in headerMeta" :key="item.text" class="d-inline-flex align-center ga-1" :class="item.class">
+                <v-icon :icon="item.icon" size="14" />
+                {{ item.text }}
+              </span>
             </div>
 
             <template #append>
-              <div class="d-flex flex-wrap align-center ga-1">
+              <div class="d-flex align-center ga-1">
                 <WorkspaceActions v-if="target.data.value.workspace" :target="target.data.value" @error="error => (actionError = error)" />
 
                 <v-btn
@@ -59,60 +53,77 @@
                   @click="preferences.toggleFavorite(targetId, shellKey)"
                 />
 
-                <!-- Phones show the identifiers on request: they would fill the screen. -->
-                <v-btn
-                  v-if="!smAndUp"
-                  :aria-label="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
-                  :aria-pressed="showIdentifiers"
-                  :icon="showIdentifiers ? 'mdi-information' : 'mdi-information-outline'"
-                  @click="showIdentifiers = !showIdentifiers"
-                />
+                <template v-if="smAndUp">
+                  <v-btn
+                    v-if="canShare"
+                    prepend-icon="mdi-account-multiple-plus-outline"
+                    :text="t('share.share')"
+                    @click="shareOpen = true"
+                  />
 
-                <v-btn
-                  v-if="canShare"
-                  :aria-label="t('share.share')"
-                  :icon="smAndUp ? undefined : 'mdi-account-multiple-plus-outline'"
-                  :prepend-icon="smAndUp ? 'mdi-account-multiple-plus-outline' : undefined"
-                  :text="smAndUp ? t('share.share') : undefined"
-                  @click="shareOpen = true"
-                />
-
-                <v-menu v-if="capabilities.export">
-                  <template #activator="{ props: activator }">
-                    <v-btn
-                      v-bind="activator"
-                      :append-icon="smAndUp ? 'mdi-chevron-down' : undefined"
-                      :aria-label="t('shell.export')"
-                      color="primary"
-                      :icon="smAndUp ? undefined : 'mdi-download'"
-                      :prepend-icon="smAndUp ? 'mdi-download' : undefined"
-                      :text="smAndUp ? t('shell.export') : undefined"
-                      variant="tonal"
-                    />
-                  </template>
-
-                  <v-card>
-                    <v-list>
-                      <v-list-item
-                        v-for="format in exportFormats"
-                        :key="format.value"
-                        :href="`${apiBasePath}/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`"
-                        :prepend-icon="format.icon"
-                        :subtitle="format.subtitle"
-                        :title="format.title"
+                  <v-menu v-if="capabilities.export">
+                    <template #activator="{ props: activator }">
+                      <v-btn
+                        v-bind="activator"
+                        append-icon="mdi-chevron-down"
+                        color="primary"
+                        prepend-icon="mdi-download"
+                        :text="t('shell.export')"
+                        variant="tonal"
                       />
-                    </v-list>
-                  </v-card>
-                </v-menu>
+                    </template>
 
-                <v-menu v-if="canDelete">
+                    <v-card>
+                      <v-list>
+                        <v-list-item
+                          v-for="format in exportFormats"
+                          :key="format.value"
+                          :href="`${apiBasePath}/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`"
+                          :prepend-icon="format.icon"
+                          :subtitle="format.subtitle"
+                          :title="format.title"
+                        />
+                      </v-list>
+                    </v-card>
+                  </v-menu>
+                </template>
+
+                <!-- Everything else; on phones also export, share and the identifiers. -->
+                <v-menu v-if="!smAndUp || canDelete">
                   <template #activator="{ props: activator }">
                     <v-btn v-bind="activator" :aria-label="t('shell.more')" icon="mdi-dots-vertical" />
                   </template>
 
                   <v-card>
                     <v-list>
-                      <v-list-item base-color="error" prepend-icon="mdi-delete-outline" :title="t('shell.delete')" @click="confirmDelete = true" />
+                      <template v-if="!smAndUp">
+                        <template v-if="capabilities.export">
+                          <v-list-subheader :title="t('shell.export')" />
+
+                          <v-list-item
+                            v-for="format in exportFormats"
+                            :key="format.value"
+                            :href="`${apiBasePath}/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`"
+                            :prepend-icon="format.icon"
+                            :title="format.title"
+                          />
+
+                          <v-divider class="my-1" />
+                        </template>
+
+                        <v-list-item v-if="canShare" prepend-icon="mdi-account-multiple-plus-outline" :title="t('share.share')" @click="shareOpen = true" />
+
+                        <v-list-item
+                          :prepend-icon="showIdentifiers ? 'mdi-information-off-outline' : 'mdi-information-outline'"
+                          :title="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
+                          @click="showIdentifiers = !showIdentifiers"
+                        />
+                      </template>
+
+                      <template v-if="canDelete">
+                        <v-divider v-if="!smAndUp" class="my-1" />
+                        <v-list-item base-color="error" prepend-icon="mdi-delete-outline" :title="t('shell.delete')" @click="confirmDelete = true" />
+                      </template>
                     </v-list>
                   </v-card>
                 </v-menu>
@@ -120,20 +131,30 @@
             </template>
           </v-card-item>
 
+          <!-- Identifiers: label column, value and its copy button side by side.
+               Phones stack label and value and show them on request. -->
           <template v-if="smAndUp || showIdentifiers">
             <v-divider />
 
-            <v-row no-gutters>
-              <v-col v-for="row in identifiers" :key="row.label" cols="12" md="6">
-                <v-list-item density="compact" :prepend-icon="row.icon" :subtitle="row.label">
-                  <v-list-item-title class="text-body-small text-wrap text-break">{{ row.value }}</v-list-item-title>
+            <div class="px-3 py-2">
+              <v-row
+                v-for="row in identifiers"
+                :key="row.label"
+                align="center"
+                class="text-body-small"
+                no-gutters
+              >
+                <v-col class="d-flex align-center ga-2 text-medium-emphasis" cols="12" lg="2" sm="3">
+                  <v-icon :icon="row.icon" size="16" />
+                  {{ row.label }}
+                </v-col>
 
-                  <template #append>
-                    <v-btn :aria-label="t('common.copy')" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
-                  </template>
-                </v-list-item>
-              </v-col>
-            </v-row>
+                <v-col class="d-flex align-center ga-1" cols="12" lg="10" sm="9">
+                  <span :class="smAndUp ? 'text-truncate' : 'text-break'" :title="row.value">{{ row.value }}</span>
+                  <v-btn :aria-label="t('common.copyLabel', { label: row.label })" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
+                </v-col>
+              </v-row>
+            </div>
           </template>
         </v-card>
 
@@ -150,70 +171,72 @@
         <v-tabs-window v-model="tab">
           <v-tabs-window-item value="submodels">
             <v-card>
-              <!-- Wraps instead of squeezing the filter when the drawer or a phone leaves little room (D10). -->
-              <div class="d-flex flex-wrap align-center ga-2 px-3 py-2">
+              <!-- One row at every width: the filter takes the free space, the
+                   controls are icon buttons with tooltips (D10). A past state
+                   is named in the alert below. -->
+              <div class="d-flex align-center ga-1 px-3 py-2">
                 <v-text-field
                   v-model="treeSearch"
-                  class="flex-grow-1"
+                  class="flex-grow-1 me-1"
                   clearable
                   density="compact"
-                  max-width="360"
-                  min-width="200"
+                  min-width="120"
                   :placeholder="t('shell.filterElements')"
                   prepend-inner-icon="mdi-filter-variant"
                 />
 
-                <div class="d-flex align-center ga-1 ms-auto">
-                  <v-menu v-if="capabilities.history" v-model="historyMenu" :close-on-content-click="false">
-                    <template #activator="{ props: activator }">
-                      <v-btn
-                        v-bind="activator"
-                        append-icon="mdi-chevron-down"
-                        class="me-1"
-                        :color="asOf ? 'warning' : undefined"
-                        prepend-icon="mdi-history"
-                        :text="asOf ? asOfLabel : (smAndUp ? t('history.now') : undefined)"
-                        :variant="asOf ? 'tonal' : 'text'"
-                      />
-                    </template>
+                <v-menu v-if="capabilities.history" v-model="historyMenu" :close-on-content-click="false">
+                  <template #activator="{ props: activator }">
+                    <v-btn
+                      v-tooltip="asOf ? asOfLabel : t('history.pickHint')"
+                      v-bind="activator"
+                      :aria-label="asOf ? asOfLabel : t('history.now')"
+                      :color="asOf ? 'warning' : undefined"
+                      icon="mdi-history"
+                      size="small"
+                      :variant="asOf ? 'tonal' : 'text'"
+                    />
+                  </template>
 
-                    <v-card>
-                      <v-date-picker
-                        :max="new Date()"
-                        :model-value="asOf"
-                        show-adjacent-months
-                        :title="t('history.pick')"
-                        @update:model-value="pickDate"
-                      />
-                    </v-card>
-                  </v-menu>
+                  <v-card>
+                    <v-date-picker
+                      :max="new Date()"
+                      :model-value="asOf"
+                      show-adjacent-months
+                      :title="t('history.pick')"
+                      @update:model-value="pickDate"
+                    />
+                  </v-card>
+                </v-menu>
 
-                  <v-switch
-                    class="flex-grow-0"
-                    color="success"
-                    :disabled="Boolean(asOf)"
-                    :label="smAndUp ? t('shell.autoRefresh') : undefined"
-                    :model-value="preferences.preferences.value.autoRefresh"
-                    @update:model-value="value => preferences.update(current => ({ ...current, autoRefresh: Boolean(value) }))"
-                  />
+                <v-btn
+                  v-tooltip="autoRefresh ? t('shell.autoRefreshOn', { seconds: preferences.preferences.value.refreshIntervalSeconds }) : t('shell.autoRefreshOff')"
+                  :aria-label="t('shell.autoRefresh')"
+                  :aria-pressed="autoRefresh"
+                  :color="autoRefresh ? 'primary' : undefined"
+                  :disabled="Boolean(asOf)"
+                  :icon="autoRefresh ? 'mdi-sync' : 'mdi-sync-off'"
+                  size="small"
+                  :variant="autoRefresh ? 'tonal' : 'text'"
+                  @click="preferences.update(current => ({ ...current, autoRefresh: !current.autoRefresh }))"
+                />
 
-                  <v-btn
-                    v-tooltip="t('shell.expandAll')"
-                    :aria-label="t('shell.expandAll')"
-                    icon="mdi-unfold-more-horizontal"
-                    :loading="expanding"
-                    size="small"
-                    @click="expandAll"
-                  />
+                <v-btn
+                  v-tooltip="t('shell.expandAll')"
+                  :aria-label="t('shell.expandAll')"
+                  icon="mdi-unfold-more-horizontal"
+                  :loading="expanding"
+                  size="small"
+                  @click="expandAll"
+                />
 
-                  <v-btn
-                    v-tooltip="t('shell.collapseAll')"
-                    :aria-label="t('shell.collapseAll')"
-                    icon="mdi-unfold-less-horizontal"
-                    size="small"
-                    @click="opened = []"
-                  />
-                </div>
+                <v-btn
+                  v-tooltip="t('shell.collapseAll')"
+                  :aria-label="t('shell.collapseAll')"
+                  icon="mdi-unfold-less-horizontal"
+                  size="small"
+                  @click="opened = []"
+                />
               </div>
 
               <v-divider />
@@ -413,9 +436,13 @@
   const assetKind = computed(() => (shellJson.value.assetInformation?.assetKind as string | undefined) ?? null)
   const assetType = computed(() => (shellJson.value.assetInformation?.assetType as string | undefined) ?? null)
   // The idShort only when the title is a display name, so nothing repeats.
-  const headerSubtitle = computed(() => [shellJson.value.idShort === shellLabel.value ? null : shellJson.value.idShort, target.data.value?.name]
-    .filter(Boolean)
-    .join(' · '))
+  /** The muted line under the title: idShort, kind, submodels, target. */
+  const headerMeta = computed(() => [
+    ...(shellJson.value.idShort && shellJson.value.idShort !== shellLabel.value ? [{ text: String(shellJson.value.idShort), icon: '$aas', class: undefined }] : []),
+    ...(assetKind.value ? [{ text: t('shell.assetKind', { kind: assetKind.value }), icon: 'mdi-shape-outline', class: assetKind.value === 'Type' ? 'text-warning' : undefined }] : []),
+    { text: t('shell.submodelCount', submodelRefs.value.length), icon: 'mdi-folder-multiple-outline', class: undefined },
+    ...(target.data.value ? [{ text: target.data.value.name, icon: 'mdi-server-network', class: undefined }] : []),
+  ])
   const hasThumbnail = computed(() => typeof shellJson.value.assetInformation?.defaultThumbnail?.path === 'string')
   const submodelRefs = computed(() => refs.data.value?.items ?? [])
   const favorite = computed(() => preferences.isFavorite(targetId.value, shellKey.value))
@@ -465,6 +492,7 @@
     historyMenu.value = false
   }
 
+  const autoRefresh = computed(() => preferences.preferences.value.autoRefresh)
   const refreshSeconds = computed(() => preferences.preferences.value.autoRefresh && !asOf.value ? preferences.preferences.value.refreshIntervalSeconds : null)
   const opened = ref<string[]>([])
   const treeSearch = ref<string | null>('')

@@ -61,13 +61,12 @@
           <template v-for="(target, index) in filtered" :key="target.id">
             <v-divider v-if="index > 0" />
 
-            <RecordListItem :subtitle="target.description ?? undefined" :title="target.name" :to="`/targets/${target.id}`">
-              <template #prepend>
-                <v-avatar class="me-3" size="36" variant="tonal">
-                  <v-icon :icon="targetIcon(target)" size="20" />
-                </v-avatar>
-              </template>
-
+            <RecordListItem
+              :icon="targetIcon(target)"
+              :subtitle="target.description ?? undefined"
+              :title="target.name"
+              :to="`/targets/${target.id}`"
+            >
               <template #meta>
                 <TargetChips :target="target" />
               </template>

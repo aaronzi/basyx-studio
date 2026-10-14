@@ -10,8 +10,11 @@
     @mouseenter="hovered = true"
     @mouseleave="hovered = false"
   >
-    <template v-if="$slots.prepend" #prepend>
-      <slot name="prepend" />
+    <!-- The same neutral icon tile in every record list. -->
+    <template v-if="icon" #prepend>
+      <v-avatar class="me-3" size="36" variant="tonal">
+        <v-icon :icon="icon" size="20" />
+      </v-avatar>
     </template>
 
     <template v-if="$slots.title" #title>
@@ -40,8 +43,8 @@
 <script lang="ts" setup>
   import { useDisplay } from 'vuetify'
 
+  defineProps<{ icon?: string }>()
   defineSlots<{
-    prepend?: () => unknown
     title?: () => unknown
     subtitle?: () => unknown
     default?: () => unknown

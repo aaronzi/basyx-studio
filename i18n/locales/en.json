@@ -20,8 +20,7 @@
   "lists": {
     "noMatches": "Nothing matches the search and filters.",
     "filters": "{n} filter | {n} filters",
-    "filtersApplied": "{n} filter applied, remove it | {n} filters applied, remove them",
-    "showFilters": "Filters"
+    "filtersApplied": "{n} filter applied, remove it | {n} filters applied, remove them"
   },
   "home": {
     "title": "AAS targets",
@@ -97,6 +96,8 @@
     },
     "filterElements": "Filter elements",
     "autoRefresh": "Auto-refresh",
+    "autoRefreshOn": "Auto-refresh is on: values are re-read every {seconds} s",
+    "autoRefreshOff": "Auto-refresh is off",
     "expandAll": "Expand all",
     "expandCapped": "Expanded the first {count} elements; open deeper levels one by one.",
     "showMore": "Show {count} more ({remaining} not shown)",
@@ -356,6 +357,7 @@
   },
   "common": {
     "copy": "Copy",
+    "copyLabel": "Copy {label}",
     "copied": "{label} copied to the clipboard",
     "value": "Value",
     "clipboardUnavailable": "The clipboard is not available",
@@ -488,6 +490,7 @@
   "history": {
     "now": "Now",
     "pick": "Show the state as of",
+    "pickHint": "Now. Choose a date to see an earlier state",
     "readOnly": "Read-only view of the state on {date}.",
     "backToNow": "Back to now"
   },

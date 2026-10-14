@@ -35,7 +35,7 @@
           <v-divider v-if="index > 0" />
 
           <RecordListItem
-            :prepend-icon="securityModeIcons[item.security.mode]"
+            :icon="securityModeIcons[item.security.mode]"
             :subtitle="`${t(`admin.templates.${item.template}.title`)} · ${t(`security.${item.security.mode}`)} · ${endpointUrls(item)}`"
             @click="edit(item)"
           >

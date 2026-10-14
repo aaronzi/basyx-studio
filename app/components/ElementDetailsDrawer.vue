@@ -254,7 +254,7 @@
   const copy = useClipboard()
   const queryCache = useQueryCache()
   const preferences = usePreferences().preferences
-  const { smAndUp, lgAndUp, width } = useDisplay()
+  const { smAndUp, mdAndUp, lgAndUp, width } = useDisplay()
 
   const targetId = computed(() => props.target.id)
 
@@ -275,8 +275,12 @@
       // Not remembered without storage.
     }
   })
-  // The rail (56 px) stays visible.
-  const drawerWidth = computed(() => (wide.value && lgAndUp.value ? Math.max(440, width.value - 56) : (smAndUp.value ? 440 : 360)))
+  // Widened, it covers the content area only: the rail (56 px) and an open
+  // shell list (340 px) stay visible beside it.
+  const listOpen = computed(() => ui.listDrawer ?? mdAndUp.value)
+  const drawerWidth = computed(() => (wide.value && lgAndUp.value
+    ? Math.max(440, width.value - 56 - (listOpen.value ? 340 : 0))
+    : (smAndUp.value ? 440 : 360)))
 
   // Same key prefix as before (MVP-2/3): app writes invalidate `['targets', id, 'details']`.
   const detailsKey = () => ['targets', targetId.value, 'details', props.shellId, props.item?.submodelKey ?? '', props.item?.elementKey ?? '', props.at ?? '']

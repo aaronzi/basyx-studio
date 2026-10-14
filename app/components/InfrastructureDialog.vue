@@ -1,8 +1,8 @@
 <template>
   <v-dialog v-model="open" :fullscreen="xs" max-width="720" scrollable>
     <DialogCard :title="existing ? t('admin.edit') : t('admin.add')">
-      <!-- Sections as in the BaSyx AAS Web UI, fields 16 px apart. -->
-      <v-form ref="form" class="d-flex flex-column ga-4" @submit.prevent="save">
+      <!-- Sections as in the BaSyx AAS Web UI, fields 12 px apart. -->
+      <v-form ref="form" class="d-flex flex-column ga-3" @submit.prevent="save">
         <v-text-field v-model="model.name" :label="t('admin.name')" :rules="[required]" />
         <v-text-field v-model="model.description" :label="t('admin.description')" />
 

@@ -17,10 +17,8 @@
 
       <v-alert v-else-if="!list.data.value.allowUnsigned" class="mb-4" :text="t('apps.unsignedDisabled')" type="info" />
 
-      <v-card v-else class="mb-4" :title="t('apps.install')">
+      <v-card v-else class="mb-4" :subtitle="t('apps.installHint')" :title="t('apps.install')">
         <v-card-text>
-          <p class="text-body-medium text-medium-emphasis mt-0 mb-4">{{ t('apps.installHint') }}</p>
-
           <div class="d-flex flex-wrap align-center ga-4">
             <v-file-input
               v-model="file"
@@ -85,7 +83,7 @@
           <template v-for="(item, index) in filtered" :key="item.id">
             <v-divider v-if="index > 0" />
 
-            <RecordListItem prepend-icon="mdi-puzzle-outline">
+            <RecordListItem icon="mdi-puzzle-outline">
               <!-- As the infrastructure rows: small chips with tooltips on the
                    title line, the permissions as text. -->
               <template #title>

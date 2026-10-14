@@ -78,8 +78,8 @@ export default defineVuetifyConfiguration({
     // Pane container of a full-height page area: fixed height, scrolling body.
     VCardPane: 'VCard',
     // Records in a bordered card (infrastructures, targets, apps), divided by
-    // v-divider: slim, so the icon gap matches the card's inset, square rows,
-    // and a little more inset on the left, which reads as balanced.
+    // v-divider: slim, square rows, and the row icon (RecordListItem) as far
+    // from the left edge as from the top and bottom.
     VListRecords: 'VList',
   },
 
@@ -103,7 +103,15 @@ export default defineVuetifyConfiguration({
       class: 'd-flex flex-column',
     },
     // Overlays keep a shadow so they stand out from the page.
-    VDialog: { VCard: { flat: false } },
+    // Dialogs use compact fields: forms in dialogs stay short.
+    VDialog: {
+      VCard: { flat: false },
+      VTextField: { density: 'compact' },
+      VSelect: { density: 'compact' },
+      VAutocomplete: { density: 'compact' },
+      VFileInput: { density: 'compact' },
+      VTextarea: { density: 'compact' },
+    },
     // Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
     // Items are inset evenly (pa-1) with a smaller radius (4 px) than the
     // menu card (8 px), so their highlight follows the card's corners.
@@ -115,7 +123,7 @@ export default defineVuetifyConfiguration({
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },
-    VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false, class: 'ps-5' } },
+    VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false, class: 'ps-3' } },
     VChip: { label: true, size: 'small', variant: 'tonal' },
     VAlert: { border: 'start', variant: 'tonal', VBtn: { size: 'small' } },
     VTextField: field,

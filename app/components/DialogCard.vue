@@ -15,14 +15,16 @@
 
     <v-divider />
 
-    <v-card-text :class="flush ? 'pa-0' : 'pt-4'">
+    <!-- The same 16 px on every side. -->
+    <v-card-text :class="flush ? 'pa-0' : 'pa-4'">
       <slot />
     </v-card-text>
 
     <template v-if="$slots.actions || $slots['actions-start']">
       <v-divider />
 
-      <v-card-actions class="px-4">
+      <!-- Vuetify's 8 px on every side around the buttons. -->
+      <v-card-actions>
         <slot name="actions-start" />
         <v-spacer />
         <slot name="actions" />

@@ -1,7 +1,7 @@
 <template>
   <!-- Search and filters above a record list (infrastructures, targets,
        apps), as in the shell list: the filters are in a menu that opens from
-       the field; one chip in the field says how many apply. -->
+       the field (click or ↓); one chip in the field says how many apply. -->
   <div class="pa-2">
     <v-menu
       v-model="menu"
@@ -19,6 +19,7 @@
           :placeholder="placeholder"
           prepend-inner-icon="mdi-magnify"
           @click="menu = groups.length > 0"
+          @keydown.down.prevent="menu = groups.length > 0"
           @keydown.esc="menu = false"
           @update:model-value="menu = false"
         >
@@ -35,14 +36,9 @@
             />
           </template>
 
+          <!-- A hint that the field has filters, not a second way to open them. -->
           <template v-if="groups.length > 0" #append-inner>
-            <v-btn
-              :aria-label="t('lists.showFilters')"
-              :color="selected.length > 0 ? 'primary' : undefined"
-              icon="mdi-filter-variant"
-              size="small"
-              @click.stop="menu = !menu"
-            />
+            <v-icon :color="selected.length > 0 ? 'primary' : undefined" icon="mdi-filter-variant" />
           </template>
         </v-text-field>
       </template>
