@@ -17,5 +17,5 @@ test('works on a phone-sized screen', async ({ page }) => {
   await expect(page.getByText('hello studio').first()).toBeVisible()
 
   await page.getByRole('button', { name: 'Show or hide the shell list' }).click()
-  await expect(page.getByPlaceholder('Search, e.g. motor assetKind=Type')).toBeVisible()
+  await expect(page.getByPlaceholder('Search shells')).toBeVisible()
 })

@@ -35,9 +35,7 @@
             <v-btn-toggle
               v-model="model.listSource"
               class="d-flex"
-              divided
               mandatory
-              variant="outlined"
             >
               <v-btn class="flex-grow-1" :text="t('admin.listSources.registry')" value="registry" />
               <v-btn class="flex-grow-1" :text="t('admin.listSources.repository')" value="repository" />

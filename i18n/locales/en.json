@@ -390,11 +390,6 @@
     "sharingHint": "Grant others access to a shell. Needs relationship-based access control and your own account."
   },
   "shells": {
-    "title": "Shells",
-    "sort": "Sort",
-    "sortName": "Name",
-    "sortServer": "Order of the infrastructure",
-    "filter": "Search, e.g. motor assetKind=Type",
     "all": "All",
     "instances": "Instances",
     "types": "Types",
@@ -414,14 +409,6 @@
       "unreachable": "The shell's server cannot be reached"
     },
     "localOnly": "Filters the loaded shells only: this infrastructure announces no query endpoint.",
-    "syntax": {
-      "title": "Search syntax",
-      "text": "Text in the ID, idShort or asset IDs, any case",
-      "contains": "Field contains the value",
-      "equals": "Field equals the value",
-      "excludes": "Leaves out matching shells",
-      "quoted": "Values with spaces in quotes"
-    },
     "query": {
       "title": "Advanced query",
       "active": "AAS query",
@@ -432,7 +419,34 @@
       "fromSearch": "From the search",
       "apply": "Search",
       "invalidJson": "Not valid JSON: {message}",
-      "notObject": "A query is a JSON object with $condition."
+      "notObject": "A query is a JSON object with $condition.",
+      "edit": "Edit the advanced query"
+    },
+    "search": "Search shells",
+    "filters": {
+      "count": "{count} filter | {count} filters",
+      "show": "Show the applied filter | Show the {count} applied filters",
+      "applied": "Applied filters",
+      "remove": "Remove {filter}",
+      "add": "Add this filter",
+      "typeValue": "Type a value",
+      "spaceToAdd": "Press Space or Enter to add the filter",
+      "howToMatch": "How should {field} match?",
+      "enterValue": "Enter the {field}",
+      "byField": "Filter by field"
+    },
+    "operators": {
+      "contains": "contains",
+      "equals": "equals",
+      "not-equals": "excludes"
+    },
+    "fields": {
+      "id": "Identifier",
+      "idShort": "idShort",
+      "assetKind": "Asset kind",
+      "assetType": "Asset type",
+      "globalAssetId": "Global asset ID",
+      "specificAssetId": "Specific asset ID"
     }
   },
   "viewer": {
@@ -659,5 +673,11 @@
       "submodelDescriptor": "Submodel descriptor {id}",
       "assetLinks": "Asset links of {id}"
     }
+  },
+  "code": {
+    "find": "Find (⌘F)",
+    "wrap": "Wrap lines",
+    "noWrap": "Do not wrap lines",
+    "loadFailed": "The code view could not be loaded"
   }
 }

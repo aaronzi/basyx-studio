@@ -55,7 +55,7 @@
           <template v-if="installError">
             <ProblemAlert class="mt-4" :error="installError" />
 
-            <v-list v-if="findings.length > 0" density="compact">
+            <v-list v-if="findings.length > 0">
               <v-list-subheader>{{ t('apps.findings') }}</v-list-subheader>
 
               <v-list-item

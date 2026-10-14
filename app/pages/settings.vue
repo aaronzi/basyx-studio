@@ -15,10 +15,8 @@
 
             <v-btn-toggle
               class="d-flex mb-6"
-              divided
               mandatory
               :model-value="preferences.theme"
-              variant="outlined"
               @update:model-value="value => save({ theme: value })"
             >
               <v-btn class="flex-grow-1" prepend-icon="mdi-weather-sunny" :text="t('settings.light')" value="light" />

@@ -60,7 +60,8 @@
         <div v-if="recent.length > 0" class="w-100 text-center">
           <div class="text-label-large text-medium-emphasis mb-2">{{ t('viewer.recent') }}</div>
 
-          <v-chip-group class="justify-center">
+          <!-- A wrapping row, centred like the rest of the empty state (a chip group stays left-aligned). -->
+          <div class="d-flex flex-wrap justify-center ga-2">
             <v-chip
               v-for="entry in recent"
               :key="entry.key"
@@ -69,7 +70,7 @@
               :to="`/targets/${targetId}/shells/${entry.key}`"
               variant="outlined"
             />
-          </v-chip-group>
+          </div>
         </div>
       </template>
     </v-container>

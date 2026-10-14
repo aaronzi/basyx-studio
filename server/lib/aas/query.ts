@@ -5,13 +5,13 @@ import type { Query } from 'basyx-typescript-sdk'
 import Ajv from 'ajv'
 import { Lib } from 'basyx-typescript-sdk'
 import { queryRoots } from '#shared/search/expression'
-import { StudioProblem } from '../problem'
 // The JSON Schema of the AAS Query Language from IDTA-01002-3 ("Specification
 // of the Asset Administration Shell, Part 2: API"),
 // documentation/IDTA-01002-3/modules/ROOT/partials/query-json-schema.json in
 // https://github.com/admin-shell-io/aas-specs-api at f136ba1, © IDTA, licensed
 // under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Unchanged.
-import querySchema from './query-schema.json'
+import querySchema from '#shared/search/query-schema.json'
+import { StudioProblem } from '../problem'
 
 /** Raw queries larger than this are refused before they are parsed further. */
 export const maxQueryBytes = 64 * 1024

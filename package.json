@@ -49,6 +49,7 @@
     "basyx-typescript-sdk": "^2.4.0",
     "drizzle-orm": "^0.45.4",
     "fflate": "^0.8.3",
+    "monaco-editor": "^0.56.0",
     "nuxt": "^4.6.1",
     "openid-client": "^6.8.8",
     "pg": "^8.23.1",

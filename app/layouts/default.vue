@@ -39,22 +39,24 @@
       <v-spacer />
 
       <template v-if="!session.needsLogin && targetId">
-        <!-- The active target stays visible at every width (design guidelines). -->
-        <v-select
-          v-if="smAndUp && targetItems.length > 0"
-          :aria-label="t('app.target')"
-          class="me-2"
-          density="compact"
-          :items="targetItems"
-          :max-width="mdAndUp ? 280 : 200"
-          :model-value="targetId"
-          prepend-inner-icon="mdi-server-network"
-          @update:model-value="switchTarget"
-        />
-
-        <v-menu v-else-if="targetItems.length > 0">
+        <!-- The active target stays visible at every width (design guidelines);
+             a menu button like the other app bar controls, its name from sm up. -->
+        <v-menu v-if="targetItems.length > 0">
           <template #activator="{ props }">
-            <v-btn v-bind="props" :aria-label="t('app.targetNamed', { name: target?.name ?? '' })" icon="mdi-server-network" />
+            <v-btn
+              v-if="smAndUp"
+              v-bind="props"
+              append-icon="mdi-chevron-down"
+              :aria-label="t('app.targetNamed', { name: target?.name ?? '' })"
+              border
+              class="me-2"
+              :max-width="mdAndUp ? 280 : 200"
+              prepend-icon="mdi-server-network"
+            >
+              <span class="text-truncate">{{ target?.name }}</span>
+            </v-btn>
+
+            <v-btn v-else v-bind="props" :aria-label="t('app.targetNamed', { name: target?.name ?? '' })" icon="mdi-server-network" />
           </template>
 
           <v-card min-width="240">
@@ -76,9 +78,7 @@
           v-if="smAndUp"
           v-model="ui.mode"
           class="me-2"
-          divided
           mandatory
-          variant="outlined"
         >
           <v-btn prepend-icon="mdi-eye-outline" :text="t('app.view')" value="view" />
           <v-btn prepend-icon="mdi-pencil-outline" :text="t('app.edit')" value="edit" />
@@ -162,11 +162,11 @@
       </v-menu>
     </v-app-bar>
 
+    <!-- Vuetify's rail width (56 px): the icons line up with the app bar's menu icon. -->
     <v-navigation-drawer
       v-if="mdAndUp && !session.needsLogin"
       permanent
       rail
-      rail-width="80"
     >
       <v-list class="pt-3" nav>
         <v-list-item
@@ -174,7 +174,6 @@
           :key="item.key"
           v-tooltip:end="item.title"
           :aria-label="item.title"
-          class="justify-center"
           :exact="item.exact"
           :prepend-icon="item.icon"
           :to="item.to"
@@ -188,7 +187,6 @@
             :key="item.key"
             v-tooltip:end="item.title"
             :aria-label="item.title"
-            class="justify-center"
             :prepend-icon="item.icon"
             :to="item.to"
           />

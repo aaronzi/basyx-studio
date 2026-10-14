@@ -2,7 +2,7 @@
   <v-alert v-if="failed.length > 0" :title="t('sync.failedTitle', failed.length)" type="warning">
     <div class="text-body-medium mb-1">{{ t('sync.failedText') }}</div>
 
-    <v-list density="compact">
+    <v-list>
       <v-list-item
         v-for="step in failed"
         :key="`${step.resource}:${step.id}`"

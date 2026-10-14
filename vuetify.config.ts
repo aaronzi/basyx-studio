@@ -54,7 +54,8 @@ export default defineVuetifyConfiguration({
     VAvatar: { rounded: 'lg' },
     VBtn: { variant: 'text', rounded: 'lg', class: 'text-none' },
     VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
-    VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary' },
+    // One bordered group, divided between its buttons.
+    VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text' },
     VCard: { flat: true, border: true, rounded: 'lg' },
     VCardPane: {
       flat: true,
@@ -66,8 +67,14 @@ export default defineVuetifyConfiguration({
     },
     // Overlays keep a shadow so they stand out from the page.
     VDialog: { VCard: { flat: false } },
-    VMenu: { VCard: { flat: false } },
-    VList: { color: 'primary', density: 'comfortable', bgColor: 'transparent' },
+    // Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
+    VMenu: {
+      VCard: { flat: false },
+      VList: { density: 'compact', slim: true, class: 'py-1 text-body-medium' },
+      VListItem: { minHeight: 36 },
+    },
+    // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
+    VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },
     VChip: { label: true, size: 'small', variant: 'tonal' },
     VAlert: { border: 'start', variant: 'tonal', VBtn: { size: 'small' } },

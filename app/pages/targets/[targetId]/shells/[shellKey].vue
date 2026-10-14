@@ -19,7 +19,7 @@
       <template v-else>
         <!-- Shell header -->
         <v-card class="mb-4">
-          <v-card-item class="pa-5">
+          <v-card-item class="pa-4">
             <template v-if="smAndUp" #prepend>
               <ShellAvatar
                 class="me-2"
@@ -31,9 +31,8 @@
               />
             </template>
 
-            <v-card-title class="text-wrap">
-              <h1 class="text-break" :class="smAndUp ? 'text-headline-small' : 'text-title-large'">{{ shellLabel }}</h1>
-            </v-card-title>
+            <!-- The title is the heading itself, so title and subtitle form one block centred with the avatar. -->
+            <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-headline-small' : 'text-title-large'" tag="h1">{{ shellLabel }}</v-card-title>
 
             <v-card-subtitle class="text-body-medium text-wrap">{{ headerSubtitle }}</v-card-subtitle>
 
@@ -73,7 +72,7 @@
                   </template>
 
                   <v-card>
-                    <v-list density="compact">
+                    <v-list>
                       <v-list-item
                         v-for="format in exportFormats"
                         :key="format.value"
@@ -92,7 +91,7 @@
                   </template>
 
                   <v-card>
-                    <v-list density="compact">
+                    <v-list>
                       <v-list-item base-color="error" prepend-icon="mdi-delete-outline" :title="t('shell.delete')" @click="confirmDelete = true" />
                     </v-list>
                   </v-card>
@@ -303,7 +302,7 @@
 
           <v-tabs-window-item value="json">
             <v-card height="600">
-              <JsonPanel :label="t('shell.jsonLabel')" :value="shellJson" />
+              <JsonPanel :file-name="jsonFileName" :label="t('shell.jsonLabel')" :value="shellJson" />
             </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
@@ -404,6 +403,7 @@
 
   const shellJson = computed(() => (shell.data.value?.shell ?? {}) as Record<string, any>)
   const shellId = computed(() => String(shellJson.value.id ?? ''))
+  const jsonFileName = computed(() => `${String(shellJson.value.idShort ?? 'shell').replaceAll(/[^\w-]/g, '_')}.json`)
   const shellLabel = computed(() => langText(shellJson.value.displayName ?? [], preferences.preferences.value.valueLanguage) ?? shellJson.value.idShort ?? shellId.value)
   const assetKind = computed(() => (shellJson.value.assetInformation?.assetKind as string | undefined) ?? null)
   const assetType = computed(() => (shellJson.value.assetInformation?.assetType as string | undefined) ?? null)

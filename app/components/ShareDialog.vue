@@ -29,7 +29,7 @@
             </v-col>
 
             <v-col cols="12" sm="auto">
-              <v-btn-toggle v-model="subjectType" divided mandatory variant="outlined">
+              <v-btn-toggle v-model="subjectType" mandatory>
                 <v-btn :aria-label="t('share.user')" icon="mdi-account-outline" value="user" />
                 <v-btn :aria-label="t('share.group')" icon="mdi-account-group-outline" value="group" />
               </v-btn-toggle>
@@ -71,7 +71,7 @@
                   </template>
 
                   <v-card>
-                    <v-list density="compact">
+                    <v-list>
                       <v-list-item
                         v-for="item in relationItems"
                         :key="item.value"

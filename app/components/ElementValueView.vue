@@ -102,7 +102,7 @@
       <v-card-subtitle class="text-label-medium">{{ t('details.elements', children.length) }}</v-card-subtitle>
     </v-card-item>
 
-    <v-list class="pt-0" density="compact">
+    <v-list class="pt-0">
       <v-list-item
         v-for="child in children"
         :key="child.id"

@@ -24,7 +24,7 @@
           </template>
 
           <v-card>
-            <v-list density="compact">
+            <v-list>
               <v-list-item prepend-icon="mdi-file-code-outline" title="PlantUML (.puml)" @click="save(result.source, 'puml', 'text/plain')" />
               <v-list-item :disabled="!svg" prepend-icon="mdi-svg" title="SVG (.svg)" @click="save(svg ?? '', 'svg', 'image/svg+xml')" />
             </v-list>
@@ -44,7 +44,9 @@
       type="warning"
     />
 
-    <v-code v-if="showSource" class="flex-grow-1 overflow-auto text-mono text-pre text-body-small pa-4" rounded="0" tag="pre">{{ result.source }}</v-code>
+    <div v-if="showSource" class="flex-grow-1 overflow-hidden">
+      <CodeView :file-name="`${fileName}.puml`" :label="t('details.modes.source')" language="plaintext" :model-value="result.source" />
+    </div>
 
     <v-alert
       v-else-if="error"

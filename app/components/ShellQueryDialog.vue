@@ -17,16 +17,17 @@
           {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
         </p>
 
-        <v-textarea
-          v-model="text"
-          auto-grow
-          autofocus
-          class="text-mono"
-          :label="t('shells.query.label')"
-          max-rows="18"
-          rows="8"
-          spellcheck="false"
-        />
+        <!-- Monaco with the IDTA query schema: suggestions (Ctrl+Space) and checks while typing. -->
+        <v-sheet border height="360" rounded="lg">
+          <CodeView
+            v-model="text"
+            editable
+            :label="t('shells.query.label')"
+            language="json"
+            model-namespace="aas-query"
+            :schemas="schemas"
+          />
+        </v-sheet>
 
         <v-alert
           v-if="findings.length > 0"
@@ -34,7 +35,7 @@
           :title="t('problem.query_invalid')"
           type="error"
         >
-          <v-list density="compact">
+          <v-list>
             <v-list-item
               v-for="finding in findings"
               :key="`${finding.path}:${finding.message}`"
@@ -65,6 +66,7 @@
   import type { ShellQueryTarget } from '#shared/search/expression'
   import { useDisplay } from 'vuetify'
   import { buildShellQuery, parseSearch, queryRoots } from '#shared/search/expression'
+  import querySchema from '#shared/search/query-schema.json'
   import { StudioApiError } from '~/composables/useStudioApi'
 
   // The advanced search (MVP-4 plan, S2): a raw AAS Query Language query,
@@ -85,6 +87,12 @@
   const api = useStudioApi()
 
   const text = ref('')
+  // The vendored IDTA-01002-3 schema, rooted at its Query definition.
+  const schemas = [{
+    uri: 'https://admin-shell.io/aas/API/3/query-schema.json',
+    fileMatch: ['inmemory://aas-query/*'],
+    schema: { $schema: querySchema.$schema, definitions: querySchema.definitions, $ref: '#/definitions/Query' },
+  }]
   const checking = ref(false)
   const error = ref<unknown>(null)
   const findings = ref<Array<{ path: string, message: string }>>([])

@@ -1,97 +1,18 @@
 <template>
   <v-navigation-drawer v-model="open" width="340">
     <div class="d-flex flex-column h-100">
-      <v-toolbar class="flex-shrink-0" color="transparent" density="comfortable">
-        <v-toolbar-title class="text-title-medium font-weight-semibold">
-          {{ t('shells.title') }}
-          <v-chip class="ms-1" :text="hasMore ? `${filtered.length}+` : String(filtered.length)" />
-        </v-toolbar-title>
-
-        <v-menu>
-          <template #activator="{ props: activator }">
-            <v-btn
-              v-tooltip="t('shells.sort')"
-              v-bind="activator"
-              :aria-label="t('shells.sort')"
-              class="me-2"
-              icon="mdi-sort"
-              size="small"
-            />
-          </template>
-
-          <v-card>
-            <v-list v-model:selected="sortBy" density="compact" mandatory>
-              <v-list-item prepend-icon="mdi-sort-alphabetical-ascending" :title="t('shells.sortName')" value="name" />
-              <v-list-item prepend-icon="mdi-database-outline" :title="t('shells.sortServer')" value="server" />
-            </v-list>
-          </v-card>
-        </v-menu>
-      </v-toolbar>
-
-      <div class="px-4 pb-2">
-        <v-text-field
+      <!-- The search of the Web UI: suggestions for filters, the advanced query in its menu. -->
+      <div class="px-3 pt-3 pb-1">
+        <ShellSearchField
           v-model="search"
-          clearable
-          density="compact"
-          :disabled="rawQuery !== null"
-          :hint="localOnly && search ? t('shells.localOnly') : undefined"
-          persistent-hint
-          :placeholder="t('shells.filter')"
-          prepend-inner-icon="mdi-magnify"
-        >
-          <template #append-inner>
-            <v-menu location="bottom end">
-              <template #activator="{ props: activator }">
-                <v-icon v-bind="activator" :aria-label="t('shells.syntax.title')" icon="mdi-help-circle-outline" size="small" />
-              </template>
+          :advanced-enabled="Boolean(queryTarget)"
+          :loading="searching && found.isLoading.value"
+          :query-active="rawQuery !== null"
+          @advanced="queryDialog = true"
+          @clear-query="rawQuery = null"
+        />
 
-              <v-card max-width="320">
-                <v-list density="compact" lines="two">
-                  <v-list-subheader :title="t('shells.syntax.title')" />
-
-                  <v-list-item
-                    v-for="example in syntaxExamples"
-                    :key="example"
-                    :subtitle="t(`shells.syntax.${example}`)"
-                    :title="syntaxSamples[example]"
-                  />
-                </v-list>
-              </v-card>
-            </v-menu>
-          </template>
-
-          <template v-if="queryTarget" #append>
-            <v-btn
-              v-tooltip="t('shells.query.title')"
-              :aria-label="t('shells.query.title')"
-              :color="rawQuery ? 'primary' : undefined"
-              icon="mdi-code-json"
-              size="small"
-              @click="queryDialog = true"
-            />
-          </template>
-        </v-text-field>
-
-        <div v-if="rawQuery || parsed.filters.length > 0" class="d-flex flex-wrap ga-1 mt-2">
-          <v-chip
-            v-if="rawQuery"
-            closable
-            color="primary"
-            prepend-icon="mdi-code-json"
-            :text="t('shells.query.active')"
-            @click="queryDialog = true"
-            @click:close="rawQuery = null"
-          />
-
-          <v-chip
-            v-for="(item, index) in rawQuery ? [] : parsed.filters"
-            :key="`${item.field}:${index}`"
-            closable
-            :color="item.operator === 'not-equals' ? 'error' : undefined"
-            :text="formatFilter(item)"
-            @click:close="search = withoutFilter(parsed, index)"
-          />
-        </div>
+        <div v-if="localOnly && search" class="text-body-small text-medium-emphasis mt-1">{{ t('shells.localOnly') }}</div>
 
         <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">
           <v-chip filter :text="t('shells.all')" value="all" />
@@ -138,12 +59,13 @@
             <v-list-item
               v-intersect.once="(visible: boolean) => visible && onRowSeen(shell.key, index)"
               :active="shell.key === activeKey"
+              :class="index === 0 ? 'mt-2' : undefined"
               :title="shellTitle(shell)"
               :to="{ path: `/targets/${targetId}/shells/${shell.key}`, query: searchState }"
               @click="onOpen"
             >
               <template #prepend>
-                <ShellAvatar :shell="shell" size="44" :target-id="targetId" :thumbnails="thumbnails" />
+                <ShellAvatar :shell="shell" size="36" :target-id="targetId" :thumbnails="thumbnails" />
               </template>
 
               <template #subtitle>{{ shell.id }}</template>
@@ -198,7 +120,7 @@
     <template #append>
       <v-divider />
 
-      <v-list class="px-2" density="compact">
+      <v-list class="px-2">
         <v-list-item
           :prepend-icon="target ? targetIcon(target) : 'mdi-server-network'"
           :subtitle="preferences.preferences.value.autoRefresh ? t('shells.refreshOn', { seconds: preferences.preferences.value.refreshIntervalSeconds }) : t('shells.refreshOff')"
@@ -225,7 +147,7 @@
   import type { ParsedSearch } from '#shared/search/expression'
   import { useInfiniteQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
-  import { formatFilter, parseSearch, withoutFilter } from '#shared/search/expression'
+  import { parseSearch } from '#shared/search/expression'
   import { decodeResourceKey, langText, resourceKey, targetIcon } from '~/utils/aas'
 
   const props = defineProps<{ targetId: string, activeKey: string | null }>()
@@ -246,7 +168,6 @@
   const router = useRouter()
 
   const filter = ref<'all' | 'Instance' | 'Type' | 'favorites'>('all')
-  const sortBy = ref(['name'])
 
   // The search (MVP-4 plan, S2): the Web UI's expression syntax, or a raw
   // query from the advanced dialog, kept in the URL as `?search=` and
@@ -263,16 +184,15 @@
   }
   const searchFromRoute = () => (typeof route.query.search === 'string' ? route.query.search : '')
 
-  const search = ref<string | null>(searchFromRoute())
+  const search = ref(searchFromRoute())
   const rawQuery = ref<Record<string, unknown> | null>(queryFromRoute())
   const applied = ref(searchFromRoute().trim())
   const queryDialog = ref(false)
-  const parsed = computed<ParsedSearch>(() => parseSearch(search.value ?? ''))
 
   let searchTimer: ReturnType<typeof setTimeout> | undefined
   watch(search, value => {
     clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => (applied.value = (value ?? '').trim()), 300)
+    searchTimer = setTimeout(() => (applied.value = value.trim()), 300)
   })
 
   const searchState = computed(() => ({
@@ -338,7 +258,6 @@
 
   const source = computed(() => (searching.value ? found : shells))
   const items = computed(() => source.value.data.value?.pages.flatMap(page => page.items) ?? [])
-  const hasMore = computed(() => source.value.hasNextPage.value)
   const thumbnails = computed(() => target.value?.capabilities.files ?? false)
 
   function shellTitle (shell: ShellSummary): string {
@@ -378,7 +297,8 @@
       }
       return searching.value || matchesLocally(shell, local)
     })
-    return sortBy.value[0] === 'name' ? list.toSorted((a, b) => shellTitle(a).localeCompare(shellTitle(b))) : list
+    // In the infrastructure's order: sorting loaded pages would only sort what is loaded.
+    return list
   })
 
   // The open shell stays in sight: the list scrolls to it once it is loaded,
@@ -480,15 +400,6 @@
     applied.value = ''
     rawQuery.value = null
     filter.value = 'all'
-  }
-
-  const syntaxExamples = ['text', 'contains', 'equals', 'excludes', 'quoted'] as const
-  const syntaxSamples: Record<(typeof syntaxExamples)[number], string> = {
-    text: 'motor',
-    contains: 'idShort:Drive',
-    equals: 'assetKind=Type',
-    excludes: '-id:urn:example  ·  id!=urn:example',
-    quoted: 'idShort:"Drive motor"',
   }
 
   onScopeDispose(() => clearTimeout(searchTimer))

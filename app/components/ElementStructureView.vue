@@ -17,7 +17,7 @@
 
     <!-- References: the keys, and a way into the element where it is in this submodel -->
     <template v-else-if="references.length > 0">
-      <v-list density="compact" lines="two">
+      <v-list lines="two">
         <template v-for="reference in references" :key="reference.label">
           <v-list-subheader :title="reference.label" />
 
@@ -36,7 +36,7 @@
     </template>
 
     <!-- Entity: its kind and asset -->
-    <v-list v-else-if="modelType === 'Entity'" density="compact" lines="two">
+    <v-list v-else-if="modelType === 'Entity'" lines="two">
       <v-list-item prepend-icon="mdi-shape-outline" :subtitle="t('details.entityType')" :title="String(element.entityType ?? '—')" />
 
       <v-list-item

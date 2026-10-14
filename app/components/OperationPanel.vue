@@ -45,7 +45,7 @@
         >
           <div v-if="result.message" class="text-body-small">{{ result.message }}</div>
 
-          <v-list v-if="result.outputs.length > 0" density="compact">
+          <v-list v-if="result.outputs.length > 0">
             <v-list-item
               v-for="output in result.outputs"
               :key="output.idShort"

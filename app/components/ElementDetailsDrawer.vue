@@ -149,7 +149,7 @@
       </div>
 
       <div v-else-if="mode === 'json'" class="flex-grow-1 overflow-hidden">
-        <JsonPanel :label="t('details.modes.jsonLabel')" :value="fullValue" />
+        <JsonPanel :file-name="`${fileName}.json`" :label="t('details.modes.jsonLabel')" :value="fullValue" />
       </div>
 
       <div v-else-if="mode === 'xml'" class="flex-grow-1 overflow-hidden">
