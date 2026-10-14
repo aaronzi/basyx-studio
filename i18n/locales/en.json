@@ -396,7 +396,14 @@
     "noneText": "Try another filter, or search the whole target with ⌘K.",
     "reset": "Reset filters",
     "refreshOn": "Auto-refresh every {seconds} s",
-    "refreshOff": "Auto-refresh off"
+    "refreshOff": "Auto-refresh off",
+    "availability": {
+      "available": "Available",
+      "forbidden": "No access to this shell",
+      "not_found": "The registry lists this shell, but it was not found",
+      "blocked": "The registry points outside this infrastructure",
+      "unreachable": "The shell's server cannot be reached"
+    }
   },
   "viewer": {
     "headline": "Pick a shell to explore",
@@ -404,7 +411,9 @@
     "text": "Browse submodels, inspect live values and download documents. Press ⌘K to search the whole target.",
     "browse": "Browse shells",
     "search": "Search",
-    "recent": "Recently opened"
+    "recent": "Recently opened",
+    "assetNotFound": "No shell was found for the asset ID {assetId}.",
+    "assetShells": "Shells of this asset"
   },
   "history": {
     "now": "Now",

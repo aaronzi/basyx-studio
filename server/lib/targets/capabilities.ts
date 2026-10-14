@@ -8,7 +8,7 @@ import { announcedFeatures } from './profiles'
  * Capabilities of a live infrastructure: what its configured endpoints offer
  * and what its services announce in `/description` (MVP-4 plan, I6).
  */
-export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints' | 'template' | 'serviceProfiles' | 'security'>): TargetCapabilities {
+export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints' | 'template' | 'serviceProfiles' | 'security' | 'listSource'>): TargetCapabilities {
   const environment = environmentUrl(record) !== undefined
   const announced = announcedFeatures(record)
   return {
@@ -26,6 +26,7 @@ export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints'
     changeFeed: announced.changeFeed,
     // Grants and rights mean something only when the target sees the user (D15).
     sharing: announced.rebac && record.security.mode === 'delegated_user',
+    listSource: record.listSource === 'registry' && serviceUrl(record, 'aasRegistry') !== undefined ? 'registry' : 'repository',
   }
 }
 
@@ -44,4 +45,5 @@ export const workspaceCapabilities: TargetCapabilities = {
   history: false,
   changeFeed: false,
   sharing: false,
+  listSource: 'repository',
 }

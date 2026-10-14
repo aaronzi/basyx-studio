@@ -47,7 +47,7 @@ export class EndpointResolver {
   readonly #submodels = new Map<string, Promise<string>>()
   readonly #bases: string[]
 
-  constructor (private readonly record: InfrastructureRecord, private readonly http: TargetHttp) {
+  constructor (private readonly record: InfrastructureRecord, private readonly http: TargetHttp, private readonly shellContext?: string) {
     this.#bases = record.endpoints.map(endpoint => endpoint.url)
   }
 
@@ -62,15 +62,33 @@ export class EndpointResolver {
     return base
   }
 
-  /** The base URL of the repository that serves a submodel. */
+  /**
+   * The base URL of the repository that serves a submodel. Without a
+   * submodel repository or registry, submodels are reached through the
+   * shell's superpath (`/shells/{id}/submodels/…`), so the request must name
+   * the shell.
+   */
   submodelBase (id: string): Promise<string> {
     let base = this.#submodels.get(id)
+    if (!base && this.#throughShell()) {
+      const shell = this.shellContext
+      base = shell
+        ? this.shellBase(shell).then(shellBase => `${shellBase}/shells/${Buffer.from(shell, 'utf8').toString('base64url')}`)
+        : Promise.reject(new StudioProblem('unsupported_operation', 'This infrastructure serves submodels only through their shell; open the submodel from its shell.'))
+      this.#submodels.set(id, base)
+    }
     if (!base) {
       base = this.#resolve('submodelRegistry', 'submodelRepository', 'submodels', (registry, repository) =>
         new SubmodelService({ submodelRegistryConfig: registry, submodelRepositoryConfig: repository }).getSubmodelEndpointById({ submodelIdentifier: id }))
       this.#submodels.set(id, base)
     }
     return base
+  }
+
+  #throughShell (): boolean {
+    return serviceUrl(this.record, 'submodelRepository') === undefined
+      && serviceUrl(this.record, 'submodelRegistry') === undefined
+      && serviceUrl(this.record, 'aasRepository') !== undefined
   }
 
   async #resolve (

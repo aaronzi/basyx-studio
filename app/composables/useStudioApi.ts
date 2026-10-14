@@ -31,10 +31,17 @@ export interface ApiRequest {
 export function useStudioApi () {
   const requestFetch = useRequestFetch()
   const session = useSessionStore()
+  const route = useRoute()
 
   return async function api<T> (path: string, request: ApiRequest = {}): Promise<T> {
     const method = request.method ?? 'GET'
     const headers: Record<string, string> = { ...request.headers }
+    // Submodel requests name the open shell: some infrastructures (an AAS
+    // repository only) serve submodels only through it.
+    const shellKey = typeof route.params.shellKey === 'string' ? route.params.shellKey : null
+    const query = shellKey && /^\/targets\/[^/]+\/submodels\//.test(path) && request.query?.shell === undefined
+      ? { ...request.query, shell: shellKey }
+      : request.query
     if (method !== 'GET' && session.csrfToken) {
       headers['X-CSRF-Token'] = session.csrfToken
     }
@@ -42,7 +49,7 @@ export function useStudioApi () {
       return await requestFetch(`${apiBasePath}${path}`, {
         method,
         body: request.body as Record<string, unknown> | undefined,
-        query: request.query,
+        query,
         headers,
         signal: request.signal,
         responseType: request.responseType,

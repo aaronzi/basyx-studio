@@ -61,6 +61,7 @@
         <v-list-item
           v-for="shell in filtered"
           :key="shell.key"
+          v-intersect.once="(visible: boolean) => visible && seen(shell.key)"
           :active="shell.key === activeKey"
           :title="shellTitle(shell)"
           :to="`/targets/${targetId}/shells/${shell.key}`"
@@ -70,9 +71,19 @@
             <ShellAvatar :shell="shell" size="44" :target-id="targetId" :thumbnails="thumbnails" />
           </template>
 
-          <template #subtitle>{{ shell.idShort ?? shell.id }}</template>
+          <template #subtitle>{{ shell.id }}</template>
 
           <template #append>
+            <v-icon
+              v-if="availability[shell.key] && availability[shell.key] !== 'available'"
+              v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
+              :aria-label="t(`shells.availability.${availability[shell.key]}`)"
+              class="me-1"
+              color="error"
+              :icon="availabilityIcons[availability[shell.key]!]"
+              size="small"
+            />
+
             <v-chip
               v-if="shell.assetKind === 'Type'"
               class="me-1"
@@ -83,7 +94,7 @@
 
             <v-btn
               :aria-label="t('shells.favorite')"
-              :color="preferences.isFavorite(targetId, shell.key) ? 'warning' : 'medium-emphasis'"
+              :color="preferences.isFavorite(targetId, shell.key) ? 'warning' : undefined"
               :icon="preferences.isFavorite(targetId, shell.key) ? 'mdi-star' : 'mdi-star-outline'"
               @click.stop.prevent="preferences.toggleFavorite(targetId, shell.key)"
             />
@@ -122,7 +133,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Page, ShellSummary } from '#shared/contract'
+  import type { Page, ShellAvailability, ShellSummary } from '#shared/contract'
   import { useInfiniteQuery } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { langText, targetIcon } from '~/utils/aas'
@@ -189,6 +200,55 @@
     await shells.loadNextPage()
     done(shells.error.value ? 'error' : (shells.hasNextPage.value ? 'ok' : 'empty'))
   }
+
+  // Online markers (as in the BaSyx AAS Web UI): registry entries may point to
+  // shells that cannot be opened. Rows are checked once when they come into
+  // view, in batches; the markers are a hint, so failures are ignored.
+  type Status = ShellAvailability['items'][number]['status']
+  const availabilityIcons: Record<Status, string> = {
+    available: 'mdi-check',
+    forbidden: 'mdi-lock-outline',
+    not_found: 'mdi-help-circle-outline',
+    blocked: 'mdi-link-variant-off',
+    unreachable: 'mdi-cloud-off-outline',
+  }
+  const availability = ref<Record<string, Status>>({})
+  const pending = new Set<string>()
+  let checkTimer: ReturnType<typeof setTimeout> | undefined
+  function seen (key: string) {
+    if (target.value?.capabilities.listSource !== 'registry' || key in availability.value) {
+      return
+    }
+    pending.add(key)
+    clearTimeout(checkTimer)
+    checkTimer = setTimeout(checkAvailability, 300)
+  }
+  async function checkAvailability () {
+    const keys = [...pending].slice(0, 50)
+    for (const key of keys) {
+      pending.delete(key)
+    }
+    if (keys.length === 0) {
+      return
+    }
+    const targetId = props.targetId
+    try {
+      const result = await api<ShellAvailability>(`/targets/${targetId}/shell-availability`, { method: 'POST', body: { keys } })
+      if (targetId === props.targetId) {
+        availability.value = { ...availability.value, ...Object.fromEntries(result.items.map(item => [item.key, item.status])) }
+      }
+    } catch {
+      // Without markers the list still works.
+    }
+    if (pending.size > 0) {
+      checkTimer = setTimeout(checkAvailability, 300)
+    }
+  }
+  watch(() => props.targetId, () => {
+    availability.value = {}
+    pending.clear()
+  })
+  onScopeDispose(() => clearTimeout(checkTimer))
 
   function onOpen () {
     if (mobile.value) {

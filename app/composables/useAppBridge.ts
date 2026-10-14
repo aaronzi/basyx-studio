@@ -74,7 +74,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     try {
       const { result } = await api<AppCallResult>('/app-calls', {
         method: 'POST',
-        body: { installationId: contribution.installationId, targetId: options.targetId, method: method.data, params },
+        body: { installationId: contribution.installationId, targetId: options.targetId, shellId: options.context().shell?.id ?? null, method: method.data, params },
       })
       // Studio authorized the call; UI methods are carried out here.
       if (method.data === 'studio.ui.notify') {

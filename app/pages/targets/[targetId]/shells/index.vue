@@ -12,6 +12,27 @@
         @authorized="invalidate(['targets', targetId])"
       />
 
+      <!-- A link with a global asset ID (QR codes, other tools) opens the asset's shell. -->
+      <template v-else-if="globalAssetId">
+        <v-progress-linear v-if="lookup.isLoading.value" />
+        <ProblemAlert v-else-if="lookup.error.value" :error="lookup.error.value" retry @retry="lookup.refetch()" />
+
+        <v-alert v-else-if="matches.length === 0" type="info">{{ t('viewer.assetNotFound', { assetId: globalAssetId }) }}</v-alert>
+
+        <v-card v-else :subtitle="globalAssetId" :title="t('viewer.assetShells')">
+          <v-list>
+            <v-list-item
+              v-for="shell in matches"
+              :key="shell.key"
+              prepend-icon="mdi-cube-outline"
+              :subtitle="shell.id"
+              :title="langText(shell.displayName) ?? shell.idShort ?? shell.id"
+              :to="`/targets/${targetId}/shells/${shell.key}`"
+            />
+          </v-list>
+        </v-card>
+      </template>
+
       <template v-else>
         <v-empty-state
           :headline="t('viewer.headline')"
@@ -56,8 +77,10 @@
 </template>
 
 <script lang="ts" setup>
+  import type { ShellSummary } from '#shared/contract'
+  import { useQuery } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
-  import { decodeResourceKey } from '~/utils/aas'
+  import { decodeResourceKey, langText } from '~/utils/aas'
 
   const { t } = useI18n()
   const route = useRoute()
@@ -69,4 +92,20 @@
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)
   const recent = computed(() => preferences.recent(targetId.value).slice(0, 5))
+
+  const api = useStudioApi()
+  const router = useRouter()
+  const globalAssetId = computed(() => typeof route.query.globalAssetId === 'string' ? route.query.globalAssetId : null)
+  const lookup = useQuery({
+    key: () => ['targets', targetId.value, 'lookup', globalAssetId.value ?? ''],
+    query: ({ signal }) => api<{ items: ShellSummary[] }>(`/targets/${targetId.value}/lookup`, { query: { assetId: globalAssetId.value! }, signal }),
+    enabled: () => globalAssetId.value !== null && target.data.value !== undefined && !target.needsAuthorization.value,
+  })
+  const matches = computed(() => lookup.data.value?.items ?? [])
+  // One shell: open it right away, without keeping the lookup in the history.
+  watch(matches, items => {
+    if (items.length === 1) {
+      void router.replace(`/targets/${targetId.value}/shells/${items[0]!.key}`)
+    }
+  }, { immediate: true })
 </script>

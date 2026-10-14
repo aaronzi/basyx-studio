@@ -3,6 +3,7 @@ import type { Actor } from '../lib/deps'
 import type { InfrastructureRecord } from '../lib/infrastructures'
 import type { AasTarget } from '../lib/targets/aas-target'
 import type { RequestEvent } from 'nuxt/server'
+import { decodeKey } from '../lib/aas/keys'
 import { recordAudit } from '../lib/audit'
 import { getInfrastructure, targetPolicy } from '../lib/infrastructures'
 import { StudioProblem } from '../lib/problem'
@@ -32,6 +33,8 @@ export interface TargetAccess {
   read: boolean
   /** Set when an app calls on the user's behalf (ADR 0018). */
   appInstallationId?: string
+  /** The shell the request is about, if known: infrastructures with an AAS repository only reach submodels through it. */
+  shellId?: string
 }
 
 /**
@@ -84,12 +87,19 @@ export async function openTargetFor (access: TargetAccess): Promise<OpenedTarget
     policy: targetPolicy(studio, record),
     requestId,
     onUnauthorized: () => studio.broker.invalidate(record, actor.sessionId),
+    shellContext: access.shellId,
   })
   return {
     actor,
     auditWrite: (outcome, details) => audit('target.write', outcome, details),
     target,
   }
+}
+
+/** The shell named by the `shell` query parameter (a shell key), if any. */
+function shellOf (event: RequestEvent): string | undefined {
+  const key = event.url.searchParams.get('shell')
+  return key ? decodeKey(key, 'shell key') : undefined
 }
 
 /** Opens the target of the `targetId` route parameter for the signed-in user. */
@@ -100,6 +110,7 @@ export async function openTarget (event: RequestEvent): Promise<OpenedTarget> {
     requestId: requestIdOf(event),
     operation: event.url.pathname,
     read: event.req.method === 'GET',
+    shellId: shellOf(event),
   })
 }
 

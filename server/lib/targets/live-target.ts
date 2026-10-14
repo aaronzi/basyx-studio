@@ -62,7 +62,10 @@ const exportMediaTypes: Record<ExportFormat, string> = {
   xml: 'application/xml',
 }
 
-export type LiveTargetOptions = TargetHttpOptions
+export interface LiveTargetOptions extends TargetHttpOptions {
+  /** The shell the request is about, for submodels reached through it. */
+  shellContext?: string
+}
 
 /**
  * Converts SDK results to plain JSON at the adapter boundary. The SDK bundles
@@ -113,7 +116,7 @@ export class LiveAasTarget implements AasTarget {
   constructor (options: LiveTargetOptions) {
     this.#http = new TargetHttp(options)
     this.#record = options.record
-    this.#resolver = new EndpointResolver(options.record, this.#http)
+    this.#resolver = new EndpointResolver(options.record, this.#http, options.shellContext)
     this.capabilities = liveCapabilities(options.record)
   }
 

@@ -40,6 +40,8 @@ export const targetCapabilitiesSchema = z.object({
   changeFeed: z.boolean(),
   /** Grant other users access to a shell (BaSyx Go ReBAC, as the signed-in user). */
   sharing: z.boolean(),
+  /** Where the shell list comes from; registry entries may point to shells that cannot be opened. */
+  listSource: z.enum(['registry', 'repository']),
 })
 export type TargetCapabilities = z.infer<typeof targetCapabilitiesSchema>
 
@@ -58,6 +60,7 @@ export const noCapabilities: TargetCapabilities = {
   history: false,
   changeFeed: false,
   sharing: false,
+  listSource: 'repository',
 }
 
 /** State of a desktop AASX workspace; `null` for live targets. */

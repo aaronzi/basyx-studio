@@ -14,13 +14,14 @@ const motorNameplate = 'urn:fraunhofer:iese:dte:sm:nameplate:drivemotor-dm3000:0
 const foreignShell = 'urn:studio:test:aas:foreign-descriptor'
 const encode = (id: string) => Buffer.from(id).toString('base64url')
 
-function target (overrides: Partial<InfrastructureRecord>) {
+function target (overrides: Partial<InfrastructureRecord>, shellContext?: string) {
   return new LiveAasTarget({
     record: { ...record(openTargetUrl, { mode: 'unsecured' }), ...overrides },
     access: { accessToken: undefined, downstreamIdentity: null },
     policy: policy(openTargetUrl),
     requestId: 'test-request',
     onUnauthorized: async () => {},
+    shellContext,
   })
 }
 
@@ -78,5 +79,13 @@ describe.runIf(testenvAvailable)('LiveAasTarget with registries', () => {
   it('reports a shell the registry does not know as not found when there is no repository', async () => {
     const error = await target(registryOnly).shell('urn:studio:test:aas:unknown').catch((error_: unknown) => error_)
     expect((error as StudioProblem).code).toBe('target_resource_not_found')
+  })
+
+  it('reaches submodels through their shell on an infrastructure with an AAS repository only', async () => {
+    const identifiable = { template: 'identifiable' as const, endpoints: [{ type: 'aasRepository' as const, url: openTargetUrl }] }
+    const element = await target(identifiable, motorShell).element(motorNameplate, 'ManufacturerName')
+    expect(element.value.modelType).toBe('MultiLanguageProperty')
+    const error = await target(identifiable).submodel(motorNameplate).catch((error_: unknown) => error_)
+    expect((error as StudioProblem).code).toBe('unsupported_operation')
   })
 })

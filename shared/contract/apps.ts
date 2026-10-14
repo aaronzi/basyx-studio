@@ -146,6 +146,8 @@ export const appCallInputSchema = z.object({
   installationId: z.string().max(64).optional(),
   /** The target the frame is bound to; `null` for a global module outside a target. */
   targetId: z.string().max(200).nullable().optional(),
+  /** The shell the frame shows, if any; some infrastructures reach submodels only through it. */
+  shellId: z.string().max(4000).nullable().optional(),
   method: appMethodNameSchema,
   params: z.unknown(),
 })
