@@ -18,13 +18,14 @@ import type {
   TargetCapabilities,
 } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
+import type { SyncPlan, SyncStep } from '../aas/sync'
 import type { FailureRecorder } from '../network/guarded-fetch'
 import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot } from './aas-target'
 import type { TargetBase, TargetHttpOptions } from './http'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import type { Configuration } from 'basyx-typescript-sdk'
-import { jsonization } from '@aas-core-works/aas-core3.1-typescript'
-import { AasDiscoveryClient, AasRegistryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, Lib, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
+import { types as aasTypes, jsonization } from '@aas-core-works/aas-core3.1-typescript'
+import { AasDiscoveryClient, AasRegistryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, Lib, SubmodelRegistryClient, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
 import { serviceUrl } from '#shared/contract'
 import { buildShellQuery, escapeRegex, parseSearch } from '#shared/search/expression'
 import {
@@ -39,6 +40,7 @@ import {
 } from '../aas/basyx-go'
 import { checkRawQuery, toSdkQuery } from '../aas/query'
 import { descriptorSummary, submodelIdOf, toShellSummary } from '../aas/shells'
+import { assetLinksOf, shellDescriptor, submodelDescriptor, submodelIdsOf } from '../aas/sync'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
@@ -47,6 +49,8 @@ import { encodeIdentifier, TargetHttp } from './http'
 import { announcedFeatures } from './profiles'
 import { EndpointResolver } from './resolution'
 import { contentHash, parseRevision, revisionOf } from './revision'
+
+type Jsonable = Parameters<typeof Lib.assetAdministrationShellDescriptorFromJsonable>[0]
 
 type SdkResult<T>
   = | { success: true, data: T, statusCode?: number, etag?: string }
@@ -107,6 +111,7 @@ export class LiveAasTarget implements AasTarget {
   readonly #cdClient = new ConceptDescriptionRepositoryClient()
   readonly #discoveryClient = new AasDiscoveryClient()
   readonly #registryClient = new AasRegistryClient()
+  readonly #submodelRegistryClient = new SubmodelRegistryClient()
   readonly #record: LiveTargetOptions['record']
   readonly #resolver: EndpointResolver
 
@@ -202,6 +207,82 @@ export class LiveAasTarget implements AasTarget {
   async deleteShell (id: string): Promise<void> {
     await this.#call(await this.#shellBase(id), configuration =>
       this.#aasClient.deleteAssetAdministrationShellById({ configuration, aasIdentifier: id }))
+  }
+
+  /**
+   * Writes the descriptors and asset links of uploaded shells where Studio
+   * keeps the registries and discovery in step (MVP-4 plan, I5). Each
+   * resource reports its outcome; a failure does not undo the upload.
+   */
+  async registerShells (shellIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
+    const steps: SyncStep[] = []
+    if (!plan.registry && !plan.discovery) {
+      return steps
+    }
+    const submodelRegistry = serviceUrl(this.#record, 'submodelRegistry') !== undefined
+    for (const id of shellIds) {
+      const shell = await this.shell(id).catch(() => null)
+      if (!shell) {
+        steps.push({ resource: 'shellDescriptor', id, outcome: 'failed', detail: 'The uploaded shell could not be read.' })
+        continue
+      }
+      if (plan.registry) {
+        steps.push(await this.#syncStep('shellDescriptor', id, 'written', async () => {
+          const descriptor = Lib.assetAdministrationShellDescriptorFromJsonable(shellDescriptor(shell, serviceUrl(this.#record, 'aasRepository')!) as Jsonable).mustValue()
+          const created = await this.#send('aasRegistry', configuration =>
+            this.#registryClient.postAssetAdministrationShellDescriptor({ configuration, assetAdministrationShellDescriptor: descriptor }))
+          // An earlier upload registered it already: replace it.
+          if (!created.success && created.statusCode === 409) {
+            await this.#call('aasRegistry', configuration =>
+              this.#registryClient.putAssetAdministrationShellDescriptorById({ configuration, aasIdentifier: id, assetAdministrationShellDescriptor: descriptor }))
+          } else if (!created.success) {
+            throw await this.#http.problem(created.statusCode, created.recorder)
+          }
+        }))
+        for (const submodelId of submodelRegistry ? submodelIdsOf(shell) : []) {
+          steps.push(await this.#syncStep('submodelDescriptor', submodelId, 'written', async () => {
+            const submodel = await this.submodelMetadata(submodelId)
+            const descriptor = Lib.submodelDescriptorFromJsonable(submodelDescriptor(submodel, serviceUrl(this.#record, 'submodelRepository')!) as Jsonable).mustValue()
+            const created = await this.#send('submodelRegistry', configuration =>
+              this.#submodelRegistryClient.postSubmodelDescriptor({ configuration, submodelDescriptor: descriptor }))
+            if (!created.success && created.statusCode === 409) {
+              await this.#call('submodelRegistry', configuration =>
+                this.#submodelRegistryClient.putSubmodelDescriptorById({ configuration, submodelIdentifier: submodelId, submodelDescriptor: descriptor }))
+            } else if (!created.success) {
+              throw await this.#http.problem(created.statusCode, created.recorder)
+            }
+          }))
+        }
+      }
+      const links = assetLinksOf(shell)
+      if (plan.discovery && links.length > 0) {
+        steps.push(await this.#syncStep('assetLinks', id, 'written', async () => {
+          await this.#call('aasDiscovery', configuration => this.#discoveryClient.postAllAssetLinksById({
+            configuration,
+            aasIdentifier: id,
+            specificAssetId: links.map(link => new aasTypes.SpecificAssetId(link.name, link.value)),
+          }))
+        }))
+      }
+    }
+    return steps
+  }
+
+  /**
+   * Removes the descriptor and asset links of a deleted shell (MVP-4 plan,
+   * I5). Its submodels stay, and so do their descriptors.
+   */
+  async unregisterShell (shellId: string, plan: SyncPlan): Promise<SyncStep[]> {
+    const steps: SyncStep[] = []
+    if (plan.registry) {
+      steps.push(await this.#syncStep('shellDescriptor', shellId, 'removed', () => this.#call('aasRegistry', configuration =>
+        this.#registryClient.deleteAssetAdministrationShellDescriptorById({ configuration, aasIdentifier: shellId }))))
+    }
+    if (plan.discovery) {
+      steps.push(await this.#syncStep('assetLinks', shellId, 'removed', () => this.#call('aasDiscovery', configuration =>
+        this.#discoveryClient.deleteAllAssetLinksById({ configuration, aasIdentifier: shellId }))))
+    }
+    return steps
   }
 
   async thumbnail (shellId: string): Promise<BinaryContent | null> {
@@ -567,6 +648,19 @@ export class LiveAasTarget implements AasTarget {
 
   async #submodelBase (id: string): Promise<TargetBase> {
     return { url: await this.#resolver.submodelBase(id) }
+  }
+
+  async #syncStep (resource: SyncStep['resource'], id: string, outcome: 'written' | 'removed', run: () => Promise<unknown>): Promise<SyncStep> {
+    try {
+      await run()
+      return { resource, id, outcome }
+    } catch (error) {
+      // Gone already counts as removed.
+      if (outcome === 'removed' && error instanceof StudioProblem && error.code === 'target_resource_not_found') {
+        return { resource, id, outcome }
+      }
+      return { resource, id, outcome: 'failed', detail: error instanceof StudioProblem ? (error.detail ?? error.title) : 'internal error' }
+    }
   }
 
   async #call<T> (base: TargetBase, operation: (configuration: Configuration) => Promise<SdkResult<T>>): Promise<T> {

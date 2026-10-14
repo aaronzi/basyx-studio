@@ -58,8 +58,14 @@ export default defineStudioHandler(async (event): Promise<UploadResult> => {
     throw error
   }
   const shells = await Promise.allSettled(inspected.shellIds.map(id => opened.target.shell(id)))
+  // Descriptors and asset links where Studio keeps the registries and discovery in step (I5).
+  const sync = await opened.target.registerShells(inspected.shellIds, await opened.syncPlan())
+  if (sync.some(step => step.outcome === 'failed')) {
+    await opened.auditWrite('failure', { ...details, operation: 'sync', failed: sync.filter(step => step.outcome === 'failed').length })
+  }
   setResponseStatus(event, 201)
   return {
     shells: shells.filter(result => result.status === 'fulfilled').map(result => toShellSummary(result.value)) satisfies ShellSummary[],
+    sync,
   }
 })

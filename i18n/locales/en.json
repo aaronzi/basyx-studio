@@ -99,7 +99,8 @@
       "not_found": "The referenced submodel does not exist.",
       "error": "The submodel could not be loaded.",
       "absent": "Not present at this time."
-    }
+    },
+    "deletedSyncFailed": "{name} was deleted; {count} registry or discovery entry could not be removed. | {name} was deleted; {count} registry or discovery entries could not be removed."
   },
   "editor": {
     "title": "Value",
@@ -617,7 +618,14 @@
     "refreshHint": "While a shell is open and the window is visible",
     "interval": "Interval",
     "seconds": "{count} s",
-    "infrastructuresSubtitle": "Manage the infrastructures available in Studio"
+    "infrastructuresSubtitle": "Manage the infrastructures available in Studio",
+    "sync": "Registry and discovery",
+    "syncSubtitle": "After uploads and deletes, Studio can write shell and submodel descriptors and asset links on infrastructures whose servers do not do it themselves.",
+    "syncDefault": "Infrastructure default ({mode})",
+    "syncModes": {
+      "autoCreate": "Create and remove entries",
+      "dontCreate": "Leave them unchanged"
+    }
   },
   "invite": {
     "title": "Accept invitation",
@@ -625,5 +633,15 @@
     "accept": "Accept",
     "accepted": "You now have access.",
     "open": "Open shells"
+  },
+  "sync": {
+    "failedTitle": "{count} registry or discovery entry could not be updated | {count} registry or discovery entries could not be updated",
+    "failedText": "The change itself was made. Update these entries later, or ask an administrator.",
+    "done": "Registry and discovery updated ({count} entry). | Registry and discovery updated ({count} entries).",
+    "resources": {
+      "shellDescriptor": "Shell descriptor {id}",
+      "submodelDescriptor": "Submodel descriptor {id}",
+      "assetLinks": "Asset links of {id}"
+    }
   }
 }

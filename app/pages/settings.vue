@@ -73,6 +73,29 @@
         </v-card>
       </v-col>
 
+      <!-- Registry and discovery sync, where an infrastructure lets users choose (I5). -->
+      <v-col v-if="choices.length > 0" cols="12">
+        <v-card>
+          <v-card-item prepend-icon="mdi-sync">
+            <v-card-title>{{ t('settings.sync') }}</v-card-title>
+            <v-card-subtitle class="text-wrap">{{ t('settings.syncSubtitle') }}</v-card-subtitle>
+          </v-card-item>
+
+          <v-list>
+            <v-list-item v-for="target in choices" :key="target.id" :title="target.name">
+              <template #append>
+                <v-select
+                  :items="syncItems(target.registrySync!.studioDefault)"
+                  :model-value="preferences.syncOverrides[target.id] ?? null"
+                  width="260"
+                  @update:model-value="(value: SyncMode | null) => saveSync(target.id, value)"
+                />
+              </template>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-col>
+
       <v-col v-if="session.isAdmin" cols="12">
         <v-card :subtitle="t('settings.infrastructuresSubtitle')" :title="t('app.infrastructures')" to="/admin/infrastructures">
           <template #prepend>
@@ -89,7 +112,8 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Preferences } from '#shared/contract'
+  import type { Preferences, SyncMode, Target } from '#shared/contract'
+  import { useQuery } from '@pinia/colada'
 
   const { t } = useI18n()
   const session = useSessionStore()
@@ -106,5 +130,30 @@
 
   function save (change: Partial<Preferences>) {
     return store.update(current => ({ ...current, ...change }))
+  }
+
+  const api = useStudioApi()
+  const targets = useQuery({
+    key: ['targets'],
+    query: ({ signal }) => api<{ items: Target[] }>('/targets', { signal }),
+  })
+  const choices = computed(() => (targets.data.value?.items ?? []).filter(target => target.registrySync?.userOverride))
+
+  function syncItems (studioDefault: SyncMode) {
+    return [
+      { title: t('settings.syncDefault', { mode: t(`settings.syncModes.${studioDefault}`) }), value: null },
+      { title: t('settings.syncModes.autoCreate'), value: 'autoCreate' },
+      { title: t('settings.syncModes.dontCreate'), value: 'dontCreate' },
+    ]
+  }
+
+  function saveSync (targetId: string, mode: SyncMode | null) {
+    return store.update(current => ({
+      ...current,
+      syncOverrides: Object.fromEntries([
+        ...Object.entries(current.syncOverrides).filter(([id]) => id !== targetId),
+        ...(mode ? [[targetId, mode]] : []),
+      ]),
+    }))
   }
 </script>

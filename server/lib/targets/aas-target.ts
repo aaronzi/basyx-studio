@@ -17,6 +17,7 @@ import type {
   TargetCapabilities,
 } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
+import type { SyncPlan, SyncStep } from '../aas/sync'
 
 /** An element as read, with the revision token a write must be based on. */
 export interface ElementSnapshot {
@@ -83,6 +84,9 @@ export interface AasTarget {
   exportShell: (shellId: string, format: ExportFormat) => Promise<BinaryContent>
   /** Adds an already validated AASX, JSON or XML environment. */
   upload: (file: BinaryContent) => Promise<void>
+  /** Descriptors and asset links after an upload or delete, where Studio writes them (MVP-4 plan, I5). */
+  registerShells: (shellIds: string[], plan: SyncPlan) => Promise<SyncStep[]>
+  unregisterShell: (shellId: string, plan: SyncPlan) => Promise<SyncStep[]>
   /** The submodel as it was at `date` (ISO 8601). */
   submodelAt: (id: string, date: string) => Promise<JsonObject>
   changes: (query: ChangesQuery) => Promise<ChangePage>

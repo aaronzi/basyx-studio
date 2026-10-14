@@ -1,5 +1,6 @@
 import type { Target } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
+import type { SyncStep } from '../aas/sync'
 import type { AasTarget, BinaryContent, ElementSnapshot } from '../targets/aas-target'
 import type { WorkspaceWorkerClient } from './client'
 import type { WorkspaceCalls, WorkspaceInfo, WorkspaceMethod } from './protocol'
@@ -38,6 +39,7 @@ export function toWorkspaceTarget (info: WorkspaceInfo): Target {
     authenticationState: 'not_required',
     capabilities: workspaceCapabilities,
     workspace: { fileName: info.fileName, unsavedChanges: info.unsavedChanges },
+    registrySync: null,
   }
 }
 
@@ -51,6 +53,9 @@ class WorkspaceAasTarget implements AasTarget {
   lookupShells = unsupported
   exportShell = unsupported
   upload = unsupported
+  // A workspace has no registries or discovery.
+  registerShells = noSync
+  unregisterShell = noSync
   submodelAt = unsupported
   changes = unsupported
   access = unsupported
@@ -97,6 +102,8 @@ class WorkspaceAasTarget implements AasTarget {
  * Electron main process (after a user picked them in a dialog); the renderer
  * only ever sees opaque, short-lived, single-use handles.
  */
+const noSync = async (): Promise<SyncStep[]> => []
+
 export class WorkspaceManager {
   readonly #grants = new Map<string, FileGrant>()
 

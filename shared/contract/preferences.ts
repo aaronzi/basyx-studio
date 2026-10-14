@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { syncModes } from './infrastructure'
 
 const shellKey = z.string().regex(/^[\w-]{1,4000}$/)
 const keyList = z.array(shellKey).max(50)
@@ -23,6 +24,11 @@ export const preferencesSchema = z.object({
   theme: z.enum(['system', 'light', 'dark']).default('system'),
   autoRefresh: z.boolean().default(true),
   refreshIntervalSeconds: z.number().int().min(1).max(300).default(5),
+  /**
+   * Registry and discovery sync per infrastructure ID, where the
+   * infrastructure lets users choose (MVP-4 plan, I5).
+   */
+  syncOverrides: z.record(z.string().max(100), z.enum(syncModes)).default({}),
 })
 export type Preferences = z.infer<typeof preferencesSchema>
 

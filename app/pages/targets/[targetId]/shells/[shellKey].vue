@@ -349,7 +349,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { EffectiveRights, ElementDetail, ShellDetail, SubmodelRef, TargetCapabilities } from '#shared/contract'
+  import type { DeleteResult, EffectiveRights, ElementDetail, ShellDetail, SubmodelRef, TargetCapabilities } from '#shared/contract'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
   import type { DetailsMode } from '~/utils/aas'
   import { useQuery, useQueryCache } from '@pinia/colada'
@@ -619,9 +619,12 @@
     deleting.value = true
     actionError.value = null
     try {
-      await api(`/targets/${targetId.value}/shells/${shellKey.value}`, { method: 'DELETE' })
+      const result = await api<DeleteResult>(`/targets/${targetId.value}/shells/${shellKey.value}`, { method: 'DELETE' })
       confirmDelete.value = false
-      notifications.notify({ text: t('shell.deleted', { name: shellLabel.value }), color: 'success' })
+      const failed = result.sync.filter(step => step.outcome === 'failed').length
+      notifications.notify(failed > 0
+        ? { text: t('shell.deletedSyncFailed', { name: shellLabel.value, count: failed }), color: 'warning' }
+        : { text: t('shell.deleted', { name: shellLabel.value }), color: 'success' })
       await invalidate(['targets', targetId.value, 'shells'], ['targets', targetId.value])
       await router.push(`/targets/${targetId.value}/shells`)
     } catch (error) {

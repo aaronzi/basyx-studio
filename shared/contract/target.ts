@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { securityModeSchema } from './infrastructure'
+import { securityModeSchema, syncModes } from './infrastructure'
 
 export const authenticationStates = ['not_required', 'authenticated', 'required'] as const
 export const authenticationStateSchema = z.enum(authenticationStates)
@@ -91,6 +91,13 @@ export const targetSchema = z.object({
   authenticationState: authenticationStateSchema,
   capabilities: targetCapabilitiesSchema,
   workspace: workspaceStateSchema.nullable(),
+  /**
+   * Whether Studio writes descriptors and asset links after uploads and
+   * deletes (MVP-4 plan, I5): the infrastructure's default and whether users
+   * may choose; `null` where the server keeps registries and discovery in
+   * step itself, or has none.
+   */
+  registrySync: z.object({ studioDefault: z.enum(syncModes), userOverride: z.boolean() }).nullable(),
 })
 export type Target = z.infer<typeof targetSchema>
 
@@ -312,8 +319,23 @@ export type ExportFormat = (typeof exportFormats)[number]
 export const exportQuerySchema = z.object({ format: z.enum(exportFormats) })
 
 /** Result of an upload: the shells it added. */
+/** The outcome of one descriptor or asset-link write after an upload or delete (MVP-4 plan, I5). */
+export interface SyncStep {
+  resource: 'shellDescriptor' | 'submodelDescriptor' | 'assetLinks'
+  id: string
+  outcome: 'written' | 'removed' | 'failed'
+  detail?: string
+}
+
 export interface UploadResult {
   shells: ShellSummary[]
+  /** Descriptors and asset links Studio wrote; empty where the server keeps them itself. */
+  sync: SyncStep[]
+}
+
+export interface DeleteResult {
+  /** Descriptor and asset links Studio removed; empty where the server keeps them itself. */
+  sync: SyncStep[]
 }
 
 export const operationArgumentSchema = z.object({
