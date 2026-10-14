@@ -25,7 +25,7 @@
               <ShellAvatar
                 class="me-1"
                 :icon-size="smAndUp ? 28 : 24"
-                :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail }"
+                :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail, thumbnailUrl }"
                 :size="smAndUp ? 48 : 40"
                 :target-id="targetId"
                 :thumbnails="capabilities.files"
@@ -105,6 +105,8 @@
 
                         <v-list-item v-if="canShare" prepend-icon="mdi-account-multiple-plus-outline" :title="t('share.share')" @click="shareOpen = true" />
 
+                        <v-list-item v-if="globalAssetId" prepend-icon="mdi-qrcode" :title="t('qr.show')" @click="qrOpen = true" />
+
                         <v-list-item
                           :prepend-icon="showIdentifiers ? 'mdi-information-off-outline' : 'mdi-information-outline'"
                           :title="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
@@ -123,29 +125,49 @@
             </template>
           </v-card-item>
 
-          <!-- Identifiers: label column, value and its copy button side by side.
-               Phones stack label and value and show them on request. -->
+          <!-- Identifiers: label column, value and its copy button side by side,
+               and the global asset ID as a QR code. Phones stack label and
+               value and show them on request. -->
           <template v-if="smAndUp || showIdentifiers">
             <v-divider />
 
-            <div class="px-3 py-2">
-              <v-row
-                v-for="row in identifiers"
-                :key="row.label"
-                align="center"
-                class="text-body-small"
-                no-gutters
-              >
-                <v-col class="d-flex align-center ga-2 text-medium-emphasis" cols="12" lg="2" sm="3">
-                  <v-icon :icon="row.icon" size="16" />
-                  {{ row.label }}
-                </v-col>
+            <div class="d-flex align-center ga-3 px-3 py-2">
+              <div class="flex-grow-1 overflow-hidden">
+                <!-- A fixed label column: the card's width depends on the drawers, not on the window. -->
+                <div
+                  v-for="row in identifiers"
+                  :key="row.label"
+                  class="d-flex text-body-small"
+                  :class="smAndUp ? 'align-center' : 'flex-column mb-1'"
+                >
+                  <v-sheet
+                    class="d-flex align-center ga-2 flex-shrink-0 text-medium-emphasis text-no-wrap"
+                    color="transparent"
+                    :width="smAndUp ? 136 : undefined"
+                  >
+                    <v-icon :icon="row.icon" size="16" />
+                    {{ row.label }}
+                  </v-sheet>
 
-                <v-col class="d-flex align-center ga-1" cols="12" lg="10" sm="9">
-                  <span :class="smAndUp ? 'text-truncate' : 'text-break'" :title="row.value">{{ row.value }}</span>
-                  <v-btn :aria-label="t('common.copyLabel', { label: row.label })" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
-                </v-col>
-              </v-row>
+                  <div class="d-flex align-center ga-1 overflow-hidden">
+                    <span :class="smAndUp ? 'text-truncate' : 'text-break'" :title="row.value">{{ row.value }}</span>
+                    <v-btn :aria-label="t('common.copyLabel', { label: row.label })" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
+                  </div>
+                </div>
+              </div>
+
+              <v-btn
+                v-if="globalAssetId && smAndUp"
+                v-tooltip="t('qr.show')"
+                :aria-label="t('qr.show')"
+                class="pa-1 flex-shrink-0"
+                height="72"
+                min-width="0"
+                width="72"
+                @click="qrOpen = true"
+              >
+                <v-img :alt="t('qr.alt', { id: globalAssetId })" :src="qrPreview" width="64" />
+              </v-btn>
             </div>
           </template>
         </v-card>
@@ -265,7 +287,7 @@
                 v-model:activated="activated"
                 v-model:opened="opened"
                 active-strategy="single-independent"
-                class="py-2"
+                class="pa-2"
                 indent-lines="default"
                 item-props
                 item-title="title"
@@ -331,6 +353,8 @@
           </v-tabs-window-item>
         </v-tabs-window>
 
+        <AssetQrDialog v-if="globalAssetId" v-model="qrOpen" :content="globalAssetId" :file-name="shellJson.idShort ?? 'asset'" />
+
         <ShareDialog
           v-if="canShare"
           v-model="shareOpen"
@@ -340,7 +364,7 @@
         />
 
         <v-dialog v-model="confirmDelete" max-width="420">
-          <DialogCard prepend-icon="mdi-delete-alert-outline" :title="t('shell.deleteTitle')">
+          <DialogCard :title="t('shell.deleteTitle')">
             {{ t('shell.deleteText', { name: shellLabel, count: submodelRefs.length }) }}
 
             <template #actions>
@@ -383,6 +407,7 @@
   import { expandAllCap, itemId, levelPageSize } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { detailsModes, langText, modelTypeIcon } from '~/utils/aas'
+  import { identificationLinkSvg, svgDataUrl } from '~/utils/qr'
 
   const { t, locale } = useI18n()
   const route = useRoute()
@@ -435,6 +460,10 @@
     { text: t('shell.submodelCount', submodelRefs.value.length), icon: 'mdi-folder-multiple-outline', class: undefined },
     ...(target.data.value ? [{ text: target.data.value.name, icon: 'mdi-server-network', class: undefined }] : []),
   ])
+  const thumbnailUrl = computed(() => {
+    const path = shellJson.value.assetInformation?.defaultThumbnail?.path
+    return typeof path === 'string' && /^https?:\/\//i.test(path) ? path : null
+  })
   const hasThumbnail = computed(() => typeof shellJson.value.assetInformation?.defaultThumbnail?.path === 'string')
   const submodelRefs = computed(() => refs.data.value?.items ?? [])
 
@@ -642,6 +671,9 @@
 
   const shareOpen = ref(false)
   const showIdentifiers = ref(false)
+  const qrOpen = ref(false)
+  const globalAssetId = computed(() => typeof shellJson.value.assetInformation?.globalAssetId === 'string' ? shellJson.value.assetInformation.globalAssetId as string : null)
+  const qrPreview = computed(() => globalAssetId.value ? svgDataUrl(identificationLinkSvg(globalAssetId.value)) : '')
   const confirmDelete = ref(false)
   const deleting = ref(false)
   const actionError = ref<unknown>(null)

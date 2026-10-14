@@ -2,7 +2,7 @@
   <!-- Selecting an element changes the URL; that must not close the drawer. -->
   <v-navigation-drawer
     v-model="ui.detailsDrawer"
-    border="s"
+    :border="covering ? 0 : 's'"
     disable-route-watcher
     location="end"
     :temporary="!lgAndUp"
@@ -278,6 +278,8 @@
   // Widened, it covers the content area only: the rail (56 px) and an open
   // shell list (340 px) stay visible beside it.
   const listOpen = computed(() => ui.listDrawer ?? mdAndUp.value)
+  // Next to the shell list, the list's border is the only one.
+  const covering = computed(() => wide.value && lgAndUp.value && listOpen.value)
   const drawerWidth = computed(() => (wide.value && lgAndUp.value
     ? Math.max(440, width.value - 56 - (listOpen.value ? 340 : 0))
     : (smAndUp.value ? 440 : 360)))

@@ -8,8 +8,10 @@
           :advanced-enabled="Boolean(queryTarget)"
           :loading="searching && found.isLoading.value"
           :query-active="rawQuery !== null"
+          :scannable="canScan"
           @advanced="queryDialog = true"
           @clear-query="rawQuery = null"
+          @scan="scanOpen = true"
         />
 
         <div v-if="localOnly && search" class="text-body-small text-medium-emphasis mt-1">{{ t('shells.localOnly') }}</div>
@@ -132,6 +134,8 @@
     :target-id="targetId"
     @apply="rawQuery = $event"
   />
+
+  <QrScanDialog v-if="canScan" v-model="scanOpen" :target-id="targetId" />
 </template>
 
 <script lang="ts" setup>
@@ -150,6 +154,9 @@
   const preferences = usePreferences()
   const { mdAndUp, mobile } = useDisplay()
   const target = useTarget(() => props.targetId).data
+  // Lookup by asset ID needs discovery or queries on the repository (lookupShells).
+  const canScan = computed(() => Boolean(target.value?.capabilities.discovery || target.value?.capabilities.queryTarget === 'repository'))
+  const scanOpen = ref(false)
 
   const open = computed({
     get: () => ui.listDrawer ?? mdAndUp.value,

@@ -128,6 +128,12 @@ export const shellSummarySchema = z.object({
   globalAssetId: z.string().nullable(),
   /** Whether the asset information names a default thumbnail. */
   thumbnail: z.boolean(),
+  /**
+   * The thumbnail's address when it is an external http(s) URL: BaSyx Go
+   * answers such thumbnails with a redirect, which Studio does not follow,
+   * so the browser loads them directly.
+   */
+  thumbnailUrl: z.string().nullable(),
 })
 export type ShellSummary = z.infer<typeof shellSummarySchema>
 

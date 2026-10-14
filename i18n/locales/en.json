@@ -17,6 +17,27 @@
     "edit": "Edit",
     "account": "Account"
   },
+  "qr": {
+    "title": "QR code of the asset",
+    "show": "Show the QR code of the global asset ID",
+    "alt": "QR code of {id}",
+    "download": "Download SVG",
+    "copyId": "Copy ID"
+  },
+  "scan": {
+    "title": "Scan a QR code",
+    "subtitle": "Opens the shell of the asset it names",
+    "button": "Scan the QR code of an asset",
+    "lookingUp": "Looking up the asset…",
+    "read": "Read: {value}",
+    "none": "No shell of this target describes this asset.",
+    "choose": "Shells of this asset",
+    "again": "Scan again",
+    "fromImage": "Choose image",
+    "noCamera": "This browser offers no camera here (it needs HTTPS). Choose an image of the code instead.",
+    "cameraDenied": "The camera is not available or access was denied. Choose an image of the code instead.",
+    "noCode": "No QR code was found in the image."
+  },
   "lists": {
     "noMatches": "Nothing matches the search and filters.",
     "filters": "{n} filter | {n} filters",
@@ -642,6 +663,7 @@
   },
   "upload": {
     "title": "Upload AAS content",
+    "into": "Into {name}",
     "drop": "Drop an .aasx, .json or .xml file here",
     "browse": "Browse files",
     "or": "or",

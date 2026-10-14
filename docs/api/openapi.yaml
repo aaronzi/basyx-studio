@@ -3313,7 +3313,7 @@ components:
     ShellSummary:
       type: object
       additionalProperties: false
-      required: [key, id, idShort, displayName, description, assetKind, globalAssetId, thumbnail]
+      required: [key, id, idShort, displayName, description, assetKind, globalAssetId, thumbnail, thumbnailUrl]
       properties:
         key: { $ref: '#/components/schemas/ResourceKey' }
         id: { type: string }
@@ -3329,6 +3329,9 @@ components:
         thumbnail:
           type: boolean
           description: Whether the asset information names a default thumbnail.
+        thumbnailUrl:
+          type: [string, 'null']
+          description: The thumbnail's address when it is an external http(s) URL, which the client loads directly; `null` otherwise.
     ShellSummaryPage:
       type: object
       additionalProperties: false

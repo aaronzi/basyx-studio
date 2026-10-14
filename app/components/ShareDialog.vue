@@ -1,12 +1,8 @@
 <template>
   <v-dialog v-model="open" :fullscreen="xs" max-width="560" scrollable>
-    <DialogCard
-      closable
-      prepend-icon="mdi-account-multiple-plus-outline"
-      :subtitle="t('share.subtitle')"
-      :title="t('share.title', { name: shellLabel })"
-      @close="open = false"
-    >
+    <DialogCard :title="t('share.title', { name: shellLabel })">
+      <p class="text-body-medium text-medium-emphasis mt-0 mb-3">{{ t('share.subtitle') }}</p>
+
       <ProblemAlert v-if="error" class="mb-4" :error="error" />
       <v-alert v-if="conflict" class="mb-4" :text="t('share.conflict')" type="warning" />
       <v-skeleton-loader v-if="loading" type="list-item-avatar-two-line@3" />
@@ -94,6 +90,7 @@
       </template>
 
       <template #actions>
+        <v-btn :text="t('common.cancel')" @click="open = false" />
         <v-btn-primary :disabled="loading || !revision" :loading="saving" :text="t('share.done')" @click="save" />
       </template>
     </DialogCard>

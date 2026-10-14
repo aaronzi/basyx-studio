@@ -1,6 +1,8 @@
 <template>
   <v-dialog v-model="open" max-width="520">
-    <DialogCard prepend-icon="mdi-package-variant-closed" :subtitle="target.name" :title="t('upload.title')">
+    <DialogCard :title="t('upload.title')">
+      <p class="text-body-medium text-medium-emphasis mt-0 mb-3">{{ t('upload.into', { name: target.name }) }}</p>
+
       <v-file-upload
         v-model="file"
         accept=".aasx,.json,.xml"

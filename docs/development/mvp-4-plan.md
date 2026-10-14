@@ -364,7 +364,7 @@ Against the BaSyx AAS Web UI `main` of 2026-10-14 and the viewer port.
 | History, changes | Done | Studio additions, shown where announced |
 | ReBAC sharing and invitations | Done | Not verified without a ReBAC server |
 | ABAC editor | Later | Admin feature (MVP-3 classification) |
-| QR code of the global asset ID, QR scanner | Later | Asset-ID deep links exist |
+| QR code of the global asset ID, QR scanner | Done | IEC 61406 frame drawn as SVG; scanning with the camera or an image, then the asset ID lookup |
 | Charts and widgets | Later | Dashboards and views (VIEW requirements) |
 | Concept descriptions | Done | Page; per-element concept descriptions later |
 | Ecosystem modules (Catena-X, company lookup, DPP, PCF) | Later | As apps |

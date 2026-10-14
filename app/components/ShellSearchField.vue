@@ -48,6 +48,20 @@
               @click.stop="menu = true"
             />
           </template>
+
+          <!-- Finds the shell of an asset by the QR code on it, as in the Web UI.
+               A clickable icon, as Vuetify's own clear icon: a button would add
+               its padding to the field's and sit further from the edge than
+               the search icon on the left. -->
+          <template v-if="scannable" #append-inner>
+            <v-icon
+              v-tooltip="t('scan.button')"
+              :aria-label="t('scan.button')"
+              icon="mdi-qrcode-scan"
+              @click.stop="emit('scan')"
+              @keydown.enter.space.prevent.stop="emit('scan')"
+            />
+          </template>
         </v-text-field>
       </div>
     </template>
@@ -159,8 +173,10 @@
     /** A raw query from the advanced dialog replaces the expression. */
     queryActive: boolean
     advancedEnabled: boolean
+    /** Offer the QR code scanner (asset ID lookup). */
+    scannable?: boolean
   }>()
-  const emit = defineEmits<{ 'advanced': [], 'clear-query': [] }>()
+  const emit = defineEmits<{ 'advanced': [], 'clear-query': [], 'scan': [] }>()
   const expression = defineModel<string>({ required: true })
 
   const { t } = useI18n()

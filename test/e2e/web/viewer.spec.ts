@@ -127,3 +127,10 @@ test('lists concept descriptions and saves settings per user', async ({ page }) 
   await expect(page.locator('.v-application')).toHaveClass(/v-theme--dark/)
   await page.getByRole('button', { name: 'System' }).click()
 })
+
+test('shows a problem, not a server error, for a target that is gone', async ({ page }) => {
+  // Rendered on the server: the failed query keeps its error for the page.
+  const response = await page.goto('/targets/no-such-target/shells')
+  expect(response?.status()).toBe(200)
+  await expect(page.getByText('This item does not exist (anymore).')).toBeVisible()
+})

@@ -1,14 +1,8 @@
 <template>
   <v-dialog v-model="open" :fullscreen="xs" max-width="720" scrollable>
-    <DialogCard
-      closable
-      prepend-icon="mdi-code-json"
-      :subtitle="t(`shells.query.${queryTarget}`)"
-      :title="t('shells.query.title')"
-      @close="open = false"
-    >
+    <DialogCard :title="t('shells.query.title')">
       <p class="text-body-medium text-medium-emphasis mt-0 mb-4">
-        {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
+        {{ t(`shells.query.${queryTarget}`) }}. {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
       </p>
 
       <!-- Monaco with the IDTA query schema: suggestions (Ctrl+Space) and checks while typing. -->

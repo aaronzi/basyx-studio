@@ -8,11 +8,26 @@
       </template>
     </v-list-item>
 
-    <v-img v-if="isImage && fileName" class="mx-4 mb-2" max-height="200" :src="url" />
+    <!-- External files load from their own address: BaSyx Go answers them with
+         a redirect, which Studio does not follow. -->
+    <v-img
+      v-if="isImage && fileName"
+      class="mx-4 mb-2"
+      max-height="200"
+      :referrerpolicy="external ? 'no-referrer' : undefined"
+      :src="external ?? url"
+    />
 
     <v-card-actions v-if="fileName">
-      <v-btn :href="url" prepend-icon="mdi-eye-outline" target="_blank" :text="t('details.preview')" />
-      <v-btn color="primary" :href="`${url}?download`" prepend-icon="mdi-download" :text="t('details.download')" />
+      <v-btn
+        :href="external ?? url"
+        prepend-icon="mdi-eye-outline"
+        :rel="external ? 'noreferrer' : undefined"
+        target="_blank"
+        :text="t('details.preview')"
+      />
+
+      <v-btn color="primary" :href="external ?? `${url}?download`" prepend-icon="mdi-download" :text="t('details.download')" />
       <v-spacer />
       <v-btn v-if="canReplace" prepend-icon="mdi-upload" :text="t('details.replace')" @click="dialog = true" />
     </v-card-actions>
@@ -23,7 +38,7 @@
     </v-card-actions>
 
     <v-dialog v-model="dialog" max-width="480">
-      <DialogCard prepend-icon="mdi-upload" :title="t('details.replaceTitle', { name: element.idShort })">
+      <DialogCard :title="t('details.replaceTitle', { name: element.idShort })">
         <v-file-input v-model="file" :label="t('details.chooseFile')" prepend-icon="" prepend-inner-icon="mdi-paperclip" />
         <ProblemAlert v-if="error" class="mt-4" :error="error" />
 
@@ -50,7 +65,9 @@
   const element = computed(() => props.detail.value as Record<string, unknown>)
   const fileName = computed(() => typeof element.value.value === 'string' ? element.value.value.split('/').pop() ?? '' : '')
   const contentType = computed(() => String(element.value.contentType ?? ''))
-  const isImage = computed(() => contentType.value.startsWith('image/') && contentType.value !== 'image/svg+xml')
+  // SVG too: as an image, a browser runs none of its scripts.
+  const isImage = computed(() => contentType.value.startsWith('image/'))
+  const external = computed(() => typeof element.value.value === 'string' && /^https?:\/\//i.test(element.value.value) ? element.value.value : null)
   const isPdf = computed(() => contentType.value === 'application/pdf')
   const url = computed(() => `${apiBasePath}/targets/${props.targetId}/submodels/${props.submodelKey}/elements/${props.detail.key}/attachment`)
 
