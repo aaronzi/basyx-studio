@@ -1,410 +1,396 @@
-# MVP-4 plan: the BaSyx AAS Web UI viewer, registries, discovery and query search
+# MVP-4 plan: AAS viewer, registries, discovery and query search
 
-- Status: Planned
-- Date: 2026-10-13
-- Depends on: [MVP-3](mvp-3-plan.md) (implemented: submodel views and
-  modules as apps, classification of the BaSyx AAS Web UI's plugins and
-  modules), and `basyx-typescript-sdk` 2.4.0 (released 2026-10-14, in use)
-  with
+- Status: Planned; implementation in progress
+- Date: 2026-10-13, consolidated 2026-10-14
+- Depends on: [MVP-3](mvp-3-plan.md) (implemented) and `basyx-typescript-sdk`
+  2.4.0 (in use), which provides
   [eclipse-basyx/basyx-typescript-sdk#549](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/549)
   (query clients) and
   [eclipse-basyx/basyx-typescript-sdk#550](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/550)
   (descriptor endpoint resolution)
-- Scope decision gate: Studio's core browsing matches the BaSyx AAS Web UI's
-  viewer on a large environment and on registry-based infrastructures, so that
-  ports of submodel apps, previews and editors can build on it
+- Starting point: the viewer port on `feature/aas-viewer-port` (Jannik Fried,
+  2026-10-14), finalized on the `mvp-4` branch. This plan replaces the port's
+  own plan (`aas-viewer-port-plan.md`); where the two differed, the decisions
+  of 2026-10-14 below apply.
+- Scope decision gate: Studio replaces the BaSyx AAS Web UI viewer for
+  browsing, finding and operating AAS data on registry- and repository-based
+  infrastructures, so that editing, dashboards and further apps can build on it
 
 ## Goal
 
-Rebuild the viewer of the BaSyx AAS Web UI (`/aasviewer`) from Studio's own
-components, with the same layout and the same ways to find a shell: through
-an AAS registry or repository, by asset ID through discovery, and by server-side
-search with the AAS Query Language (PROD-001):
+Studio becomes an understandable replacement for the BaSyx AAS Web UI viewer
+(PROD-001), with the interaction design of the AAS viewer prototype:
 
-> an administrator configures an infrastructure with registries and discovery →
-> a user opens it, finds a shell in the AAS list by scrolling, by query search,
-> or by asset ID → expands its submodels and elements in one tree → sees the
-> selected element's details, its JSON, and matching submodel apps → resizes
-> or collapses the panes → follows a deep link to the same element
+> an administrator configures an infrastructure from a template (AAS
+> environment, separate services, …) with registries and discovery → a user
+> opens it, finds a shell in the shell list by scrolling, by query search, by
+> asset ID or through ⌘K → reads it in the shell header, the submodel tree with
+> inline values and the details drawer (details, app visualizations, JSON,
+> XML, UML) → follows a deep link to the same element → uses the operations
+> the server supports (history, changes, sharing, upload, export, delete,
+> operations, files), each shown only where the server and the user's rights
+> allow it
 
-| BaSyx AAS Web UI | Studio after MVP-4 |
-| --- | --- |
-| Infrastructure with AAS/submodel registry, discovery, AAS/submodel/CD repository; templates such as `full` and `mono-all` | Infrastructure with the same endpoint types; a single-URL shortcut in the admin form for an AAS environment |
-| Navigation drawer (336 px): AAS list from registry or repository with reload, search and menu; virtual-scrolled rows with idShort, ID and an offline marker; AAS details at the bottom | Navigation drawer with the shell list and shell details, from the registry or repository through the BFF |
-| Quick search and filter chips, advanced query dialog (raw JSON), via `/query/shells` or `/query/shell-descriptors` | The same search syntax and dialog; the BFF validates the query and calls the target |
-| `?globalAssetId=` links and QR codes resolved through discovery | `?globalAssetId=` links and an asset-ID lookup resolved through discovery (QR scanning later) |
-| `SubmodelTree` (35 %): submodels as top-level folders, resolved through the submodel registry | `SubmodelTree` on `v-treeview`: submodel refs as roots, resolved the same way, element levels loaded on demand |
-| Resizable divider between tree and view | `Splitter` from `@vuetify/v0`, sizes remembered |
-| Right pane (65 %): *Element Details*, *Visualization*, *JSON*, *UML* | *Details*, *Visualization* (app submodel views), *JSON* |
-| On mobile: separate `AASList`, `SubmodelList` and `Visualization` routes | Temporary drawer and one pane at a time |
+The user interface follows the prototype, not the Web UI: navigation rail,
+shell list drawer, shell header card, tabs, a tree with values inline, and a
+details drawer. The Web UI defines the functional bar: what its viewer can
+find, show and do (search syntax, registry resolution, visualizations,
+JSON/UML) must be possible in Studio as well.
 
-The UI is a rewrite, not a code port. The Web UI's `AASList.vue` (1,362 lines),
-`SubmodelTree.vue` (2,072) and `Treeview.vue` (826) call BaSyx services from
-the browser, depend on its infrastructure store, and use inline styles and DOM
-manipulation that Studio does not allow. In Studio, registry resolution, query
-validation and discovery run in the BFF, behind the target contract
-(DATA-003, DATA-016), with `basyx-typescript-sdk` as the client (DATA-001).
+## Starting point
 
-## Scope decisions
+`feature/aas-viewer-port` (5 commits, 148 files) contains, built against
+SDK 2.3.0:
 
-### Infrastructures
+- **UI:** navigation rail and app bar with target switcher, View/Edit toggle and
+  ⌘K; shell list drawer (filter, kind chips, favorites, sort, thumbnails);
+  shell header card; tabs *Submodels*, *Overview*, *Changes*, *JSON*; tree with
+  inline values, expand/collapse all and filter; element details drawer;
+  typed value views; operation panel; share, upload and settings dialogs;
+  command palette; target dashboard; concept descriptions page; bottom
+  navigation on phones; Material 3 blueprint with its own palette.
+- **API:** capabilities (`deleteShells`, `files`, `operations`,
+  `conceptDescriptions`, `search`, `discovery`, `export`, `upload`, `history`,
+  `changeFeed`, `sharing`); routes for preferences, changes, concept
+  descriptions, discovery lookup, search, shell access and invitations,
+  export, delete, rights, thumbnails, attachments, invocations, whole-submodel
+  trees and uploads.
+- **Server:** an HTTP client for endpoints the SDK lacked (queries,
+  serialization, upload, history, events, ReBAC, operations); feature
+  detection by probing endpoints, cached for 5 minutes; infrastructure
+  endpoint types `aasEnvironment` and `discovery`; migration `0002`
+  (`user_preferences`, `app_installations.bundled`).
+- **Apps:** four bundled first-party apps (Nameplate, Carbon Footprint,
+  Handover Documentation, Technical Data) in `apps/`, installed at startup.
+- **Test setup:** history and the event feed enabled on `basyx-open`.
 
-| Topic | MVP-4 decision |
-| --- | --- |
-| Endpoint types | `aasRegistry`, `submodelRegistry` and `aasDiscovery` join `aasRepository`, `submodelRepository` and `conceptDescriptionRepository`. Each type at most once. |
-| Valid combinations | At least one of `aasRepository` and `aasRegistry`, and at least one of `submodelRepository` and `submodelRegistry`. Registry-only infrastructures are allowed (the Web UI's registry-based templates). |
-| Single-URL shortcut | The admin form can fill all six endpoint types from one AAS environment base URL (the Web UI's `mono-all`), and the admin removes the ones the server does not offer. Stored as individual endpoints; there are no templates in the data model. |
-| List source | With both an AAS registry and an AAS repository, the administrator chooses the list source (`registry` default, or `repository`). No automatic fallback when the registry is empty, as the Web UI does: an empty registry is shown as empty, so a missing registry integration is visible. |
-| Descriptor endpoints | Used as in the BaSyx AAS Web UI, as long as they point into a component of the infrastructure: a descriptor's `href` is followed only if it lies under the base URL of one of the infrastructure's configured endpoints (same scheme, host and port, and the base path as a prefix at a segment boundary). Anything else is `blocked`, shown on the row, and never contacted, so the target token never leaves the configured services. The outbound policy for targets checks these base URLs instead of only their origins. No URL rewriting of internal host names: the registry must publish the URLs Studio is configured with (BaSyx Go: `GENERAL_EXTERNALURL`). |
-| Service profiles | The probe reads `/description` of every endpoint and stores the profiles with the infrastructure, at create, update and every probe. Query support is derived from them (below). |
-| Security | One security mode per infrastructure, as today: the same token is sent to all its endpoints. Different credentials per endpoint are out of scope. |
+On `mvp-4` with SDK 2.4.0: lint and typecheck pass, 135 unit tests pass.
+Integration, e2e and desktop runs are part of phase 0.
 
-### Resolution
+## Decisions
 
-| Topic | MVP-4 decision |
-| --- | --- |
-| Where data comes from | For single resources, the SDK's `AasService` and `SubmodelService` decide where to read from, so Studio does not keep its own registry-then-repository logic. Per request, Studio configures them with the infrastructure's endpoints, the guarded fetch and the target token, and with the endpoint hook from #550 that applies the base-URL rule above before a descriptor endpoint is contacted. |
-| Shell list | From the list source through the SDK clients directly: `AasRegistryClient.getAllAssetAdministrationShellDescriptors` or `AasRepositoryClient.getAllAssetAdministrationShells`, cursor-paged. Rows from descriptors carry idShort, ID, display name, asset kind and global asset ID, so the list needs no request per row. Not `AasService.getAasList`: it fetches every shell behind a page of descriptors (one request per row) and falls back to the repository when no descriptor resolves, which would hide an empty or broken registry. |
-| Opening a shell | With a registry: descriptor by ID → AAS endpoint (interface `AAS-3.x`, then `AAS-REPOSITORY-3.x`, the Web UI's order, #550) → GET. Without one, or if the descriptor has no usable endpoint: the configured AAS repository. |
-| Submodels | Per submodel reference: with a submodel registry, descriptor → `SUBMODEL-3.x` endpoint; otherwise the configured submodel repository. Writes go to the resolved endpoint with the MVP-2 revision rules. Submodel refs gain the status `blocked` next to `forbidden`, `not_found` and `error`. |
-| Row availability | The Web UI's online/offline marker. The UI asks for the rows in view (± a few), at most 50 keys per request; the BFF resolves them with at most 4 concurrent requests per target and answers `available`, `forbidden`, `not_found`, `blocked` or `unreachable`. No timer: checks run when rows come into view and on reload. |
-| Discovery | Asset ID → AAS IDs through `/lookup/shells` (global asset ID, and specific asset IDs as `name=value`). Used by `/targets/{targetId}?globalAssetId=…` deep links and by the asset ID search (below); one result opens the shell, several show a picker. Discovery writes (asset links on create and delete) come with editing. |
-| SDK | All registry, discovery, repository and query calls go through `basyx-typescript-sdk` (DATA-001). Two upstream changes come first: query clients for `/query/shells`, `/query/shell-descriptors`, `/query/submodels`, `/query/submodel-descriptors` and `/query/concept-descriptions` (#549); and descriptor endpoint resolution that accepts `AAS-3.x`/`SUBMODEL-3.x` (the SDK matches `AAS-3.0` exactly, while BaSyx Go's registry sync writes `AAS-3.2`), selects submodel endpoints by interface, and lets the caller control the configuration of every descriptor endpoint request (#550). Both are in 2.4.0, which Studio uses since 2026-10-14 under an exact-version release-age exception ([ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md)). |
+Made on 2026-10-14. They replace the port plan's decisions D1–D17 and the
+earlier MVP-4 decisions where they differ.
+
+### Layout and look
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| L1 | Page structure | The port's layout: app bar, navigation rail, shell list drawer, shell header card, tabs, tree with inline values, details drawer on the right. The Web UI's three-pane layout and the `@vuetify/v0` splitter are dropped. |
+| L2 | Look | Studio's theme with a calm, shadcn-like finish: no Material 3 blueprint; small radii (at most Vuetify `lg`, 8 px) on cards, buttons, chips and fields; outlined fields with a thin border instead of `solo-filled`; borders instead of shadows; neutral surfaces; Studio's brand colours only. Extra theme tokens only where a component needs them. All of it lives in `vuetify.config.ts` defaults and aliases. |
+| L3 | App bar and rail | The port's app bar and rail, with their Vuetify glitches found and fixed (phase 0 inventory, web and desktop, phone, tablet and desktop widths). |
+| L4 | Small screens | The port's behaviour: bottom navigation, temporary drawers, full-screen palette. |
+
+### Routes
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| R1 | `/targets/{targetId}` | A slim landing page as placeholder for a later dashboard MVP: target status and capabilities, *Open viewer*, *Upload* (where supported), and an empty state that names the coming dashboard. The port's change-feed and discovery cards are removed until the dashboard requirements exist. |
+| R2 | Viewer routes | `/targets/{targetId}/shells` (no shell open) and `/targets/{targetId}/shells/{shellKey}`. |
+| R3 | Deep links | Query parameters: `tab` (`submodels`, `overview`, `changes`, `json`), `submodel`, `element`, `mode` (`details`, `visualization`, `json`, `xml`, `uml`) and `view` (an app view ID). A link with `element` opens the tree path (from `ancestors`) and the drawer. `?globalAssetId=` on `/targets/{targetId}/shells` resolves through discovery. Links of MVP-1 to MVP-3 keep working. |
+
+### Infrastructure and data access
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| I1 | Templates | As in the Web UI: `full` (every service with its own URL), `mono-all` (one AAS environment URL for every API), `mono-repo` (an AAS environment for the repositories, plus separate registries and discovery) and `identifiable` (an AAS repository only; submodels through the shell superpath). The template is stored with the infrastructure, drives the admin form and decides which endpoints exist. Catena-X is out of scope. |
+| I2 | Endpoint types | `aasEnvironment`, `aasRegistry`, `submodelRegistry`, `aasDiscovery`, `aasRepository`, `submodelRepository`, `conceptDescriptionRepository`. An `aasEnvironment` serves every repository, registry and discovery API that has no endpoint of its own, plus the environment-only operations (upload, serialization). |
+| I3 | List source | With both an AAS registry and an AAS repository, the administrator chooses the list source (`registry` by default). No automatic fallback when the registry is empty. The list reads descriptors or shells with the SDK clients directly, not with `AasService.getAasList` (one request per row, silent fallback). |
+| I4 | Descriptor endpoints | Followed if they lie under the base URL of one of the infrastructure's endpoints (same scheme, host and port, base path as prefix at a segment boundary); otherwise `blocked` and never contacted. Single resources are resolved with the SDK's `AasService` and `SubmodelService` and the endpoint hook; rows show an availability marker. |
+| I5 | Registry and discovery sync | Per infrastructure: whether the server synchronizes the registries and discovery itself, as in the Web UI. If it does not, the infrastructure sets the default (`autoCreate` or `dontCreate`) and whether users may override it; the user's choice is a preference. With `autoCreate`, the BFF writes descriptors and asset links after an upload and removes them after a delete, and reports each resource's result. |
+| I6 | Feature detection | Only from the `/description` profiles, read at every probe and stored with the infrastructure. Studio shows a feature only if the server advertises it, because BaSyx Go is not the only possible backend. History and the event feed have no profiles in BaSyx Go yet: Studio implements detection for the profile URIs proposed in two BaSyx Go tickets and hides both features until servers advertise them. The port's endpoint probing and its in-memory cache are removed. |
+| I7 | Clients | `basyx-typescript-sdk` for every standard AAS endpoint: registries, discovery, repositories, queries, operations, files, thumbnails, deletes. A separate BaSyx Go client (`server/lib/basyx-go/`) for proprietary endpoints only: `/upload`, `$history`, `$recent-changes`, `/events` and the event-feed description, `$access` and the ReBAC endpoints. Serialization also stays in that client for now, because the SDK cannot choose the format. |
 
 ### Search
 
-| Topic | MVP-4 decision |
-| --- | --- |
-| Search syntax | The Web UI's: free text plus `field:value` (contains), `field=value` (equals), `field!=value` and `-field:value` (not), quoted values; fields `id`, `idShort`, `assetKind`, `assetType`, `globalAssetId`, `specificAssetId`. Free text matches ID, idShort, global asset ID and specific asset ID values case-insensitively, as in the Web UI (not the display name). The parser is shared code, so the field shows chips and suggestions with the same rules the server applies. |
-| Server-side search | The BFF turns a search expression into an AAS Query Language query, built with the SDK's `Query` model (`$condition` with `$or`/`$and`, `$regex`, `$contains`, `$eq`, `$not`, roots `$aas` or `$aasdesc`), and sends it through `queryAssetAdministrationShellDescriptors` or `queryAssetAdministrationShells` of the list source, cursor-paged like the list. |
-| Advanced query | A dialog for raw query JSON, as in the Web UI (which has no builder). The BFF validates it with Ajv against the IDTA-01002-3 query JSON Schema, limits it to 64 KiB, allows only the roots of the queried endpoint, and rejects `$select` (Studio needs full objects for its rows). Findings are shown in the dialog. A valid query is converted with the SDK's `queryFromJsonable` and sent like an expression query; the Ajv check stays in front of it because it gives readable findings per path. Editing uses a monospace `v-textarea`; a code editor is not added for this. |
-| Query support | Derived from the stored profiles (the BaSyx query profiles the Web UI checks, version ≥ 3.2, and the IDTA query profiles), because BaSyx Go does not label them consistently. If the list source cannot query but the other AAS endpoint can, that one is used and the UI names it. If neither can, the search falls back to the client filter of loaded rows with a hint, as the Web UI does. A `404`, `405` or `501` from a query endpoint marks it unsupported until the next probe. |
-| Shareable searches | `?search=` (expression) and `?query=` (base64url JSON) on the target route, like the Web UI's `aasSearch`/`aasQuery`. |
-| Workspace targets | AASX packages have no query endpoint. The workspace worker evaluates the quick search expression over the package's shells (same fields and operators); the advanced dialog is not offered. |
-| Authorization and audit | Queries run with the user's token, so the target's access rules apply to results. Search requests follow the existing `target.read` audit rule; the query text is not logged. |
+| # | Topic | Decision |
+| --- | --- | --- |
+| S1 | Entry points | ⌘K palette for quick navigation: shells, elements, actions and asset-ID lookup. The shell list drawer gets the Web UI's search field: syntax with chips, the advanced query dialog, and the search in the URL (`?search=`, `?query=`). Both run the same server search. |
+| S2 | Semantics | The Web UI's: free text plus `field:value`, `field=value`, `field!=value`, `-field:value`, quoted values; fields `id`, `idShort`, `assetKind`, `assetType`, `globalAssetId`, `specificAssetId`; case-insensitive regex for free text. Queries are built with the SDK's `Query` model and sent through its query clients; raw queries from the dialog are validated with Ajv against the IDTA-01002-3 schema (readable findings, 64 KiB, roots of the queried endpoint, no `$select`) and converted with `queryFromJsonable`. Element search (palette) uses `/query/submodels` with `$sme` roots where the server supports it. Without query support, the drawer falls back to filtering loaded rows, with a hint. AASX workspaces evaluate expressions in the workspace worker. |
 
-### Viewer
+### Tree, details and apps
 
-| Topic | MVP-4 decision |
-| --- | --- |
-| Layout source | The Web UI viewer on `main` of 2026-10-09: drawer 336 px, tree 35 %, view 65 %, the right pane's mode toggle above the content. Matching data, layout and behaviour count; pixel identity does not. Studio's theme, typography and icons stay. |
-| Pane resizing | `Splitter.Root`, `Splitter.Panel` and `Splitter.Handle` from `@vuetify/v0`. Vuetify 4.2.4 has no splitter in core or labs; `@vuetify/v0` is Vuetify's headless layer and is already in the lockfile as a dependency of `vuetify@4.2.4`, so it becomes a direct dependency at the same version (`1.2.3`) without a new package. The panels set their own `flex-basis`; Studio templates style the handle with Vuetify utility classes and `v-divider` only, so the no-custom-CSS rule holds. |
-| Drawer | `v-navigation-drawer` with the Web UI's width (336), toggled from the app bar; `temporary` below `md`. Not resizable, as in the Web UI. |
-| Remembered layout | Pane sizes, the collapsed tree, the drawer state and the right pane's mode are per browser in `localStorage`, read only on the client. |
-| Routes | Unchanged: `/targets/{targetId}` (list, no shell open) and `/targets/{targetId}/shells/{shellKey}?submodel=&element=&mode=`. MVP-1 to MVP-3 deep links keep working; MVP-3's `?view=` maps to `?mode=visualization&view=`. A `viewer` layout holds the drawer, so the list keeps its pages and scroll position while shells change. |
-| Row actions | Copy shell ID, copy global asset ID, copy Studio link. Download, edit, delete, create and create instance need API surface Studio does not have yet. Studio does not hand out service endpoints. |
-| Shell details | Collapsible section at the bottom of the drawer, as in the Web UI: asset kind, global asset ID, specific asset IDs, asset type, display name, description, administration, and the source (registry or repository) and resolved endpoint origin. No thumbnail (needs file streaming). |
-| Tree | One `v-treeview`: submodel refs as roots with their status, elements loaded per level. Icons follow the Web UI. The tree header has reload and collapse all, and filters loaded nodes through the `search` prop. |
-| Deep links into the tree | `ElementDetail` gains `ancestors` (key, label and model type per level), so the tree can open the path to a linked element; the details header shows them as a breadcrumb. |
-| Right pane | *Details*: a typed, read-only view per element type (Submodel, SubmodelElementCollection, SubmodelElementList, Property, MultiLanguageProperty, Range, File, Blob, ReferenceElement, RelationshipElement, AnnotatedRelationshipElement, Entity, Operation, Capability, BasicEventElement) with the Web UI's common header (idShort, displayName, description, semantic ID, supplemental semantic IDs, qualifiers, kind, administration). The MVP-2 value editor stays on Property and MultiLanguageProperty. *Visualization*: the MVP-3 submodel view apps, moved out of the tree pane's tabs. *JSON*: the existing `JsonPanel`. *UML* is out of scope. |
-| Small screens | Below `md`: temporary drawer; the tree fills the page; selecting an element shows its details with a back button. |
+| # | Topic | Decision |
+| --- | --- | --- |
+| T1 | Tree | Submodel refs as roots with their status (`forbidden`, `blocked`, `not_found`, `error`); element levels loaded on demand; `ElementDetail.ancestors` for deep links. *Expand all* loads the remaining levels of the open submodels breadth-first up to a configurable cap; the filter covers loaded nodes. The whole-submodel route is kept only for history (`at`), where the snapshot is one document. |
+| T2 | Details drawer | Modes *Details*, *Visualization*, *JSON*, *XML*, *UML* for the selected submodel or element, like the Web UI's right pane. *Visualization* hosts the selected submodel's app views; the drawer can be widened to full width. XML uses aas-core's `xmlization` on the server; UML uses Mermaid (new dependency). The shell-wide *Overview* tab with all matching app views stays. |
+| T3 | Editing | The global View/Edit toggle stays, with today's abilities: Property and MultiLanguageProperty values (MVP-2 write path) and replacing File contents. The drawer's edit area is generic, so a later editing MVP can add element types, creation and deletion without restructuring. |
+| T4 | Bundled apps | The four bundled apps stay, installed at startup and not uninstallable. The bundled Nameplate replaces `examples/apps/nameplate`; the MVP-3 tests move to it. Shell Explorer, the backend demo and the isolation probe stay examples. A later MVP refines the apps. |
 
-### Test environment
+### Persistence, scope and quality
 
-| Topic | MVP-4 decision |
-| --- | --- |
-| Registry-based target | `basyx-open` enables BaSyx Go's registry integration (`GENERAL_AASREGISTRYINTEGRATION`, `GENERAL_SUBMODELREGISTRYINTEGRATION`, `GENERAL_EXTERNALURL`), so its registries are filled from the fixtures, and its Studio infrastructure is configured with all six endpoint types. Its registry, discovery and query endpoints are already served by `aasenvironment-go`. |
-| Repository-based target | `basyx-secured` stays repository-only, so both resolution paths are tested, and the secured target keeps its current ABAC rules. |
-| Foreign descriptors | A fixture descriptor in `basyx-open` points outside the configured base URLs, to test `blocked`. |
-| Large profile | A `large` Compose profile adds a third `aasenvironment-go` with registry integration, 2,000 shells, a submodel with 5,000 elements across levels, and a SubmodelElementList with 1,000 entries. The default environment and its tests stay unchanged. |
+| # | Topic | Decision |
+| --- | --- | --- |
+| P1 | Preferences | `user_preferences` in the database per user: favorites and recently opened shells per target, theme, MultiLanguageProperty language, auto-refresh, and the sync overrides of I5. Layout state (drawer widths, open panels) stays in `localStorage`. |
+| X1 | Extra features | Kept and polished: history, the *Changes* tab, ReBAC sharing (only with ReBAC and `delegated_user`, as the port decided), upload (100 MiB, DATA-006 checks), export (AASX, JSON, XML), deleting shells (with confirmation, UX-003), operations (sync and async), file download and replacement, thumbnails, the concept descriptions page and auto-refresh. AASX workspaces offer delete, files and search, not the live-only features. |
+| Q1 | Quality bar | The full definition of done for every feature: hosted web and packaged Electron, `large` profile performance, AASX workspaces, lint, typecheck, unit, integration and e2e tests, at least one e2e test per feature, screenshots in the results. |
 
 ## Design
 
 ### Layout
 
 ```text
-┌ app bar: logo · Browse · Admin · Modules ·········· target chip · save · theme · user ┐
-├──────────────┬───────────────────────────────┬────────────────────────────────────────┤
-│ drawer 336px │ Splitter.Panel 35 %           │ Splitter.Panel 65 %                    │
-│ ┌──────────┐ │ ┌ Submodels ─── ⟳  ⊟ ┐        │ ┌ [Details|Visualization|JSON] ────┐   │
-│ │⟳ search ⋮│ │ │ ▸ 📁 Nameplate      │        │ │ breadcrumb                       │   │
-│ │ chips    │ │ │ ▾ 📂 TechnicalData  │        ‖ │ header (idShort, semanticId, …)  │   │
-│ ├──────────┤ │ │    ▸ ▤ General…     │        ‖ │ typed element view / editor      │   │
-│ │ shell    │ │ │      ⓟ MaxTorque 40 │        │ │                                  │   │
-│ │ shell  ⚠ │ │ │ 🔒 Secured          │        │ │                                  │   │
-│ │ …virtual │ │ └─────────────────────┘        │ └──────────────────────────────────┘   │
-│ ├──────────┤ │                               │                                        │
-│ │ details ▾│ │                               │                                        │
-└──────────────┴───────────────────────────────┴────────────────────────────────────────┘
+┌ app bar: ☰ · logo · [⌘K search] ········· target ▾ · View|Edit · theme · account ┐
+├────┬──────────────┬──────────────────────────────────────────┬──────────────────┤
+│rail│ shell list   │ shell header: avatar, name, chips, IDs   │ details drawer   │
+│    │ search ⌨ ⋮   │ [Submodels|Overview|Changes|JSON]        │ [Details|Visual- │
+│ ⌂  │ chips        │ ┌ filter · history ▾ · auto · ⊞ ⊟ ┐      │  ization|JSON|   │
+│ ▤  │ ┌──────────┐ │ │ ▾ 📂 TechnicalData             │      │  XML|UML]        │
+│ ⚙  │ │ shell  ● │ │ │    ⓟ MaxTorque   40 Nm         │      │ breadcrumb       │
+│    │ │ shell  ⚠ │ │ │ 🔒 Secured                     │      │ header, value,   │
+│    │ └──────────┘ │ └────────────────────────────────┘      │ edit area        │
+└────┴──────────────┴──────────────────────────────────────────┴──────────────────┘
 ```
 
-- `app/layouts/viewer.vue` holds the drawer and the `<slot />`; the app bar
-  moves from `default.vue` into `AppBar.vue`, which both layouts use. The
-  target chip and the workspace actions move from `TargetHeader` into the app
-  bar while a target is open, so the active target and unsaved state stay
-  visible (design guidelines).
-- `app/components/viewer/ViewerSplit.vue` wraps the splitter: two panels with
-  minimum sizes, a collapsible tree panel, and a handle rendered as a
-  `v-divider` with a grip icon, `aria-label`, and keyboard resizing from
-  `@vuetify/v0`. Sizes are saved from the `layout` event.
-- `app/stores/viewer.ts` keeps the remembered layout and reads `localStorage`
-  only on the client, so server rendering uses the defaults.
+Phones: bottom navigation, the list and the drawer as temporary drawers, the
+palette full screen.
 
-### Shell list and search
+### Server structure
 
-- `ShellList.vue`: `useInfiniteQuery` on the list or on the search, rendered
-  in `v-virtual-scroll`; the next page loads near the end. Rows show
-  displayName or idShort, the ID, and the availability marker.
-- `ShellSearchField.vue`: text field with field suggestions and chips, built
-  on the shared parser; *Advanced* opens `ShellQueryDialog.vue`.
-- The open shell is highlighted and scrolled into view; if it is not on a
-  loaded page (deep link), it is pinned above the list until it appears.
-- Switching targets discards the list, the search and the selection
-  (DATA-011).
-- `ShellDetails.vue` reads the shell the page already loads (shared query).
+- `server/lib/aas/services.ts`: per request, the SDK clients and services for
+  the infrastructure's endpoints, with the guarded fetch, the target token, the
+  list source and the base-URL check as endpoint hook.
+- `server/lib/basyx-go/`: the proprietary client (from the port's
+  `targets/http.ts` and `aas/basyx-go.ts`), limited to I7.
+- `server/lib/aas/query.ts`: search expressions to SDK queries, raw-query
+  validation.
+- `server/lib/infrastructures.ts`: templates, endpoint expansion, sync
+  settings, stored profiles; `server/lib/targets/capabilities.ts` derives the
+  capabilities from profiles, target kind and security mode.
+- `server/lib/aas/sync.ts`: descriptor and asset-link writes after upload and
+  delete (I5).
 
-### Server
+## Studio API
 
-- `server/lib/aas/services.ts`: builds `AasService`, `SubmodelService` and the
-  discovery client for one request (endpoint configurations with the guarded
-  fetch and token, list source, the base-URL check as endpoint hook).
-- `server/lib/aas/query.ts`: expression to an SDK `Query`, Ajv validation of
-  raw queries (schema vendored from IDTA-01002-3 into `shared/aas/`), root
-  check, then `queryFromJsonable`.
-- `LiveAasTarget` reads through the services and gains `searchShells`,
-  `shellAvailability` and `shellsByAssetId`; the workspace target implements
-  `searchShells` for expressions.
-- `server/lib/infrastructures.ts`: endpoint types and combinations, base URLs
-  in the outbound policy, profiles stored at probe.
+Changes against MVP-3, combining the port's routes with the plan's:
 
-### Tree and right pane
-
-- `SubmodelTree.vue` replaces `ElementTree.vue`. Roots come from
-  `submodel-refs`; children use the elements endpoint with `parentElementKey`.
-  Loaded levels stay in a map per parent key. `v-model:activated` is bound to
-  `?submodel=` and `?element=`; `v-model:opened` is restored from `ancestors`.
-- `ElementPane.vue`: `v-btn-toggle` for the mode, breadcrumb, then the mode.
-  `app/components/elements/` has `ElementHeader.vue` and one component per
-  model type, chosen through a map from `modelType`.
-
-## Studio API changes
-
-| Change | Reason |
+| Area | Routes and fields |
 | --- | --- |
-| Infrastructure: endpoint types `aasRegistry`, `submodelRegistry`, `aasDiscovery`; `listSource`; probe results with `profiles` per endpoint | Registry and discovery configuration |
-| Target capabilities: `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `advancedQuery: boolean`, `assetLookup: boolean` | The UI offers only what the target supports |
-| `POST /targets/{targetId}/shell-searches?limit=&cursor=` with `{ expression }` or `{ query }` → `Page<ShellSummary>` and the endpoint used | Server-side search; a POST because queries are JSON |
-| `GET /targets/{targetId}/shells?assetId=` (repeatable, `name=value` or a global asset ID) | Discovery lookup |
-| `POST /targets/{targetId}/shell-availability` with up to 50 keys → status per key | Row markers |
-| `ElementDetail.ancestors: { key, label, modelType }[]` | Deep links and breadcrumb |
-| Problems: `query_invalid` (with findings), `query_unsupported`, `descriptor_endpoint_blocked` | Explain refusals |
-| `SubmodelRef.status` `blocked` and the row status `blocked` | Descriptor endpoints outside the configured base URLs |
+| Infrastructures | `template`; endpoint types of I2; `listSource`; `sync` (`server` flags, default, user override allowed); probe results with profiles |
+| Capabilities | the port's set, plus `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `advancedQuery`, `elementSearch`, `assetLookup` (replaces `discovery`); all derived from profiles |
+| Shells | list (registry or repository), `shell-availability`, `?globalAssetId=` lookup (the port's `/lookup`), delete, export, thumbnail, rights, access and invitations |
+| Search | `POST /targets/{targetId}/searches` with `{ expression }` or `{ query }` and a scope (`shells`, `elements`), cursor-paged; replaces the port's `GET /search` |
+| Submodels and elements | `submodel-refs` with `blocked`; elements per level; `ElementDetail.ancestors`; `GET …/elements/{key}?format=xml`; `tree` only with `at`; attachments; invocations |
+| Target | `changes`, `concept-descriptions`, `uploads`, `invitations` |
+| User | `GET`/`PUT /me/preferences` |
+| Problems | `query_invalid` (findings), `query_unsupported`, `descriptor_endpoint_blocked`, `package_rejected`, `sync_incomplete` (per-resource results) |
 
-`openapi.yaml` and `endpoints.md` are updated with these changes.
+`openapi.yaml` and `endpoints.md` are updated with the implementation.
 
 ## Definition of done
 
 Run in hosted web (Chromium) and the packaged Electron app against the test
-environment, and against the `large` profile where stated:
+environment, and against the `large` profile where stated.
 
-1. **Infrastructure configuration.** An administrator creates the open target
-   with the single-URL shortcut and all six endpoint types, chooses the list
-   source, and sees the stored profiles and query support after the probe.
-   Invalid combinations (no AAS source, no submodel source, duplicate types)
-   are refused with findings.
-2. **Registry listing and resolution.** On the open target, the list comes
-   from the AAS registry, shells open through their descriptor endpoints, and
-   submodels through the submodel registry. The descriptor that points outside
-   the configured base URLs is shown as `blocked` and never contacted
-   (verified in the network log). The secured target still works from its repositories.
-3. **Query search.** On the open target, free text, `field:value`,
-   `field=value` and exclusion chips return the matching shells through
-   `/query/shell-descriptors` and, with the list source set to repository,
-   through `/query/shells`; results page with the cursor; the URL reproduces
-   the search. An advanced query runs; an invalid one shows findings, and one
-   with a foreign root or `$select` is refused. Without query support the
-   client filter and its hint appear. On a workspace target, expressions work
-   and the advanced dialog is not offered.
-4. **Discovery.** `/targets/{targetId}?globalAssetId=…` opens the matching
-   shell; an asset ID with two shells shows a picker; an unknown asset ID says
-   so.
-5. **Layout.** With the same data, the Studio viewer and the Web UI viewer show
-   the same panes in the same order and proportions. Side-by-side screenshots
-   are in the results section.
-6. **Shell list and details.** On `large`, the list pages through all 2,000
-   shells with virtual scrolling, highlights and scrolls to the open shell,
-   pins a deep-linked shell that is not loaded yet, shows availability markers
-   for rows in view, copies IDs, and shows nothing of the previous target
-   after a target switch. The details show asset information, source and
-   endpoint origin, collapse, and remember that state.
-7. **Tree.** Submodels appear as roots with their status; `forbidden` and
-   `blocked` refs cannot be expanded. Levels load on demand. A deep link to an
-   element three levels down opens its path and selects it. A value edit
-   refreshes the node's preview, also for a submodel resolved through the
-   registry.
-8. **Right pane.** Every element type in the test fixtures has a typed details
-   view; Property and MultiLanguageProperty keep the MVP-2 editor with its
-   conflict and permission behaviour. The Nameplate app appears under
-   *Visualization* for nameplate submodels only, with the reason. *JSON* shows
-   the raw element.
-9. **Resizing and small screens.** The tree and the right pane can be resized
-   with the mouse and the keyboard within their minimum sizes, the tree can be
-   collapsed, and the sizes survive a reload. At 375 px width, a shell can be
-   found, opened, and an element's details read and closed. `pnpm lint`
-   passes with no style exceptions.
-10. **Performance.** On `large`, with a production build: the first list page
-    renders within 1 s of the response, scrolling through 2,000 shells has no
-    long task over 200 ms, a quick search answers within 2 s, and expanding the
-    1,000-entry list renders within 1 s. Measured with Playwright traces;
-    budgets are confirmed in phase 0.
-11. **Workspace targets.** Criteria 6 to 9 also hold for the desktop workspace
-    of `IESEDriveMotorDM3000.aasx`, including the unsaved state after an edit.
-12. **Parity list.** Every feature of the Web UI viewer, its infrastructure
-    settings, list, search and discovery is listed as done, later (with the
-    MVP or prerequisite), or dropped, with a reason.
+**Core**
+
+1. **Infrastructures.** An administrator creates infrastructures from each
+   template; invalid endpoint combinations are refused with findings; the
+   stored profiles, derived features and sync settings are shown. A user
+   overrides the sync default only where the infrastructure allows it.
+2. **Registries.** On the registry-based target, the list comes from the AAS
+   registry, shells and submodels resolve through descriptors, a descriptor
+   outside the configured base URLs is `blocked` and never contacted (network
+   log), and rows show availability. The repository-only target works as
+   before.
+3. **Search.** In the list drawer: free text, `field:value`, `field=value` and
+   exclusions through `/query/shell-descriptors` and `/query/shells`, cursor
+   paging, the search in the URL, the advanced dialog with findings and
+   refusals, the client filter without query support, expressions on a
+   workspace. In the palette: shells, elements, actions and asset-ID lookup.
+4. **Discovery.** `?globalAssetId=` opens the shell; several shells show a
+   picker; an unknown asset ID says so.
+5. **Layout and look.** The port's layout at phone, tablet and desktop widths
+   in web and Electron without Vuetify glitches (overlaps, clipped or
+   misaligned controls, wrong drawer behaviour, hydration warnings); the look
+   of L2 on every page, admin and app pages included. Screenshots in the
+   results.
+6. **Shell list.** On `large`, paging through 2,000 shells with virtual
+   scrolling, filter chips, favorites and sort, the open shell highlighted and
+   pinned on a deep link, nothing of the previous target after a switch.
+7. **Tree and deep links.** Submodel roots with status, levels on demand,
+   *expand all* within the cap, a deep link three levels down opens the path,
+   the drawer and the right mode; MVP-1 to MVP-3 links still work.
+8. **Details drawer.** Every element type of the fixtures has a typed view;
+   *Visualization* shows the Nameplate app for nameplate submodels only;
+   *JSON*, *XML* and *UML* render the selected submodel or element.
+9. **Editing.** In edit mode, Property and MultiLanguageProperty values and
+   File contents can be changed with MVP-2's conflict and permission
+   behaviour; view mode shows no edit controls.
+10. **Performance.** On `large`, production build: first list page within 1 s
+    of the response, no long task over 200 ms while scrolling 2,000 shells, a
+    quick search within 2 s, expanding the 1,000-entry list within 1 s.
+11. **Workspaces.** Criteria 6 to 9 hold for the desktop workspace of
+    `IESEDriveMotorDM3000.aasx`, including the unsaved state after an edit;
+    live-only features are not offered.
+
+**Viewer features**
+
+12. **History.** With the history profile advertised, a date in the past shows
+    the submodel as it was, read-only; without it, the control is absent.
+13. **Changes.** With the event-feed profile advertised, the *Changes* tab
+    lists the shell's events; without it, the tab is absent.
+14. **Sharing.** With ReBAC and `delegated_user`, the owner grants and revokes
+    access and creates an invitation that another user accepts; the dialog is
+    absent otherwise, and the admin page says why.
+15. **Upload and export.** An AASX, JSON and XML file within the limit is
+    uploaded (invalid ones are refused with findings) and appears in the
+    list, with descriptors and asset links written according to the sync
+    setting; a shell is exported as AASX, JSON and XML.
+16. **Delete.** Deleting a shell needs confirmation, removes it from the list
+    and, according to the sync setting, its descriptor and asset links.
+17. **Operations.** A synchronous and an asynchronous operation run with
+    inputs and show their outputs; refused calls explain why.
+18. **Files and thumbnails.** File elements download and, in edit mode, are
+    replaced; shells show their thumbnails.
+19. **Concept descriptions, preferences, apps.** The concept descriptions page
+    lists and shows them; favorites, recent shells and settings survive a new
+    session and another browser; the four bundled apps are installed on a
+    fresh start and cannot be uninstalled.
+20. **Landing page.** `/targets/{targetId}` shows the placeholder of R1.
+21. **Parity list.** Every feature of the Web UI viewer and of the port is
+    listed as done, later (with the MVP or prerequisite) or dropped, with a
+    reason.
 
 ## Phases
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| S. SDK (done) | #549 and #550 in `basyx-typescript-sdk` 2.4.0; Studio updated | SDK 2.4.0 in use |
-| 0. Spikes | `@vuetify/v0` splitter in Nuxt SSR and Electron; `v-treeview` with 1,000 and 5,000 nodes; `v-virtual-scroll` with cursor paging; registry integration and query endpoints of `aasenvironment-go` in the test environment; profile detection | Decisions and budgets recorded; ADR drafts |
-| A. Infrastructures | Endpoint types, combinations, base-URL policy, list source, stored profiles, admin form with the single-URL shortcut; test environment changes | DoD 1 |
-| B. Resolution and discovery | Registry listing and descriptor resolution through `AasService` and `SubmodelService`, availability, discovery lookup, `?globalAssetId=` | DoD 2, 4 |
-| C. Search | Shared expression parser, query building and validation, search route, workspace evaluation, search field and dialog | DoD 3 |
-| D. Layout and list | `AppBar.vue`, `viewer` layout, drawer, `ViewerSplit`, remembered layout, small screens, `ShellList`, `ShellDetails` | DoD 5–6, 9 |
-| E. Tree and right pane | `ancestors`, `SubmodelTree`, element header and type views, *Visualization*, *JSON* | DoD 7–8 |
-| F. Wrap-up | Workspace check, performance runs, screenshots, parity list, results, ADRs, `openapi.yaml` | DoD 10–12 |
+| 0. Inventory | Run the port in web and Electron at three widths and record every visual and content defect in [Defects](#defects); integration, e2e and desktop baseline; BaSyx Go tickets for the history and event-feed profiles; registry integration in the test environment; Mermaid and lazy-tree measurements | Defect list; baseline; tickets |
+| A. Look and shell | L2 theme without the blueprint, app bar and rail glitches, phones, landing page, routes and deep links | DoD 5, 20 |
+| B. Infrastructures | Templates, endpoint types, list source, sync settings and overrides, stored profiles, admin form | DoD 1 |
+| C. Data access | SDK for standard endpoints, BaSyx Go client for proprietary ones, registry resolution and the base-URL rule, availability, discovery, capabilities from profiles | DoD 2, 4 |
+| D. Search | Palette and list search, syntax, advanced dialog, URL state, element search, workspace expressions | DoD 3 |
+| E. Tree and drawer | Lazy tree with `ancestors`, *expand all*, drawer modes, XML and UML, generic edit area, *Overview* and *Visualization* | DoD 6–9 |
+| F. Viewer features | History, changes, sharing, upload and export with sync, delete with sync, operations, files and thumbnails, concept descriptions, preferences, bundled apps | DoD 12–19 |
+| G. Wrap-up | Workspace and performance runs, desktop e2e, screenshots, parity list, results, ADRs, `requirements.md` and `design-guidelines.md`, `openapi.yaml` | DoD 10, 11, 21 |
 
-D and E do not depend on A to C and can start right after phase 0 against
-the repository-based targets. B and C use the SDK release from phase S;
-C needs B's list source.
+A and B can start right after phase 0; C needs B's endpoint model; D and E
+need C; F needs C and E. Defects from phase 0 are fixed in the phase that owns
+the area.
 
 ### Work breakdown
 
-**S. SDK**
+**0. Inventory**
 
-- [eclipse-basyx/basyx-typescript-sdk#549](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/549):
-  query clients for the five `/query/*` endpoints, cursor paging, `$select`
-  results.
-- [eclipse-basyx/basyx-typescript-sdk#550](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/550):
-  `AAS-3.x`/`SUBMODEL-3.x` endpoint selection in `AasService` and
-  `SubmodelService`, and an endpoint hook that gives the caller control over
-  the configuration of every descriptor endpoint request, or rejects it.
-- Released as 2.4.0 on 2026-10-14 (npm provenance from the repository's
-  `publish.yml`, tag `v2.4.0`; dependencies unchanged from 2.3.0). Studio uses
-  it with the exact-version exception `basyx-typescript-sdk@2.4.0`; unit,
-  integration (129) and type checks pass.
+- Start the test environment, the dev server and the packaged app; walk
+  through every page at 375, 768 and 1440 px in light and dark; record
+  defects with screenshots.
+- `pnpm test:integration`, `pnpm test:e2e:web`, `pnpm test:e2e:desktop`
+  against the port; record failures.
+- BaSyx Go tickets: profiles for history (`$history`, `$recent-changes`) and
+  the event feed (`/events`, `/.well-known/event-feed.json`) in
+  `/description`, with proposed URIs.
+- `basyx-open`: registry integration (`GENERAL_AASREGISTRYINTEGRATION`,
+  `GENERAL_SUBMODELREGISTRYINTEGRATION`, `GENERAL_EXTERNALURL`) next to history
+  and the event feed; a foreign descriptor fixture; the `large` profile.
+- Lazy tree with 1,000 siblings and 5,000 nodes; Mermaid bundle size and
+  rendering of a large submodel.
 
-**0. Spikes**
+**A. Look and shell**
 
-- Add `@vuetify/v0` as a direct dependency pinned to the version `vuetify`
-  resolves; `pnpm why @vuetify/v0` still shows one version.
-- Splitter prototype: hydration, keyboard resizing, the drag cursor, focus
-  visibility, Electron, ESLint rules.
-- `v-treeview` with 1,000 siblings and 5,000 loaded nodes. If it misses the
-  budget, page the elements endpoint (today it returns a whole level) with
-  `limit` and `cursor`, and add a "load more" node; Vuetify's treeview does not
-  virtualize.
-- `v-virtual-scroll` with infinite loading of cursor pages.
-- Test environment: registry integration and `GENERAL_EXTERNALURL` on
-  `basyx-open`; check that descriptors carry `AAS-3.2`/`SUBMODEL-3.2`
-  endpoints reachable from Studio in dev, the hosted build and Electron; check
-  that discovery asset links are filled; run each `/query/*` endpoint once.
-- `/description` profiles of `aasenvironment-go` and of the standalone
-  services; the rule that derives query support.
+- `vuetify.config.ts`: remove the `md3` blueprint and the port's palette;
+  defaults for L2; aliases for recurring roles (pane, header card, toolbar
+  button) instead of restated props.
+- App bar, rail, bottom navigation and drawers: fix the inventory's glitches;
+  check SSR hydration and the theme switch (`app.vue`).
+- Landing page (R1); viewer routes and deep links (R2, R3), including the
+  MVP-3 `?view=` links.
 
-**A. Infrastructures**
+**B. Infrastructures**
 
-- `shared/contract/infrastructure.ts`: endpoint types, combination rules,
-  `listSource`; probe result with profiles.
-- Migration `0002`: `list_source`, `service_profiles` and
-  `probed_at` on `infrastructures`.
-- `targetPolicy` checks the configured base URLs; `probeEndpoints` stores
-  profiles.
-- Admin page: new endpoint fields, the single-URL shortcut, list source,
-  profiles and query support in the details.
-- `test-setup`: registry integration, the foreign descriptor fixture, the
-  `large` profile and its generator (`pnpm testenv:fixtures --profile large`),
-  updated smoke test.
+- Contract: `template`, endpoint types, combination rules per template,
+  `listSource`, `sync`; probe results with profiles.
+- Migration `0003` (after the port's `0002`): template, list source, sync
+  settings, profiles and probe time on `infrastructures`; upgrade test
+  (DEP-007).
+- Admin form: template choice, endpoints per template, list source, sync,
+  stored profiles and derived features (replacing the port's capability
+  chips from probing).
 
-**B. Resolution and discovery**
+**C. Data access**
 
-- `server/lib/aas/services.ts`; `LiveAasTarget` reads through `AasService`,
-  `SubmodelService` and the discovery client; `SubmodelRef.status` `blocked`.
-- `shell-availability` route; `?assetId=` on the shell list.
-- Unit tests for the base-URL check (scheme, port, path prefix at a segment
-  boundary, dot segments, percent-encoding, userinfo, IDN, trailing dots);
-  integration tests on both targets.
+- `server/lib/aas/services.ts` and the endpoint hook; registry listing and
+  resolution; `blocked`; `shell-availability`.
+- Move the port's raw calls for queries, operations, files, thumbnails and
+  deletes to the SDK; move the rest to `server/lib/basyx-go/`.
+- Capabilities from stored profiles (I6); remove `features.ts` and its cache.
+- Discovery lookup and `?globalAssetId=`.
 
-**C. Search**
+**D. Search**
 
-- `shared/aas/search-expression.ts`: parser, field table, chips; unit tests
-  with the Web UI's cases.
-- `server/lib/aas/query.ts`: expression to an SDK `Query`, schema
-  validation, root check, size limit, `queryFromJsonable`; `shell-searches`
-  route; problems.
-- Workspace worker: expression evaluation over package shells.
-- `ShellSearchField.vue`, `ShellQueryDialog.vue`, URL state.
+- `shared/aas/search-expression.ts` (parser, fields, chips) with the Web UI's
+  cases; `server/lib/aas/query.ts`; `POST …/searches`.
+- List drawer search field, advanced dialog, URL state; palette on the same
+  route; workspace worker expressions.
 
-**D. Layout and list**
+**E. Tree and drawer**
 
-- `AppBar.vue`, `app/layouts/viewer.vue`, `ViewerSplit.vue`,
-  `app/stores/viewer.ts`, small-screen behaviour with `useDisplay()`.
-- `ShellList.vue`, `ShellDetails.vue`; `targets/[targetId]/index.vue` becomes
-  the viewer with no shell open.
-- Vuetify defaults and aliases for recurring viewer pieces in
-  `vuetify.config.ts`; i18n keys for all new labels.
+- Replace the port's whole-submodel tree with per-level loading and
+  `ancestors` (keep `tree?at=` for history); *expand all* with the cap.
+- Drawer modes; XML route; UML with Mermaid; *Visualization* with app views;
+  generic edit area for the MVP-2 editors and File replacement.
 
-**E. Tree and right pane**
+**F. Viewer features**
 
-- `ancestors` in `server/utils/elements.ts` from the parsed locator, with
-  tests for operation variable groups and list indices.
-- `SubmodelTree.vue` (remove `ElementTree.vue`), `ElementPane.vue`,
-  `app/components/elements/*`, shared field components; app views move to
-  *Visualization*.
+- Polish each feature of X1 against its definition of done, including empty,
+  error, forbidden and unsupported states and i18n.
+- `server/lib/aas/sync.ts` for upload and delete.
+- Bundled Nameplate replaces the example; MVP-3 tests move to it.
 
-**F. Wrap-up**
+**G. Wrap-up**
 
-- Web e2e: `test/e2e/web/viewer.spec.ts`, `search.spec.ts`,
-  `infrastructures.spec.ts`; performance traces on `large`; desktop e2e for
-  the workspace. Update the e2e tests that use the old shell page.
-- ADRs, results section, code map, parity list, `openapi.yaml`, AGENTS.md note
-  on headless `@vuetify/v0` components.
+- e2e per feature; desktop e2e; performance traces; screenshots.
+- ADRs (below), requirements and design guidelines, `openapi.yaml`,
+  `endpoints.md`, results section, code map, parity list.
+
+## Defects
+
+Filled in phase 0, then worked off by phase. Each entry: area, page and
+width, what is wrong, what is expected, phase.
+
+| # | Area | Defect | Phase | Status |
+| --- | --- | --- | --- | --- |
 
 ## ADRs to write
 
-- ADR 0020: registries, discovery and descriptor endpoints (endpoint types,
-  list source, resolution through the SDK services, the base-URL rule, no URL
-  rewriting).
-- ADR 0021: AAS Query Language through the BFF (expression syntax, validation,
-  root restriction, support detection, workspace evaluation).
-- ADR 0022: viewer layout and headless `@vuetify/v0` components where Vuetify
-  has no styled component, styled only with Vuetify utilities.
+The port cites ADR 0020 and 0021, which do not exist yet; the code references
+are updated to these numbers.
+
+- ADR 0020: infrastructure templates, registries, discovery, descriptor
+  endpoints and synchronization (I1–I5).
+- ADR 0021: feature detection from service profiles (I6).
+- ADR 0022: BaSyx Go-specific endpoints outside `basyx-typescript-sdk` (I7).
+- ADR 0023: bundled first-party apps (T4).
+- ADR 0024: AAS Query Language through the BFF (S1, S2).
 
 ## Known risks
 
 | Risk | Mitigation |
 | --- | --- |
-| Registries publish internal host names (for example Docker service names) instead of the configured URLs | Shown as `blocked` with the URL's origin, not silently replaced; the deployment guide names `GENERAL_EXTERNALURL`; URL rewriting stays out of scope until a real deployment needs it |
-| Query profile URIs differ between servers and versions | Profiles plus the first-use check; a wrong guess degrades to the client filter |
-| `AasService` and `SubmodelService` do not fit every Studio path (for example availability checks or per-row resolution) | Use the SDK clients directly for those paths, still through the endpoint hook and the guarded fetch |
-| A per-request descriptor lookup slows down opening shells and loading submodels | Measure on `large`; cache descriptors per target and session for a short time if needed |
-| `@vuetify/v0` is young (1.x) and its API may change | Pinned to the version `vuetify` itself depends on; used only inside `ViewerSplit.vue` |
-| The splitter's handle needs a drag cursor or hover state that Vuetify utilities cannot express | Check in phase 0; decide in ADR 0022 between a Vuetify class, a v0 data attribute, or one documented exception |
-| `v-treeview` does not virtualize, so large levels are slow | Budget in phase 0; paging with a "load more" node if needed |
-| Moving app views to *Visualization* changes MVP-3 URLs | `?view=` is mapped on load |
-| The scope is larger than earlier MVPs | Phases are independent where possible; the parity list records what moves to later slices |
+| History and the event feed stay hidden until BaSyx Go advertises their profiles, so DoD 12–13 cannot pass against released BaSyx Go | Implement the BaSyx Go tickets first, as with the SDK, or verify against a BaSyx Go build with the profiles |
+| The scope is far larger than earlier MVPs | Phases with their own exits; the defect list makes the remaining work visible; the parity list records what moves on |
+| Removing the md3 blueprint changes components implicitly configured by it | Screenshots of every page before and after; the e2e suites |
+| Studio-written descriptors and asset links can fail after a successful upload or delete | Per-resource results (`sync_incomplete`), never reported as atomic (as DATA-014 for copies) |
+| *Expand all* on a lazy tree causes many requests | Breadth-first with a cap and limited concurrency; measured in phase 0 |
+| The proprietary client grows into a second SDK | Limited to I7 by ADR 0022; anything standard goes to the SDK, with upstream tickets where needed |
+| Descriptors with internal host names | `blocked` with the origin shown; `GENERAL_EXTERNALURL` in the deployment guide |
+| `/description` profile URIs differ between servers | Detection rules per feature in ADR 0021, unit-tested with BaSyx Go's and other servers' profiles |
 
 ## Out of scope
 
-AAS, submodel and element creation, editing beyond the MVP-2 value editor,
-deletion, upload and download on live targets, discovery and registry writes,
-QR scanning, submodel search on global submodel routes, per-endpoint
-credentials, URL rewriting for descriptor endpoints, Catena-X and EDC access,
-the company lookup service, concept descriptions, file previews and thumbnails,
-UML view, operation invocation, automatic value refresh (the Web UI's auto
-sync), the command palette, and the Web UI's editor, submodel viewer and
-submodel editor routes.
+Editing beyond Property and MultiLanguageProperty values and File
+replacement (creating, deleting and editing other elements and shells),
+dashboard content, aggregated views across targets, Catena-X and EDC access,
+the company lookup service, QR scanning, per-endpoint credentials, URL
+rewriting for descriptor endpoints, the Web UI's editor and submodel viewer
+routes.
 
 ## After MVP-4
 
-- File streaming (`/targets/{targetId}/files`) with the core file previews
-  (PDF, image, CAD, IFC, JSON, XML) and thumbnails.
-- Concept descriptions in the details header.
-- First-party submodel apps from the classification (TechnicalData,
-  HandoverDocumentation, CarbonFootprint, …) in *Visualization*.
+- Editing MVP: element creation, deletion and editing of every type, AAS
+  editor parity, on the MVP-2 revision path.
+- Dashboard MVP for `/targets/{targetId}`.
+- Apps MVP: refine the bundled apps and port further first-party apps from the
+  MVP-3 classification.
 - QR scanning through discovery.
-- Editing: create, edit and delete elements, submodels and shells (AASEditor
-  parity) on the MVP-2 revision path, with registry and discovery
-  synchronization where the server does not integrate them.
