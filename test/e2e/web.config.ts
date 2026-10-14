@@ -15,10 +15,14 @@ export default defineConfig({
   reporter: process.env.CI ? [['list'], ['html', { open: 'never', outputFolder: '../../playwright-report/web' }]] : 'list',
   outputDir: '../../test-results/web',
   use: {
-    ...devices['Desktop Chrome'],
     baseURL,
     trace: 'retain-on-failure',
   },
+  projects: [
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec/ },
+    // Phone-sized layout (aas-viewer-port plan D10).
+    { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
+  ],
   webServer: {
     command: 'node .output/server/index.mjs',
     cwd: '../..',
