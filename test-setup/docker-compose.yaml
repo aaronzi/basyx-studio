@@ -84,6 +84,10 @@ services:
       POSTGRES_DBNAME: basyx_open
       ABAC_ENABLED: "false"
       GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
+      # Optional BaSyx Go features that Studio detects per target: point-in-time
+      # history and the CloudEvents change feed.
+      BASYX_HISTORY_MODE: api
+      EVENTING_FEED_ENABLED: "true"
     ports:
       - "18081:5004"
     volumes:
