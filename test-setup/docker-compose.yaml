@@ -127,6 +127,12 @@ services:
       ABAC_POLICY_FILE_IMPORT: always
       OIDC_TRUSTLISTPATH: /security/trustlist.json
       GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
+      # History and the change feed, as on "open", so Studio can test them
+      # with signed-in users and access rules. The registries stay unused:
+      # this target lists shells from its repository.
+      BASYX_HISTORY_MODE: api
+      BASYX_EVENTING_FEED_ENABLED: "true"
+      GENERAL_EXTERNALURL: http://localhost:18082
     ports:
       - "18082:5004"
     volumes:
