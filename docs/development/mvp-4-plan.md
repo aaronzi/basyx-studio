@@ -372,28 +372,29 @@ loaded from the server rather than reached by navigation in the app.
 
 | # | Area | Defect | Expected | Phase | Status |
 | --- | --- | --- | --- | --- | --- |
-| D1 | Layout (SSR) | Every full load at desktop width renders the phone layout (bottom navigation, no rail or shell list, content under the app bar) until hydration; the server does not know the viewport | The desktop layout from the first paint (viewport client hint or desktop default) | A | Open |
-| D2 | Images (SSR) | After a full load the app-bar logo and all shell avatars (list and header) stay empty; they appear only after navigation in the app | Logo and avatars after every load; an icon when a shell has no thumbnail | A | Open |
-| D3 | Theme | A theme applied on the client after server rendering leaves server-rendered cards in the previous theme (dark page, light cards) | One theme for the whole page, from the first paint | A | Open |
-| D4 | Dark mode | The app bar's search label and the *View/Edit* labels are dark on dark | Readable labels in both themes | A | Open |
+| D1 | Layout (SSR) | Every full load at desktop width renders the phone layout (bottom navigation, no rail or shell list, content under the app bar) until hydration; the server does not know the viewport | The desktop layout from the first paint (viewport client hint or desktop default) | A | Fixed (A) |
+| D2 | Images (SSR) | After a full load the app-bar logo and all shell avatars (list and header) stay empty; they appear only after navigation in the app | Logo and avatars after every load; an icon when a shell has no thumbnail | A | Fixed (A) |
+| D3 | Theme | A theme applied on the client after server rendering leaves server-rendered cards in the previous theme (dark page, light cards) | One theme for the whole page, from the first paint | A | Fixed (A) |
+| D4 | Dark mode | The app bar's search label and the *View/Edit* labels are dark on dark | Readable labels in both themes | A | Fixed (A) |
 | D5 | Details drawer | Temporary with a scrim below 1920 px, so at 1440 px it covers the tree | Beside the tree on desktop widths, temporary only on narrow screens | E | Open |
 | D6 | Details drawer | The value is set in display size and wraps for long text; semantic ID, kind and category are missing from the metadata | Body-sized values; the Web UI's header fields | E | Open |
-| D7 | Shell header | The title is cut without ellipsis or wrap at 768 and 375 px; the subtitle repeats the idShort; an empty box instead of an icon without thumbnail | Wrapping title, no repetition, icon fallback | A | Open |
-| D8 | Shell header | The chip row runs off the screen at 375 px without a scroll hint; identifiers are truncated without a way to read them | Wrapping chips; full identifier on hover and on copy | A | Open |
-| D9 | Tablet | Below 960 px the target switcher is hidden, so the active target is not visible; the search icon floats in the app bar | Active target always visible (design guidelines) | A | Open |
-| D10 | Phone | Five bottom-navigation items, the last label cut; the tree toolbar squeezes the filter to "Filte"; no values in the tree | Fewer or shorter navigation items; a toolbar that wraps or collapses into a menu | A, E | Open |
+| D7 | Shell header | The title is cut without ellipsis or wrap at 768 and 375 px; the subtitle repeats the idShort; an empty box instead of an icon without thumbnail | Wrapping title, no repetition, icon fallback | A | Fixed (A) |
+| D8 | Shell header | The chip row runs off the screen at 375 px without a scroll hint; identifiers are truncated without a way to read them | Wrapping chips; full identifier on hover and on copy | A | Fixed (A) |
+| D9 | Tablet | Below 960 px the target switcher is hidden, so the active target is not visible; the search icon floats in the app bar | Active target always visible (design guidelines) | A | Fixed (A) |
+| D10 | Phone | Five bottom-navigation items, the last label cut; the tree toolbar squeezes the filter to "Filte"; no values in the tree | Fewer or shorter navigation items; a toolbar that wraps or collapses into a menu | A, E | App bar and navigation fixed (A); tree toolbar in E |
 | D11 | Palette | Search is case-sensitive and ignores display names: "Servo" and "dm3000" find nothing, "DM3000" finds the shell | Case-insensitive search over the Web UI's fields (S2) and, in the palette, display names of loaded shells | D | Open |
 | D12 | JSON tab | Long lines are cut off without horizontal scrolling or wrapping | All content reachable | E | Open |
 | D13 | Changes tab, dashboard cards | The card header icon is not aligned with the title; events do not say what changed or who changed it | Aligned headers; element or value and actor where the feed provides them | F | Open |
 | D14 | App frames | The Nameplate app's *Save* button is out of reach inside its frame (web e2e `apps.spec`); a frame that fails to load stays blank | Frames sized to or scrolling their content; loading and error states | E, F | Open |
 | D15 | History detection | Probes `$recent-changes`, which BaSyx Go serves in every history mode, so history is offered without recorded versions | Detection from the history profiles (I6) | C | Open |
-| D16 | Accessibility | Icon buttons without accessible names in the app bar and the shell list | A label on every icon button | A | Open |
+| D16 | Accessibility | Icon buttons without accessible names in the app bar and the shell list | A label on every icon button | A | No defect: every icon button has a label or text; the walkthrough tool listed only `aria-label` names |
 | D17 | Infrastructure dialog | Fields have placeholders but no labels; the sharing notice is shown for *Unsecured* | Labelled fields; notices only where they apply | B | Open |
 | D18 | Concept descriptions | *Unit* and *Source* are empty for every entry | Values where the data has them, else no empty columns | F | Open |
-| D19 | Lists | *Recently opened* shows identifiers; shell rows repeat the idShort as subtitle | Names first, identifier as subtitle (as in the Web UI) | A | Open |
+| D19 | Lists | *Recently opened* shows identifiers; shell rows repeat the idShort as subtitle | Names first, identifier as subtitle (as in the Web UI) | A | Fixed (A) |
 | D20 | e2e web | `viewer.spec` "shows a read-only past state" clicks Vuetify 3 classes (`v-date-picker-month__day--today`) | Role-based locators | F | Open |
-| D21 | e2e desktop | `apps.spec` looks for the removed *Browse* link; `workspace.spec` cannot reach a package's shell rows (the list is off-screen at the window size) | Tests updated to the rail; shell list reachable in the desktop window | A | Open |
+| D21 | e2e desktop | `apps.spec` looks for the removed *Browse* link; `workspace.spec` cannot reach a package's shell rows (the list is off-screen at the window size) | Tests updated to the rail; shell list reachable in the desktop window | A | Cause fixed (A): the desktop window opened at 800 × 600; tests are updated with the web specs (F) |
 | D22 | Console | Three 503 responses on every full load in the dev server; no matching server log | Explained or gone in the production build | A | Open |
+| D24 | Routes | A URL with an unknown target (for example after the test environment was reset) breaks server rendering with a 500 | The target's problem shown on the page | A | Fixed (A) |
 | D23 | Test environment | Event-feed schema links pointed to the container port (`localhost:5004//…`); the feed variable used an undocumented name | External URL and documented variable | 0 | Fixed |
 
 ## ADRs to write
