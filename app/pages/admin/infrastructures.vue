@@ -23,7 +23,7 @@
         <ListFilterBar
           v-model:search="search"
           v-model:selected="selected"
-          :options="filterOptions"
+          :groups="filterGroups"
           :placeholder="t('admin.search')"
         />
 
@@ -37,28 +37,34 @@
           <RecordListItem
             :prepend-icon="securityModeIcons[item.security.mode]"
             :subtitle="`${t(`admin.templates.${item.template}.title`)} · ${t(`security.${item.security.mode}`)} · ${endpointUrls(item)}`"
-            :title="item.name"
             @click="edit(item)"
           >
-            <div class="d-flex flex-wrap ga-1 mt-1">
-              <v-chip v-if="serviceUrl(item, 'aasRegistry') && serviceUrl(item, 'aasRepository')" prepend-icon="mdi-format-list-bulleted" :text="t(`admin.listSources.${item.listSource}`)" />
+            <!-- Features as small neutral chips on the title line, explained
+                 by tooltips; rows stay two lines high. -->
+            <template #title>
+              <div class="d-flex flex-wrap align-center ga-1">
+                <span class="me-1">{{ item.name }}</span>
 
-              <v-chip
-                v-for="feature in announcedFeatures(item)"
-                :key="feature"
-                color="primary"
-                :text="t(`admin.announced.${feature}`)"
-              />
-            </div>
+                <v-chip
+                  v-for="feature in features(item)"
+                  :key="feature.key"
+                  v-tooltip="feature.hint"
+                  :prepend-icon="feature.icon"
+                  size="x-small"
+                  :text="feature.title"
+                />
 
-            <div v-if="probes[item.id]" class="d-flex flex-wrap ga-1 mt-1">
-              <v-chip
-                v-for="endpoint in probes[item.id]!.endpoints"
-                :key="endpoint.type"
-                :color="endpoint.reachable ? 'success' : 'error'"
-                :text="`${t(`admin.endpointTypes.${endpoint.type}`)}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`"
-              />
-            </div>
+                <!-- The last check in this session, without moving the row. -->
+                <v-icon
+                  v-if="probes[item.id]"
+                  v-tooltip="probeSummary(probes[item.id]!)"
+                  :aria-label="probeSummary(probes[item.id]!)"
+                  :color="probeFailed(probes[item.id]!) ? 'error' : 'success'"
+                  :icon="probeFailed(probes[item.id]!) ? 'mdi-lan-disconnect' : 'mdi-lan-check'"
+                  size="small"
+                />
+              </div>
+            </template>
 
             <template #meta>
               <span v-if="item.probedAt" class="text-body-small text-medium-emphasis text-no-wrap">
@@ -66,6 +72,7 @@
               </span>
             </template>
 
+            <!-- Clicking the row edits it, so there is no edit button. -->
             <template #actions>
               <v-btn
                 v-tooltip="t('admin.probe')"
@@ -73,13 +80,6 @@
                 icon="mdi-lan-connect"
                 :loading="probing === item.id"
                 @click.stop="probe(item)"
-              />
-
-              <v-btn
-                v-tooltip="t('admin.edit')"
-                :aria-label="t('admin.edit')"
-                icon="mdi-pencil-outline"
-                @click.stop="edit(item)"
               />
 
               <v-btn
@@ -101,22 +101,21 @@
     <InfrastructureDialog v-model="dialogOpen" :existing="editing" @saved="refresh" />
 
     <v-dialog max-width="480" :model-value="confirmDelete !== null" @update:model-value="confirmDelete = null">
-      <v-card :title="t('admin.delete')">
-        <v-card-text>{{ t('admin.deleteConfirm', { name: confirmDelete?.name ?? '' }) }}</v-card-text>
+      <DialogCard :title="t('admin.delete')">
+        {{ t('admin.deleteConfirm', { name: confirmDelete?.name ?? '' }) }}
 
-        <v-card-actions>
-          <v-spacer />
+        <template #actions>
           <v-btn :text="t('admin.cancel')" @click="confirmDelete = null" />
           <v-btn-primary color="error" :text="t('admin.delete')" @click="remove" />
-        </v-card-actions>
-      </v-card>
+        </template>
+      </DialogCard>
     </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts" setup>
   import type { Infrastructure, ProbeResult } from '#shared/contract'
-  import type { FilterOption } from '~/utils/records'
+  import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { serviceUrl } from '#shared/contract'
   import { securityModeIcons } from '~/utils/aas'
@@ -125,10 +124,36 @@
   const { t, locale } = useI18n()
   const api = useStudioApi()
   const invalidate = useInvalidate()
+  const notifications = useNotificationsStore()
 
-  /** The features an infrastructure's services announce, for the row chips (the server also sends `query`, an object). */
-  function announcedFeatures (item: Infrastructure): Array<keyof Infrastructure['announced']> {
-    return (Object.keys(item.announced) as Array<keyof Infrastructure['announced']>).filter(feature => item.announced[feature] === true)
+  const featureIcons: Record<keyof Infrastructure['announced'], string> = {
+    history: 'mdi-history',
+    changeFeed: 'mdi-timeline-clock-outline',
+    rebac: 'mdi-account-lock-outline',
+  }
+
+  /**
+   * The row chips: where the shell list comes from, and the features the
+   * services announce (the server also sends `query`, an object, which the
+   * filter skips).
+   */
+  function features (item: Infrastructure): Array<{ key: string, title: string, hint: string, icon: string }> {
+    const announced = (Object.keys(featureIcons) as Array<keyof Infrastructure['announced']>)
+      .filter(feature => item.announced[feature] === true)
+      .map(feature => ({ key: feature, title: t(`admin.announced.${feature}`), hint: t(`admin.announcedHints.${feature}`), icon: featureIcons[feature] }))
+    const listSource = serviceUrl(item, 'aasRegistry') && serviceUrl(item, 'aasRepository')
+      ? [{ key: 'listSource', title: t(`admin.listSources.${item.listSource}`), hint: t(`admin.listSourceHelp.${item.listSource}`), icon: 'mdi-format-list-bulleted' }]
+      : []
+    return [...listSource, ...announced]
+  }
+
+  function probeFailed (result: ProbeResult): boolean {
+    return result.endpoints.some(endpoint => !endpoint.reachable)
+  }
+
+  /** One line per endpoint, for the tooltip and the snackbar. */
+  function probeSummary (result: ProbeResult): string {
+    return result.endpoints.map(endpoint => `${t(`admin.endpointTypes.${endpoint.type}`)}: ${endpoint.reachable ? `${endpoint.status} · ${endpoint.latencyMs} ms` : endpoint.error}`).join(' · ')
   }
 
   const list = useQuery({
@@ -144,11 +169,19 @@
     return [...new Set(item.endpoints.map(endpoint => endpoint.url))].join(', ')
   }
 
-  // Filters for the security modes and kinds that occur.
-  const filterOptions = computed<FilterOption[]>(() => [
-    ...new Set(items.value.map(item => item.security.mode)),
-  ].map(mode => ({ value: `security:${mode}`, title: t(`security.${mode}`), icon: securityModeIcons[mode] })).concat([...new Set(items.value.map(item => item.template))]
-    .map(template => ({ value: `template:${template}`, title: t(`admin.templates.${template}.title`), icon: undefined }))))
+  // Filters for the security modes and deployments that occur.
+  const filterGroups = computed<FilterGroup[]>(() => [
+    {
+      title: t('admin.securityMode'),
+      options: [...new Set(items.value.map(item => item.security.mode))]
+        .map(mode => ({ value: `security:${mode}`, title: t(`security.${mode}`), icon: securityModeIcons[mode] })),
+    },
+    {
+      title: t('admin.deployment'),
+      options: [...new Set(items.value.map(item => item.template))]
+        .map(template => ({ value: `template:${template}`, title: t(`admin.templates.${template}.title`) })),
+    },
+  ])
 
   const filtered = computed(() => filterRecords(items.value, search.value, selected.value, item => ({
     text: [item.name, endpointUrls(item), t(`admin.templates.${item.template}.title`)],
@@ -176,7 +209,13 @@
     probing.value = item.id
     actionError.value = null
     try {
-      probes.value = { ...probes.value, [item.id]: await api<ProbeResult>(`/infrastructures/${item.id}/probe`, { method: 'POST' }) }
+      const result = await api<ProbeResult>(`/infrastructures/${item.id}/probe`, { method: 'POST' })
+      probes.value = { ...probes.value, [item.id]: result }
+      // A snackbar instead of chips in the row, which would move the list.
+      const failed = result.endpoints.filter(endpoint => !endpoint.reachable)
+      notifications.notify(failed.length === 0
+        ? { text: t('admin.probeOkText', { name: item.name, count: result.endpoints.length }, result.endpoints.length), color: 'success' }
+        : { text: t('admin.probeFailedText', { name: item.name, endpoints: failed.map(endpoint => `${t(`admin.endpointTypes.${endpoint.type}`)} (${endpoint.error})`).join(', ') }), color: 'error' })
       // The probe stored the profiles the services announce now.
       await refresh()
     } catch (error) {

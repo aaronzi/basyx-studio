@@ -325,17 +325,14 @@
         />
 
         <v-dialog v-model="confirmDelete" max-width="420">
-          <v-card
-            prepend-icon="mdi-delete-alert-outline"
-            :text="t('shell.deleteText', { name: shellLabel, count: submodelRefs.length })"
-            :title="t('shell.deleteTitle')"
-          >
-            <v-card-actions>
-              <v-spacer />
+          <DialogCard prepend-icon="mdi-delete-alert-outline" :title="t('shell.deleteTitle')">
+            {{ t('shell.deleteText', { name: shellLabel, count: submodelRefs.length }) }}
+
+            <template #actions>
               <v-btn :text="t('common.cancel')" @click="confirmDelete = false" />
               <v-btn-primary color="error" :loading="deleting" :text="t('shell.delete')" @click="remove" />
-            </v-card-actions>
-          </v-card>
+            </template>
+          </DialogCard>
         </v-dialog>
       </template>
     </v-container>

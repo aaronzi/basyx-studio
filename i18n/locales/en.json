@@ -18,12 +18,19 @@
     "account": "Account"
   },
   "lists": {
-    "noMatches": "Nothing matches the search and filters."
+    "noMatches": "Nothing matches the search and filters.",
+    "filters": "{n} filter | {n} filters",
+    "filtersApplied": "{n} filter applied, remove it | {n} filters applied, remove them",
+    "showFilters": "Filters"
   },
   "home": {
     "title": "AAS targets",
     "subtitle": "Choose an infrastructure to browse its Asset Administration Shells.",
     "search": "Search targets",
+    "filters": {
+      "access": "Access",
+      "state": "State"
+    },
     "signInTitle": "Sign in to BaSyx Studio",
     "signInText": "Studio accesses your AAS infrastructures on your behalf. Sign in with your organization's account to continue.",
     "noTargets": "No infrastructures are configured yet.",
@@ -193,6 +200,8 @@
     "probe": "Check connection",
     "probeOk": "All endpoints reachable",
     "probeFailed": "Some endpoints are unreachable",
+    "probeOkText": "{name}: the endpoint answered. | {name}: all {count} endpoints answered.",
+    "probeFailedText": "{name}: no answer from {endpoints}",
     "save": "Save",
     "cancel": "Cancel",
     "name": "Name",
@@ -285,6 +294,11 @@
       "changeFeed": "Change feed",
       "rebac": "Access control (ReBAC)"
     },
+    "announcedHints": {
+      "history": "The services keep earlier versions, so Studio can show shells and submodels as they were at a point in time.",
+      "changeFeed": "The services report changes, so Studio can show what changed recently.",
+      "rebac": "The services check access per user and shell (relationship-based access control), so shells can be shared."
+    },
     "probedAt": "Checked {time}"
   },
   "apps": {
@@ -325,7 +339,10 @@
       "studio_backend": "Run server-side code (isolated)"
     },
     "bundled": "Included",
-    "bundledHint": "Shipped with Studio and kept up to date with it."
+    "bundledHint": "Shipped with Studio and kept up to date with it.",
+    "backendHint": "Runs code on the Studio server, isolated from Studio and other apps.",
+    "permissions": "Permissions: {list}",
+    "filters": "Kind"
   },
   "nav": {
     "targets": "AAS targets",

@@ -23,18 +23,15 @@
     </v-card-actions>
 
     <v-dialog v-model="dialog" max-width="480">
-      <v-card prepend-icon="mdi-upload" :title="t('details.replaceTitle', { name: element.idShort })">
-        <v-card-text>
-          <v-file-input v-model="file" :label="t('details.chooseFile')" prepend-icon="" prepend-inner-icon="mdi-paperclip" />
-          <ProblemAlert v-if="error" class="mt-4" :error="error" />
-        </v-card-text>
+      <DialogCard prepend-icon="mdi-upload" :title="t('details.replaceTitle', { name: element.idShort })">
+        <v-file-input v-model="file" :label="t('details.chooseFile')" prepend-icon="" prepend-inner-icon="mdi-paperclip" />
+        <ProblemAlert v-if="error" class="mt-4" :error="error" />
 
-        <v-card-actions>
-          <v-spacer />
+        <template #actions>
           <v-btn :text="t('common.cancel')" @click="dialog = false" />
           <v-btn-primary :disabled="!file" :loading="saving" :text="t('details.replace')" @click="replace" />
-        </v-card-actions>
-      </v-card>
+        </template>
+      </DialogCard>
     </v-dialog>
   </v-card>
 </template>

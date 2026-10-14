@@ -74,7 +74,7 @@
           <ListFilterBar
             v-model:search="search"
             v-model:selected="selected"
-            :options="filterOptions"
+            :groups="filterGroups"
             :placeholder="t('apps.search')"
           />
 
@@ -85,31 +85,48 @@
           <template v-for="(item, index) in filtered" :key="item.id">
             <v-divider v-if="index > 0" />
 
-            <RecordListItem prepend-icon="mdi-puzzle-outline" :title="label(item.title)">
+            <RecordListItem prepend-icon="mdi-puzzle-outline">
+              <!-- As the infrastructure rows: small chips with tooltips on the
+                   title line, the permissions as text. -->
+              <template #title>
+                <div class="d-flex flex-wrap align-center ga-1">
+                  <span class="me-1">{{ label(item.title) }}</span>
+
+                  <v-chip
+                    v-if="item.unsigned"
+                    v-tooltip="t('apps.unsignedHint')"
+                    color="warning"
+                    prepend-icon="mdi-alert-outline"
+                    size="x-small"
+                    :text="t('apps.unsigned')"
+                  />
+
+                  <v-chip
+                    v-if="item.bundled"
+                    v-tooltip="t('apps.bundledHint')"
+                    prepend-icon="mdi-check-decagram-outline"
+                    size="x-small"
+                    :text="t('apps.bundled')"
+                  />
+
+                  <v-chip
+                    v-if="item.backend"
+                    v-tooltip="t('apps.backendHint')"
+                    prepend-icon="mdi-server"
+                    size="x-small"
+                    :text="t('apps.backend')"
+                  />
+                </div>
+              </template>
+
               <v-list-item-subtitle>
                 {{ t('apps.by', { publisher: item.publisher }) }} · {{ item.appId }} ·
                 {{ t('apps.submodelViews', item.submodelViews) }} · {{ t('apps.modules', item.modules) }}
               </v-list-item-subtitle>
 
-              <div class="d-flex flex-wrap ga-1 mt-2">
-                <v-chip v-if="item.unsigned" color="warning" prepend-icon="mdi-alert-outline">
-                  {{ t('apps.unsigned') }}
-                  <v-tooltip activator="parent" :text="t('apps.unsignedHint')" />
-                </v-chip>
-
-                <v-chip v-if="item.bundled" color="primary" prepend-icon="mdi-check-decagram-outline">
-                  {{ t('apps.bundled') }}
-                  <v-tooltip activator="parent" :text="t('apps.bundledHint')" />
-                </v-chip>
-
-                <v-chip v-if="item.backend" prepend-icon="mdi-server" :text="t('apps.backend')" />
-
-                <v-chip
-                  v-for="permission in item.permissions"
-                  :key="permission"
-                  :text="t(`apps.permission.${permission.replaceAll('.', '_')}`)"
-                />
-              </div>
+              <v-list-item-subtitle v-if="item.permissions.length > 0">
+                {{ t('apps.permissions', { list: item.permissions.map(permission => t(`apps.permission.${permission.replaceAll('.', '_')}`)).join(', ') }) }}
+              </v-list-item-subtitle>
 
               <template #meta>
                 <span class="text-body-small text-medium-emphasis text-no-wrap">{{ item.version }}</span>
@@ -134,22 +151,21 @@
     </template>
 
     <v-dialog max-width="480" :model-value="confirmUninstall !== null" @update:model-value="confirmUninstall = null">
-      <v-card :title="t('apps.uninstall')">
-        <v-card-text>{{ t('apps.uninstallConfirm', { name: confirmUninstall ? label(confirmUninstall.title) : '' }) }}</v-card-text>
+      <DialogCard :title="t('apps.uninstall')">
+        {{ t('apps.uninstallConfirm', { name: confirmUninstall ? label(confirmUninstall.title) : '' }) }}
 
-        <v-card-actions>
-          <v-spacer />
+        <template #actions>
           <v-btn :text="t('apps.cancel')" @click="confirmUninstall = null" />
           <v-btn-primary color="error" :text="t('apps.uninstall')" @click="uninstall" />
-        </v-card-actions>
-      </v-card>
+        </template>
+      </DialogCard>
     </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts" setup>
   import type { AppInstallation } from '#shared/contract'
-  import type { FilterOption } from '~/utils/records'
+  import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { filterRecords } from '~/utils/records'
@@ -168,12 +184,15 @@
   const search = ref<string | null>(null)
   const selected = ref<string[]>([])
 
-  const filterOptions = computed<FilterOption[]>(() => [
-    { value: 'source:bundled', title: t('apps.bundled'), icon: 'mdi-check-decagram-outline' },
-    { value: 'source:uploaded', title: t('apps.uploaded'), icon: 'mdi-upload-outline' },
-    { value: 'trust:unsigned', title: t('apps.unsigned'), icon: 'mdi-alert-outline' },
-    { value: 'backend:yes', title: t('apps.backend'), icon: 'mdi-server' },
-  ].filter(option => items.value.some(item => facetsOf(item).includes(option.value))))
+  const filterGroups = computed<FilterGroup[]>(() => [{
+    title: t('apps.filters'),
+    options: [
+      { value: 'source:bundled', title: t('apps.bundled'), icon: 'mdi-check-decagram-outline' },
+      { value: 'source:uploaded', title: t('apps.uploaded'), icon: 'mdi-upload-outline' },
+      { value: 'trust:unsigned', title: t('apps.unsigned'), icon: 'mdi-alert-outline' },
+      { value: 'backend:yes', title: t('apps.backend'), icon: 'mdi-server' },
+    ].filter(option => items.value.some(item => facetsOf(item).includes(option.value))),
+  }])
 
   function facetsOf (item: AppInstallation): string[] {
     return [item.bundled ? 'source:bundled' : 'source:uploaded', ...(item.unsigned ? ['trust:unsigned'] : []), ...(item.backend ? ['backend:yes'] : [])]

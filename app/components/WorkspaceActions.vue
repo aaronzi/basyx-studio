@@ -36,13 +36,14 @@
     />
 
     <v-dialog v-model="confirmClose" max-width="480">
-      <v-card :text="t('workspace.closeText')" :title="t('workspace.closeTitle', { name: target.name })">
+      <DialogCard :title="t('workspace.closeTitle', { name: target.name })">
+        {{ t('workspace.closeText') }}
+
         <template #actions>
-          <v-spacer />
           <v-btn :text="t('workspace.cancel')" @click="confirmClose = false" />
           <v-btn-primary color="error" :text="t('workspace.closeWithoutSaving')" @click="close(true)" />
         </template>
-      </v-card>
+      </DialogCard>
     </v-dialog>
   </div>
 </template>

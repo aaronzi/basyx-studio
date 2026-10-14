@@ -1,109 +1,102 @@
 <template>
   <v-dialog v-model="open" :fullscreen="xs" max-width="560" scrollable>
-    <v-card>
-      <v-card-item class="pa-5" prepend-icon="mdi-account-multiple-plus-outline">
-        <v-card-title>{{ t('share.title', { name: shellLabel }) }}</v-card-title>
-        <v-card-subtitle>{{ t('share.subtitle') }}</v-card-subtitle>
+    <DialogCard
+      closable
+      prepend-icon="mdi-account-multiple-plus-outline"
+      :subtitle="t('share.subtitle')"
+      :title="t('share.title', { name: shellLabel })"
+      @close="open = false"
+    >
+      <ProblemAlert v-if="error" class="mb-4" :error="error" />
+      <v-alert v-if="conflict" class="mb-4" :text="t('share.conflict')" type="warning" />
+      <v-skeleton-loader v-if="loading" type="list-item-avatar-two-line@3" />
 
-        <template #append>
-          <v-btn :aria-label="t('common.close')" icon="mdi-close" @click="open = false" />
-        </template>
-      </v-card-item>
+      <template v-else>
+        <v-row align="center" dense>
+          <v-col cols="12" sm>
+            <v-text-field
+              v-model="subject"
+              :label="t('share.subject')"
+              :placeholder="t('share.subjectPlaceholder')"
+              prepend-inner-icon="mdi-account-search-outline"
+            />
+          </v-col>
 
-      <v-divider />
+          <v-col cols="12" sm="auto">
+            <v-btn-toggle v-model="subjectType" mandatory>
+              <v-btn :aria-label="t('share.user')" icon="mdi-account-outline" value="user" />
+              <v-btn :aria-label="t('share.group')" icon="mdi-account-group-outline" value="group" />
+            </v-btn-toggle>
+          </v-col>
 
-      <v-card-text>
-        <ProblemAlert v-if="error" class="mb-4" :error="error" />
-        <v-alert v-if="conflict" class="mb-4" :text="t('share.conflict')" type="warning" />
-        <v-skeleton-loader v-if="loading" type="list-item-avatar-two-line@3" />
+          <v-col cols="8" sm="4">
+            <v-select v-model="relation" :items="relationItems" :label="t('share.role')" />
+          </v-col>
 
-        <template v-else>
-          <v-row align="center" dense>
-            <v-col cols="12" sm>
-              <v-text-field
-                v-model="subject"
-                :label="t('share.subject')"
-                :placeholder="t('share.subjectPlaceholder')"
-                prepend-inner-icon="mdi-account-search-outline"
-              />
-            </v-col>
+          <v-col cols="4" sm="auto">
+            <v-btn-primary block :disabled="!subject.trim() || !issuer" :text="t('share.add')" @click="add" />
+          </v-col>
+        </v-row>
 
-            <v-col cols="12" sm="auto">
-              <v-btn-toggle v-model="subjectType" mandatory>
-                <v-btn :aria-label="t('share.user')" icon="mdi-account-outline" value="user" />
-                <v-btn :aria-label="t('share.group')" icon="mdi-account-group-outline" value="group" />
-              </v-btn-toggle>
-            </v-col>
+        <v-list class="mt-2" lines="two">
+          <v-list-subheader :title="t('share.withAccess')" />
 
-            <v-col cols="8" sm="4">
-              <v-select v-model="relation" :items="relationItems" :label="t('share.role')" />
-            </v-col>
+          <v-list-item
+            v-for="(grant, index) in grants"
+            :key="`${grant.subjectType}:${grant.subject}:${grant.relation}`"
+            :subtitle="t(`share.relations.${known(grant.relation)}Hint`)"
+            :title="grant.subject"
+          >
+            <template #prepend>
+              <v-avatar color="primary" variant="tonal">
+                <v-icon :icon="grant.subjectType === 'group' ? 'mdi-account-group-outline' : 'mdi-account-outline'" />
+              </v-avatar>
+            </template>
 
-            <v-col cols="4" sm="auto">
-              <v-btn-primary block :disabled="!subject.trim() || !issuer" :text="t('share.add')" @click="add" />
-            </v-col>
-          </v-row>
+            <template #append>
+              <v-menu>
+                <template #activator="{ props: activator }">
+                  <v-btn
+                    v-bind="activator"
+                    append-icon="mdi-chevron-down"
+                    size="small"
+                    :text="t(`share.relations.${known(grant.relation)}`, { relation: grant.relation })"
+                  />
+                </template>
 
-          <v-list class="mt-2" lines="two">
-            <v-list-subheader :title="t('share.withAccess')" />
-
-            <v-list-item
-              v-for="(grant, index) in grants"
-              :key="`${grant.subjectType}:${grant.subject}:${grant.relation}`"
-              :subtitle="t(`share.relations.${known(grant.relation)}Hint`)"
-              :title="grant.subject"
-            >
-              <template #prepend>
-                <v-avatar color="primary" variant="tonal">
-                  <v-icon :icon="grant.subjectType === 'group' ? 'mdi-account-group-outline' : 'mdi-account-outline'" />
-                </v-avatar>
-              </template>
-
-              <template #append>
-                <v-menu>
-                  <template #activator="{ props: activator }">
-                    <v-btn
-                      v-bind="activator"
-                      append-icon="mdi-chevron-down"
-                      size="small"
-                      :text="t(`share.relations.${known(grant.relation)}`, { relation: grant.relation })"
+                <v-card>
+                  <v-list>
+                    <v-list-item
+                      v-for="item in relationItems"
+                      :key="item.value"
+                      :active="grant.relation === item.value"
+                      :subtitle="t(`share.relations.${item.value}Hint`)"
+                      :title="item.title"
+                      @click="grant.relation = item.value"
                     />
-                  </template>
 
-                  <v-card>
-                    <v-list>
-                      <v-list-item
-                        v-for="item in relationItems"
-                        :key="item.value"
-                        :active="grant.relation === item.value"
-                        :subtitle="t(`share.relations.${item.value}Hint`)"
-                        :title="item.title"
-                        @click="grant.relation = item.value"
-                      />
+                    <v-divider class="my-1" />
+                    <v-list-item base-color="error" prepend-icon="mdi-account-remove-outline" :title="t('share.remove')" @click="grants.splice(index, 1)" />
+                  </v-list>
+                </v-card>
+              </v-menu>
+            </template>
+          </v-list-item>
 
-                      <v-divider class="my-1" />
-                      <v-list-item base-color="error" prepend-icon="mdi-account-remove-outline" :title="t('share.remove')" @click="grants.splice(index, 1)" />
-                    </v-list>
-                  </v-card>
-                </v-menu>
-              </template>
-            </v-list-item>
+          <v-list-item v-if="grants.length === 0" :title="t('share.nobody')" />
+        </v-list>
 
-            <v-list-item v-if="grants.length === 0" :title="t('share.nobody')" />
-          </v-list>
+        <v-alert class="mt-2" density="compact" :text="t('share.inheritance')" type="info" />
+      </template>
 
-          <v-alert class="mt-2" density="compact" :text="t('share.inheritance')" type="info" />
-        </template>
-      </v-card-text>
+      <template #actions-start>
+        <v-btn-secondary :loading="inviting" prepend-icon="mdi-link-variant" :text="t('share.invite')" @click="invite" />
+      </template>
 
-      <v-divider />
-
-      <v-card-actions class="pa-4">
-        <v-btn :loading="inviting" prepend-icon="mdi-link-variant" :text="t('share.invite')" @click="invite" />
-        <v-spacer />
+      <template #actions>
         <v-btn-primary :disabled="loading || !revision" :loading="saving" :text="t('share.done')" @click="save" />
-      </v-card-actions>
-    </v-card>
+      </template>
+    </DialogCard>
   </v-dialog>
 </template>
 

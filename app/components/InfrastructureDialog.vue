@@ -1,144 +1,141 @@
 <template>
-  <v-dialog v-model="open" max-width="720" scrollable>
-    <v-card :title="existing ? t('admin.edit') : t('admin.add')">
-      <v-card-text>
-        <v-form ref="form" @submit.prevent="save">
-          <v-text-field v-model="model.name" :label="t('admin.name')" :rules="[required]" />
-          <v-text-field v-model="model.description" :label="t('admin.description')" />
+  <v-dialog v-model="open" :fullscreen="xs" max-width="720" scrollable>
+    <DialogCard :title="existing ? t('admin.edit') : t('admin.add')">
+      <!-- Sections as in the BaSyx AAS Web UI, fields 16 px apart. -->
+      <v-form ref="form" class="d-flex flex-column ga-4" @submit.prevent="save">
+        <v-text-field v-model="model.name" :label="t('admin.name')" :rules="[required]" />
+        <v-text-field v-model="model.description" :label="t('admin.description')" />
 
-          <div class="text-title-small mt-4 mb-2">{{ t('admin.deployment') }}</div>
+        <v-divider />
+        <div class="text-title-small">{{ t('admin.deployment') }}</div>
 
-          <v-select
-            v-model="model.template"
-            :hint="t(`admin.templates.${model.template}.help`)"
-            :item-props="item => ({ subtitle: t(`admin.templates.${item.value}.short`) })"
-            :items="templates"
-            :label="t('admin.template')"
-            persistent-hint
-          />
+        <v-select
+          v-model="model.template"
+          :hint="t(`admin.templates.${model.template}.help`)"
+          :item-props="item => ({ subtitle: t(`admin.templates.${item.value}.short`) })"
+          :items="templates"
+          :label="t('admin.template')"
+          persistent-hint
+        />
 
-          <v-text-field
-            v-for="endpointType in endpointFields"
-            :key="endpointType"
-            v-model="model.urls[endpointType]"
-            class="mt-4"
-            :hint="t(`admin.endpointHints.${endpointType}`)"
-            :label="t(`admin.endpointTypes.${endpointType}`)"
-            persistent-hint
-            :placeholder="endpointType === endpointFields[0] ? exampleUrl : undefined"
-            :rules="rulesFor(endpointType)"
-          />
+        <v-text-field
+          v-for="endpointType in endpointFields"
+          :key="endpointType"
+          v-model="model.urls[endpointType]"
+          :hint="t(`admin.endpointHints.${endpointType}`)"
+          :label="t(`admin.endpointTypes.${endpointType}`)"
+          persistent-hint
+          :placeholder="endpointType === endpointFields[0] ? exampleUrl : undefined"
+          :rules="rulesFor(endpointType)"
+        />
 
-          <template v-if="registryAndRepository">
-            <div class="text-title-small mt-6 mb-2">{{ t('admin.listSource') }}</div>
+        <v-checkbox v-model="model.allowPrivateNetwork" :label="t('admin.allowPrivateNetwork')" />
 
-            <v-btn-toggle
-              v-model="model.listSource"
-              class="d-flex"
-              mandatory
-            >
+        <template v-if="registryAndRepository">
+          <v-divider />
+          <div class="text-title-small">{{ t('admin.listSource') }}</div>
+
+          <div>
+            <v-btn-toggle v-model="model.listSource" class="d-flex" mandatory>
               <v-btn class="flex-grow-1" :text="t('admin.listSources.registry')" value="registry" />
               <v-btn class="flex-grow-1" :text="t('admin.listSources.repository')" value="repository" />
             </v-btn-toggle>
 
             <div class="text-body-small text-medium-emphasis mt-2">{{ t(`admin.listSourceHelp.${model.listSource}`) }}</div>
+          </div>
+        </template>
+
+        <template v-if="hasRegistry || hasDiscovery">
+          <v-divider />
+          <div class="text-title-small">{{ t('admin.sync') }}</div>
+
+          <div>
+            <v-checkbox v-if="hasRegistry" v-model="model.sync.serverSyncsRegistry" :label="t('admin.serverSyncsRegistry')" />
+            <v-checkbox v-if="hasDiscovery" v-model="model.sync.serverSyncsDiscovery" :label="t('admin.serverSyncsDiscovery')" />
+          </div>
+
+          <template v-if="studioSyncs">
+            <v-select
+              v-model="model.sync.studioDefault"
+              :hint="t('admin.studioDefaultHint')"
+              :items="syncModeItems"
+              :label="t('admin.studioDefault')"
+              persistent-hint
+            />
+
+            <v-checkbox v-model="model.sync.userOverride" :label="t('admin.userOverride')" />
           </template>
+        </template>
 
-          <template v-if="hasRegistry || hasDiscovery">
-            <div class="text-title-small mt-6">{{ t('admin.sync') }}</div>
+        <v-divider />
+        <div class="text-title-small">{{ t('admin.security') }}</div>
 
-            <v-checkbox v-if="hasRegistry" v-model="model.sync.serverSyncsRegistry" hide-details :label="t('admin.serverSyncsRegistry')" />
-            <v-checkbox v-if="hasDiscovery" v-model="model.sync.serverSyncsDiscovery" hide-details :label="t('admin.serverSyncsDiscovery')" />
+        <v-select
+          v-model="model.mode"
+          :hint="t(`admin.modeHelp.${model.mode}`)"
+          :items="modes"
+          :label="t('admin.securityMode')"
+          persistent-hint
+        />
 
-            <template v-if="studioSyncs">
-              <v-select
-                v-model="model.sync.studioDefault"
-                class="mt-2"
-                :hint="t('admin.studioDefaultHint')"
-                :items="syncModeItems"
-                :label="t('admin.studioDefault')"
-                persistent-hint
-              />
+        <v-alert
+          v-if="model.mode === 'deployment_client_credentials'"
+          density="compact"
+          :text="t('admin.sharingNote')"
+          type="info"
+        />
 
-              <v-checkbox v-model="model.sync.userOverride" hide-details :label="t('admin.userOverride')" />
-            </template>
-          </template>
+        <template v-if="model.mode !== 'unsecured'">
+          <v-text-field v-model="model.issuer" :label="t('admin.issuer')" :rules="[required, httpUrl]" />
+          <v-text-field v-model="model.clientId" :label="t('admin.clientId')" :rules="[required]" />
+          <v-text-field v-model="model.scopes" :hint="t('admin.scopesHint')" :label="t('admin.scopes')" persistent-hint />
 
-          <v-checkbox v-model="model.allowPrivateNetwork" class="mt-4" :label="t('admin.allowPrivateNetwork')" />
+          <v-text-field
+            v-if="session.isDesktop"
+            v-model="model.secretValue"
+            :hint="t('admin.clientSecretValueHint')"
+            :label="t('admin.clientSecretValue')"
+            persistent-hint
+            type="password"
+          />
 
-          <div class="text-title-small mt-2 mb-2">{{ t('admin.security') }}</div>
+          <v-text-field
+            v-else
+            v-model="model.secretRef"
+            :hint="t('admin.clientSecretRefHint')"
+            :label="t('admin.clientSecretRef')"
+            persistent-hint
+            placeholder="env:AAS_CLIENT_SECRET"
+          />
 
           <v-select
-            v-model="model.mode"
-            :hint="t(`admin.modeHelp.${model.mode}`)"
-            :items="modes"
-            :label="t('admin.securityMode')"
+            v-if="model.mode === 'delegated_user'"
+            v-model="model.loopbackHost"
+            :hint="t('admin.loopbackHostHint')"
+            :items="['127.0.0.1', 'localhost']"
+            :label="t('admin.loopbackHost')"
             persistent-hint
           />
+        </template>
 
-          <v-alert
-            v-if="model.mode === 'deployment_client_credentials'"
-            class="mt-4"
-            density="compact"
-            :text="t('admin.sharingNote')"
-            type="info"
-          />
+        <ProblemAlert v-if="error" :error="error" />
 
-          <template v-if="model.mode !== 'unsecured'">
-            <v-text-field v-model="model.issuer" class="mt-4" :label="t('admin.issuer')" :rules="[required, httpUrl]" />
-            <v-text-field v-model="model.clientId" :label="t('admin.clientId')" :rules="[required]" />
-            <v-text-field v-model="model.scopes" :hint="t('admin.scopesHint')" :label="t('admin.scopes')" persistent-hint />
-
-            <v-text-field
-              v-if="session.isDesktop"
-              v-model="model.secretValue"
-              class="mt-2"
-              :hint="t('admin.clientSecretValueHint')"
-              :label="t('admin.clientSecretValue')"
-              persistent-hint
-              type="password"
-            />
-
-            <v-text-field
-              v-else
-              v-model="model.secretRef"
-              class="mt-2"
-              :hint="t('admin.clientSecretRefHint')"
-              :label="t('admin.clientSecretRef')"
-              persistent-hint
-              placeholder="env:AAS_CLIENT_SECRET"
-            />
-
-            <v-select
-              v-if="model.mode === 'delegated_user'"
-              v-model="model.loopbackHost"
-              class="mt-2"
-              :hint="t('admin.loopbackHostHint')"
-              :items="['127.0.0.1', 'localhost']"
-              :label="t('admin.loopbackHost')"
-              persistent-hint
-            />
-          </template>
-        </v-form>
-
-        <ProblemAlert v-if="error" class="mt-4" :error="error" />
-
-        <ul v-if="violations.length > 0" class="mt-2 text-body-small">
+        <ul v-if="violations.length > 0" class="text-body-small my-0">
           <li v-for="violation in violations" :key="violation.path">{{ violation.path }}: {{ violation.message }}</li>
         </ul>
-      </v-card-text>
+      </v-form>
 
-      <v-card-actions>
-        <v-spacer />
+      <template #actions>
         <v-btn :text="t('admin.cancel')" @click="open = false" />
         <v-btn-primary :loading="saving" :text="t('admin.save')" @click="save" />
-      </v-card-actions>
-    </v-card>
+      </template>
+    </DialogCard>
   </v-dialog>
 </template>
 
 <script lang="ts" setup>
   import type { EndpointType, Infrastructure, InfrastructureInput, InfrastructureTemplate, ListSource, SecurityMode, SyncSettings } from '#shared/contract'
+  import { useDisplay } from 'vuetify'
   import { defaultSyncSettings, endpointTypes, infrastructureTemplates, securityModes, serviceUrl, syncModes, templateRules } from '#shared/contract'
   import { StudioApiError } from '~/composables/useStudioApi'
 
@@ -149,6 +146,7 @@
   const { t } = useI18n()
   const api = useStudioApi()
   const session = useSessionStore()
+  const { xs } = useDisplay()
 
   const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
   const saving = ref(false)

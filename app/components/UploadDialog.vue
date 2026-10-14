@@ -1,29 +1,26 @@
 <template>
   <v-dialog v-model="open" max-width="520">
-    <v-card prepend-icon="mdi-package-variant-closed" :subtitle="target.name" :title="t('upload.title')">
-      <v-card-text>
-        <v-file-upload
-          v-model="file"
-          accept=".aasx,.json,.xml"
-          :browse-text="t('upload.browse')"
-          clearable
-          density="comfortable"
-          :divider-text="t('upload.or')"
-          :title="t('upload.drop')"
-        />
+    <DialogCard prepend-icon="mdi-package-variant-closed" :subtitle="target.name" :title="t('upload.title')">
+      <v-file-upload
+        v-model="file"
+        accept=".aasx,.json,.xml"
+        :browse-text="t('upload.browse')"
+        clearable
+        density="comfortable"
+        :divider-text="t('upload.or')"
+        :title="t('upload.drop')"
+      />
 
-        <div class="text-body-small text-medium-emphasis mt-2">{{ t('upload.hint') }}</div>
-        <ProblemAlert v-if="error" class="mt-4" :error="error" />
-        <v-alert v-if="added" class="mt-4" :text="t('upload.added', added.length)" type="success" />
-        <SyncReport class="mt-4" :steps="syncSteps" />
-      </v-card-text>
+      <div class="text-body-small text-medium-emphasis mt-2">{{ t('upload.hint') }}</div>
+      <ProblemAlert v-if="error" class="mt-4" :error="error" />
+      <v-alert v-if="added" class="mt-4" :text="t('upload.added', added.length)" type="success" />
+      <SyncReport class="mt-4" :steps="syncSteps" />
 
-      <v-card-actions>
-        <v-spacer />
+      <template #actions>
         <v-btn :text="t('common.close')" @click="open = false" />
         <v-btn-primary :disabled="!file" :loading="uploading" :text="t('upload.upload')" @click="upload" />
-      </v-card-actions>
-    </v-card>
+      </template>
+    </DialogCard>
   </v-dialog>
 </template>
 

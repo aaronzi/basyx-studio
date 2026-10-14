@@ -1,63 +1,56 @@
 <template>
   <v-dialog v-model="open" :fullscreen="xs" max-width="720" scrollable>
-    <v-card>
-      <v-card-item class="pa-5" prepend-icon="mdi-code-json">
-        <v-card-title>{{ t('shells.query.title') }}</v-card-title>
-        <v-card-subtitle>{{ t(`shells.query.${queryTarget}`) }}</v-card-subtitle>
+    <DialogCard
+      closable
+      prepend-icon="mdi-code-json"
+      :subtitle="t(`shells.query.${queryTarget}`)"
+      :title="t('shells.query.title')"
+      @close="open = false"
+    >
+      <p class="text-body-medium text-medium-emphasis mt-0 mb-4">
+        {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
+      </p>
 
-        <template #append>
-          <v-btn :aria-label="t('common.close')" icon="mdi-close" @click="open = false" />
-        </template>
-      </v-card-item>
+      <!-- Monaco with the IDTA query schema: suggestions (Ctrl+Space) and checks while typing. -->
+      <v-sheet border height="360" rounded="lg">
+        <CodeView
+          v-model="text"
+          editable
+          :label="t('shells.query.label')"
+          language="json"
+          model-namespace="aas-query"
+          :schemas="schemas"
+        />
+      </v-sheet>
 
-      <v-divider />
-
-      <v-card-text>
-        <p class="text-body-medium text-medium-emphasis mt-0 mb-4">
-          {{ t('shells.query.text', { roots: queryRoots[queryTarget].join(', ') }) }}
-        </p>
-
-        <!-- Monaco with the IDTA query schema: suggestions (Ctrl+Space) and checks while typing. -->
-        <v-sheet border height="360" rounded="lg">
-          <CodeView
-            v-model="text"
-            editable
-            :label="t('shells.query.label')"
-            language="json"
-            model-namespace="aas-query"
-            :schemas="schemas"
+      <v-alert
+        v-if="findings.length > 0"
+        class="mt-4"
+        :title="t('problem.query_invalid')"
+        type="error"
+      >
+        <v-list>
+          <v-list-item
+            v-for="finding in findings"
+            :key="`${finding.path}:${finding.message}`"
+            class="px-0"
+            :subtitle="finding.message"
+            :title="finding.path"
           />
-        </v-sheet>
+        </v-list>
+      </v-alert>
 
-        <v-alert
-          v-if="findings.length > 0"
-          class="mt-4"
-          :title="t('problem.query_invalid')"
-          type="error"
-        >
-          <v-list>
-            <v-list-item
-              v-for="finding in findings"
-              :key="`${finding.path}:${finding.message}`"
-              class="px-0"
-              :subtitle="finding.message"
-              :title="finding.path"
-            />
-          </v-list>
-        </v-alert>
+      <ProblemAlert v-else-if="error" class="mt-4" :error="error" />
 
-        <ProblemAlert v-else-if="error" class="mt-4" :error="error" />
-      </v-card-text>
+      <template #actions-start>
+        <v-btn-secondary prepend-icon="mdi-restore" :text="t('shells.query.fromSearch')" @click="reset" />
+      </template>
 
-      <v-divider />
-
-      <v-card-actions class="pa-4">
-        <v-btn prepend-icon="mdi-restore" :text="t('shells.query.fromSearch')" @click="reset" />
-        <v-spacer />
+      <template #actions>
         <v-btn :text="t('common.cancel')" @click="open = false" />
         <v-btn-primary :disabled="!text.trim()" :loading="checking" :text="t('shells.query.apply')" @click="apply" />
-      </v-card-actions>
-    </v-card>
+      </template>
+    </DialogCard>
   </v-dialog>
 </template>
 

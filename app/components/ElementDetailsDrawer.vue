@@ -164,9 +164,9 @@
 
           <v-expansion-panel :title="t('details.qualifiers')" value="qualifiers">
             <v-expansion-panel-text>
-              <v-chip-group v-if="qualifiers.length > 0" column>
+              <div v-if="qualifiers.length > 0" class="d-flex flex-wrap ga-2">
                 <v-chip v-for="qualifier in qualifiers" :key="qualifier" prepend-icon="mdi-tag-outline" :text="qualifier" />
-              </v-chip-group>
+              </div>
 
               <span v-else class="text-body-medium text-medium-emphasis">{{ t('details.noQualifiers') }}</span>
             </v-expansion-panel-text>

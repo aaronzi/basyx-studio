@@ -49,10 +49,17 @@ export default defineVuetifyConfiguration({
     defaultTheme: 'light',
     themes: {
       light: {
-        colors: withOnColors({ primary: brand.cyanOnLight, secondary: brand.orangeOnLight, ...status.light }),
+        colors: {
+          ...withOnColors({ primary: brand.cyanOnLight, secondary: brand.orangeOnLight, ...status.light }),
+          // Dialog headers, a shade off the card, as in the BaSyx AAS Web UI (DialogCard).
+          'dialog-header': '#F5F5F5',
+        },
       },
       dark: {
-        colors: withOnColors({ primary: brand.cyan, secondary: brand.orange, ...status.dark }),
+        colors: {
+          ...withOnColors({ primary: brand.cyan, secondary: brand.orange, ...status.dark }),
+          'dialog-header': '#282828',
+        },
       },
     },
   },
@@ -65,10 +72,14 @@ export default defineVuetifyConfiguration({
   aliases: {
     // The main action of a view or dialog (save, sign in, add, delete).
     VBtnPrimary: 'VBtn',
+    // A further action beside the main one, e.g. on the left of a dialog's
+    // actions: bordered and filled, as in the BaSyx AAS Web UI and shadcn.
+    VBtnSecondary: 'VBtn',
     // Pane container of a full-height page area: fixed height, scrolling body.
     VCardPane: 'VCard',
     // Records in a bordered card (infrastructures, targets, apps), divided by
-    // v-divider: slim, so the icon gap matches the card's inset, and square rows.
+    // v-divider: slim, so the icon gap matches the card's inset, square rows,
+    // and a little more inset on the left, which reads as balanced.
     VListRecords: 'VList',
   },
 
@@ -78,6 +89,7 @@ export default defineVuetifyConfiguration({
     VAvatar: { rounded: 'lg' },
     VBtn: { variant: 'text', rounded: 'lg', class: 'text-none' },
     VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
+    VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none' },
     // One bordered group, divided between its buttons. Only the group is
     // rounded: the buttons' own rounding (VBtn above) would show at the dividers.
     VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
@@ -103,7 +115,7 @@ export default defineVuetifyConfiguration({
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },
-    VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false } },
+    VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false, class: 'ps-5' } },
     VChip: { label: true, size: 'small', variant: 'tonal' },
     VAlert: { border: 'start', variant: 'tonal', VBtn: { size: 'small' } },
     VTextField: field,
@@ -111,7 +123,7 @@ export default defineVuetifyConfiguration({
     VAutocomplete: field,
     VFileInput: field,
     VTextarea: field,
-    VCheckbox: { density: 'compact', color: 'primary' },
+    VCheckbox: { density: 'compact', color: 'primary', hideDetails: 'auto' },
     VSwitch: { color: 'primary', inset: true, hideDetails: true, density: 'compact' },
     VProgressLinear: { indeterminate: true, color: 'primary' },
     VBreadcrumbs: { class: 'pa-0' },

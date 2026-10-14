@@ -15,12 +15,11 @@
     <template v-else>
       <PageHeader :subtitle="t('home.subtitle')" :title="t('home.title')">
         <template #actions>
-          <v-btn
+          <v-btn-secondary
             v-if="session.isAdmin"
             prepend-icon="mdi-plus"
             :text="t('home.addInfrastructure')"
-            to="/admin/infrastructures"
-            variant="tonal"
+            @click="addOpen = true"
           />
 
           <v-btn-primary
@@ -52,7 +51,7 @@
         <ListFilterBar
           v-model:search="search"
           v-model:selected="selected"
-          :options="filterOptions"
+          :groups="filterGroups"
           :placeholder="t('home.search')"
         />
 
@@ -64,7 +63,7 @@
 
             <RecordListItem :subtitle="target.description ?? undefined" :title="target.name" :to="`/targets/${target.id}`">
               <template #prepend>
-                <v-avatar class="me-3" :color="target.authenticationState === 'required' ? 'warning' : 'primary'" size="36" variant="tonal">
+                <v-avatar class="me-3" size="36" variant="tonal">
                   <v-icon :icon="targetIcon(target)" size="20" />
                 </v-avatar>
               </template>
@@ -95,9 +94,11 @@
         :title="t('home.noTargets')"
       >
         <template v-if="session.isAdmin" #actions>
-          <v-btn-primary :text="t('home.addInfrastructure')" to="/admin/infrastructures" />
+          <v-btn-primary :text="t('home.addInfrastructure')" @click="addOpen = true" />
         </template>
       </v-empty-state>
+
+      <InfrastructureDialog v-if="session.isAdmin" v-model="addOpen" :existing="null" @saved="added" />
     </template>
   </v-container>
 </template>
@@ -105,7 +106,7 @@
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
   import type { DesktopBridge } from '~/composables/useDesktopBridge'
-  import type { FilterOption } from '~/utils/records'
+  import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -133,15 +134,28 @@
   }
 
   // Filters for the security modes and sign-in states that occur.
-  const filterOptions = computed<FilterOption[]>(() => [
-    ...[...new Set(items.value.map(target => kindOf(target)))].map(kind => ({
-      value: `security:${kind}`,
-      title: kind === 'workspace' ? t('workspace.localFile') : t(`security.${kind}`),
-      icon: kind === 'workspace' ? 'mdi-package-variant-closed' : securityModeIcons[kind],
-    })),
-    ...[...new Set(items.value.filter(target => target.securityMode).map(target => target.authenticationState))]
-      .map(state => ({ value: `state:${state}`, title: t(`authState.${state}`) })),
-  ])
+  const filterGroups = computed<FilterGroup[]>(() => [
+    {
+      title: t('home.filters.access'),
+      options: [...new Set(items.value.map(target => kindOf(target)))].map(kind => ({
+        value: `security:${kind}`,
+        title: kind === 'workspace' ? t('workspace.localFile') : t(`security.${kind}`),
+        icon: kind === 'workspace' ? 'mdi-package-variant-closed' : securityModeIcons[kind],
+      })),
+    },
+    {
+      title: t('home.filters.state'),
+      options: [...new Set(items.value.filter(target => target.securityMode).map(target => target.authenticationState))]
+        .map(state => ({ value: `state:${state}`, title: t(`authState.${state}`) })),
+    },
+  ].filter(group => group.options.length > 0))
+
+  // An infrastructure added here becomes a target in this list.
+  const addOpen = ref(false)
+  const invalidate = useInvalidate()
+  async function added () {
+    await invalidate(['targets'], ['admin', 'infrastructures'])
+  }
 
   const filtered = computed(() => filterRecords(items.value, search.value, selected.value, target => ({
     text: [target.name, target.description],
