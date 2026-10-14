@@ -6,11 +6,13 @@ import { expect, test } from '@playwright/test'
 import { strToU8, zipSync } from 'fflate'
 import pg from 'pg'
 import { fixturesDirectory, zipDirectory } from '../../apps/support'
-import { installApp, key, registerOpenTarget, registerSecuredServiceTarget, registerSecuredUserTarget, setAtSource, signIn, studioApi, uninstallAllApps } from './support'
+import { installApp, key, registerOpenTarget, registerSecuredServiceTarget, registerSecuredUserTarget, setAtSource, setMode, signIn, studioApi, uninstallAllApps } from './support'
 
 // MVP-3 definition of done in the hosted build: runtime install, submodel
 // views, modules, writes through apps, refused permissions, isolation,
-// rejected packages and a backend app. Run `pnpm apps:build` first.
+// rejected packages and a backend app. Writes go through the bundled Digital
+// Nameplate, which replaced the example app in MVP-4 (T4). Run
+// `pnpm apps:build` first.
 
 test.describe.configure({ mode: 'serial' })
 
@@ -21,6 +23,11 @@ const motorNameplate = 'urn:fraunhofer:iese:dte:sm:nameplate:drivemotor-dm3000:0
 const securedShell = 'urn:studio:test:secured:aas:public'
 const originalSerial = 'SN-2024-DM3000-0042'
 
+/** A minimal installable view for nameplate submodels (test/apps/fixtures/view). */
+function testView (): Promise<Uint8Array> {
+  return zipDirectory(join(fixturesDirectory, 'view'))
+}
+
 function example (name: string): Promise<Uint8Array> {
   return readFile(join(examples, `${name}.zip`)).then(buffer => new Uint8Array(buffer))
 }
@@ -29,19 +36,20 @@ function overviewUrl (targetId: string, shell: string) {
   return `/targets/${targetId}/shells/${key(shell)}?tab=overview`
 }
 
-/** The frame of an app view or module, by its contribution title (example nameplate view: "Nameplate"). */
+/** The frame of an app view or module, by its contribution title (bundled nameplate view: "Digital Nameplate"). */
 function appFrame (page: Page, title?: string): FrameLocator {
   return page.frameLocator(title ? `iframe[title="App: ${title}"]` : 'iframe[sandbox="allow-scripts"]')
 }
 
-/** The example nameplate app's view on the shell overview, next to the bundled one. */
+/** The bundled nameplate app's view on the shell overview, in edit mode: it edits only there. */
 async function openNameplateView (page: Page, targetId: string, shell = motorShell) {
   await page.goto(overviewUrl(targetId, shell))
-  await expect(page.locator('iframe[title="App: Nameplate"]')).toBeVisible()
+  await expect(page.locator('iframe[title="App: Digital Nameplate"]')).toBeVisible()
+  await setMode(page, 'Edit')
 }
 
 async function editInNameplate (page: Page, label: string, value: string) {
-  const frame = appFrame(page, 'Nameplate')
+  const frame = appFrame(page, 'Digital Nameplate')
   await frame.getByRole('button', { name: `Edit ${label}` }).click()
   await frame.getByRole('textbox', { name: label }).fill(value)
   await frame.getByRole('button', { name: 'Save' }).click()
@@ -64,15 +72,15 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   const alice = await (await browser.newContext()).newPage()
   await signIn(alice, 'alice')
   await alice.goto(overviewUrl(openTargetId, motorShell))
-  // The bundled nameplate app is always there; the example app is not installed yet.
+  // The bundled nameplate app is always there; the test view is not installed yet.
   await expect(alice.locator('iframe[title="App: Digital Nameplate"]')).toBeVisible()
-  await expect(alice.locator('iframe[title="App: Nameplate"]')).toHaveCount(0)
+  await expect(alice.locator('iframe[title="App: Test view"]')).toHaveCount(0)
 
   await page.goto('/admin/apps')
-  await page.locator('input[type="file"]').setInputFiles(join(examples, 'nameplate.zip'))
+  await page.locator('input[type="file"]').setInputFiles({ name: 'view.zip', mimeType: 'application/zip', buffer: Buffer.from(await testView()) })
   await page.getByRole('button', { name: 'Install app' }).click()
-  await expect(page.getByText('Installed Digital Nameplate 0.1.0.')).toBeVisible()
-  await expect(page.getByText('org.eclipse.basyx.examples.nameplate')).toBeVisible()
+  await expect(page.getByText('Installed Nameplate test view 0.1.0.')).toBeVisible()
+  await expect(page.getByText('org.example.nameplate-test-view')).toBeVisible()
 
   // A rejected package shows its findings and installs nothing.
   const broken = zipSync({
@@ -84,26 +92,28 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   await expect(page.getByText('studio-app.json#permissions.0', { exact: true })).toBeVisible()
 
   // Alice's open page picks the app up without a reload.
-  await expect(alice.locator('iframe[title="App: Nameplate"]')).toBeVisible({ timeout: 45_000 })
+  await expect(alice.locator('iframe[title="App: Test view"]')).toBeVisible({ timeout: 45_000 })
+  await expect(appFrame(alice, 'Test view').locator('#submodel')).toHaveText(motorNameplate)
 
-  // Bundled apps have no uninstall button; the example app's is the only one.
+  // Bundled apps have no uninstall button; the test view's is the only one.
   await page.getByRole('button', { name: 'Uninstall' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Uninstall' }).click()
-  await expect(page.getByText('org.eclipse.basyx.examples.nameplate')).toHaveCount(0)
-  await expect(alice.locator('iframe[title="App: Nameplate"]')).toHaveCount(0, { timeout: 45_000 })
+  await expect(page.getByText('org.example.nameplate-test-view')).toHaveCount(0)
+  await expect(alice.locator('iframe[title="App: Test view"]')).toHaveCount(0, { timeout: 45_000 })
   await alice.context().close()
 })
 
 test('offers app views only for matching submodels and says which (DoD 2)', async ({ page }) => {
-  await installApp(page, await example('nameplate'))
+  await installApp(page, await testView())
   const securedTargetId = await registerSecuredServiceTarget(page, 'E2E apps secured (as Studio)')
 
   await openNameplateView(page, openTargetId)
-  const frame = appFrame(page, 'Nameplate')
+  const frame = appFrame(page, 'Digital Nameplate')
   await expect(frame.getByText('Industrial Servo Motor DM-3000')).toBeVisible()
   await expect(frame.locator('[data-field="SerialNumber"]')).toContainText(originalSerial)
   // One card per matching view, labeled with its app and submodel.
-  await expect(page.getByText('Digital Nameplate · Nameplate')).toHaveCount(2)
+  await expect(page.getByText('Digital Nameplate · Nameplate')).toBeVisible()
+  await expect(page.getByText('Nameplate test view · Nameplate')).toBeVisible()
   await expect(page.getByText('Technical Data · TechnicalData')).toBeVisible()
 
   // EdgeCasesShell's submodels match no app.
@@ -112,20 +122,23 @@ test('offers app views only for matching submodels and says which (DoD 2)', asyn
 
   // The secured fixture's nameplate (its serial number is changed by the write test).
   await openNameplateView(page, securedTargetId, securedShell)
-  await expect(appFrame(page, 'Nameplate').getByText('Secured Test Manufacturer')).toBeVisible()
+  await expect(appFrame(page, 'Digital Nameplate').getByText('Secured Test Manufacturer')).toBeVisible()
 })
 
 test('writes through the app with the core UI\'s conflict handling (DoD 4)', async ({ page, request }) => {
-  await installApp(page, await example('nameplate'))
+  // The bundled app edits only in Studio's edit mode.
+  await page.goto(overviewUrl(openTargetId, motorShell))
+  await expect(appFrame(page, 'Digital Nameplate').locator('[data-field="SerialNumber"]')).toBeVisible()
+  await expect(appFrame(page, 'Digital Nameplate').getByRole('button', { name: 'Edit Serial number' })).toHaveCount(0)
   await openNameplateView(page, openTargetId)
 
   await editInNameplate(page, 'Serial number', 'SN-E2E-APP-0001')
-  await expect(appFrame(page, 'Nameplate').getByText('Serial number saved.')).toBeVisible()
+  await expect(appFrame(page, 'Digital Nameplate').getByText('Serial number saved.')).toBeVisible()
   await expect(page.getByText('Digital Nameplate: Serial number saved.')).toBeVisible()
-  await expect(appFrame(page, 'Nameplate').locator('[data-field="SerialNumber"]')).toContainText('SN-E2E-APP-0001')
+  await expect(appFrame(page, 'Digital Nameplate').locator('[data-field="SerialNumber"]')).toContainText('SN-E2E-APP-0001')
 
   // A change by someone else between reading and saving is a conflict; the draft stays.
-  const frame = appFrame(page, 'Nameplate')
+  const frame = appFrame(page, 'Digital Nameplate')
   await frame.getByRole('button', { name: 'Edit Serial number' }).click()
   await frame.getByRole('textbox', { name: 'Serial number' }).fill('SN-E2E-APP-DRAFT')
   await setAtSource(request, motorNameplate, 'SerialNumber', 'SN-CHANGED-ELSEWHERE')
@@ -136,7 +149,6 @@ test('writes through the app with the core UI\'s conflict handling (DoD 4)', asy
 
 test('limits app writes to the user\'s own rights on the target (DoD 4)', async ({ page, browser }) => {
   test.setTimeout(120_000)
-  await installApp(page, await example('nameplate'))
   const delegatedTargetId = await registerSecuredUserTarget(page, 'E2E apps secured (as user)')
 
   for (const [username, expected] of [['alice', 'You are not permitted to change this value.'], ['dave', 'Serial number saved.']] as const) {
@@ -147,7 +159,7 @@ test('limits app writes to the user\'s own rights on the target (DoD 4)', async 
     await expect(user.getByText('SecuredPublicShell').first()).toBeVisible()
     await openNameplateView(user, delegatedTargetId, securedShell)
     await editInNameplate(user, 'Serial number', `SEC-E2E-${username}-${Date.now()}`)
-    const frame = appFrame(user, 'Nameplate')
+    const frame = appFrame(user, 'Digital Nameplate')
     await expect(username === 'alice' ? frame.locator('[data-test="edit-error"]') : frame.locator('[data-test="notice"]')).toContainText(expected)
     await user.context().close()
   }

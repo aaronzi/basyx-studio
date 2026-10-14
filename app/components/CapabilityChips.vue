@@ -25,7 +25,8 @@
     return [
       { key: 'export', icon: 'mdi-download', on: c.export },
       { key: 'upload', icon: 'mdi-upload', on: c.upload },
-      { key: 'search', icon: 'mdi-text-search', on: c.search === 'query' },
+      { key: 'search', icon: 'mdi-database-search-outline', on: c.search !== 'filter' },
+      { key: 'elementSearch', icon: 'mdi-text-search', on: c.elementSearch },
       { key: 'discovery', icon: 'mdi-barcode-scan', on: c.discovery },
       { key: 'history', icon: 'mdi-history', on: c.history },
       { key: 'changeFeed', icon: 'mdi-timeline-clock-outline', on: c.changeFeed },

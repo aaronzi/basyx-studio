@@ -53,6 +53,7 @@
 
   const { t, locale } = useI18n()
   const theme = useTheme()
+  const ui = useUiStore()
   const label = useLocalizedLabel()
   const frame = useTemplateRef<HTMLIFrameElement>('frame')
 
@@ -75,6 +76,7 @@
     shell: props.shellId ? { id: props.shellId } : null,
     submodel: props.submodel ? { ...props.submodel } : null,
     subPath: props.subPath ?? '',
+    mode: ui.mode,
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },
   }))

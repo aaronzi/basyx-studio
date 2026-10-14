@@ -74,6 +74,8 @@ export interface AppContext {
   submodel: { id: string, semanticId: string | null } | null
   /** The module's sub-path below its route (nested routes), without leading slash. */
   subPath: string
+  /** Studio's mode: apps show edit controls only in `edit` (MVP-4). */
+  mode: 'view' | 'edit'
   locale: string
   theme: ThemeTokens
 }

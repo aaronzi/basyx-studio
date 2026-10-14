@@ -23,18 +23,19 @@ test.beforeEach(async ({ page }) => {
   targetId = await registerOpenEnvironment(page, 'E2E viewer environment')
 })
 
-test('dashboard shows capabilities, changes and finds a shell by asset ID', async ({ page }) => {
+test('shows capabilities on the landing page, opens a shell by asset ID and lists its changes (R1, R3)', async ({ page }) => {
   await page.goto(`/targets/${targetId}`)
-  await expect(page.getByRole('heading', { name: /^Good (morning|afternoon|evening)/ })).toBeVisible()
-  for (const capability of ['Export', 'Upload', 'History', 'Change feed']) {
+  await expect(page.getByText('Dashboard coming soon')).toBeVisible()
+  for (const capability of ['Export', 'Upload', 'Search', 'Element search', 'Discovery', 'History', 'Change feed']) {
     await expect(page.getByText(capability, { exact: true }).first()).toBeVisible()
   }
-  await expect(page.getByText('Recent changes', { exact: true })).toBeVisible()
 
-  await page.getByPlaceholder('Global asset ID').fill(motorAsset)
-  await page.getByRole('button', { name: 'Look up' }).click()
-  await page.getByText(motorShell).click()
+  await page.goto(`/targets/${targetId}/shells?globalAssetId=${encodeURIComponent(motorAsset)}`)
   await expect(page.getByRole('heading', { name: 'Servo Motor DM-3000 (Fraunhofer IESE)' })).toBeVisible()
+  await expect(page).toHaveURL(new RegExp(`/shells/${key(motorShell)}`))
+
+  await page.getByRole('tab', { name: 'Changes' }).click()
+  await expect(page.getByText(/^Submodel Nameplate (created|updated)/).first()).toBeVisible()
 })
 
 test('shows the bundled apps on the overview', async ({ page }) => {
@@ -79,7 +80,7 @@ test('shows a read-only past state', async ({ page }) => {
   await setMode(page, 'Edit')
   await page.getByRole('button', { name: 'Now' }).click()
   // Today: the newest state, shown read-only.
-  await page.locator('.v-date-picker-month__day--selected, .v-date-picker-month__day--today').first().click()
+  await page.locator('button[aria-current="date"]').click()
   await expect(page.getByText(/Read-only view of the state on/)).toBeVisible()
   await treeItem(page, 'SimpleString').click()
   await expect(page.getByRole('button', { name: 'Apply' })).toHaveCount(0)
@@ -91,7 +92,7 @@ test('exports a shell and uploads the export again', async ({ page }) => {
   await page.goto(`/targets/${targetId}/shells/${key(edgeCasesShell)}`)
   await page.getByRole('button', { name: 'Export' }).click()
   const download = page.waitForEvent('download')
-  await page.getByText('JSON', { exact: true }).click()
+  await page.getByRole('link').filter({ hasText: '.json' }).click()
   const file = await download
   expect(file.suggestedFilename()).toBe('EdgeCasesShell.json')
   const content = await readFile((await file.path())!)
