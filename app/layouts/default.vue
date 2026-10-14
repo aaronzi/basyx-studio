@@ -4,10 +4,16 @@
       <v-app-bar-nav-icon
         v-if="inShellBrowser"
         :aria-label="t('app.toggleShellList')"
-        @click="ui.listDrawer = !(ui.listDrawer ?? lgAndUp)"
+        @click="ui.listDrawer = !(ui.listDrawer ?? mdAndUp)"
       />
 
-      <v-btn :active="false" class="ms-2 me-3" size="large" to="/">
+      <v-btn
+        :active="false"
+        :aria-label="lgAndUp ? undefined : t('app.name')"
+        class="ms-2 me-3"
+        size="large"
+        to="/"
+      >
         <template #prepend>
           <v-img :alt="t('app.name')" :src="basyxLogo" width="28" />
         </template>
@@ -15,40 +21,56 @@
         <span v-if="lgAndUp" class="text-title-medium font-weight-bold">{{ t('app.name') }}</span>
       </v-btn>
 
-      <template v-if="!session.needsLogin">
-        <v-btn
-          v-if="mdAndUp"
-          class="me-3 justify-start"
-          color="medium-emphasis"
-          min-width="320"
-          prepend-icon="mdi-magnify"
-          variant="tonal"
-          @click="ui.commandOpen = true"
-        >
-          {{ targetId ? t('palette.searchTarget') : t('palette.search') }}
+      <v-btn
+        v-if="!session.needsLogin && mdAndUp"
+        class="me-3 justify-start text-medium-emphasis"
+        min-width="320"
+        prepend-icon="mdi-magnify"
+        variant="tonal"
+        @click="ui.commandOpen = true"
+      >
+        {{ targetId ? t('palette.searchTarget') : t('palette.search') }}
 
-          <template #append>
-            <v-hotkey keys="cmd+k" />
-          </template>
-        </v-btn>
-
-        <v-btn v-else :aria-label="t('palette.search')" icon="mdi-magnify" @click="ui.commandOpen = true" />
-      </template>
+        <template #append>
+          <v-hotkey keys="cmd+k" />
+        </template>
+      </v-btn>
 
       <v-spacer />
 
       <template v-if="!session.needsLogin && targetId">
+        <!-- The active target stays visible at every width (design guidelines). -->
         <v-select
-          v-if="mdAndUp && targetItems.length > 0"
+          v-if="smAndUp && targetItems.length > 0"
           :aria-label="t('app.target')"
           class="me-2"
           density="compact"
           :items="targetItems"
-          max-width="280"
+          :max-width="mdAndUp ? 280 : 200"
           :model-value="targetId"
           prepend-inner-icon="mdi-server-network"
           @update:model-value="switchTarget"
         />
+
+        <v-menu v-else-if="targetItems.length > 0">
+          <template #activator="{ props }">
+            <v-btn v-bind="props" :aria-label="t('app.targetNamed', { name: target?.name ?? '' })" icon="mdi-server-network" />
+          </template>
+
+          <v-card min-width="240">
+            <v-list :selected="[targetId]">
+              <v-list-subheader>{{ t('app.target') }}</v-list-subheader>
+
+              <v-list-item
+                v-for="item in targetItems"
+                :key="item.value"
+                :title="item.title"
+                :value="item.value"
+                @click="switchTarget(item.value)"
+              />
+            </v-list>
+          </v-card>
+        </v-menu>
 
         <v-btn-toggle
           v-if="smAndUp"
@@ -73,6 +95,14 @@
       </template>
 
       <v-btn
+        v-if="!session.needsLogin && !mdAndUp"
+        :aria-label="t('palette.search')"
+        icon="mdi-magnify"
+        @click="ui.commandOpen = true"
+      />
+
+      <v-btn
+        v-if="smAndUp"
         v-tooltip="t('app.toggleTheme')"
         :aria-label="t('app.toggleTheme')"
         :icon="theme.current.value.dark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
@@ -82,7 +112,13 @@
       <v-menu v-if="session.session">
         <template #activator="{ props }">
           <v-btn v-bind="props" :aria-label="t('app.account')" class="me-2" icon>
-            <v-avatar color="primary" size="36" :text="initials" variant="tonal" />
+            <v-avatar
+              color="primary"
+              rounded="circle"
+              size="36"
+              :text="initials"
+              variant="tonal"
+            />
           </v-btn>
         </template>
 
@@ -95,6 +131,24 @@
             />
 
             <v-divider class="my-1" />
+            <!-- Without the rail (phones), the administration pages are reached from here. -->
+            <template v-if="!mdAndUp">
+              <v-list-item
+                v-for="item in adminItems"
+                :key="item.key"
+                :prepend-icon="item.icon"
+                :title="item.title"
+                :to="item.to"
+              />
+            </template>
+
+            <v-list-item
+              v-if="!smAndUp"
+              :prepend-icon="theme.current.value.dark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+              :title="t('app.toggleTheme')"
+              @click="toggleTheme"
+            />
+
             <v-list-item prepend-icon="mdi-cog-outline" :title="t('settings.title')" to="/settings" />
 
             <v-list-item
@@ -148,7 +202,7 @@
 
     <v-bottom-navigation v-if="!mdAndUp && !session.needsLogin" color="primary" grow>
       <v-btn
-        v-for="item in [...navItems, ...footerItems].slice(0, 5)"
+        v-for="item in navItems.slice(0, 4)"
         :key="item.key"
         :exact="item.exact"
         :prepend-icon="item.icon"
@@ -243,13 +297,14 @@
     return [...items, ...moduleItems.value]
   })
 
+  const adminItems = computed<NavItem[]>(() => session.isAdmin
+    ? [
+      { key: 'infrastructures', title: t('app.infrastructures'), short: t('app.infrastructures'), icon: 'mdi-server-plus-outline', to: '/admin/infrastructures' },
+      { key: 'apps', title: t('app.apps'), short: t('app.apps'), icon: 'mdi-puzzle-outline', to: '/admin/apps' },
+    ]
+    : [])
   const footerItems = computed<NavItem[]>(() => [
-    ...(session.isAdmin
-      ? [
-        { key: 'infrastructures', title: t('app.infrastructures'), short: t('app.infrastructures'), icon: 'mdi-server-plus-outline', to: '/admin/infrastructures' },
-        { key: 'apps', title: t('app.apps'), short: t('app.apps'), icon: 'mdi-puzzle-outline', to: '/admin/apps' },
-      ]
-      : []),
+    ...adminItems.value,
     { key: 'settings', title: t('settings.title'), short: t('settings.title'), icon: 'mdi-cog-outline', to: '/settings' },
   ])
 

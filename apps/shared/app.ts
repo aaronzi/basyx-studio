@@ -3,7 +3,6 @@ import type { Component } from 'vue'
 import { connect, fitHeight } from '@basyx/studio-sdk'
 import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
-import { md3 } from 'vuetify/blueprints'
 import { VBtn } from 'vuetify/components/VBtn'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
@@ -16,17 +15,16 @@ import 'vuetify/styles'
 export async function mountApp (app: Component, components: Record<string, Component>): Promise<void> {
   const client = await connect()
   const vuetify = createVuetify({
-    blueprint: md3,
     components: { ...components, VBtn },
     aliases: { VBtnPrimary: VBtn },
     defaults: {
-      VCard: { flat: true, border: true, rounded: 'xl' },
+      VCard: { flat: true, border: true, rounded: 'lg' },
       VBtn: { rounded: 'lg', class: 'text-none', variant: 'text' },
-      VBtnPrimary: { color: 'primary', variant: 'flat' },
-      VChip: { rounded: 'lg', size: 'small', variant: 'tonal' },
+      VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
+      VChip: { label: true, size: 'small', variant: 'tonal' },
       VList: { density: 'comfortable', bgColor: 'transparent' },
       VListItem: { rounded: 'lg' },
-      VAlert: { variant: 'tonal' },
+      VAlert: { border: 'start', variant: 'tonal' },
       VProgressLinear: { indeterminate: true, color: 'primary' },
     },
     icons: { defaultSet: 'mdi', aliases, sets: { mdi } },

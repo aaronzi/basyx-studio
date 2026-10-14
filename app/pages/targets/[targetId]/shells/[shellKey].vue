@@ -20,22 +20,22 @@
         <!-- Shell header -->
         <v-card class="mb-4">
           <v-card-item class="pa-5">
-            <template #prepend>
+            <template v-if="smAndUp" #prepend>
               <ShellAvatar
                 class="me-2"
-                :icon-size="smAndUp ? 40 : 28"
-                :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind }"
-                :size="smAndUp ? 72 : 52"
+                icon-size="40"
+                :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail }"
+                size="72"
                 :target-id="targetId"
                 :thumbnails="capabilities.files"
               />
             </template>
 
-            <v-card-title class="text-headline-small font-weight-semibold">
-              <h1 class="text-headline-small font-weight-semibold">{{ shellLabel }}</h1>
+            <v-card-title class="text-wrap">
+              <h1 class="text-break" :class="smAndUp ? 'text-headline-small' : 'text-title-large'">{{ shellLabel }}</h1>
             </v-card-title>
 
-            <v-card-subtitle class="text-body-medium">{{ [shellJson.idShort, target.data.value.name].filter(Boolean).join(' · ') }}</v-card-subtitle>
+            <v-card-subtitle class="text-body-medium text-wrap">{{ headerSubtitle }}</v-card-subtitle>
 
             <template #append>
               <div class="d-flex flex-wrap align-center ga-1">
@@ -102,7 +102,7 @@
           </v-card-item>
 
           <v-card-text class="pt-0">
-            <v-chip-group>
+            <v-chip-group column>
               <v-chip
                 v-if="assetKind"
                 :color="assetKind === 'Type' ? 'warning' : 'primary'"
@@ -111,7 +111,6 @@
               />
 
               <v-chip prepend-icon="mdi-folder-multiple-outline" :text="t('shell.submodelCount', submodelRefs.length)" />
-              <v-chip v-if="assetType" prepend-icon="mdi-tag-outline" :text="t('shell.assetType', { type: assetType })" />
             </v-chip-group>
           </v-card-text>
 
@@ -119,13 +118,9 @@
 
           <v-row no-gutters>
             <v-col v-for="row in identifiers" :key="row.label" cols="12" md="6">
-              <v-list-item
-                class="py-3"
-                lines="two"
-                :prepend-icon="row.icon"
-                :subtitle="row.label"
-                :title="row.value"
-              >
+              <v-list-item class="py-3" :prepend-icon="row.icon" :subtitle="row.label">
+                <v-list-item-title class="text-wrap text-break">{{ row.value }}</v-list-item-title>
+
                 <template #append>
                   <v-btn :aria-label="t('common.copy')" icon="mdi-content-copy" size="small" @click="copy(row.value, row.label)" />
                 </template>
@@ -347,7 +342,7 @@
   import type { ShellTreeItem } from '~/composables/useShellTrees'
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
-  import { apiBasePath } from '#shared/contract'
+  import { apiBasePath, noCapabilities } from '#shared/contract'
   import { itemId } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { langText, modelTypeIcon } from '~/utils/aas'
@@ -381,7 +376,7 @@
     enabled: ready,
   })
 
-  const capabilities = computed<TargetCapabilities>(() => target.data.value!.capabilities)
+  const capabilities = computed<TargetCapabilities>(() => target.data.value?.capabilities ?? noCapabilities)
   const rights = useQuery({
     key: () => ['targets', targetId.value, 'shells', shellKey.value, 'rights'],
     query: ({ signal }) => api<EffectiveRights>(`/targets/${targetId.value}/shells/${shellKey.value}/rights`, { signal }),
@@ -394,6 +389,11 @@
   const shellLabel = computed(() => langText(shellJson.value.displayName ?? [], preferences.preferences.value.valueLanguage) ?? shellJson.value.idShort ?? shellId.value)
   const assetKind = computed(() => (shellJson.value.assetInformation?.assetKind as string | undefined) ?? null)
   const assetType = computed(() => (shellJson.value.assetInformation?.assetType as string | undefined) ?? null)
+  // The idShort only when the title is a display name, so nothing repeats.
+  const headerSubtitle = computed(() => [shellJson.value.idShort === shellLabel.value ? null : shellJson.value.idShort, target.data.value?.name]
+    .filter(Boolean)
+    .join(' · '))
+  const hasThumbnail = computed(() => typeof shellJson.value.assetInformation?.defaultThumbnail?.path === 'string')
   const submodelRefs = computed(() => refs.data.value?.items ?? [])
   const favorite = computed(() => preferences.isFavorite(targetId.value, shellKey.value))
 
@@ -402,6 +402,7 @@
     ...(shellJson.value.assetInformation?.globalAssetId
       ? [{ label: t('shell.globalAssetId'), value: String(shellJson.value.assetInformation.globalAssetId), icon: 'mdi-barcode' }]
       : []),
+    ...(assetType.value ? [{ label: t('shell.assetType'), value: assetType.value, icon: 'mdi-tag-outline' }] : []),
   ])
 
   // In view mode nothing can be changed (plan D8); with sharing, the user's rights decide (D15).
@@ -420,7 +421,7 @@
   const tab = computed({
     get: () => {
       const value = typeof route.query.tab === 'string' ? route.query.tab : 'submodels'
-      return value === 'changes' && !capabilities.value?.changeFeed ? 'submodels' : value
+      return value === 'changes' && !capabilities.value.changeFeed ? 'submodels' : value
     },
     set: (value: string) => router.replace({ query: { ...route.query, tab: value === 'submodels' ? undefined : value } }),
   })
@@ -514,13 +515,11 @@
   watch([targetId, shellKey], () => {
     asOf.value = null
     opened.value = []
-    if (ready()) {
-      void preferences.rememberShell(targetId.value, shellKey.value)
-    }
   })
+  // Remembered once the shell is loaded, with the title the user saw.
   watch(() => shell.data.value?.key, key => {
     if (key) {
-      void preferences.rememberShell(targetId.value, key)
+      void preferences.rememberShell(targetId.value, key, shellLabel.value)
     }
   }, { immediate: true })
 

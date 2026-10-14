@@ -22,7 +22,7 @@
 
       <v-card-item class="pt-2">
         <template #prepend>
-          <v-avatar color="primary" rounded="lg" size="48" variant="tonal">
+          <v-avatar color="primary" size="48" variant="tonal">
             <v-icon :icon="modelTypeIcon(item.modelType)" />
           </v-avatar>
         </template>

@@ -54,7 +54,7 @@
         </template>
 
         <template #[`item.source`]="{ value }">
-          <v-chip v-if="value !== 'Other'" :color="value === 'IDTA' ? 'tertiary' : 'secondary'" :text="value" />
+          <v-chip v-if="value !== 'Other'" :color="value === 'IDTA' ? 'primary' : 'secondary'" :text="value" />
         </template>
 
         <template #[`item.actions`]="{ item }">

@@ -60,7 +60,7 @@
           <v-card class="h-100" :to="`/targets/${target.id}`">
             <v-card-item>
               <template #prepend>
-                <v-avatar :color="target.authenticationState === 'required' ? 'warning' : 'primary'" rounded="lg" variant="tonal">
+                <v-avatar :color="target.authenticationState === 'required' ? 'warning' : 'primary'" variant="tonal">
                   <v-icon :icon="targetIcon(target)" />
                 </v-avatar>
               </template>

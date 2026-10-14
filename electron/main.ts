@@ -255,6 +255,12 @@ async function createWindow (url: string, launchSecret?: string): Promise<void> 
   const win = new BrowserWindow({
     show: false,
     title: 'BaSyx Studio',
+    // Room for the navigation rail, the shell list and the shell page; below
+    // 960 px Studio switches to its phone layout.
+    width: 1440,
+    height: 900,
+    minWidth: 1024,
+    minHeight: 640,
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,

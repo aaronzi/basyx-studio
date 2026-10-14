@@ -135,11 +135,11 @@
   const api = useStudioApi()
   const ui = useUiStore()
   const preferences = usePreferences()
-  const { lgAndUp, mobile } = useDisplay()
+  const { mdAndUp, mobile } = useDisplay()
   const target = useTarget(() => props.targetId).data
 
   const open = computed({
-    get: () => ui.listDrawer ?? lgAndUp.value,
+    get: () => ui.listDrawer ?? mdAndUp.value,
     set: (value: boolean) => (ui.listDrawer = value),
   })
 

@@ -149,6 +149,6 @@
   const children = computed(() => props.item?.children ?? [])
   const gradient = computed(() => {
     const colors = theme.current.value.colors
-    return [String(colors.tertiary), String(colors.primary)]
+    return [String(colors.secondary), String(colors.primary)]
   })
 </script>

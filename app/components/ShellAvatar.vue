@@ -1,7 +1,7 @@
 <template>
-  <v-avatar :color="shell.assetKind === 'Type' ? 'warning' : 'primary'" rounded="lg" :size="size" variant="tonal">
+  <v-avatar :color="shell.assetKind === 'Type' ? 'warning' : 'primary'" :size="size" variant="tonal">
     <v-img
-      v-if="thumbnails && !failed"
+      v-if="showImage"
       :alt="shell.idShort ?? ''"
       cover
       :src="`${apiBasePath}/targets/${targetId}/shells/${shell.key}/thumbnail`"
@@ -17,7 +17,7 @@
   import { apiBasePath } from '#shared/contract'
 
   const props = defineProps<{
-    shell: Pick<ShellSummary, 'key' | 'idShort' | 'assetKind'>
+    shell: Pick<ShellSummary, 'key' | 'idShort' | 'assetKind' | 'thumbnail'>
     targetId: string
     size: string | number
     /** Whether the target serves thumbnails (`files` capability). */
@@ -25,7 +25,12 @@
     iconSize?: string | number
   }>()
 
-  // A shell without a thumbnail answers 204, which the image reports as an error.
+  // The image is requested only for shells that name a thumbnail, and only
+  // after mounting: an image that loads or fails while the page hydrates
+  // would report it before Vuetify listens, and the avatar would stay empty.
+  const mounted = ref(false)
   const failed = ref(false)
+  onMounted(() => (mounted.value = true))
   watch(() => props.shell.key, () => (failed.value = false))
+  const showImage = computed(() => mounted.value && props.thumbnails && props.shell.thumbnail && !failed.value)
 </script>

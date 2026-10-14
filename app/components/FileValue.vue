@@ -2,7 +2,7 @@
   <v-card border="0" color="surface-light">
     <v-list-item class="py-3" :subtitle="String(element.contentType ?? '')" :title="fileName || t('details.noFile')">
       <template #prepend>
-        <v-avatar :color="isPdf ? 'error' : 'primary'" rounded="lg" variant="tonal">
+        <v-avatar :color="isPdf ? 'error' : 'primary'" variant="tonal">
           <v-icon :icon="isImage ? 'mdi-file-image-outline' : (isPdf ? 'mdi-file-pdf-box' : 'mdi-file-outline')" />
         </v-avatar>
       </template>

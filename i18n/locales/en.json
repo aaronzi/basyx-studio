@@ -12,6 +12,7 @@
     "appModules": "App modules",
     "toggleShellList": "Show or hide the shell list",
     "target": "Target",
+    "targetNamed": "Target: {name}",
     "view": "View",
     "edit": "Edit",
     "account": "Account"
@@ -70,7 +71,7 @@
     "deleteText": "This removes {name} from the infrastructure. Its {count} submodels stay in the submodel repository.",
     "deleted": "{name} deleted",
     "assetKind": "Asset kind: {kind}",
-    "assetType": "Asset type: {type}",
+    "assetType": "Asset type",
     "submodelCount": "no submodels | {count} submodel | {count} submodels",
     "identifier": "AAS identifier",
     "globalAssetId": "Global asset ID",
@@ -258,7 +259,7 @@
   "nav": {
     "targets": "AAS targets",
     "targetsShort": "Targets",
-    "dashboard": "Dashboard",
+    "dashboard": "Home",
     "dashboardShort": "Home",
     "shells": "Shells",
     "shellsShort": "Shells",
@@ -303,7 +304,7 @@
       "settings": "Open settings",
       "mode": "Switch between view and edit mode",
       "refresh": "Turn auto-refresh on or off",
-      "dashboard": "Go to the target's dashboard",
+      "dashboard": "Go to the target's home page",
       "concepts": "Go to concept descriptions",
       "infrastructures": "Manage infrastructures"
     }
@@ -347,7 +348,8 @@
     "title": "Select an Asset Administration Shell from the list",
     "text": "Browse submodels, inspect live values and download documents. Press ⌘K to search the whole target.",
     "browse": "Browse shells",
-    "search": "Search"
+    "search": "Search",
+    "recent": "Recently opened"
   },
   "history": {
     "now": "Now",
@@ -455,40 +457,13 @@
       "deleted": "Asset information deleted"
     }
   },
-  "dashboard": {
-    "greeting": {
-      "morning": "Good morning",
-      "afternoon": "Good afternoon",
-      "evening": "Good evening"
-    },
-    "changesToday": "no changes today | {count} change today | {count} changes today",
+  "landing": {
+    "subtitle": "AAS infrastructure",
     "upload": "Upload",
     "openViewer": "Open shells",
-    "changes": "Recent changes",
-    "changesSubtitle": "Last 24 hours",
-    "entities": {
-      "all": "All",
-      "aas": "Shells",
-      "submodel": "Submodels",
-      "asset": "Assets"
-    },
-    "noFeedTitle": "No change feed",
-    "noFeed": "This infrastructure does not offer a change feed.",
-    "lookup": "Find shell by asset ID",
-    "lookupSubtitle": "Global asset ID or serial number",
-    "lookupPlaceholder": "Global asset ID",
-    "lookupAction": "Look up",
-    "lookupNone": "No shell is registered for this asset ID.",
-    "recent": "Recently opened",
-    "recentSubtitle": "Saved for your account",
-    "recentNone": "Shells you open appear here.",
-    "targetSubtitle": "Infrastructure",
-    "greetingNamed": {
-      "morning": "Good morning, {name}",
-      "afternoon": "Good afternoon, {name}",
-      "evening": "Good evening, {name}"
-    },
-    "manyChangesToday": "{count}+ changes today"
+    "status": "Connection and features",
+    "dashboardTitle": "Dashboard coming soon",
+    "dashboardText": "This page will show what happens on the infrastructure. Until then, open the shells to browse the content."
   },
   "upload": {
     "title": "Upload AAS content",

@@ -18,6 +18,7 @@ export function toShellSummary (shell: JsonObject): ShellSummary {
     description: langStrings(shell.description),
     assetKind: typeof assetInformation.assetKind === 'string' ? assetInformation.assetKind : null,
     globalAssetId: typeof assetInformation.globalAssetId === 'string' ? assetInformation.globalAssetId : null,
+    thumbnail: typeof (assetInformation.defaultThumbnail as JsonObject | undefined)?.path === 'string',
   }
 }
 

@@ -31,6 +31,15 @@ describe('user preferences', () => {
     expect(await getPreferences(deps, 'alice')).toMatchObject({ favorites: {}, autoRefresh: false })
   })
 
+  it('keeps recent shells stored before titles were remembered', async () => {
+    const deps = { db: handle.db }
+    await savePreferences(deps, 'carol', { recent: { t1: ['a2V5', { key: 'b3RoZXI', title: 'Other shell' }] }, theme: 'dark' })
+    expect(await getPreferences(deps, 'carol')).toMatchObject({
+      recent: { t1: [{ key: 'a2V5', title: null }, { key: 'b3RoZXI', title: 'Other shell' }] },
+      theme: 'dark',
+    })
+  })
+
   it('rejects invalid values', async () => {
     await expect(savePreferences({ db: handle.db }, 'alice', { refreshIntervalSeconds: 0 })).rejects.toThrow(StudioProblem)
   })

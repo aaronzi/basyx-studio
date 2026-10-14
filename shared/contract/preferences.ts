@@ -1,6 +1,14 @@
 import { z } from 'zod'
 
-const keyList = z.array(z.string().regex(/^[\w-]{1,4000}$/)).max(50)
+const shellKey = z.string().regex(/^[\w-]{1,4000}$/)
+const keyList = z.array(shellKey).max(50)
+
+/** A recently opened shell with the title it had; older entries are a bare key. */
+const recentShell = z.union([
+  z.object({ key: shellKey, title: z.string().max(500).nullable() }),
+  shellKey.transform(key => ({ key, title: null })),
+])
+export type RecentShell = z.infer<typeof recentShell>
 
 /**
  * Per-user settings, stored by Studio (PostgreSQL or PGlite). Favorites and
@@ -9,7 +17,7 @@ const keyList = z.array(z.string().regex(/^[\w-]{1,4000}$/)).max(50)
  */
 export const preferencesSchema = z.object({
   favorites: z.record(z.string().max(100), keyList).default({}),
-  recent: z.record(z.string().max(100), keyList).default({}),
+  recent: z.record(z.string().max(100), z.array(recentShell).max(50)).default({}),
   /** Preferred language of multi-language values, e.g. `en` or `de`. */
   valueLanguage: z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/).default('en'),
   theme: z.enum(['system', 'light', 'dark']).default('system'),

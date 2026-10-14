@@ -26,7 +26,7 @@
 
           <template #actions>
             <v-btn-primary
-              v-if="!lgAndUp"
+              v-if="!mdAndUp"
               prepend-icon="mdi-format-list-bulleted"
               :text="t('viewer.browse')"
               @click="ui.listDrawer = true"
@@ -37,15 +37,15 @@
         </v-empty-state>
 
         <div v-if="recent.length > 0" class="w-100 text-center">
-          <div class="text-label-large text-medium-emphasis mb-2">{{ t('dashboard.recent') }}</div>
+          <div class="text-label-large text-medium-emphasis mb-2">{{ t('viewer.recent') }}</div>
 
           <v-chip-group class="justify-center">
             <v-chip
-              v-for="key in recent"
-              :key="key"
+              v-for="entry in recent"
+              :key="entry.key"
               prepend-icon="mdi-history"
-              :text="decodeResourceKey(key) ?? key"
-              :to="`/targets/${targetId}/shells/${key}`"
+              :text="entry.title ?? decodeResourceKey(entry.key) ?? entry.key"
+              :to="`/targets/${targetId}/shells/${entry.key}`"
               variant="outlined"
             />
           </v-chip-group>
@@ -64,7 +64,7 @@
   const ui = useUiStore()
   const invalidate = useInvalidate()
   const preferences = usePreferences()
-  const { lgAndUp } = useDisplay()
+  const { mdAndUp } = useDisplay()
 
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)

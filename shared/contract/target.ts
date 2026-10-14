@@ -43,6 +43,23 @@ export const targetCapabilitiesSchema = z.object({
 })
 export type TargetCapabilities = z.infer<typeof targetCapabilitiesSchema>
 
+/** Nothing is offered; used while a target is unknown or not loaded. */
+export const noCapabilities: TargetCapabilities = {
+  write: false,
+  persistence: 'immediate',
+  deleteShells: false,
+  files: false,
+  operations: false,
+  conceptDescriptions: false,
+  search: 'none',
+  discovery: false,
+  export: false,
+  upload: false,
+  history: false,
+  changeFeed: false,
+  sharing: false,
+}
+
 /** State of a desktop AASX workspace; `null` for live targets. */
 export const workspaceStateSchema = z.object({
   fileName: z.string(),
@@ -88,6 +105,8 @@ export const shellSummarySchema = z.object({
   description: z.array(langStringSchema),
   assetKind: z.string().nullable(),
   globalAssetId: z.string().nullable(),
+  /** Whether the asset information names a default thumbnail. */
+  thumbnail: z.boolean(),
 })
 export type ShellSummary = z.infer<typeof shellSummarySchema>
 

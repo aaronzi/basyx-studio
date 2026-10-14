@@ -165,12 +165,12 @@
       }
     }
     if (props.targetId && needle.length < 2) {
-      items.push(...preferences.recent(props.targetId).slice(0, 4).map(key => ({
-        key: `recent:${key}`,
+      items.push(...preferences.recent(props.targetId).slice(0, 4).map(entry => ({
+        key: `recent:${entry.key}`,
         group: t('palette.groups.recent'),
-        title: decodeResourceKey(key) ?? key,
+        title: entry.title ?? decodeResourceKey(entry.key) ?? entry.key,
         icon: 'mdi-history',
-        run: () => openShell(key),
+        run: () => openShell(entry.key),
       })))
     }
     const shells = found.value.shells.map(shell => ({

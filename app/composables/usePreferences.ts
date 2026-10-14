@@ -1,4 +1,4 @@
-import type { Preferences } from '#shared/contract'
+import type { Preferences, RecentShell } from '#shared/contract'
 import { useQuery, useQueryCache } from '@pinia/colada'
 import { defaultPreferences } from '#shared/contract'
 
@@ -46,17 +46,18 @@ export function usePreferences () {
     })
   }
 
-  function recent (targetId: string): string[] {
+  function recent (targetId: string): RecentShell[] {
     return preferences.value.recent[targetId] ?? []
   }
 
-  /** Remembers an opened shell; does nothing if it is already the most recent one. */
-  function rememberShell (targetId: string, shellKey: string) {
-    if (recent(targetId)[0] === shellKey) {
+  /** Remembers an opened shell; does nothing if it is already the most recent one under that title. */
+  function rememberShell (targetId: string, shellKey: string, title: string) {
+    const latest = recent(targetId)[0]
+    if (latest?.key === shellKey && latest.title === title) {
       return
     }
     return update(current => {
-      current.recent[targetId] = [shellKey, ...(current.recent[targetId] ?? []).filter(key => key !== shellKey)].slice(0, recentLimit)
+      current.recent[targetId] = [{ key: shellKey, title }, ...(current.recent[targetId] ?? []).filter(entry => entry.key !== shellKey)].slice(0, recentLimit)
       return current
     })
   }
