@@ -76,7 +76,7 @@ export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Ar
 export const bundledInstaller = 'studio'
 
 /**
- * Installs or updates an app shipped with Studio (ADR 0021). Bundled apps
+ * Installs or updates an app shipped with Studio (ADR 0023). Bundled apps
  * come from the Studio build itself, so they need neither developer mode nor
  * a marketplace signature. An app with the same ID that an administrator
  * installed is left alone.

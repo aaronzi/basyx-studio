@@ -3,7 +3,7 @@ packages:
   # The Studio SDK for app authors and the example apps (MVP-3).
   - "packages/*"
   - "examples/apps/*"
-  # Apps shipped with Studio (ADR 0021).
+  # Apps shipped with Studio (ADR 0023).
   - "apps/*"
 
 storeDir: ../.pnpm-store

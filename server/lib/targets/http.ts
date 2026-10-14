@@ -43,7 +43,7 @@ export function encodeIdentifier (id: string): string {
 /**
  * Credentialed, guarded HTTP access to one live target for one request. The
  * SDK clients get their `Configuration` here; BaSyx Go endpoints the SDK does
- * not cover use `request` (ADR 0020). Both map failures to the same problems.
+ * not cover use `request` (ADR 0022). Both map failures to the same problems.
  */
 export class TargetHttp {
   constructor (readonly options: TargetHttpOptions) {}

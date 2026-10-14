@@ -1,6 +1,6 @@
 // Builds apps and packages each as an installable app package:
 //   node scripts/build-example-apps.mjs                      examples/apps/* → examples/apps/dist/<name>.zip
-//   node scripts/build-example-apps.mjs apps server/bundled-apps   bundled apps (ADR 0021)
+//   node scripts/build-example-apps.mjs apps server/bundled-apps   bundled apps (ADR 0023)
 import { execFileSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, writeFile } from 'node:fs/promises'

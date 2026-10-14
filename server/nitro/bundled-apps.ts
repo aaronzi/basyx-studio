@@ -3,7 +3,7 @@
 // `pnpm apps:bundle`; port this to `nitro/storage` when moving to Nitro v3.
 import { useStorage } from 'nitropack/runtime'
 
-/** The packages of the apps shipped with Studio (ADR 0021), by file name. */
+/** The packages of the apps shipped with Studio (ADR 0023), by file name. */
 export async function loadBundledApps (): Promise<Array<{ name: string, bytes: Uint8Array }>> {
   const storage = useStorage('assets:bundled-apps')
   const keys = (await storage.getKeys()).filter(key => key.endsWith('.zip'))

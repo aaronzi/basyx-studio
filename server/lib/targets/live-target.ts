@@ -101,7 +101,7 @@ function toInvocation (operation: JsonObject, result: JsonObject, handle: string
 /**
  * Live AAS target, scoped to one request. Uses `basyx-typescript-sdk` for
  * every operation it offers; BaSyx Go endpoints the SDK lacks go through the
- * same guarded, credentialed HTTP layer (ADR 0020).
+ * same guarded, credentialed HTTP layer (ADR 0022).
  */
 export class LiveAasTarget implements AasTarget {
   readonly capabilities: TargetCapabilities

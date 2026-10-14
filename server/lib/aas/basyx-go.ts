@@ -4,8 +4,8 @@ import { changeActions, changeEntities, rightActions } from '#shared/contract'
 import { encodeKey } from './keys'
 
 // Pure mappings for BaSyx Go endpoints that `basyx-typescript-sdk` does not
-// cover (ADR 0020): AAS Query Language, the event feed, ReBAC access
-// documents and operation arguments. No I/O here.
+// cover (ADR 0022): the event feed, ReBAC access documents, concept
+// description summaries and operation arguments. No I/O here.
 
 function objects (value: unknown): JsonObject[] {
   return Array.isArray(value) ? value.filter((item): item is JsonObject => typeof item === 'object' && item !== null && !Array.isArray(item)) : []

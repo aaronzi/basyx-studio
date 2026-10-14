@@ -99,7 +99,7 @@ export const appInstallations = pgTable('app_installations', {
   /** The validated manifest, as installed. */
   manifest: jsonb('manifest').$type<AppManifest>().notNull(),
   unsigned: boolean('unsigned').notNull(),
-  /** Shipped with Studio and installed at startup (ADR 0021); not uninstallable by users. */
+  /** Shipped with Studio and installed at startup (ADR 0023); not uninstallable by users. */
   bundled: boolean('bundled').notNull().default(false),
   installedBy: text('installed_by').notNull(),
   installedAt: timestamp('installed_at', { withTimezone: true }).notNull().defaultNow(),

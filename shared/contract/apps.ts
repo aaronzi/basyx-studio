@@ -25,7 +25,7 @@ export const appInstallationSchema = z.object({
   digest: z.string(),
   /** Installed through developer mode, without a marketplace signature. */
   unsigned: z.boolean(),
-  /** Shipped with Studio and installed at startup (ADR 0021). */
+  /** Shipped with Studio and installed at startup (ADR 0023). */
   bundled: z.boolean(),
   permissions: z.array(appPermissionSchema),
   submodelViews: z.number().int(),

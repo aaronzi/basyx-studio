@@ -87,7 +87,7 @@ export default defineNuxtConfig({
     },
     serverAssets: [
       { baseName: 'migrations', dir: './database/migrations' },
-      // Apps shipped with Studio (ADR 0021), packaged by `pnpm apps:bundle`.
+      // Apps shipped with Studio (ADR 0023), packaged by `pnpm apps:bundle`.
       { baseName: 'bundled-apps', dir: './bundled-apps' },
     ],
   },

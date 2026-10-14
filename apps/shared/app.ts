@@ -8,7 +8,7 @@ import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 
-// Shared setup of the apps shipped with Studio (ADR 0021). They render as
+// Shared setup of the apps shipped with Studio (ADR 0023). They render as
 // cards on a shell's overview and follow Studio's theme and look.
 
 /** Connects to Studio, follows its theme, mounts the app and sizes the frame to it. */
