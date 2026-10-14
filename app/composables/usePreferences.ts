@@ -1,0 +1,65 @@
+import type { Preferences } from '#shared/contract'
+import { useQuery, useQueryCache } from '@pinia/colada'
+import { defaultPreferences } from '#shared/contract'
+
+const recentLimit = 8
+
+/**
+ * The signed-in user's preferences, stored by Studio (plan D6). Changes are
+ * shown at once and saved in the background; a failed save restores the
+ * stored state.
+ */
+export function usePreferences () {
+  const api = useStudioApi()
+  const session = useSessionStore()
+  const queryCache = useQueryCache()
+  const key = ['me', 'preferences']
+
+  const query = useQuery({
+    key,
+    query: ({ signal }) => api<Preferences>('/me/preferences', { signal }),
+    enabled: () => session.session !== null,
+    staleTime: 60_000,
+  })
+  const preferences = computed(() => query.data.value ?? defaultPreferences)
+
+  async function update (change: (current: Preferences) => Preferences) {
+    const previous = preferences.value
+    const next = change(structuredClone(toRaw(previous)))
+    queryCache.setQueryData(key, next)
+    try {
+      queryCache.setQueryData(key, await api<Preferences>('/me/preferences', { method: 'PUT', body: next }))
+    } catch {
+      queryCache.setQueryData(key, previous)
+    }
+  }
+
+  function isFavorite (targetId: string, shellKey: string): boolean {
+    return preferences.value.favorites[targetId]?.includes(shellKey) ?? false
+  }
+
+  function toggleFavorite (targetId: string, shellKey: string) {
+    return update(current => {
+      const list = current.favorites[targetId] ?? []
+      current.favorites[targetId] = list.includes(shellKey) ? list.filter(key => key !== shellKey) : [shellKey, ...list].slice(0, 50)
+      return current
+    })
+  }
+
+  function recent (targetId: string): string[] {
+    return preferences.value.recent[targetId] ?? []
+  }
+
+  /** Remembers an opened shell; does nothing if it is already the most recent one. */
+  function rememberShell (targetId: string, shellKey: string) {
+    if (recent(targetId)[0] === shellKey) {
+      return
+    }
+    return update(current => {
+      current.recent[targetId] = [shellKey, ...(current.recent[targetId] ?? []).filter(key => key !== shellKey)].slice(0, recentLimit)
+      return current
+    })
+  }
+
+  return { preferences, query, update, isFavorite, toggleFavorite, recent, rememberShell }
+}

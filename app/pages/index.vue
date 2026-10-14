@@ -13,25 +13,32 @@
     </v-empty-state>
 
     <template v-else>
-      <div class="d-flex flex-wrap align-start ga-4 mb-6">
-        <div>
-          <h1 class="text-headline-medium">{{ t('home.title') }}</h1>
+      <v-row align="center" class="mb-2">
+        <v-col cols="12" md>
+          <h1 class="text-headline-medium font-weight-semibold">{{ t('home.title') }}</h1>
           <p class="text-body-large text-medium-emphasis">{{ t('home.subtitle') }}</p>
-        </div>
+        </v-col>
 
-        <v-spacer />
+        <v-col class="d-flex ga-2 flex-wrap" cols="12" md="auto">
+          <v-btn
+            v-if="session.isAdmin"
+            prepend-icon="mdi-plus"
+            :text="t('home.addInfrastructure')"
+            to="/admin/infrastructures"
+            variant="tonal"
+          />
 
-        <v-btn-primary
-          v-if="bridge"
-          :loading="opening"
-          prepend-icon="mdi-folder-open-outline"
-          :text="t('workspace.open')"
-          @click="openPackage"
-        />
-      </div>
+          <v-btn-primary
+            v-if="bridge"
+            :loading="opening"
+            prepend-icon="mdi-folder-open-outline"
+            :text="t('workspace.open')"
+            @click="openPackage"
+          />
+        </v-col>
+      </v-row>
 
       <ProblemAlert v-if="authError" class="mb-4" :error="authErrorProblem" />
-
       <ProblemAlert v-if="openError" class="mb-4" :error="openError" />
 
       <ProblemAlert
@@ -42,15 +49,27 @@
         @retry="targets.refetch()"
       />
 
-      <v-progress-linear v-if="targets.isLoading.value" />
+      <v-row v-if="targets.isLoading.value">
+        <v-col v-for="index in 2" :key="index" cols="12" md="6">
+          <v-skeleton-loader type="list-item-avatar-two-line, chip@3" />
+        </v-col>
+      </v-row>
 
       <v-row v-else-if="targets.data.value?.items.length">
         <v-col v-for="target in targets.data.value.items" :key="target.id" cols="12" md="6">
           <v-card class="h-100" :to="`/targets/${target.id}`">
-            <v-card-item :prepend-icon="targetIcon(target)" :title="target.name" />
+            <v-card-item>
+              <template #prepend>
+                <v-avatar :color="target.authenticationState === 'required' ? 'warning' : 'primary'" rounded="lg" variant="tonal">
+                  <v-icon :icon="targetIcon(target)" />
+                </v-avatar>
+              </template>
+
+              <v-card-title class="text-title-medium">{{ target.name }}</v-card-title>
+              <v-card-subtitle v-if="target.description">{{ target.description }}</v-card-subtitle>
+            </v-card-item>
 
             <v-card-text>
-              <p v-if="target.description" class="text-medium-emphasis mb-3">{{ target.description }}</p>
               <TargetChips :target="target" />
             </v-card-text>
           </v-card>
@@ -113,7 +132,7 @@
       const grant = await bridge.value?.chooseAasxFile()
       if (grant) {
         const target = await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } })
-        await navigateTo(`/targets/${target.id}`)
+        await navigateTo(`/targets/${target.id}/shells`)
       }
     } catch (error) {
       openError.value = error

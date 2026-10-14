@@ -67,3 +67,10 @@ export function decodeResourceKey (key: string): string | null {
     return null
   }
 }
+
+/** Color and icon of a change event's action. */
+export const changeMeta = {
+  created: { color: 'success', icon: 'mdi-plus-circle-outline' },
+  updated: { color: 'info', icon: 'mdi-pencil-circle-outline' },
+  deleted: { color: 'error', icon: 'mdi-minus-circle-outline' },
+} as const

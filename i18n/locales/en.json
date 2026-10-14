@@ -9,7 +9,12 @@
     "localUser": "Local user",
     "administrator": "Administrator",
     "apps": "Apps",
-    "appModules": "App modules"
+    "appModules": "App modules",
+    "toggleShellList": "Show or hide the shell list",
+    "target": "Target",
+    "view": "View",
+    "edit": "Edit",
+    "account": "Account"
   },
   "home": {
     "title": "AAS targets",
@@ -57,7 +62,40 @@
       "error": "Unavailable"
     },
     "copyJson": "Copy JSON",
-    "tree": "Tree"
+    "tree": "Tree",
+    "export": "Export",
+    "more": "More actions",
+    "delete": "Delete shell",
+    "deleteTitle": "Delete shell?",
+    "deleteText": "This removes {name} from the infrastructure. Its {count} submodels stay in the submodel repository.",
+    "deleted": "{name} deleted",
+    "assetKind": "Asset kind: {kind}",
+    "assetType": "Asset type: {type}",
+    "submodelCount": "no submodels | {count} submodel | {count} submodels",
+    "identifier": "AAS identifier",
+    "globalAssetId": "Global asset ID",
+    "tabs": {
+      "submodels": "Submodels",
+      "overview": "Overview",
+      "changes": "Changes",
+      "json": "JSON"
+    },
+    "filterElements": "Filter elements",
+    "autoRefresh": "Auto-refresh",
+    "expandAll": "Expand all",
+    "collapseAll": "Collapse all",
+    "jsonLabel": "AAS 3.1 · JSON serialization",
+    "formats": {
+      "aasx": "AASX package",
+      "json": "JSON",
+      "xml": "XML"
+    },
+    "unavailable": {
+      "forbidden": "You do not have access to this submodel.",
+      "not_found": "The referenced submodel does not exist.",
+      "error": "The submodel could not be loaded.",
+      "absent": "Not present at this time."
+    }
   },
   "editor": {
     "title": "Value",
@@ -102,7 +140,7 @@
     "not_found": "This item does not exist (anymore).",
     "revision_conflict": "Someone else changed this item. Reload it and try again.",
     "precondition_required": "The request did not say which revision it is based on.",
-    "unsupported_operation": "This cannot be changed here.",
+    "unsupported_operation": "This is not supported here.",
     "validation_failed": "The value is not valid.",
     "workspace_unsaved_changes": "The package has unsaved changes.",
     "package_rejected": "The package cannot be opened.",
@@ -168,7 +206,18 @@
       "delegated_user": "Each user authorizes the infrastructure with their own account (authorization code with PKCE)."
     },
     "revision": "Revision",
-    "noInfrastructures": "No infrastructures configured."
+    "noInfrastructures": "No infrastructures configured.",
+    "deployment": "Deployment",
+    "environment": "AAS environment",
+    "services": "Separate services",
+    "deploymentHelp": {
+      "environment": "One base URL that serves shells, submodels and concept descriptions (BaSyx AAS environment). Enables export, upload and element search.",
+      "services": "Separate repositories. Export, upload and element search are not available."
+    },
+    "aasEnvironment": "AAS environment URL",
+    "discovery": "Discovery URL (optional)",
+    "discoveryHint": "Finds shells by asset ID. An AAS environment usually includes it.",
+    "sharingNote": "Sharing needs your own account as access mode: with other modes, the infrastructure cannot tell users apart."
   },
   "apps": {
     "title": "Apps",
@@ -202,6 +251,289 @@
       "studio_ui_notifications": "Show notifications",
       "studio_ui_navigation": "Change its own page address",
       "studio_backend": "Run server-side code (isolated)"
+    },
+    "bundled": "Included",
+    "bundledHint": "Shipped with Studio and kept up to date with it."
+  },
+  "nav": {
+    "targets": "AAS targets",
+    "targetsShort": "Targets",
+    "dashboard": "Dashboard",
+    "dashboardShort": "Home",
+    "shells": "Shells",
+    "shellsShort": "Shells",
+    "concepts": "Concept descriptions",
+    "conceptsShort": "Concepts"
+  },
+  "common": {
+    "copy": "Copy",
+    "copied": "{label} copied to the clipboard",
+    "value": "Value",
+    "clipboardUnavailable": "The clipboard is not available",
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "time": {
+    "now": "just now",
+    "minutes": "{count} min ago",
+    "hours": "{count} h ago",
+    "days": "{count} d ago"
+  },
+  "palette": {
+    "search": "Search targets and actions…",
+    "searchTarget": "Search shells, elements, actions…",
+    "placeholder": "Search actions…",
+    "placeholderTarget": "Search shells, elements, asset IDs, actions…",
+    "empty": "No results for “{query}”",
+    "emptyText": "Try an idShort, an identifier or an action like “theme”.",
+    "navigate": "navigate",
+    "open": "open",
+    "results": "no results | {count} result | {count} results",
+    "lookup": "Find shells of asset “{assetId}”",
+    "groups": {
+      "actions": "Actions",
+      "shells": "Shells",
+      "elements": "Submodel elements",
+      "recent": "Recently opened",
+      "discovery": "Asset ID"
+    },
+    "actions": {
+      "theme": "Switch between light and dark theme",
+      "targets": "Go to AAS targets",
+      "settings": "Open settings",
+      "mode": "Switch between view and edit mode",
+      "refresh": "Turn auto-refresh on or off",
+      "dashboard": "Go to the target's dashboard",
+      "concepts": "Go to concept descriptions",
+      "infrastructures": "Manage infrastructures"
     }
+  },
+  "capabilities": {
+    "export": "Export",
+    "exportHint": "Download shells as AASX, JSON or XML (AAS environment).",
+    "upload": "Upload",
+    "uploadHint": "Add AASX, JSON or XML files (AAS environment).",
+    "search": "Element search",
+    "searchHint": "Search finds submodel elements, not only shells (AAS environment).",
+    "discovery": "Discovery",
+    "discoveryHint": "Find shells by asset ID.",
+    "history": "History",
+    "historyHint": "Show submodels as they were at a point in time.",
+    "changeFeed": "Change feed",
+    "changeFeedHint": "Shows recent changes of shells, submodels and assets.",
+    "sharing": "Sharing",
+    "sharingHint": "Grant others access to a shell. Needs relationship-based access control and your own account."
+  },
+  "shells": {
+    "title": "Shells",
+    "sort": "Sort",
+    "sortName": "Name",
+    "sortServer": "Order of the infrastructure",
+    "filter": "Filter by name, ID or asset ID",
+    "all": "All",
+    "instances": "Instances",
+    "types": "Types",
+    "favorites": "Favorites",
+    "type": "Type",
+    "favorite": "Favorite",
+    "none": "No shells found",
+    "noneText": "Try another filter, or search the whole target with ⌘K.",
+    "reset": "Reset filters",
+    "refreshOn": "Auto-refresh every {seconds} s",
+    "refreshOff": "Auto-refresh off"
+  },
+  "viewer": {
+    "headline": "Pick a shell to explore",
+    "title": "Select an Asset Administration Shell from the list",
+    "text": "Browse submodels, inspect live values and download documents. Press ⌘K to search the whole target.",
+    "browse": "Browse shells",
+    "search": "Search"
+  },
+  "history": {
+    "now": "Now",
+    "pick": "Show the state as of",
+    "readOnly": "Read-only view of the state on {date}.",
+    "backToNow": "Back to now"
+  },
+  "details": {
+    "valueOf": "Value · {type}",
+    "refreshEvery": "Every {seconds} s",
+    "paused": "Paused",
+    "sessionHistory": "Last {count} values read in this session · not stored on the server",
+    "range": "Range · {type}",
+    "elements": "no elements | {count} element | {count} elements",
+    "noFile": "No file",
+    "preview": "Open",
+    "download": "Download",
+    "replace": "Replace",
+    "replaceTitle": "Replace the file of {name}",
+    "chooseFile": "File",
+    "replaced": "The file of {name} was replaced.",
+    "copyPath": "Copy path",
+    "path": "Path",
+    "metadata": "Metadata",
+    "description": "Description",
+    "noDescription": "No description provided for this element.",
+    "qualifiers": "Qualifiers",
+    "noQualifiers": "No qualifiers.",
+    "rawJson": "Raw JSON",
+    "nothing": "Nothing selected",
+    "nothingText": "Select an element in the tree to inspect it.",
+    "identifier": "Identifier",
+    "semanticId": "Semantic ID",
+    "valueType": "Value type",
+    "contentType": "Content type",
+    "version": "Version",
+    "children": "Children",
+    "idShortPath": "idShortPath"
+  },
+  "operation": {
+    "inputs": "Input variables",
+    "noInputs": "No input variables.",
+    "async": "Run asynchronously",
+    "invoke": "Invoke",
+    "notAllowed": "You cannot invoke this operation here.",
+    "completed": "Completed",
+    "running": "Running…",
+    "failed": "Failed"
+  },
+  "share": {
+    "share": "Share",
+    "title": "Share {name}",
+    "subtitle": "Relationship-based access control · experimental",
+    "subject": "User or group",
+    "subjectPlaceholder": "e.g. maintenance-team",
+    "user": "User",
+    "group": "Group",
+    "role": "Role",
+    "add": "Add",
+    "withAccess": "People and groups with access",
+    "nobody": "Nobody else has access yet.",
+    "remove": "Remove access",
+    "inheritance": "Grants apply to this shell. Submodels inherit them only through an approved inheritance link.",
+    "invite": "Copy invitation link",
+    "invitationLink": "Invitation link",
+    "done": "Done",
+    "saved": "Access saved",
+    "conflict": "Access was changed in the meantime. Please review and save again.",
+    "relations": {
+      "viewer": "Viewer",
+      "viewerHint": "Read",
+      "editor": "Editor",
+      "editorHint": "Read and change",
+      "executor": "Executor",
+      "executorHint": "Read and invoke operations",
+      "owner": "Owner",
+      "ownerHint": "Full control and sharing",
+      "other": "{relation}",
+      "otherHint": "Relation defined by the infrastructure"
+    }
+  },
+  "overview": {
+    "none": "No views for this shell",
+    "noneText": "No installed app offers a view for this shell's submodels. Use the Submodels tab to browse the structure."
+  },
+  "changes": {
+    "title": "Changes",
+    "subtitle": "Changes of this shell and its submodels",
+    "none": "No changes",
+    "noneText": "Events are kept only for the retention period of the infrastructure.",
+    "aas": {
+      "created": "Shell created",
+      "updated": "Shell updated",
+      "deleted": "Shell deleted"
+    },
+    "submodel": {
+      "created": "Submodel {name} created",
+      "updated": "Submodel {name} updated",
+      "deleted": "Submodel {name} deleted"
+    },
+    "asset": {
+      "created": "Asset information created",
+      "updated": "Asset information updated",
+      "deleted": "Asset information deleted"
+    }
+  },
+  "dashboard": {
+    "greeting": {
+      "morning": "Good morning",
+      "afternoon": "Good afternoon",
+      "evening": "Good evening"
+    },
+    "changesToday": "no changes today | {count} change today | {count} changes today",
+    "upload": "Upload",
+    "openViewer": "Open shells",
+    "changes": "Recent changes",
+    "changesSubtitle": "Last 24 hours",
+    "entities": {
+      "all": "All",
+      "aas": "Shells",
+      "submodel": "Submodels",
+      "asset": "Assets"
+    },
+    "noFeedTitle": "No change feed",
+    "noFeed": "This infrastructure does not offer a change feed.",
+    "lookup": "Find shell by asset ID",
+    "lookupSubtitle": "Global asset ID or serial number",
+    "lookupPlaceholder": "Global asset ID",
+    "lookupAction": "Look up",
+    "lookupNone": "No shell is registered for this asset ID.",
+    "recent": "Recently opened",
+    "recentSubtitle": "Saved for your account",
+    "recentNone": "Shells you open appear here.",
+    "targetSubtitle": "Infrastructure",
+    "greetingNamed": {
+      "morning": "Good morning, {name}",
+      "afternoon": "Good afternoon, {name}",
+      "evening": "Good evening, {name}"
+    },
+    "manyChangesToday": "{count}+ changes today"
+  },
+  "upload": {
+    "title": "Upload AAS content",
+    "drop": "Drop an .aasx, .json or .xml file here",
+    "browse": "Browse files",
+    "or": "or",
+    "hint": "The file is checked before it is added. Content with the same identifiers is replaced.",
+    "upload": "Upload",
+    "added": "No shells were added. | Added {count} shell. | Added {count} shells."
+  },
+  "concepts": {
+    "title": "Concept descriptions",
+    "subtitle": "Semantic definitions referenced by submodel elements",
+    "search": "Search by name, ID or definition",
+    "concept": "Concept",
+    "dataType": "Data type",
+    "unit": "Unit",
+    "source": "Source",
+    "copyId": "Copy ID",
+    "id": "ID",
+    "definition": "Definition",
+    "noDefinition": "No definition.",
+    "truncated": "Showing the first {count} concept descriptions."
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Appearance and live data, saved for your account",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "valueLanguage": "Language of multi-language values",
+    "refresh": "Auto-refresh",
+    "refreshSubtitle": "Values are re-read; infrastructures do not push changes",
+    "refreshOpen": "Re-read open submodels",
+    "refreshHint": "While a shell is open and the window is visible",
+    "interval": "Interval",
+    "seconds": "{count} s",
+    "infrastructuresSubtitle": "Manage the infrastructures available in Studio"
+  },
+  "invite": {
+    "title": "Accept invitation",
+    "text": "Someone shared a shell on {name} with you. Accept the invitation to get access with your account.",
+    "accept": "Accept",
+    "accepted": "You now have access.",
+    "open": "Open shells"
   }
 }

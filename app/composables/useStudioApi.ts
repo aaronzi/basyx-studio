@@ -15,8 +15,10 @@ export class StudioApiError extends Error {
 
 export interface ApiRequest {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+  /** Response type; `blob` for file downloads. */
+  responseType?: 'json' | 'blob'
   body?: unknown
-  query?: Record<string, string | number | undefined>
+  query?: Record<string, string | string[] | number | boolean | undefined>
   headers?: Record<string, string>
   signal?: AbortSignal
 }
@@ -43,6 +45,7 @@ export function useStudioApi () {
         query: request.query,
         headers,
         signal: request.signal,
+        responseType: request.responseType,
       }) as T
     } catch (error) {
       const data = (error as { data?: unknown }).data

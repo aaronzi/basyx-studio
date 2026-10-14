@@ -1,5 +1,5 @@
 <template>
-  <v-container fluid max-width="none">
+  <v-container max-width="none">
     <TargetHeader v-if="targetId" :target="target?.data.value" :trail="trail" />
 
     <h1 v-else class="text-headline-medium mb-4">{{ title }}</h1>

@@ -6,19 +6,50 @@
           <v-text-field v-model="model.name" :label="t('admin.name')" :rules="[required]" />
           <v-text-field v-model="model.description" :label="t('admin.description')" />
 
-          <div class="text-title-small mt-2 mb-2">{{ t('admin.endpoints') }}</div>
+          <div class="text-title-small mt-4 mb-2">{{ t('admin.deployment') }}</div>
+
+          <v-btn-toggle
+            v-model="model.deployment"
+            class="d-flex mb-2"
+            divided
+            mandatory
+            variant="outlined"
+          >
+            <v-btn class="flex-grow-1" :text="t('admin.environment')" value="environment" />
+            <v-btn class="flex-grow-1" :text="t('admin.services')" value="services" />
+          </v-btn-toggle>
+
+          <div class="text-body-small text-medium-emphasis mb-4">{{ t(`admin.deploymentHelp.${model.deployment}`) }}</div>
 
           <v-text-field
-            v-model="model.aasRepository"
-            :hint="t('admin.sameUrlHint')"
-            :label="t('admin.aasRepository')"
-            persistent-hint
+            v-if="model.deployment === 'environment'"
+            v-model="model.aasEnvironment"
+            :label="t('admin.aasEnvironment')"
             placeholder="https://aas.example.com"
             :rules="[required, httpUrl]"
           />
 
-          <v-text-field v-model="model.submodelRepository" class="mt-2" :label="t('admin.submodelRepository')" :rules="[required, httpUrl]" />
-          <v-text-field v-model="model.conceptDescriptionRepository" :label="t('admin.conceptDescriptionRepository')" :rules="[optionalHttpUrl]" />
+          <template v-else>
+            <v-text-field
+              v-model="model.aasRepository"
+              :label="t('admin.aasRepository')"
+              placeholder="https://aas.example.com"
+              :rules="[required, httpUrl]"
+            />
+
+            <v-text-field v-model="model.submodelRepository" class="mt-2" :label="t('admin.submodelRepository')" :rules="[required, httpUrl]" />
+            <v-text-field v-model="model.conceptDescriptionRepository" class="mt-2" :label="t('admin.conceptDescriptionRepository')" :rules="[optionalHttpUrl]" />
+          </template>
+
+          <v-text-field
+            v-model="model.discovery"
+            class="mt-2"
+            :hint="t('admin.discoveryHint')"
+            :label="t('admin.discovery')"
+            persistent-hint
+            :rules="[optionalHttpUrl]"
+          />
+
           <v-checkbox v-model="model.allowPrivateNetwork" :label="t('admin.allowPrivateNetwork')" />
 
           <div class="text-title-small mt-2 mb-2">{{ t('admin.security') }}</div>
@@ -29,6 +60,14 @@
             :items="modes"
             :label="t('admin.securityMode')"
             persistent-hint
+          />
+
+          <v-alert
+            v-if="model.mode !== 'delegated_user'"
+            class="mt-4"
+            density="compact"
+            :text="t('admin.sharingNote')"
+            type="info"
           />
 
           <template v-if="model.mode !== 'unsecured'">
@@ -105,9 +144,12 @@
     return {
       name: '',
       description: '',
+      deployment: 'environment' as 'environment' | 'services',
+      aasEnvironment: '',
       aasRepository: '',
       submodelRepository: '',
       conceptDescriptionRepository: '',
+      discovery: '',
       allowPrivateNetwork: false,
       mode: 'unsecured' as SecurityMode,
       issuer: '',
@@ -132,9 +174,12 @@
       Object.assign(model.value, {
         name: existing.name,
         description: existing.description ?? '',
+        deployment: url('aasEnvironment') ? 'environment' : 'services',
+        aasEnvironment: url('aasEnvironment'),
         aasRepository: url('aasRepository'),
         submodelRepository: url('submodelRepository'),
         conceptDescriptionRepository: url('conceptDescriptionRepository'),
+        discovery: url('discovery'),
         allowPrivateNetwork: existing.allowPrivateNetwork,
         mode: existing.security.mode,
       })
@@ -160,12 +205,17 @@
 
   function toInput (): InfrastructureInput {
     const m = model.value
-    const endpoints: InfrastructureInput['endpoints'] = [
-      { type: 'aasRepository', url: m.aasRepository.trim() },
-      { type: 'submodelRepository', url: m.submodelRepository.trim() },
-    ]
-    if (m.conceptDescriptionRepository.trim()) {
+    const endpoints: InfrastructureInput['endpoints'] = m.deployment === 'environment'
+      ? [{ type: 'aasEnvironment', url: m.aasEnvironment.trim() }]
+      : [
+        { type: 'aasRepository', url: m.aasRepository.trim() },
+        { type: 'submodelRepository', url: m.submodelRepository.trim() },
+      ]
+    if (m.deployment === 'services' && m.conceptDescriptionRepository.trim()) {
       endpoints.push({ type: 'conceptDescriptionRepository', url: m.conceptDescriptionRepository.trim() })
+    }
+    if (m.discovery.trim()) {
+      endpoints.push({ type: 'discovery', url: m.discovery.trim() })
     }
     let security: InfrastructureInput['security'] = { mode: 'unsecured' }
     if (m.mode !== 'unsecured') {

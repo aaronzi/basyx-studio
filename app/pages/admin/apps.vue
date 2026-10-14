@@ -91,6 +91,11 @@
                 <v-tooltip activator="parent" :text="t('apps.unsignedHint')" />
               </v-chip>
 
+              <v-chip v-if="item.bundled" color="primary" prepend-icon="mdi-check-decagram-outline">
+                {{ t('apps.bundled') }}
+                <v-tooltip activator="parent" :text="t('apps.bundledHint')" />
+              </v-chip>
+
               <v-chip v-if="item.backend" prepend-icon="mdi-server" :text="t('apps.backend')" />
 
               <v-chip
@@ -100,7 +105,7 @@
               />
             </div>
 
-            <template #append>
+            <template v-if="!item.bundled" #append>
               <v-btn :aria-label="t('apps.uninstall')" icon="mdi-delete-outline" @click="confirmUninstall = item" />
             </template>
           </v-list-item>

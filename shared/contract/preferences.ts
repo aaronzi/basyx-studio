@@ -12,6 +12,7 @@ export const preferencesSchema = z.object({
   recent: z.record(z.string().max(100), keyList).default({}),
   /** Preferred language of multi-language values, e.g. `en` or `de`. */
   valueLanguage: z.string().regex(/^[a-z]{2,3}(?:-[A-Za-z0-9]{2,8})?$/).default('en'),
+  theme: z.enum(['system', 'light', 'dark']).default('system'),
   autoRefresh: z.boolean().default(true),
   refreshIntervalSeconds: z.number().int().min(1).max(300).default(5),
 })
