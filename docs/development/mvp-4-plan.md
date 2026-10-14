@@ -4,11 +4,12 @@
 - Date: 2026-10-13
 - Depends on: [MVP-3](mvp-3-plan.md) (implemented: submodel views and
   modules as apps, classification of the BaSyx AAS Web UI's plugins and
-  modules), and a `basyx-typescript-sdk` release with
+  modules), and `basyx-typescript-sdk` 2.4.0 (released 2026-10-14, in use)
+  with
   [eclipse-basyx/basyx-typescript-sdk#549](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/549)
   (query clients) and
   [eclipse-basyx/basyx-typescript-sdk#550](https://github.com/eclipse-basyx/basyx-typescript-sdk/issues/550)
-  (descriptor endpoint resolution), which are implemented first
+  (descriptor endpoint resolution)
 - Scope decision gate: Studio's core browsing matches the BaSyx AAS Web UI's
   viewer on a large environment and on registry-based infrastructures, so that
   ports of submodel apps, previews and editors can build on it
@@ -62,21 +63,21 @@ validation and discovery run in the BFF, behind the target contract
 
 | Topic | MVP-4 decision |
 | --- | --- |
-| Where data comes from | The SDK's `AasService` and `SubmodelService` decide where to read from, so Studio does not keep its own registry-then-repository logic. Per request, Studio configures them with the infrastructure's endpoints, the guarded fetch and the target token, and with the endpoint hook from #550 that applies the base-URL rule above before a descriptor endpoint is contacted. |
-| Shell list | From the list source: `GET /shell-descriptors` or `GET /shells`, cursor-paged. Rows from descriptors carry idShort, ID, display name, asset kind and global asset ID, so the list needs no request per row. |
+| Where data comes from | For single resources, the SDK's `AasService` and `SubmodelService` decide where to read from, so Studio does not keep its own registry-then-repository logic. Per request, Studio configures them with the infrastructure's endpoints, the guarded fetch and the target token, and with the endpoint hook from #550 that applies the base-URL rule above before a descriptor endpoint is contacted. |
+| Shell list | From the list source through the SDK clients directly: `AasRegistryClient.getAllAssetAdministrationShellDescriptors` or `AasRepositoryClient.getAllAssetAdministrationShells`, cursor-paged. Rows from descriptors carry idShort, ID, display name, asset kind and global asset ID, so the list needs no request per row. Not `AasService.getAasList`: it fetches every shell behind a page of descriptors (one request per row) and falls back to the repository when no descriptor resolves, which would hide an empty or broken registry. |
 | Opening a shell | With a registry: descriptor by ID → AAS endpoint (interface `AAS-3.x`, then `AAS-REPOSITORY-3.x`, the Web UI's order, #550) → GET. Without one, or if the descriptor has no usable endpoint: the configured AAS repository. |
 | Submodels | Per submodel reference: with a submodel registry, descriptor → `SUBMODEL-3.x` endpoint; otherwise the configured submodel repository. Writes go to the resolved endpoint with the MVP-2 revision rules. Submodel refs gain the status `blocked` next to `forbidden`, `not_found` and `error`. |
 | Row availability | The Web UI's online/offline marker. The UI asks for the rows in view (± a few), at most 50 keys per request; the BFF resolves them with at most 4 concurrent requests per target and answers `available`, `forbidden`, `not_found`, `blocked` or `unreachable`. No timer: checks run when rows come into view and on reload. |
 | Discovery | Asset ID → AAS IDs through `/lookup/shells` (global asset ID, and specific asset IDs as `name=value`). Used by `/targets/{targetId}?globalAssetId=…` deep links and by the asset ID search (below); one result opens the shell, several show a picker. Discovery writes (asset links on create and delete) come with editing. |
-| SDK | All registry, discovery, repository and query calls go through `basyx-typescript-sdk` (DATA-001). Two upstream changes come first: query clients for `/query/shells`, `/query/shell-descriptors`, `/query/submodels`, `/query/submodel-descriptors` and `/query/concept-descriptions` (#549); and descriptor endpoint resolution that accepts `AAS-3.x`/`SUBMODEL-3.x` (the SDK matches `AAS-3.0` exactly, while BaSyx Go's registry sync writes `AAS-3.2`), selects submodel endpoints by interface, and lets the caller control the configuration of every descriptor endpoint request (#550). Studio moves to the release that contains both, under the release-age exception of [ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md). |
+| SDK | All registry, discovery, repository and query calls go through `basyx-typescript-sdk` (DATA-001). Two upstream changes come first: query clients for `/query/shells`, `/query/shell-descriptors`, `/query/submodels`, `/query/submodel-descriptors` and `/query/concept-descriptions` (#549); and descriptor endpoint resolution that accepts `AAS-3.x`/`SUBMODEL-3.x` (the SDK matches `AAS-3.0` exactly, while BaSyx Go's registry sync writes `AAS-3.2`), selects submodel endpoints by interface, and lets the caller control the configuration of every descriptor endpoint request (#550). Both are in 2.4.0, which Studio uses since 2026-10-14 under an exact-version release-age exception ([ADR 0012](../adr/0012-release-age-exceptions-for-basyx-packages.md)). |
 
 ### Search
 
 | Topic | MVP-4 decision |
 | --- | --- |
 | Search syntax | The Web UI's: free text plus `field:value` (contains), `field=value` (equals), `field!=value` and `-field:value` (not), quoted values; fields `id`, `idShort`, `assetKind`, `assetType`, `globalAssetId`, `specificAssetId`. Free text matches ID, idShort, global asset ID and specific asset ID values case-insensitively, as in the Web UI (not the display name). The parser is shared code, so the field shows chips and suggestions with the same rules the server applies. |
-| Server-side search | The BFF turns a search expression into an AAS Query Language query (`$condition` with `$or`/`$and`, `$regex`, `$contains`, `$eq`, `$not`, roots `$aas` or `$aasdesc`) and posts it to the list source's query endpoint (`/query/shell-descriptors` or `/query/shells`), cursor-paged like the list. |
-| Advanced query | A dialog for raw query JSON, as in the Web UI (which has no builder). The BFF validates it with Ajv against the IDTA-01002-3 query JSON Schema, limits it to 64 KiB, allows only the roots of the queried endpoint, and rejects `$select` (Studio needs full objects for its rows). Findings are shown in the dialog. Editing uses a monospace `v-textarea`; a code editor is not added for this. |
+| Server-side search | The BFF turns a search expression into an AAS Query Language query, built with the SDK's `Query` model (`$condition` with `$or`/`$and`, `$regex`, `$contains`, `$eq`, `$not`, roots `$aas` or `$aasdesc`), and sends it through `queryAssetAdministrationShellDescriptors` or `queryAssetAdministrationShells` of the list source, cursor-paged like the list. |
+| Advanced query | A dialog for raw query JSON, as in the Web UI (which has no builder). The BFF validates it with Ajv against the IDTA-01002-3 query JSON Schema, limits it to 64 KiB, allows only the roots of the queried endpoint, and rejects `$select` (Studio needs full objects for its rows). Findings are shown in the dialog. A valid query is converted with the SDK's `queryFromJsonable` and sent like an expression query; the Ajv check stays in front of it because it gives readable findings per path. Editing uses a monospace `v-textarea`; a code editor is not added for this. |
 | Query support | Derived from the stored profiles (the BaSyx query profiles the Web UI checks, version ≥ 3.2, and the IDTA query profiles), because BaSyx Go does not label them consistently. If the list source cannot query but the other AAS endpoint can, that one is used and the UI names it. If neither can, the search falls back to the client filter of loaded rows with a hint, as the Web UI does. A `404`, `405` or `501` from a query endpoint marks it unsupported until the next probe. |
 | Shareable searches | `?search=` (expression) and `?query=` (base64url JSON) on the target route, like the Web UI's `aasSearch`/`aasQuery`. |
 | Workspace targets | AASX packages have no query endpoint. The workspace worker evaluates the quick search expression over the package's shells (same fields and operators); the advanced dialog is not offered. |
@@ -157,8 +158,9 @@ validation and discovery run in the BFF, behind the target contract
 - `server/lib/aas/services.ts`: builds `AasService`, `SubmodelService` and the
   discovery client for one request (endpoint configurations with the guarded
   fetch and token, list source, the base-URL check as endpoint hook).
-- `server/lib/aas/query.ts`: expression to `$condition`, Ajv validation of raw
-  queries (schema vendored from IDTA-01002-3 into `shared/aas/`), root check.
+- `server/lib/aas/query.ts`: expression to an SDK `Query`, Ajv validation of
+  raw queries (schema vendored from IDTA-01002-3 into `shared/aas/`), root
+  check, then `queryFromJsonable`.
 - `LiveAasTarget` reads through the services and gains `searchShells`,
   `shellAvailability` and `shellsByAssetId`; the workspace target implements
   `searchShells` for expressions.
@@ -255,7 +257,7 @@ environment, and against the `large` profile where stated:
 
 | Phase | Content | Exit |
 | --- | --- | --- |
-| S. SDK | #549 and #550 in `basyx-typescript-sdk`, released; Studio updates the dependency | SDK release |
+| S. SDK (done) | #549 and #550 in `basyx-typescript-sdk` 2.4.0; Studio updated | SDK 2.4.0 in use |
 | 0. Spikes | `@vuetify/v0` splitter in Nuxt SSR and Electron; `v-treeview` with 1,000 and 5,000 nodes; `v-virtual-scroll` with cursor paging; registry integration and query endpoints of `aasenvironment-go` in the test environment; profile detection | Decisions and budgets recorded; ADR drafts |
 | A. Infrastructures | Endpoint types, combinations, base-URL policy, list source, stored profiles, admin form with the single-URL shortcut; test environment changes | DoD 1 |
 | B. Resolution and discovery | Registry listing and descriptor resolution through `AasService` and `SubmodelService`, availability, discovery lookup, `?globalAssetId=` | DoD 2, 4 |
@@ -265,7 +267,7 @@ environment, and against the `large` profile where stated:
 | F. Wrap-up | Workspace check, performance runs, screenshots, parity list, results, ADRs, `openapi.yaml` | DoD 10–12 |
 
 D and E do not depend on A to C and can start right after phase 0 against
-the repository-based targets. B and C need the SDK release from phase S;
+the repository-based targets. B and C use the SDK release from phase S;
 C needs B's list source.
 
 ### Work breakdown
@@ -279,7 +281,10 @@ C needs B's list source.
   `AAS-3.x`/`SUBMODEL-3.x` endpoint selection in `AasService` and
   `SubmodelService`, and an endpoint hook that gives the caller control over
   the configuration of every descriptor endpoint request, or rejects it.
-- A release, then the dependency update in Studio under ADR 0012.
+- Released as 2.4.0 on 2026-10-14 (npm provenance from the repository's
+  `publish.yml`, tag `v2.4.0`; dependencies unchanged from 2.3.0). Studio uses
+  it with the exact-version exception `basyx-typescript-sdk@2.4.0`; unit,
+  integration (129) and type checks pass.
 
 **0. Spikes**
 
@@ -326,8 +331,9 @@ C needs B's list source.
 
 - `shared/aas/search-expression.ts`: parser, field table, chips; unit tests
   with the Web UI's cases.
-- `server/lib/aas/query.ts`: expression to query, schema validation, root
-  check, size limit; `shell-searches` route; problems.
+- `server/lib/aas/query.ts`: expression to an SDK `Query`, schema
+  validation, root check, size limit, `queryFromJsonable`; `shell-searches`
+  route; problems.
 - Workspace worker: expression evaluation over package shells.
 - `ShellSearchField.vue`, `ShellQueryDialog.vue`, URL state.
 
@@ -372,7 +378,6 @@ C needs B's list source.
 | --- | --- |
 | Registries publish internal host names (for example Docker service names) instead of the configured URLs | Shown as `blocked` with the URL's origin, not silently replaced; the deployment guide names `GENERAL_EXTERNALURL`; URL rewriting stays out of scope until a real deployment needs it |
 | Query profile URIs differ between servers and versions | Profiles plus the first-use check; a wrong guess degrades to the client filter |
-| The SDK release takes longer than planned | Phase S comes first; D and E do not need it and can start; B and C wait rather than call BaSyx with raw `fetch` |
 | `AasService` and `SubmodelService` do not fit every Studio path (for example availability checks or per-row resolution) | Use the SDK clients directly for those paths, still through the endpoint hook and the guarded fetch |
 | A per-request descriptor lookup slows down opening shells and loading submodels | Measure on `large`; cache descriptors per target and session for a short time if needed |
 | `@vuetify/v0` is young (1.x) and its API may change | Pinned to the version `vuetify` itself depends on; used only inside `ViewerSplit.vue` |
