@@ -50,6 +50,8 @@
     "assetKind": "Asset kind"
   },
   "shell": {
+    "showIdentifiers": "Show identifiers",
+    "hideIdentifiers": "Hide identifiers",
     "submodels": "Submodels",
     "elements": "Elements",
     "details": "Details",
@@ -466,6 +468,9 @@
     "backToNow": "Back to now"
   },
   "details": {
+    "up": "Up to {name}",
+    "pathMenu": "Path of the selection",
+    "submodel": "Submodel",
     "valueOf": "Value · {type}",
     "refreshEvery": "Every {seconds} s",
     "paused": "Paused",

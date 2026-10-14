@@ -173,7 +173,7 @@
           group: t('palette.groups.discovery'),
           title: langText(shell.displayName) ?? shell.idShort ?? shell.id,
           subtitle: shell.id,
-          icon: 'mdi-cube-outline',
+          icon: '$aas',
           run: () => openShell(shell.key),
         })))
       }
@@ -198,7 +198,7 @@
       group: t('palette.groups.shells'),
       title: shellTitle(shell),
       subtitle: shell.id,
-      icon: shell.assetKind === 'Type' ? 'mdi-shape-outline' : 'mdi-cube-outline',
+      icon: shell.assetKind === 'Type' ? 'mdi-shape-outline' : '$aas',
       run: () => openShell(shell.key),
     }))
     // Elements of submodels that no shell references cannot be opened in the viewer.

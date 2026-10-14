@@ -13,7 +13,7 @@
       @retry="list.refetch()"
     />
 
-    <v-progress-linear v-if="list.isLoading.value" />
+    <v-progress-linear v-if="list.isPending.value" />
 
     <template v-else-if="list.data.value">
       <v-alert v-if="!list.data.value.enabled" class="mb-4" :text="t('apps.disabled')" type="info" />

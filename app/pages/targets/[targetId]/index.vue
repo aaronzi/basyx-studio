@@ -27,7 +27,7 @@
             @click="uploadOpen = true"
           />
 
-          <v-btn-primary prepend-icon="mdi-cube-outline" :text="t('landing.openViewer')" :to="`/targets/${targetId}/shells`" />
+          <v-btn-primary prepend-icon="$aas" :text="t('landing.openViewer')" :to="`/targets/${targetId}/shells`" />
         </div>
       </div>
 

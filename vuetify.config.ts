@@ -16,6 +16,27 @@ const brand = {
   orangeOnLight: '#A65400',
 }
 
+// Vuetify's status colours, listed so they get on-colours below.
+const status = {
+  light: { error: '#B00020', info: '#2196F3', success: '#4CAF50', warning: '#FB8C00' },
+  dark: { error: '#CF6679', info: '#2196F3', success: '#4CAF50', warning: '#FB8C00' },
+}
+
+function luminance (hex: string): number {
+  const [r, g, b] = [1, 3, 5].map(start => Number.parseInt(hex.slice(start, start + 2), 16) / 255).map(channel => channel <= 0.03928 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4)
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+}
+
+/**
+ * Text colours on filled theme colours (`on-primary`, …): white where it
+ * reaches 4.5:1 (WCAG AA), black otherwise. Vuetify's own choice (APCA) puts
+ * white on the bright dark-theme cyan and orange, which is hard to read.
+ */
+function withOnColors (colors: Record<string, string>): Record<string, string> {
+  const onColors = Object.entries(colors).map(([name, hex]) => [`on-${name}`, 1.05 / (luminance(hex) + 0.05) >= 4.5 ? '#FFFFFF' : '#000000'])
+  return { ...colors, ...Object.fromEntries(onColors) }
+}
+
 const field = { variant: 'outlined', density: 'comfortable', hideDetails: 'auto' } as const
 
 export default defineVuetifyConfiguration({
@@ -28,10 +49,10 @@ export default defineVuetifyConfiguration({
     defaultTheme: 'light',
     themes: {
       light: {
-        colors: { primary: brand.cyanOnLight, secondary: brand.orangeOnLight },
+        colors: withOnColors({ primary: brand.cyanOnLight, secondary: brand.orangeOnLight, ...status.light }),
       },
       dark: {
-        colors: { primary: brand.cyan, secondary: brand.orange },
+        colors: withOnColors({ primary: brand.cyan, secondary: brand.orange, ...status.dark }),
       },
     },
   },
@@ -54,8 +75,9 @@ export default defineVuetifyConfiguration({
     VAvatar: { rounded: 'lg' },
     VBtn: { variant: 'text', rounded: 'lg', class: 'text-none' },
     VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
-    // One bordered group, divided between its buttons.
-    VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text' },
+    // One bordered group, divided between its buttons. Only the group is
+    // rounded: the buttons' own rounding (VBtn above) would show at the dividers.
+    VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
     VCard: { flat: true, border: true, rounded: 'lg' },
     VCardPane: {
       flat: true,
@@ -68,10 +90,12 @@ export default defineVuetifyConfiguration({
     // Overlays keep a shadow so they stand out from the page.
     VDialog: { VCard: { flat: false } },
     // Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
+    // Items are inset evenly (pa-1) with a smaller radius (4 px) than the
+    // menu card (8 px), so their highlight follows the card's corners.
     VMenu: {
       VCard: { flat: false },
-      VList: { density: 'compact', slim: true, class: 'py-1 text-body-medium' },
-      VListItem: { minHeight: 36 },
+      VList: { density: 'compact', slim: true, class: 'pa-1 text-body-medium' },
+      VListItem: { minHeight: 36, rounded: true },
     },
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
@@ -93,6 +117,6 @@ export default defineVuetifyConfiguration({
     VExpansionPanels: { variant: 'accordion', flat: true },
     VDataTable: { hover: true, density: 'comfortable' },
     VTabs: { color: 'primary', density: 'comfortable' },
-    VContainer: { fluid: true, maxWidth: 1280, class: 'pa-4 pa-md-6' },
+    VContainer: { fluid: true, maxWidth: 1280, class: 'pa-2 pa-sm-3 pa-md-4' },
   },
 })

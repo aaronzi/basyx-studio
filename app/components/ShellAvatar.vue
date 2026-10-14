@@ -8,7 +8,7 @@
       @error="failed = true"
     />
 
-    <v-icon v-else :icon="shell.assetKind === 'Type' ? 'mdi-shape-outline' : 'mdi-cube-outline'" :size="iconSize" />
+    <v-icon v-else :icon="shell.assetKind === 'Type' ? 'mdi-shape-outline' : '$aas'" :size="iconSize" />
   </v-avatar>
 </template>
 

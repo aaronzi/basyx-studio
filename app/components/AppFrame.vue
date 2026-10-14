@@ -16,12 +16,13 @@
     <v-progress-linear v-else-if="!connected" />
 
     <!-- Created only on the client, after the bridge listens: a frame in
-         server-rendered HTML would load before hydration. -->
+         server-rendered HTML would load before hydration. Hidden until the
+         app connects, so its blank (white) page does not flash in dark mode. -->
     <iframe
       v-if="mounted"
       :key="attempt"
       ref="frame"
-      :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1']"
+      :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1', connected ? undefined : 'opacity-0']"
       :height="fit ? (height ?? 480) : undefined"
       referrerpolicy="no-referrer"
       sandbox="allow-scripts"

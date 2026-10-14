@@ -6,7 +6,7 @@
 
     <ProblemAlert v-if="contributions.error.value" :error="contributions.error.value" retry @retry="contributions.refetch()" />
 
-    <v-progress-linear v-else-if="contributions.isLoading.value" />
+    <v-progress-linear v-else-if="contributions.isPending.value" />
 
     <v-alert v-else-if="!module" :text="t('apps.notInstalled')" type="info" />
 

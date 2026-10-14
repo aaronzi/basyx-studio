@@ -21,7 +21,7 @@
 
     <ProblemAlert v-if="actionError" class="mb-4" :error="actionError" />
 
-    <v-progress-linear v-if="list.isLoading.value" />
+    <v-progress-linear v-if="list.isPending.value" />
 
     <v-card v-else>
       <v-list v-if="list.data.value?.items.length" lines="two">

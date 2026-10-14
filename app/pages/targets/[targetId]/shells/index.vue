@@ -24,7 +24,7 @@
             <v-list-item
               v-for="shell in matches"
               :key="shell.key"
-              prepend-icon="mdi-cube-outline"
+              prepend-icon="$aas"
               :subtitle="shell.id"
               :title="langText(shell.displayName) ?? shell.idShort ?? shell.id"
               :to="`/targets/${targetId}/shells/${shell.key}`"
@@ -41,7 +41,7 @@
         >
           <template #media>
             <v-avatar class="mb-4" color="primary" size="96" variant="tonal">
-              <v-icon icon="mdi-cube-scan" size="48" />
+              <v-icon icon="$aas" size="48" />
             </v-avatar>
           </template>
 

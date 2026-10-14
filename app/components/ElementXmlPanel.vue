@@ -7,7 +7,7 @@
     @retry="xml.refetch()"
   />
 
-  <v-skeleton-loader v-else-if="xml.isLoading.value" type="paragraph@3" />
+  <v-skeleton-loader v-else-if="xml.isPending.value" type="paragraph@3" />
 
   <CodeView
     v-else

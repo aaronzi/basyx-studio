@@ -53,7 +53,8 @@ test('filters the tree, opens details and keeps favorites for the user', async (
   await treeItem(page, 'Deepest').first().click()
   await expect(page.getByText('Level1.Level2.Items[0].Details.Deepest')).toBeVisible()
 
-  await page.getByRole('button', { name: 'Favorite' }).first().click()
+  // The header's star; the shell list has one per row.
+  await page.locator('.v-card').filter({ has: page.getByRole('heading', { level: 1 }) }).getByRole('button', { name: 'Favorite' }).click()
   await page.reload()
   await page.getByText('Favorites', { exact: true }).click()
   await expect(page.locator('.v-navigation-drawer').getByText('EdgeCasesShell').first()).toBeVisible()

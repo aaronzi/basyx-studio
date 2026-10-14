@@ -18,23 +18,34 @@
 
       <template v-else>
         <!-- Shell header -->
-        <v-card class="mb-4">
-          <v-card-item class="pa-4">
+        <v-card class="mb-3">
+          <v-card-item class="pa-3">
             <template v-if="smAndUp" #prepend>
               <ShellAvatar
                 class="me-2"
-                icon-size="40"
+                icon-size="32"
                 :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail }"
-                size="72"
+                size="56"
                 :target-id="targetId"
                 :thumbnails="capabilities.files"
               />
             </template>
 
             <!-- The title is the heading itself, so title and subtitle form one block centred with the avatar. -->
-            <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-headline-small' : 'text-title-large'" tag="h1">{{ shellLabel }}</v-card-title>
+            <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-title-large' : 'text-title-medium'" tag="h1">{{ shellLabel }}</v-card-title>
 
-            <v-card-subtitle class="text-body-medium text-wrap">{{ headerSubtitle }}</v-card-subtitle>
+            <v-card-subtitle class="text-body-small text-wrap">{{ headerSubtitle }}</v-card-subtitle>
+
+            <div class="d-flex flex-wrap ga-1 mt-2">
+              <v-chip
+                v-if="assetKind"
+                :color="assetKind === 'Type' ? 'warning' : 'primary'"
+                prepend-icon="mdi-shape-outline"
+                :text="t('shell.assetKind', { kind: assetKind })"
+              />
+
+              <v-chip prepend-icon="mdi-folder-multiple-outline" :text="t('shell.submodelCount', submodelRefs.length)" />
+            </div>
 
             <template #append>
               <div class="d-flex flex-wrap align-center ga-1">
@@ -46,6 +57,15 @@
                   :color="favorite ? 'warning' : undefined"
                   :icon="favorite ? 'mdi-star' : 'mdi-star-outline'"
                   @click="preferences.toggleFavorite(targetId, shellKey)"
+                />
+
+                <!-- Phones show the identifiers on request: they would fill the screen. -->
+                <v-btn
+                  v-if="!smAndUp"
+                  :aria-label="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
+                  :aria-pressed="showIdentifiers"
+                  :icon="showIdentifiers ? 'mdi-information' : 'mdi-information-outline'"
+                  @click="showIdentifiers = !showIdentifiers"
                 />
 
                 <v-btn
@@ -100,38 +120,27 @@
             </template>
           </v-card-item>
 
-          <v-card-text class="pt-0">
-            <v-chip-group column>
-              <v-chip
-                v-if="assetKind"
-                :color="assetKind === 'Type' ? 'warning' : 'primary'"
-                prepend-icon="mdi-shape-outline"
-                :text="t('shell.assetKind', { kind: assetKind })"
-              />
+          <template v-if="smAndUp || showIdentifiers">
+            <v-divider />
 
-              <v-chip prepend-icon="mdi-folder-multiple-outline" :text="t('shell.submodelCount', submodelRefs.length)" />
-            </v-chip-group>
-          </v-card-text>
+            <v-row no-gutters>
+              <v-col v-for="row in identifiers" :key="row.label" cols="12" md="6">
+                <v-list-item density="compact" :prepend-icon="row.icon" :subtitle="row.label">
+                  <v-list-item-title class="text-body-small text-wrap text-break">{{ row.value }}</v-list-item-title>
 
-          <v-divider />
-
-          <v-row no-gutters>
-            <v-col v-for="row in identifiers" :key="row.label" cols="12" md="6">
-              <v-list-item class="py-3" :prepend-icon="row.icon" :subtitle="row.label">
-                <v-list-item-title class="text-wrap text-break">{{ row.value }}</v-list-item-title>
-
-                <template #append>
-                  <v-btn :aria-label="t('common.copy')" icon="mdi-content-copy" size="small" @click="copy(row.value, row.label)" />
-                </template>
-              </v-list-item>
-            </v-col>
-          </v-row>
+                  <template #append>
+                    <v-btn :aria-label="t('common.copy')" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
+                  </template>
+                </v-list-item>
+              </v-col>
+            </v-row>
+          </template>
         </v-card>
 
         <ProblemAlert v-if="actionError" class="mb-4" :error="actionError" />
 
         <!-- Tabs -->
-        <v-tabs v-model="tab" class="mb-4">
+        <v-tabs v-model="tab" class="mb-3">
           <v-tab prepend-icon="mdi-file-tree-outline" :text="t('shell.tabs.submodels')" value="submodels" />
           <v-tab prepend-icon="mdi-view-dashboard-variant-outline" :text="t('shell.tabs.overview')" value="overview" />
           <v-tab v-if="capabilities.changeFeed" prepend-icon="mdi-timeline-clock-outline" :text="t('shell.tabs.changes')" value="changes" />
@@ -343,7 +352,6 @@
       :item="selectedItem"
       :refreshing="Boolean(refreshSeconds)"
       :shell-id="shellId"
-      :shell-label="shellLabel"
       :submodel-label="selectedSubmodelLabel"
       :submodel-ref="selectedRef"
       :target="target.data.value"
@@ -617,6 +625,7 @@
   }
 
   const shareOpen = ref(false)
+  const showIdentifiers = ref(false)
   const confirmDelete = ref(false)
   const deleting = ref(false)
   const actionError = ref<unknown>(null)

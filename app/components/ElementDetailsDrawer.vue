@@ -9,12 +9,49 @@
     :width="drawerWidth"
   >
     <div v-if="item" class="d-flex flex-column h-100">
-      <v-toolbar color="transparent" density="compact">
-        <v-breadcrumbs class="text-label-medium ps-4 overflow-hidden" density="compact" :items="crumbs">
-          <template #divider>
-            <v-icon icon="mdi-chevron-right" size="small" />
-          </template>
-        </v-breadcrumbs>
+      <!-- Where the selection is, on one line: up to the parent, or jump to
+           any level from the path menu. The title below names the selection. -->
+      <v-toolbar class="px-1" color="transparent" density="compact">
+        <template v-if="trail.length > 0">
+          <v-btn
+            v-tooltip="t('details.up', { name: trail.at(-1)!.title })"
+            :aria-label="t('details.up', { name: trail.at(-1)!.title })"
+            icon="mdi-arrow-up"
+            size="small"
+            @click="emit('select', trail.at(-1)!.id)"
+          />
+
+          <v-menu>
+            <template #activator="{ props: activator }">
+              <!-- A list item, as its title truncates: a long path stays on one line. -->
+              <v-list-item
+                v-bind="activator"
+                append-icon="mdi-chevron-down"
+                :aria-label="t('details.pathMenu')"
+                class="flex-shrink-1 px-2"
+                min-height="32"
+              >
+                <template #title>
+                  <span class="text-body-small text-medium-emphasis">{{ trail.map(segment => segment.title).join(' › ') }}</span>
+                </template>
+              </v-list-item>
+            </template>
+
+            <v-card max-width="360">
+              <v-list>
+                <v-list-item
+                  v-for="segment in trail"
+                  :key="segment.id"
+                  :prepend-icon="segment.icon"
+                  :title="segment.title"
+                  @click="emit('select', segment.id)"
+                />
+
+                <v-list-item active :prepend-icon="modelTypeIcon(item.modelType)" :title="title" />
+              </v-list>
+            </v-card>
+          </v-menu>
+        </template>
 
         <v-spacer />
 
@@ -191,7 +228,6 @@
   const props = defineProps<{
     target: Target
     shellId: string
-    shellLabel: string
     submodelLabel: string | null
     submodelRef: SubmodelRef | null
     item: ShellTreeItem | null
@@ -274,11 +310,17 @@
   const title = computed(() => props.item?.variableGroup ? t(`variables.${props.item.variableGroup}`) : (props.item?.title ?? ''))
   const fileName = computed(() => (path.value ?? props.submodelLabel ?? 'submodel').replaceAll(/[^\w-]/g, '_'))
 
-  const crumbs = computed(() => [
-    props.shellLabel,
-    ...(props.item?.elementKey ? [props.submodelLabel ?? ''] : []),
-    ...(detail.value?.ancestors.map(ancestor => ancestor.label) ?? []),
-  ].filter(Boolean).map(text => ({ title: text })))
+  /** The levels above the selection: its submodel and parent elements. */
+  const trail = computed(() => {
+    const item = props.item
+    if (!item?.elementKey) {
+      return []
+    }
+    return [
+      { id: itemId(item.submodelKey, null), title: props.submodelLabel ?? t('details.submodel'), icon: modelTypeIcon('Submodel') },
+      ...(detail.value?.ancestors ?? []).map(ancestor => ({ id: itemId(item.submodelKey, ancestor.key), title: ancestor.label, icon: 'mdi-subdirectory-arrow-right' })),
+    ]
+  })
 
   // App views of the selected submodel (or the submodel of the selected element).
   const contributions = useAppContributions(() => props.submodelRef?.semanticId ?? null)

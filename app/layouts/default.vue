@@ -111,7 +111,13 @@
 
       <v-menu v-if="session.session">
         <template #activator="{ props }">
-          <v-btn v-bind="props" :aria-label="t('app.account')" class="me-2" icon>
+          <v-btn
+            v-bind="props"
+            :aria-label="t('app.account')"
+            class="me-2"
+            icon
+            rounded="circle"
+          >
             <v-avatar
               color="primary"
               rounded="circle"
@@ -286,7 +292,7 @@
       const base = `/targets/${targetId.value}`
       items.push(
         { key: 'dashboard', title: t('nav.dashboard'), short: t('nav.dashboardShort'), icon: 'mdi-view-dashboard-outline', to: base, exact: true },
-        { key: 'shells', title: t('nav.shells'), short: t('nav.shellsShort'), icon: 'mdi-cube-outline', to: `${base}/shells` },
+        { key: 'shells', title: t('nav.shells'), short: t('nav.shellsShort'), icon: '$aas', to: `${base}/shells` },
       )
       if (target.value?.capabilities.conceptDescriptions) {
         items.push({ key: 'concepts', title: t('nav.concepts'), short: t('nav.conceptsShort'), icon: 'mdi-book-open-page-variant-outline', to: `${base}/concepts` })

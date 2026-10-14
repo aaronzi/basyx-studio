@@ -21,7 +21,7 @@
       />
     </v-col>
 
-    <v-col v-if="contributions.isLoading.value" cols="12">
+    <v-col v-if="contributions.isPending.value" cols="12">
       <v-skeleton-loader type="card" />
     </v-col>
 

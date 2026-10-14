@@ -49,7 +49,7 @@
         @retry="targets.refetch()"
       />
 
-      <v-row v-if="targets.isLoading.value">
+      <v-row v-if="targets.isPending.value">
         <v-col v-for="index in 2" :key="index" cols="12" md="6">
           <v-skeleton-loader type="list-item-avatar-two-line, chip@3" />
         </v-col>

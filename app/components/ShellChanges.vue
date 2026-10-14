@@ -15,7 +15,7 @@
 
     <v-card-text>
       <ProblemAlert v-if="changes.error.value" :error="changes.error.value" retry @retry="changes.refetch()" />
-      <v-skeleton-loader v-else-if="changes.isLoading.value" type="list-item-two-line@4" />
+      <v-skeleton-loader v-else-if="changes.isPending.value" type="list-item-two-line@4" />
 
       <v-timeline
         v-else-if="items.length > 0"
