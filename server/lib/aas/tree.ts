@@ -1,11 +1,17 @@
-import type { ElementHit, SubmodelTree, TreeNode } from '#shared/contract'
+import type { ElementHit, TreeNode } from '#shared/contract'
 import type { LocatorStep } from './keys'
 import type { JsonObject } from './outline'
 import { encodeKey, formatLocator } from './keys'
-import { childrenOf, firstKeyValue, submodelChildren, toElementNode } from './outline'
+import { childrenOf, submodelChildren, toElementNode } from './outline'
 
-/** Largest submodel Studio sends as one tree; larger ones are loaded level by level. */
-export const maxTreeNodes = 5000
+/**
+ * Nodes Studio sends for one tree request (MVP-4 plan, T1). BaSyx Go reads a
+ * whole submodel for every element request, so a request per level costs as
+ * much as the whole tree: one request returns as many complete levels as fit,
+ * and deeper levels follow on demand.
+ */
+export const defaultNodeBudget = 2000
+export const maxNodeBudget = 5000
 
 type Child = ReturnType<typeof submodelChildren>[number]
 
@@ -14,42 +20,35 @@ function valueTypeOf (child: Child): string | null {
   return typeof value?.valueType === 'string' ? value.valueType : null
 }
 
-function countNodes (children: Child[], limit: number): number {
-  let count = 0
-  const stack = [...children]
-  while (stack.length > 0 && count <= limit) {
-    const child = stack.pop()!
-    count++
-    if (child.value && typeof child.value === 'object') {
-      stack.push(...childrenOf(child.value as JsonObject | JsonObject[], child.steps))
-    }
-  }
-  return count
-}
-
-function toNode (child: Child, recurse: boolean): TreeNode {
-  const node: TreeNode = { ...toElementNode(child), valueType: valueTypeOf(child) }
-  if (recurse && node.hasChildren) {
-    node.children = childrenOf(child.value as JsonObject | JsonObject[], child.steps).map(item => toNode(item, true))
-  }
-  return node
+function toNode (child: Child): TreeNode {
+  return { ...toElementNode(child), valueType: valueTypeOf(child) }
 }
 
 /**
- * The whole element tree of a submodel with value previews, so the UI can
- * filter, expand everything and refresh values without a request per level.
+ * Tree nodes for the children of a submodel or element (`children`), with as
+ * many complete levels below them as fit into `budget` nodes, breadth first.
+ * The first level is always complete. A node with `hasChildren` and without
+ * `children` has more levels, which the UI loads when it is opened.
  */
-export function buildSubmodelTree (submodel: JsonObject, limit = maxTreeNodes): SubmodelTree {
-  const top = submodelChildren(submodel)
-  const truncated = countNodes(top, limit) > limit
-  return {
-    key: encodeKey(String(submodel.id)),
-    submodelId: String(submodel.id),
-    idShort: typeof submodel.idShort === 'string' ? submodel.idShort : null,
-    semanticId: firstKeyValue(submodel.semanticId),
-    truncated,
-    root: top.map(child => toNode(child, !truncated)),
+export function buildLevels (children: Child[], budget = defaultNodeBudget): TreeNode[] {
+  const top = children.map(child => toNode(child))
+  let count = top.length
+  let frontier = top.map((node, index) => ({ node, child: children[index]! }))
+  while (frontier.length > 0) {
+    const expansions = frontier
+      .filter(({ node }) => node.hasChildren)
+      .map(({ node, child }) => ({ node, children: childrenOf(child.value as JsonObject | JsonObject[], child.steps) }))
+    const size = expansions.reduce((sum, expansion) => sum + expansion.children.length, 0)
+    if (size === 0 || count + size > budget) {
+      break
+    }
+    count += size
+    frontier = expansions.flatMap(({ node, children: level }) => {
+      node.children = level.map(child => toNode(child))
+      return node.children.map((item, index) => ({ node: item, child: level[index]! }))
+    })
   }
+  return top
 }
 
 /** Elements whose idShort contains `text` (case-insensitive), depth first. */

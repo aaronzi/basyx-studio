@@ -80,7 +80,8 @@ export default defineVuetifyConfiguration({
     VSwitch: { color: 'primary', inset: true, hideDetails: true, density: 'compact' },
     VProgressLinear: { indeterminate: true, color: 'primary' },
     VBreadcrumbs: { class: 'pa-0' },
-    VTreeview: { density: 'compact', activatable: true, color: 'primary' },
+    // Items register from props, so closed groups are not rendered: large lists stay fast (MVP-4 plan, T1).
+    VTreeview: { density: 'compact', activatable: true, color: 'primary', itemsRegistration: 'props' },
     VTooltip: { location: 'bottom', openDelay: 400 },
     VExpansionPanels: { variant: 'accordion', flat: true },
     VDataTable: { hover: true, density: 'comfortable' },

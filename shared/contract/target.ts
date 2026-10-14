@@ -196,6 +196,8 @@ export const elementDetailSchema = z.object({
    */
   revision: z.string().nullable(),
   concurrency: z.enum(concurrencyModes).nullable(),
+  /** The elements above it, from the submodel's top level down, for opening its path in the tree. */
+  ancestors: z.array(z.object({ key: z.string(), label: z.string() })),
 })
 export type ElementDetail = z.infer<typeof elementDetailSchema>
 
@@ -223,26 +225,23 @@ export const listQuerySchema = z.object({
 export interface TreeNode extends ElementNode {
   /** Value type of a Property or Range (`xs:double`, …). */
   valueType: string | null
+  /** Loaded children; absent with `hasChildren` when they follow on demand. */
   children?: TreeNode[]
 }
 
-/**
- * A submodel with all its elements, for client-side filtering and
- * auto-refresh. `truncated` means the submodel exceeded Studio's size cap and
- * `root` holds only the top level; the UI then loads levels on demand.
- */
-export interface SubmodelTree {
-  key: string
-  submodelId: string
-  idShort: string | null
-  semanticId: string | null
-  truncated: boolean
-  root: TreeNode[]
-}
-
-export const submodelTreeQuerySchema = z.object({
+export const pointInTimeQuerySchema = z.object({
   /** Point in time (ISO 8601) for a historic version; needs the `history` capability. */
   at: z.iso.datetime({ offset: true }).optional(),
+})
+
+/**
+ * One tree request (MVP-4 plan, T1): the children of the submodel or of
+ * `parentElementKey`, with as many complete levels below them as fit into
+ * `budget` nodes.
+ */
+export const elementLevelQuerySchema = pointInTimeQuerySchema.extend({
+  parentElementKey: z.string().max(4000).optional(),
+  budget: z.coerce.number().int().min(1).max(5000).optional(),
 })
 
 export const conceptDescriptionSummarySchema = z.object({

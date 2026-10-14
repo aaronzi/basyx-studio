@@ -191,8 +191,9 @@
                   v-tooltip="t('shell.expandAll')"
                   :aria-label="t('shell.expandAll')"
                   icon="mdi-unfold-more-horizontal"
+                  :loading="expanding"
                   size="small"
-                  @click="opened = [...trees.expandableIds.value]"
+                  @click="expandAll"
                 />
 
                 <v-btn
@@ -248,11 +249,15 @@
                 :search="treeSearch ?? undefined"
               >
                 <template #prepend="{ item }">
-                  <v-icon :color="item.unavailable ? undefined : 'primary'" :icon="item.unavailable === 'forbidden' ? 'mdi-lock-outline' : modelTypeIcon(item.modelType)" />
+                  <v-icon v-if="item.more" icon="mdi-dots-horizontal" />
+
+                  <v-icon v-else :color="item.unavailable ? undefined : 'primary'" :icon="item.unavailable === 'forbidden' ? 'mdi-lock-outline' : modelTypeIcon(item.modelType)" />
                 </template>
 
                 <template #title="{ item }">
-                  <span v-if="item.unavailable" v-tooltip="t(`shell.unavailable.${item.unavailable}`)" class="text-disabled">{{ item.title }}</span>
+                  <span v-if="item.more" class="text-primary">{{ t('shell.showMore', { count: Math.min(levelPageSize, item.more.remaining), remaining: item.more.remaining }) }}</span>
+
+                  <span v-else-if="item.unavailable" v-tooltip="t(`shell.unavailable.${item.unavailable}`)" class="text-disabled">{{ item.title }}</span>
 
                   <span v-else :class="item.modelType === 'Submodel' ? 'font-weight-semibold' : undefined">
                     {{ item.variableGroup ? t(`variables.${item.variableGroup}`) : item.title }}
@@ -343,7 +348,7 @@
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { apiBasePath, noCapabilities } from '#shared/contract'
-  import { itemId } from '~/composables/useShellTrees'
+  import { expandAllCap, itemId, levelPageSize } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { langText, modelTypeIcon } from '~/utils/aas'
 
@@ -443,19 +448,36 @@
   }
 
   const refreshSeconds = computed(() => preferences.preferences.value.autoRefresh && !asOf.value ? preferences.preferences.value.refreshIntervalSeconds : null)
+  const opened = ref<string[]>([])
+  const treeSearch = ref<string | null>('')
   const trees = useShellTrees({
     targetId: () => targetId.value,
     refs: () => submodelRefs.value,
     at: () => asOfIso.value,
     refreshSeconds: () => refreshSeconds.value,
+    opened: () => opened.value,
+    unpaged: () => Boolean(treeSearch.value),
   })
   const treeItems = computed(() => trees.items.value.map(item => item.unavailable ? { ...item, disabled: true } : item))
-  const treeSearch = ref<string | null>('')
-  const opened = ref<string[]>([])
 
   async function loadChildren (raw: unknown) {
-    const item = raw as ShellTreeItem
-    await (item.elementKey ? trees.loadChildren(item.submodelKey, item.elementKey) : trees.ensure(item.submodelKey))
+    await trees.loadChildren(raw as ShellTreeItem)
+  }
+
+  // Expands the opened submodels (or all, if none is open) as far as the cap allows.
+  const expanding = ref(false)
+  async function expandAll () {
+    expanding.value = true
+    try {
+      const openSubmodels = trees.items.value.filter(item => opened.value.includes(item.id)).map(item => item.id)
+      const { ids, capped } = await trees.expandAll(openSubmodels.length > 0 ? openSubmodels : trees.items.value.map(item => item.id))
+      opened.value = [...new Set([...opened.value, ...ids])]
+      if (capped) {
+        notifications.notify({ text: t('shell.expandCapped', { count: expandAllCap.toLocaleString(locale.value) }), color: 'info' })
+      }
+    } finally {
+      expanding.value = false
+    }
   }
 
   /** Short label of a semantic ID for the submodel chip, e.g. `Nameplate 3.0`. */
@@ -471,26 +493,16 @@
     return submodel ? itemId(submodel, element) : null
   })
 
-  function find (items: ShellTreeItem[], id: string, trail: string[] = []): { item: ShellTreeItem, trail: string[] } | null {
-    for (const item of items) {
-      if (item.id === id) {
-        return { item, trail }
-      }
-      const found = find(item.children ?? [], id, [...trail, item.id])
-      if (found) {
-        return found
-      }
-    }
-    return null
-  }
-
-  const selected = computed(() => selectedId.value ? find(trees.items.value, selectedId.value) : null)
-  const selectedItem = computed(() => selected.value?.item ?? null)
+  const selectedItem = computed(() => selectedId.value ? trees.lookup(selectedId.value) : null)
   const selectedSubmodelLabel = computed(() => trees.items.value.find(item => item.id === selectedItem.value?.submodelKey)?.title ?? null)
 
   function select (id: string | null) {
-    const found = id ? find(trees.items.value, id) : null
-    void router.replace({ query: { ...route.query, submodel: found?.item.submodelKey, element: found?.item.elementKey ?? undefined } })
+    const found = id ? trees.lookup(id) : null
+    if (found?.more) {
+      trees.showMore(found.more.parent)
+      return
+    }
+    void router.replace({ query: { ...route.query, submodel: found?.submodelKey, element: found?.elementKey ?? undefined } })
     ui.detailsDrawer = Boolean(found)
   }
 
@@ -499,18 +511,60 @@
     set: (ids: unknown[]) => select((ids[0] as string | undefined) ?? null),
   })
 
-  // Open the first submodel, and the ancestors of a selection made elsewhere (URL, search).
+  // Open the first submodel when the tree appears.
   watch(() => trees.items.value.length, (count, before) => {
     if (count > 0 && !before && opened.value.length === 0) {
       opened.value = trees.items.value.filter(item => !item.unavailable).slice(0, 1).map(item => item.id)
     }
   })
-  watch(() => selected.value?.trail.join('|'), () => {
-    if (selected.value) {
-      opened.value = [...new Set([...opened.value, ...selected.value.trail])]
+
+  // A selection made elsewhere (deep link, search): load and open its path,
+  // which the element's ancestors name.
+  const revealing = ref<string | null>(null)
+  watch([selectedId, () => submodelRefs.value.length, asOfIso], async ([id]) => {
+    const submodel = typeof route.query.submodel === 'string' ? route.query.submodel : null
+    const element = typeof route.query.element === 'string' ? route.query.element : null
+    if (!id || !submodel || revealing.value === id || !submodelRefs.value.some(ref => ref.key === submodel && ref.status === 'available')) {
+      return
+    }
+    revealing.value = id
+    try {
+      let ancestors: string[] = []
+      if (element && !trees.lookup(id)) {
+        const detail = await api<ElementDetail>(`/targets/${targetId.value}/submodels/${submodel}/elements/${element}`, { query: { at: asOfIso.value ?? undefined } })
+        ancestors = detail.ancestors.map(ancestor => ancestor.key)
+      } else if (element) {
+        ancestors = trail(id)
+      }
+      const path = await trees.reveal(submodel, ancestors, element)
+      if (path && selectedId.value === id) {
+        opened.value = [...new Set([...opened.value, ...path])]
+        ui.detailsDrawer = true
+      }
+    } catch {
+      // The drawer shows why the element cannot be read.
       ui.detailsDrawer = true
+    } finally {
+      revealing.value = null
     }
   }, { immediate: true })
+
+  /** Element keys of the loaded items above an item. */
+  function trail (id: string): string[] {
+    const walk = (list: ShellTreeItem[], path: string[]): string[] | null => {
+      for (const item of list) {
+        if (item.id === id) {
+          return path
+        }
+        const found = walk(item.children ?? [], item.elementKey ? [...path, item.elementKey] : path)
+        if (found) {
+          return found
+        }
+      }
+      return null
+    }
+    return walk(trees.items.value, []) ?? []
+  }
 
   watch([targetId, shellKey], () => {
     asOf.value = null

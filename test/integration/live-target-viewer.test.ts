@@ -1,7 +1,8 @@
 import type { InfrastructureRecord } from '~~/server/lib/infrastructures'
 import { readFile } from 'node:fs/promises'
 import { describe, expect, it } from 'vitest'
-import { buildSubmodelTree } from '~~/server/lib/aas/tree'
+import { submodelChildren } from '~~/server/lib/aas/outline'
+import { buildLevels } from '~~/server/lib/aas/tree'
 import { LiveAasTarget } from '~~/server/lib/targets/live-target'
 import { inspectEnvironment } from '~~/server/lib/workspaces/package'
 import { policy, record } from '../support/live'
@@ -92,7 +93,8 @@ describe.runIf(testenvAvailable)('LiveAasTarget viewer operations', async () => 
   it('reads a submodel as it was, and change events newest first', async () => {
     const live = target()
     const past = await live.submodelAt(edgeSubmodel, new Date().toISOString())
-    expect(buildSubmodelTree(past).idShort).toBe('EdgeCases')
+    expect(past.idShort).toBe('EdgeCases')
+    expect(buildLevels(submodelChildren(past)).length).toBeGreaterThan(0)
     await expect(live.submodelAt(edgeSubmodel, '2000-01-01T00:00:00Z')).rejects.toMatchObject({ code: 'target_resource_not_found' })
 
     const changes = await live.changes({ limit: 5, subjects: [edgeSubmodel] })

@@ -172,7 +172,7 @@
         return api<ElementDetail>(`/targets/${props.targetId}/submodels/${item.submodelKey}/elements/${item.elementKey}`, { query: { at }, signal })
       }
       const submodel = await api<SubmodelDetail>(`/targets/${props.targetId}/submodels/${item.submodelKey}`, { signal })
-      return { key: submodel.key, path: '', value: submodel.submodel, revision: null, concurrency: null } satisfies ElementDetail
+      return { key: submodel.key, path: '', value: submodel.submodel, revision: null, concurrency: null, ancestors: [] } satisfies ElementDetail
     },
     enabled: () => props.item !== null && !props.item.unavailable,
   })
@@ -184,7 +184,7 @@
   const crumbs = computed(() => [
     props.shellLabel,
     ...(props.item?.elementKey ? [props.submodelLabel ?? ''] : []),
-    ...(path.value ? path.value.split('.').slice(0, -1) : []),
+    ...(detail.value?.ancestors.map(ancestor => ancestor.label) ?? []),
   ].filter(Boolean).map(title => ({ title })))
 
   const description = computed(() => langText(Array.isArray(value.value.description) ? value.value.description : [], preferences.value.valueLanguage))

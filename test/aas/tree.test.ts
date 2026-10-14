@@ -3,7 +3,8 @@ import type { JsonObject } from '~~/server/lib/aas/outline'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { decodeKey } from '~~/server/lib/aas/keys'
-import { buildSubmodelTree, elementHits, findElements } from '~~/server/lib/aas/tree'
+import { submodelChildren } from '~~/server/lib/aas/outline'
+import { buildLevels, elementHits, findElements } from '~~/server/lib/aas/tree'
 
 const fixture = JSON.parse(readFileSync(new URL('../../test-setup/fixtures/open/studio-edge-cases.json', import.meta.url), 'utf8')) as {
   submodels: JsonObject[]
@@ -24,26 +25,34 @@ function byLocator (nodes: TreeNode[], locator: string): TreeNode | undefined {
   return undefined
 }
 
-describe('submodel trees', () => {
-  it('contains every level with previews, value types and locator keys', () => {
-    const tree = buildSubmodelTree(edgeCases)
-    expect(tree).toMatchObject({ submodelId: 'urn:studio:test:sm:edge-cases', idShort: 'EdgeCases', truncated: false })
-    const deepest = byLocator(tree.root, 'Level1.Level2.Items[1].Details.Deepest')
+function count (nodes: TreeNode[]): number {
+  return nodes.reduce((sum, node) => sum + 1 + count(node.children ?? []), 0)
+}
+
+describe('tree levels', () => {
+  it('contains every level of a small submodel with previews, value types and locator keys', () => {
+    const root = buildLevels(submodelChildren(edgeCases))
+    const deepest = byLocator(root, 'Level1.Level2.Items[1].Details.Deepest')
     expect(deepest).toMatchObject({ modelType: 'Property', preview: 'deepest value of item 1', valueType: 'xs:string' })
-    expect(tree.root.find(node => node.label === 'Temperature')).toMatchObject({ valueType: 'xs:double', preview: '21.5' })
+    expect(root.find(node => node.label === 'Temperature')).toMatchObject({ valueType: 'xs:double', preview: '21.5' })
   })
 
   it('includes operation variable groups as synthetic nodes', () => {
-    const calibrate = buildSubmodelTree(edgeCases).root.find(node => node.label === 'Calibrate')!
+    const calibrate = buildLevels(submodelChildren(edgeCases)).find(node => node.label === 'Calibrate')!
     expect(calibrate.children!.map(node => node.variableGroup)).toEqual(['input', 'output', 'inoutput'])
     expect(decodeKey(calibrate.children![2]!.children![0]!.children![0]!.key)).toBe('Calibrate@inoutput.Settings.Mode')
   })
 
-  it('keeps only the top level of a submodel above the size cap', () => {
-    const tree = buildSubmodelTree(large, 100)
-    expect(tree.truncated).toBe(true)
-    expect(tree.root).toHaveLength(300)
-    expect(buildSubmodelTree(large).truncated).toBe(false)
+  it('stops at the last complete level within the budget and always returns the first', () => {
+    const full = count(buildLevels(submodelChildren(edgeCases)))
+    const limited = buildLevels(submodelChildren(edgeCases), 25)
+    expect(count(limited)).toBeLessThanOrEqual(25)
+    expect(count(limited)).toBeLessThan(full)
+    // Nodes whose level did not fit keep `hasChildren` without children.
+    const level1 = limited.find(node => node.label === 'Level1')!
+    const unloaded = [level1, ...(level1.children ?? [])].find(node => node.hasChildren && !node.children)
+    expect(unloaded).toBeDefined()
+    expect(buildLevels(submodelChildren(large), 10)).toHaveLength(300)
   })
 })
 

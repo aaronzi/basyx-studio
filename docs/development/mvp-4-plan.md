@@ -112,7 +112,7 @@ earlier MVP-4 decisions where they differ.
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| T1 | Tree | Submodel refs as roots with their status (`forbidden`, `blocked`, `not_found`, `error`); element levels loaded on demand; `ElementDetail.ancestors` for deep links. *Expand all* loads the remaining levels of the open submodels breadth-first up to a configurable cap; the filter covers loaded nodes. The whole-submodel route is kept only for history (`at`), where the snapshot is one document. |
+| T1 | Tree | Submodel refs as roots with their status (`forbidden`, `blocked`, `not_found`, `error`); element levels loaded on demand; `ElementDetail.ancestors` for deep links. *Expand all* loads the remaining levels of the open submodels breadth-first up to a configurable cap; the filter covers loaded nodes. The whole-submodel route is kept only for history (`at`), where the snapshot is one document. Refined after measuring: levels come with a node budget, and the level route also serves `at` ([Phase E measurements](#phase-e-measurements)). |
 | T2 | Details drawer | Modes *Details*, *Visualization*, *JSON*, *XML*, *UML* for the selected submodel or element, like the Web UI's right pane. *Visualization* hosts the selected submodel's app views; the drawer can be widened to full width. XML uses aas-core's `xmlization` on the server; UML uses PlantUML as in the Web UI: Studio generates the PlantUML source from the AAS and renders it with `@plantuml/core` (one package without dependencies; decided 2026-10-14 instead of Mermaid, which brings 23 dependencies). The shell-wide *Overview* tab with all matching app views stays. |
 | T3 | Editing | The global View/Edit toggle stays, with today's abilities: Property and MultiLanguageProperty values (MVP-2 write path) and replacing File contents. The drawer's edit area is generic, so a later editing MVP can add element types, creation and deletion without restructuring. |
 | T4 | Bundled apps | The four bundled apps stay, installed at startup and not uninstallable. The bundled Nameplate replaces `examples/apps/nameplate`; the MVP-3 tests move to it. Shell Explorer, the backend demo and the isolation probe stay examples. A later MVP refines the apps. |
@@ -170,7 +170,7 @@ Changes against MVP-3, combining the port's routes with the plan's:
 | Capabilities | the port's set, plus `listSource`, `search: 'query' \| 'expression' \| 'filter'`, `advancedQuery`, `elementSearch`, `assetLookup` (replaces `discovery`); all derived from profiles |
 | Shells | list (registry or repository), `shell-availability`, `?globalAssetId=` lookup (the port's `/lookup`), delete, export, thumbnail, rights, access and invitations |
 | Search | `POST /targets/{targetId}/searches` with `{ expression }` or `{ query }` and a scope (`shells`, `elements`), cursor-paged; replaces the port's `GET /search` |
-| Submodels and elements | `submodel-refs` with `blocked`; elements per level; `ElementDetail.ancestors`; `GET …/elements/{key}?format=xml`; `tree` only with `at`; attachments; invocations |
+| Submodels and elements | `submodel-refs` with `blocked`; elements per level with a node budget and `at` ([Phase E measurements](#phase-e-measurements)); `ElementDetail.ancestors`; `GET …/elements/{key}?format=xml`; attachments; invocations |
 | Target | `changes`, `concept-descriptions`, `uploads`, `invitations` |
 | User | `GET`/`PUT /me/preferences` |
 | Problems | `query_invalid` (findings), `query_unsupported`, `descriptor_endpoint_blocked`, `package_rejected`, `sync_incomplete` (per-resource results) |
@@ -364,6 +364,34 @@ Moved to the phases that use them: the foreign descriptor fixture (C), and the
 `large` profile with the lazy-tree and `@plantuml/core` measurements (start of
 E). The app frames could not be inspected in the walkthrough, because the
 browser pane blocks `apps.localhost`; D14 relies on the e2e run.
+
+## Phase E measurements
+
+Recorded on 2026-10-14 against the `large` profile (`pnpm testenv:large`:
+2,000 shells; the submodel `LargeTree` with a list of 1,000 collections,
+about 5,000 elements, and `Deep.Level1.Level2.Level3.Leaf`).
+
+| Measurement | Result |
+| --- | --- |
+| BaSyx Go, whole submodel (`level=deep`, 473 KB) | 390 ms |
+| BaSyx Go, any element or level (`level=core`, from 130 B) | 325–345 ms: the server reads the whole submodel for every element request |
+| Studio level request, list of 1,000 collections (217 KB) | 374 ms, Studio's own share negligible |
+| Rendering tree rows (production build, headless Chromium) | about 2 ms per row: 1,000 rows took 2.0 s, closed groups rendered too |
+
+Consequences for T1, without changing its intent:
+
+- A tree request returns the children of a submodel or element with as many
+  complete levels below them as fit into a node budget (2,000 by default),
+  breadth first. A request per level would cost a full submodel read per
+  level, so small submodels arrive in one request as before, and large ones
+  stop at a level boundary and continue on demand, for *expand all* (capped at
+  10,000 elements) and for deep links (`ElementDetail.ancestors`).
+- The `tree` route is gone; the level route takes `at` for history.
+- VTreeview registers items from props (`itemsRegistration: 'props'`), so
+  closed groups are not rendered; levels longer than 200 children show a
+  *Show more* row. Expanding the 1,000-entry list now renders its first page
+  in about 450 ms; a filter shows whole levels; deep links extend the page to
+  the selected element.
 
 ## Defects
 

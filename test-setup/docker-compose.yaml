@@ -146,3 +146,58 @@ services:
       keycloak:
         condition: service_healthy
     restart: unless-stopped
+
+  # --- Target "large" (profile "large"): performance and lazy-tree checks ------
+  # 2,000 shells and a submodel of about 5,000 elements, generated on demand:
+  #   pnpm testenv:large
+  # Not part of `testenv:up`, so the regular suites stay fast.
+  basyx-large-db:
+    image: postgres:18
+    profiles: [large]
+    environment:
+      PGPASSWORD: postgres
+    # The init script runs only when the volume is created; this adds the
+    # database to an environment that already runs.
+    command:
+      - sh
+      - -c
+      - >-
+        psql -h postgres -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'basyx_large'" | grep -q 1 ||
+        (psql -h postgres -U postgres -c "CREATE DATABASE basyx_large OWNER basyx" &&
+        psql -h postgres -U postgres -d basyx_large -c "CREATE EXTENSION IF NOT EXISTS ltree; CREATE EXTENSION IF NOT EXISTS pg_trgm;")
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  basyx-large-schema:
+    image: eclipsebasyx/basyxconfigurationservice-go:SNAPSHOT
+    pull_policy: always
+    profiles: [large]
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_large
+    depends_on:
+      basyx-large-db:
+        condition: service_completed_successfully
+
+  basyx-large:
+    image: eclipsebasyx/aasenvironment-go:SNAPSHOT
+    pull_policy: always
+    profiles: [large]
+    command: ["/app/aasenvironmentservice"]
+    environment:
+      <<: *basyx-env
+      POSTGRES_DBNAME: basyx_large
+      ABAC_ENABLED: "false"
+      GENERAL_AAS_PRECONFIG_PATHS: /app/preconfiguration
+      GENERAL_AASREGISTRYINTEGRATION: "true"
+      GENERAL_SUBMODELREGISTRYINTEGRATION: "true"
+      GENERAL_EXTERNALURL: http://localhost:18083
+    ports:
+      - "18083:5004"
+    volumes:
+      - ./fixtures/large:/app/preconfiguration:ro
+    depends_on:
+      basyx-large-schema:
+        condition: service_completed_successfully
+    restart: unless-stopped

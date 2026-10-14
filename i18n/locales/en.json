@@ -85,6 +85,8 @@
     "filterElements": "Filter elements",
     "autoRefresh": "Auto-refresh",
     "expandAll": "Expand all",
+    "expandCapped": "Expanded the first {count} elements; open deeper levels one by one.",
+    "showMore": "Show {count} more ({remaining} not shown)",
     "collapseAll": "Collapse all",
     "jsonLabel": "AAS 3.1 · JSON serialization",
     "formats": {
