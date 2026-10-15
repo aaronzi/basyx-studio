@@ -8,6 +8,13 @@ const stopwords = new Set(['a', 'all', 'anything', 'something', 'everything', 'e
 
 /** Category words → category keys. */
 const categoryWords = [
+  [/\b(battery modules?|batteries|battery)\b/, 'battery', 'Battery modules'],
+  [/\b(mobile robots?|amrs?|agvs?)\b/, 'agv', 'Mobile robots'],
+  [/\b(lasers?)\b/, 'laser', 'Lasers'],
+  [/\b(cameras?)\b/, 'camera', 'Cameras'],
+  [/\b(hmis?|panels?)\b/, 'hmi', 'HMI panels'],
+  [/\b(spindles?)\b/, 'spindle', 'Spindles'],
+  [/\b(chillers?)\b/, 'chiller', 'Chillers'],
   [/\b(motors?|servos?)\b/, 'motor', 'Motors'],
   [/\b(pumps?)\b/, 'pump', 'Pumps'],
   [/\b(valves?)\b/, 'valve', 'Valves'],

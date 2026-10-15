@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 // @ts-expect-error The backend is plain JavaScript run by Deno.
 import { ask } from '../../examples/apps/fleet-atlas/backend/ask.js'
 // @ts-expect-error The backend is plain JavaScript run by Deno.
-import { digest, structureOf, submodelKind } from '../../examples/apps/fleet-atlas/backend/digest.js'
+import { categorize, digest, structureOf, submodelKind, unitOf } from '../../examples/apps/fleet-atlas/backend/digest.js'
 
 // The Fleet Atlas example app's backend logic (examples/apps/fleet-atlas):
 // twin digests from AAS submodels and the "ask the fleet" parser.
@@ -63,6 +63,21 @@ describe('fleet atlas digest', () => {
     expect(twin.readiness).toBeCloseTo(7 / 11)
   })
 
+  it('categorizes by designation before the twin\'s name', () => {
+    expect(categorize(['K-Drive Multi-Axis Servo Drive', '', 'L1 Capper · Servo drive'], false)).toBe('drive')
+    expect(categorize(['K-Line Servo Motor', '', 'L1 Capper · Servo motor'], false)).toBe('motor')
+    expect(categorize(['NV-Chill Recirculating Chiller', '', 'A2 Laser welding station · Chiller'], false)).toBe('chiller')
+    expect(categorize(['Orbis Vision Touch Panel', '', 'L1 Rotary filler · HMI panel'], false)).toBe('hmi')
+    expect(categorize(['Lumetra End-of-line tester', '', 'EOL End-of-line tester'], true)).toBe('machine')
+    expect(categorize(['Rheinfeld Production line', '', 'Line 1 – Filling'], true)).toBe('line')
+  })
+
+  it('knows the units of common technical properties', () => {
+    expect(unitOf('RatedSpeed')).toBe('1/min')
+    expect(unitOf('Capacity')).toBe('Ah')
+    expect(unitOf('RatedPower')).toBe('kW')
+  })
+
   it('reads live signals with units and limits', () => {
     expect(digest(shell, [], { operational }).signals).toEqual([{
       submodelId: 'urn:sm:live', path: 'WindingTemperature', label: 'Winding temperature', value: 92.5, unit: '°C',
@@ -101,6 +116,8 @@ describe('ask the fleet', () => {
     expect(labels('co2 over 500 kg')).toEqual(['CO₂e > 500 kg'])
     expect(labels('anything in alarm or warning')).toEqual(['Warning or alarm'])
     expect(labels('not passport ready')).toEqual(['Passport incomplete'])
+    expect(labels('battery modules over 300 kg co2')).toEqual(['Battery modules', 'CO₂e > 300 kg'])
+    expect(labels('mobile robots')).toEqual(['Mobile robots'])
   })
 
   it('searches for words it does not understand', () => {

@@ -11,7 +11,14 @@ export const categories: Record<string, { label: string, plural: string, icon: s
   plant: { label: 'Plant', plural: 'Plants', icon: 'mdi-factory' },
   line: { label: 'Line', plural: 'Lines', icon: 'mdi-transit-connection-horizontal' },
   machine: { label: 'Machine', plural: 'Machines', icon: 'mdi-cog-outline' },
+  battery: { label: 'Battery module', plural: 'Battery modules', icon: 'mdi-battery-high' },
+  agv: { label: 'Mobile robot', plural: 'Mobile robots', icon: 'mdi-forklift' },
   robot: { label: 'Robot', plural: 'Robots', icon: 'mdi-robot-industrial' },
+  laser: { label: 'Laser', plural: 'Lasers', icon: 'mdi-flash' },
+  chiller: { label: 'Chiller', plural: 'Chillers', icon: 'mdi-snowflake' },
+  spindle: { label: 'Spindle', plural: 'Spindles', icon: 'mdi-rotate-orbit' },
+  camera: { label: 'Camera', plural: 'Cameras', icon: 'mdi-camera-iris' },
+  hmi: { label: 'HMI panel', plural: 'HMI panels', icon: 'mdi-monitor-dashboard' },
   compressor: { label: 'Compressor', plural: 'Compressors', icon: 'mdi-air-filter' },
   pump: { label: 'Pump', plural: 'Pumps', icon: 'mdi-pump' },
   motor: { label: 'Motor', plural: 'Motors', icon: 'mdi-engine' },
@@ -19,7 +26,7 @@ export const categories: Record<string, { label: string, plural: string, icon: s
   valve: { label: 'Valve', plural: 'Valves', icon: 'mdi-pipe-valve' },
   sensor: { label: 'Sensor', plural: 'Sensors', icon: 'mdi-access-point' },
   controller: { label: 'Controller', plural: 'Controllers', icon: 'mdi-memory' },
-  conveyor: { label: 'Conveyor', plural: 'Conveyors', icon: 'mdi-conveyor-belt' },
+  conveyor: { label: 'Conveyor', plural: 'Conveyors', icon: 'mdi-transfer-right' },
   device: { label: 'Device', plural: 'Other devices', icon: 'mdi-cube-outline' },
 }
 

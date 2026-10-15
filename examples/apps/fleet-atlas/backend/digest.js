@@ -25,16 +25,23 @@ export function submodelKind (semanticId, idShort) {
 /** Categories, recognized from designation, family and name. Assemblies with parts default to `machine`. */
 const categories = [
   ['plant', 'Plant', 'mdi-factory', /\b(plant|factory|site)\b/i],
-  ['line', 'Line', 'mdi-transit-connection-horizontal', /\b(production )?line\b/i],
+  ['line', 'Line', 'mdi-transit-connection-horizontal', /production line|^line\b/i],
+  ['battery', 'Battery', 'mdi-battery-high', /battery/i],
+  ['agv', 'Mobile robot', 'mdi-forklift', /autonomous mobile robot|\bamr\b|\bagv\b|automated guided/i],
   ['robot', 'Robot', 'mdi-robot-industrial', /robot/i],
+  ['laser', 'Laser', 'mdi-flash', /laser/i],
   ['compressor', 'Compressor', 'mdi-air-filter', /compressor/i],
+  ['chiller', 'Chiller', 'mdi-snowflake', /chiller/i],
   ['pump', 'Pump', 'mdi-pump', /pump/i],
+  ['spindle', 'Spindle', 'mdi-rotate-orbit', /spindle/i],
+  ['drive', 'Drive', 'mdi-sine-wave', /converter|inverter|servo drive|\bdrive\b|vfd/i],
   ['motor', 'Motor', 'mdi-engine', /motor|servo/i],
-  ['drive', 'Drive', 'mdi-sine-wave', /converter|inverter|\bdrive\b|vfd/i],
   ['valve', 'Valve', 'mdi-pipe-valve', /valve/i],
-  ['sensor', 'Sensor', 'mdi-access-point', /sensor|transmitter|meter\b|probe|radar|gauge/i],
+  ['camera', 'Camera', 'mdi-camera-iris', /camera/i],
+  ['sensor', 'Sensor', 'mdi-access-point', /sensor|transmitter|meter\b|probe|radar|gauge|thermometer/i],
+  ['hmi', 'HMI', 'mdi-monitor-dashboard', /\bhmi\b|touch panel|operator panel/i],
   ['controller', 'Controller', 'mdi-memory', /controller|\bplc\b/i],
-  ['conveyor', 'Conveyor', 'mdi-conveyor-belt', /conveyor/i],
+  ['conveyor', 'Conveyor', 'mdi-transfer-right', /conveyor/i],
 ]
 
 export const categoryInfo = Object.fromEntries([
@@ -43,16 +50,15 @@ export const categoryInfo = Object.fromEntries([
   ['device', { key: 'device', label: 'Device', icon: 'mdi-cube-outline' }],
 ])
 
+/** The category from the first text that names one: designation, then family, then the twin's name. */
 export function categorize (texts, hasParts) {
-  const text = texts.filter(Boolean).join(' ')
-  for (const category of categories) {
-    const [key] = category
-    if (category[3].test(text)) {
+  for (const text of texts.filter(Boolean)) {
+    for (const category of categories) {
+      const [key] = category
       // A line or plant is only one when it is an assembly.
-      if ((key === 'line' || key === 'plant') && !hasParts) {
-        continue
+      if (category[3].test(text) && !((key === 'line' || key === 'plant') && !hasParts)) {
+        return key
       }
-      return key
     }
   }
   return hasParts ? 'machine' : 'device'
@@ -108,6 +114,13 @@ function* walk (element, path = '') {
 // Units of common technical properties
 // ---------------------------------------------------------------------------
 
+/** Units of well-known idShorts; patterns cover the rest. */
+const exactUnits = {
+  RatedSpeed: '1/min', MaxSpindleSpeed: '1/min', RatedTorque: 'N·m', SupplyVoltage: 'V DC', Accuracy: '%', ScreenSize: 'in',
+  Repeatability: 'mm', FreeAirDelivery: 'm³/min', CoolingCapacity: 'kW', Wavelength: 'nm', NominalVoltage: 'V', Capacity: 'Ah',
+  Energy: 'kWh', CycleLife: 'cycles', Resolution: 'MP', FrameRate: 'fps', BatteryCapacity: 'kWh', MaxSpeed: 'm/s',
+}
+
 const units = [
   [/power/i, 'kW'],
   [/voltage/i, 'V'],
@@ -130,7 +143,7 @@ export function unitOf (idShort, element) {
   if (qualified) {
     return qualified
   }
-  return units.find(([pattern]) => pattern.test(idShort))?.[1] ?? ''
+  return exactUnits[idShort] ?? units.find(([pattern]) => pattern.test(idShort))?.[1] ?? ''
 }
 
 export function labelOf (idShort) {

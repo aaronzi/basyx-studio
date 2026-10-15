@@ -44,9 +44,8 @@ do {
   cursor = page.paging_metadata?.cursor
 } while (cursor)
 
-// The demo's incident: the winding temperature of the rotary filler's first
-// motor (motor-003; the rinser and the first conveyor come before it).
-const incident = signals.find(signal => signal.submodelId.endsWith('/motor-003/operational-data') && signal.idShort === 'WindingTemperature')
+// The demo's incident: the winding temperature of the rotary filler's first motor.
+const incident = signals.find(signal => signal.submodelId.endsWith('/rheinfeld-l1-filler-motor-ie4-1/operational-data') && signal.idShort === 'WindingTemperature')
 console.info(`animating ${signals.length} signals every ${interval} ms; incident on ${incident?.submodelId ?? 'none'} (Ctrl+C stops)`)
 
 let tick = 0

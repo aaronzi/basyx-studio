@@ -2,7 +2,7 @@
   "$schema": "../../../packages/studio-sdk/app-manifest.schema.json",
   "manifestVersion": 0,
   "id": "org.eclipse.basyx.examples.fleet-atlas",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": { "name": "Eclipse BaSyx" },
   "title": { "en": "Fleet Atlas", "de": "Flotten-Atlas" },
   "description": {
