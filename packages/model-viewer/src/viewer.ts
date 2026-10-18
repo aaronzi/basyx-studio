@@ -8,7 +8,7 @@ import { ViewHelper } from 'three/addons/helpers/ViewHelper.js'
 import dracoWasm from 'three/addons/libs/draco/gltf/draco_decoder.wasm?url'
 import dracoJs from 'three/addons/libs/draco/gltf/draco_wasm_wrapper.js?url'
 import { refineModelFormat } from './formats'
-import { externalResources } from './gltf'
+import { emptyImage, externalResources, withoutExternalImages } from './gltf'
 import { ParserClient } from './parsers/client'
 
 // The 3D viewer of Studio and its apps (three.js, MIT License): orbit
@@ -56,8 +56,6 @@ export class ModelViewerError extends Error {
 const outlined = new Set<ModelFormat>(['stl', 'obj', 'step'])
 const isoDirection = new THREE.Vector3(1, 0.7, 1).normalize()
 const clickTolerancePx = 4
-// A transparent pixel in place of textures in other files.
-const emptyImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII='
 
 const absolute = (url: string) => new URL(url, document.baseURI).href
 
@@ -394,13 +392,14 @@ export class ModelViewer {
       import('three/addons/loaders/DRACOLoader.js'),
       import('three/addons/libs/meshopt_decoder.module.js'),
     ])
-    // Embedded data only: any other URL is a texture next to the file.
+    // Embedded data only: materials lose their textures in other files, and
+    // the loader never requests a URL next to the file.
     const manager = new THREE.LoadingManager()
     manager.setURLModifier(url => (url.startsWith('data:') || url.startsWith('blob:') ? url : emptyImage))
     const draco = new DRACOLoader().setDecoderPath({ js: absolute(dracoJs), wasm: absolute(dracoWasm) })
     const loader = new GLTFLoader(manager).setDRACOLoader(draco).setMeshoptDecoder(MeshoptDecoder)
     try {
-      const gltf = await loader.parseAsync(arrayBufferOf(bytes), '')
+      const gltf = await loader.parseAsync(arrayBufferOf(images.length > 0 ? withoutExternalImages(bytes) : bytes), '')
       return { object: gltf.scene, missingImages: images }
     } finally {
       draco.dispose()

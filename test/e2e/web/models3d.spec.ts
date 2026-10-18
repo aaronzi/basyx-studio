@@ -49,6 +49,11 @@ test('offers the 3D view from the File card and explains files it cannot show', 
   await expect(page.getByText('The 3D model cannot be shown')).toBeVisible({ timeout: 30_000 })
   await expect(page.getByText(/keeps its geometry in other files.*bracket\.bin/)).toBeVisible()
 
+  // A texture in another file: shown without it.
+  await page.goto(elementUrl('GltfExternalTexture'))
+  await expectModel(page, 'glTF')
+  await expect(page.getByText('Textures in other files are not shown: bracket-color.png')).toBeVisible()
+
   // Not a 3D file: no Visualization tab.
   await page.goto(`/targets/${targetId}/shells/${key(shell)}?submodel=${key(files)}&element=${key('Preview')}`)
   await expect(page.getByRole('tab', { name: 'JSON' })).toBeVisible()
@@ -70,4 +75,26 @@ test('shows the Models3D submodel in the bundled 3D Models app', async ({ page }
   // A version only at an external host shows its preview and the link.
   await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Motor (external)' }).click()
   await expect(frame.getByRole('button', { name: 'Open external file' })).toBeVisible()
+})
+
+test('opens the selected model and version in full screen', async ({ page }) => {
+  await page.goto(`/targets/${targetId}/shells/${key(shell)}?tab=overview`)
+  const frame = page.frameLocator('iframe[title="App: 3D Models"]').first()
+  const dialogFrame = page.frameLocator('.v-dialog iframe[title="App: 3D Models"]')
+  await expect(frame.locator('[data-test="model-switcher-item"]')).toHaveCount(4, { timeout: 30_000 })
+
+  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }).click()
+  await frame.locator('[data-test="viewer-fullscreen"]').click()
+  await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('Workshop building', { timeout: 30_000 })
+  await page.locator('[data-test="app-fullscreen-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
+
+  // An older version of the bracket.
+  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'L bracket' }).click()
+  await frame.locator('[data-test="version-menu"]').click()
+  await frame.getByRole('listitem').filter({ hasText: 'v1.0' }).click()
+  await expect(frame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)')
+  await frame.locator('[data-test="viewer-fullscreen"]').click()
+  await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)', { timeout: 30_000 })
+  await expect(dialogFrame.getByText('STEP AP214')).toBeVisible()
 })
