@@ -8,8 +8,8 @@ import { ConfigurationError, loadStudioConfig } from '~~/server/lib/config'
 import { SecretCipher } from '~~/server/lib/crypto/cipher'
 import { openDatabase } from '~~/server/lib/database/client'
 import { applyMigrations, loadMigrationsFromDirectory } from '~~/server/lib/database/migrate'
-import { parseInfrastructureFile, parseInfrastructureSources } from '~~/server/lib/infrastructure-file'
-import { deleteInfrastructure, reconcileManagedInfrastructures, toInfrastructure, updateInfrastructure } from '~~/server/lib/infrastructures'
+import { analyzeInfrastructureFile, parseInfrastructureFile, parseInfrastructureSources } from '~~/server/lib/infrastructure-file'
+import { deleteInfrastructure, exportInfrastructures, importInfrastructures, reconcileManagedInfrastructures, toInfrastructure, updateInfrastructure } from '~~/server/lib/infrastructures'
 import { StudioProblem } from '~~/server/lib/problem'
 
 const migrationsDirectory = new URL('../../server/database/migrations', import.meta.url).pathname
@@ -172,6 +172,92 @@ describe('managed infrastructures', () => {
     deps = { ...deps, config: loadStudioConfig({ ...env, STUDIO_INFRASTRUCTURES_EDITABLE: 'false' }, 'hosted') }
     await handle.db.insert(infrastructures).values({ id: 'own', name: 'Own', endpoints: [{ type: 'aasRepository', url: 'https://own.example.org' }], security: { mode: 'unsecured' }, createdBy: 'admin' })
     await expect(deleteInfrastructure(deps, admin, 'own', 'r3')).rejects.toMatchObject({ code: 'forbidden' })
+  })
+})
+
+describe('export and import', () => {
+  let handle: DatabaseHandle
+  let deps: StudioDeps
+
+  beforeAll(async () => {
+    handle = await openDatabase({ kind: 'memory' })
+    await applyMigrations(handle.db, await loadMigrationsFromDirectory(migrationsDirectory))
+  })
+
+  beforeEach(async () => {
+    await handle.db.delete(infrastructures)
+    const config = loadStudioConfig(env, 'hosted')
+    deps = { config, db: handle.db, cipher: new SecretCipher(config.dataKey) }
+    await reconcileManagedInfrastructures(deps, parseInfrastructureFile(factory, 'infrastructures.yaml'))
+  })
+
+  afterAll(async () => {
+    await handle.close()
+  })
+
+  it('exports the file format, keeping references and leaving stored secrets out', async () => {
+    await handle.db.insert(infrastructures).values({
+      id: 'own',
+      name: 'Own Thing',
+      template: 'identifiable',
+      endpoints: [{ type: 'aasRepository', url: 'https://own.example.org' }],
+      security: { mode: 'delegated_user', issuer: 'https://idp.example.org/realms/x', clientId: 'studio', scopes: ['openid'], clientSecret: { kind: 'stored', ref: null }, desktopLoopbackHost: '127.0.0.1' },
+      secretCiphertext: 'v1.never-exported',
+      createdBy: 'admin',
+    })
+    const yaml = await exportInfrastructures(deps)
+    expect(yaml).not.toContain('never-exported')
+    expect(yaml).toContain('# clientSecret is stored in the Studio it was exported from')
+    const analyzed = analyzeInfrastructureFile(yaml, { requireKey: true })
+    expect(analyzed.problems).toEqual([])
+    expect(analyzed.entries.map(entry => entry.key)).toEqual(['factory-a', 'lab', 'own-thing'])
+    const declared = parseInfrastructureFile(factory, 'infrastructures.yaml')
+    expect(analyzed.entries[0]!.input).toEqual(declared[0]!.input)
+    expect(analyzed.entries[2]!.problems).toEqual([])
+    expect(analyzed.entries[2]!.input?.security).not.toHaveProperty('clientSecret')
+
+    await expect(exportInfrastructures(deps, ['own', 'missing'])).rejects.toMatchObject({ code: 'not_found' })
+  })
+
+  it('checks entries, reports name conflicts and imports them one by one', async () => {
+    const yaml = `
+version: 1
+infrastructures:
+  - name: Lab
+    template: identifiable
+    endpoints: [{ type: aasRepository, url: "https://lab.example.org/aas" }]
+    security: { mode: unsecured }
+  - name: Elsewhere
+    template: identifiable
+    endpoints: [{ type: aasRepository, url: "https://elsewhere.invalid" }]
+    security: { mode: unsecured }
+  - name: Broken
+    template: identifiable
+    endpoints: []
+    security: { mode: unsecured }
+`
+    const checked = await importInfrastructures(deps, admin, { yaml, dryRun: true, resolutions: {} }, 'r1')
+    expect(checked.entries.map(entry => [entry.name, entry.resolution, entry.problems.length > 0, entry.outcome])).toEqual([
+      ['Lab', 'skip', false, null],
+      ['Elsewhere', 'create', false, null],
+      ['Broken', 'create', true, null],
+    ])
+    expect(checked.entries[0]!.conflict).toMatchObject({ name: 'Lab', managed: true })
+
+    const replacing = await importInfrastructures(deps, admin, { yaml, dryRun: true, resolutions: { 0: 'replace' } }, 'r2')
+    expect(replacing.entries[0]!.problems).toEqual(['A managed infrastructure cannot be replaced by an import.'])
+
+    // The host does not resolve: saving fails for that entry only.
+    const imported = await importInfrastructures(deps, admin, { yaml, dryRun: false, resolutions: {} }, 'r3')
+    expect(imported.entries.map(entry => entry.outcome)).toEqual(['skipped', 'failed', 'failed'])
+    expect(imported.entries[1]!.problems.join(' ')).toMatch(/elsewhere\.invalid/)
+
+    expect((await importInfrastructures(deps, admin, { yaml: 'version: [', dryRun: true, resolutions: {} }, 'r4')).problems[0]).toMatch(/invalid YAML/)
+  })
+
+  it('refuses imports when the deployment fixes its infrastructures', async () => {
+    deps = { ...deps, config: loadStudioConfig({ ...env, STUDIO_INFRASTRUCTURES_EDITABLE: 'false' }, 'hosted') }
+    await expect(importInfrastructures(deps, admin, { yaml: 'version: 1', dryRun: true, resolutions: {} }, 'r5')).rejects.toMatchObject({ code: 'forbidden' })
   })
 })
 

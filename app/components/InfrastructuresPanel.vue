@@ -2,6 +2,16 @@
   <v-container>
     <PageHeader :subtitle="t('admin.subtitle')" :title="t('admin.title')">
       <template #actions>
+        <v-btn
+          v-if="items.length > 0"
+          download
+          :href="studioUrl.api('/infrastructures/export?download')"
+          prepend-icon="mdi-file-export-outline"
+          :text="t('admin.exportAll')"
+        />
+
+        <v-btn v-if="editable" prepend-icon="mdi-file-import-outline" :text="t('admin.import')" @click="importOpen = true" />
+
         <v-btn-primary v-if="editable" prepend-icon="mdi-plus" :text="t('admin.add')" @click="edit(null)" />
 
         <v-btn
@@ -98,6 +108,13 @@
             <!-- Clicking the row edits it, so there is no edit button. -->
             <template #actions>
               <v-btn
+                v-tooltip="t('admin.copyYaml')"
+                :aria-label="t('admin.copyYaml')"
+                icon="mdi-content-copy"
+                @click.stop="copyYaml(item)"
+              />
+
+              <v-btn
                 v-tooltip="t('admin.probe')"
                 :aria-label="t('admin.probe')"
                 icon="mdi-lan-connect"
@@ -121,6 +138,8 @@
 
       <v-card-text v-else class="text-medium-emphasis">{{ t('admin.noInfrastructures') }}</v-card-text>
     </v-card>
+
+    <InfrastructureImportDialog v-model="importOpen" @imported="refresh" />
 
     <InfrastructureDialog
       v-model="dialogOpen"
@@ -156,7 +175,20 @@
   const notifications = useNotificationsStore()
   const panel = usePanel()
   const session = useSessionStore()
+  const studioUrl = useStudioUrl()
+  const copy = useClipboard()
   const editable = computed(() => session.canEditInfrastructures)
+  const importOpen = ref(false)
+
+  /** One infrastructure in the file format, for another Studio or the deployment's file. */
+  async function copyYaml (item: Infrastructure) {
+    actionError.value = null
+    try {
+      await copy(await api<string>(`/infrastructures/export?ids=${encodeURIComponent(item.id)}`, { responseType: 'text' }), t('admin.yaml'))
+    } catch (error) {
+      actionError.value = error
+    }
+  }
 
   const featureIcons: Record<keyof Infrastructure['announced'], string> = {
     history: 'mdi-history',

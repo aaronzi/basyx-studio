@@ -1,7 +1,7 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A (image), B (base path) and D (managed
-  infrastructures) implemented
+- Status: In progress; phases A (image), B (base path), D (managed
+  infrastructures) and E (export and import) implemented
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -241,7 +241,9 @@ no `linux/arm/v7` (Deno and PGlite don't support it).
      conflicts, the user picks *skip*, *replace* or *keep both* per entry.
    - One audit event per entry.
 3. **UI** in `InfrastructuresPanel.vue`:
-   - Per row: *Copy as YAML* and *Download*. In the header: *Export all*.
+   - Per row: *Copy as YAML*. In the header: *Export all* (a download).
+   - Entries pasted for import may leave out `key`; the deployment's file
+     may not.
    - *Import* opens a dialog with a code editor for pasting (Monaco is
      already a dependency), `FileDropZone` for `.yaml`/`.yml`, the dry-run
      preview with per-entry problems through `ProblemAlert`, then *Import*.
