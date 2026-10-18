@@ -27,7 +27,10 @@ workers (`worker-src 'none'`).
   page carries it out: it loads the file through Studio's API (so the user's
   own rights apply) and transfers the bytes to the frame. Files above 200 MiB
   are refused. Backend apps cannot call it, as other `studio.ui.*` methods.
-  The Studio app API version becomes 0.1.1.
+- `studio.ui.openFullscreen` takes an optional `state` string, which the
+  full-screen frame receives as `context.viewState`: it is a new frame, and
+  without it a view could not show the model the user had selected.
+- The Studio app API version becomes 0.1.1.
 - A manifest may declare **`sandbox: { webAssembly, workers }`**. Only for
   that installation, the policy of its files adds `'wasm-unsafe-eval'` to
   `script-src`, and `worker-src blob:` instead of `'none'`. Workers start

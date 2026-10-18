@@ -11,8 +11,8 @@ export interface AppBridgeOptions {
   targetId: string | null
   context: () => AppContext
   onNavigate: (subPath: string) => void
-  /** Opens the frame's view in a full-screen dialog; absent inside that dialog. */
-  onOpenFullscreen?: () => void
+  /** Opens the frame's view in a full-screen dialog with the view's state; absent inside that dialog. */
+  onOpenFullscreen?: (state: string) => void
 }
 
 /** A refusal of the host itself, in the shape of Studio's problems. */
@@ -85,7 +85,10 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     }
     if (method.data === 'studio.ui.openFullscreen') {
       // Like setHeight, it only affects how Studio shows the app's own view.
-      options.onOpenFullscreen?.()
+      const parsedFullscreen = appMethodParamsSchemas['studio.ui.openFullscreen'].safeParse(params ?? {})
+      if (parsedFullscreen.success) {
+        options.onOpenFullscreen?.(parsedFullscreen.data.state ?? '')
+      }
       respond({ type: 'response', id, result: null })
       return
     }

@@ -56,8 +56,11 @@ export class StudioClient {
     openFile: (submodelId: string, idShortPath: string, download = false) => this.call('studio.ui.openFile', { submodelId, idShortPath, download }),
     /** Reads a File element's content into the app (needs studio.aas.read; Studio ≥ 0.1.1). */
     readFile: (submodelId: string, idShortPath: string) => this.call('studio.ui.readFile', { submodelId, idShortPath }),
-    /** Opens this view again in a full-screen dialog; `context.fullscreen` is true there. */
-    openFullscreen: () => this.call('studio.ui.openFullscreen', {}),
+    /**
+     * Opens this view again in a full-screen dialog; `context.fullscreen` is
+     * true there, and `context.viewState` is `state` (Studio ≥ 0.1.1).
+     */
+    openFullscreen: (state?: string) => this.call('studio.ui.openFullscreen', state === undefined ? {} : { state }),
     /** Opens a target in Studio (needs studio.ui.navigation). */
     openTarget: (targetId: string) => this.call('studio.ui.openTarget', { targetId }),
     /**

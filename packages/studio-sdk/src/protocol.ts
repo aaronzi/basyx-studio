@@ -109,6 +109,11 @@ export interface AppContext {
   mode: 'view' | 'edit'
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
   fullscreen: boolean
+  /**
+   * In that dialog, the `state` the view passed to `openFullscreen`, e.g.
+   * what the user had selected; `''` otherwise (Studio app API 0.1.1).
+   */
+  viewState: string
   locale: string
   theme: ThemeTokens
 }
@@ -318,8 +323,12 @@ export interface Methods {
    * frame needs no network access; up to `readFileMaxBytes`.
    */
   'studio.ui.readFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
-  /** Opens the same view again in a full-screen dialog of Studio; ignored inside that dialog. */
-  'studio.ui.openFullscreen': { params: Record<string, never>, result: null }
+  /**
+   * Opens the same view again in a full-screen dialog of Studio; ignored
+   * inside that dialog. `state` (up to 4,000 characters) reaches the view
+   * there as `context.viewState`, so it can show what the user had selected.
+   */
+  'studio.ui.openFullscreen': { params: { state?: string }, result: null }
   'studio.aas.listShells': { params: { limit?: number, cursor?: string }, result: Page<ShellSummary> }
   'studio.aas.getShell': { params: { shellId: string }, result: JsonObject }
   'studio.aas.listSubmodels': { params: { shellId: string }, result: { items: SubmodelSummary[] } }

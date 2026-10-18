@@ -93,6 +93,12 @@ so declare `"studioApi": "^0.1.1"`): Studio's page loads it with the user's
 rights and hands the bytes (`Uint8Array`, up to 200 MiB) and media type to
 the frame. `ui.openFile` opens it in a new tab instead.
 
+`ui.openFullscreen(state?)` opens the view again in a full-screen dialog,
+as a new frame. Pass what the user has selected as `state` (a string, up to
+4,000 characters, e.g. JSON); the view there reads it from
+`context.viewState` and `context.fullscreen` is `true` (Studio app API
+0.1.1).
+
 An app that parses files with WebAssembly, or off the page in a worker,
 declares it in the manifest ([ADR 0038](../../docs/adr/0038-webassembly-workers-and-file-reads-for-apps.md)):
 

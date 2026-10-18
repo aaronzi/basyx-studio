@@ -46,7 +46,7 @@
                 :title="title"
                 :version="version"
                 @download="path => client.ui.openFile(submodelId, path, true)"
-                @fullscreen="client.ui.openFullscreen()"
+                @fullscreen="openFullscreen"
                 @open="openExternal"
               />
             </v-col>
@@ -95,6 +95,12 @@
   const loading = ref(true)
   const error = ref<string | null>(null)
   const models = ref<Model3DEntry[]>([])
+  /** What the full-screen view opens with: the selected model and the chosen versions. */
+  interface ViewState {
+    model: string
+    versions: Record<string, string>
+  }
+
   const selectedKey = ref('')
   /** The chosen version per model; the latest otherwise. */
   const versionKeys = reactive<Record<string, string>>({})
@@ -113,9 +119,30 @@
     })
   }
 
+  /** Full screen shows the same model and version (`context.viewState`). */
+  function openFullscreen () {
+    const state: ViewState = { model: selected.value?.key ?? '', versions: { ...versionKeys } }
+    void props.client.ui.openFullscreen(JSON.stringify(state))
+  }
+
+  function restore (viewState: string) {
+    try {
+      const state = JSON.parse(viewState) as Partial<ViewState>
+      selectedKey.value = typeof state.model === 'string' ? state.model : ''
+      for (const [model, versionKey] of Object.entries(state.versions ?? {})) {
+        if (typeof versionKey === 'string') {
+          versionKeys[model] = versionKey
+        }
+      }
+    } catch {
+      // Not ours, or empty: the first model in its latest version.
+    }
+  }
+
   onMounted(async () => {
     try {
       models.value = sortModels(parseModels3D(await loadSubmodel(props.client)))
+      restore(context.value.viewState ?? '')
     } catch (error_) {
       error.value = error_ instanceof StudioError ? error_.message : String(error_)
     } finally {
