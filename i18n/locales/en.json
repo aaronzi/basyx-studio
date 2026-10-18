@@ -469,7 +469,9 @@
     "needsShell": "Open a shell to use this module.",
     "connecting": "Starting the app…",
     "notStarted": "The app did not start",
-    "notStartedText": "It did not connect to Studio within 15 seconds. Its files may be unreachable, or it may have failed.",
+    "notStartedUnreachable": "It did not connect to Studio within 15 seconds, and its files on {host} cannot be reached from this browser.",
+    "notStartedError": "It did not connect to Studio within 15 seconds. Its files on {host} answered with status {status}.",
+    "notStartedBlocked": "It did not connect to Studio within 15 seconds, although its files on {host} load. The browser, an extension or a content blocker probably blocks the app's frame; otherwise the app failed while starting.",
     "frameTitle": "App: {name}",
     "permission": {
       "studio_aas_read": "Read AAS data you have access to",

@@ -381,7 +381,9 @@
     "needsShell": "请打开一个管理壳以使用此模块。",
     "connecting": "正在启动应用…",
     "notStarted": "应用未启动",
-    "notStartedText": "它未在 15 秒内连接到 Studio。可能是其文件无法访问，或者应用运行失败。",
+    "notStartedUnreachable": "它未在 15 秒内连接到 Studio，且无法从此浏览器访问其位于 {host} 的文件。",
+    "notStartedError": "它未在 15 秒内连接到 Studio。其位于 {host} 的文件返回了状态 {status}。",
+    "notStartedBlocked": "它未在 15 秒内连接到 Studio，但其位于 {host} 的文件可以加载。可能是浏览器、扩展程序或内容拦截器阻止了应用的框架；否则是应用在启动时失败。",
     "frameTitle": "应用：{name}",
     "permission": {
       "studio_aas_read": "读取你有权访问的 AAS 数据",

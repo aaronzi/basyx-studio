@@ -469,7 +469,9 @@
     "needsShell": "Öffnen Sie eine Verwaltungsschale, um dieses Modul zu verwenden.",
     "connecting": "App wird gestartet…",
     "notStarted": "Die App ist nicht gestartet",
-    "notStartedText": "Sie hat sich nicht innerhalb von 15 Sekunden mit Studio verbunden. Ihre Dateien sind womöglich nicht erreichbar, oder sie ist fehlgeschlagen.",
+    "notStartedUnreachable": "Sie hat sich nicht innerhalb von 15 Sekunden mit Studio verbunden, und ihre Dateien auf {host} sind von diesem Browser aus nicht erreichbar.",
+    "notStartedError": "Sie hat sich nicht innerhalb von 15 Sekunden mit Studio verbunden. Ihre Dateien auf {host} antworteten mit Status {status}.",
+    "notStartedBlocked": "Sie hat sich nicht innerhalb von 15 Sekunden mit Studio verbunden, obwohl ihre Dateien auf {host} laden. Wahrscheinlich blockiert der Browser, eine Erweiterung oder ein Inhaltsblocker den Frame der App; andernfalls ist die App beim Start fehlgeschlagen.",
     "frameTitle": "App: {name}",
     "permission": {
       "studio_aas_read": "AAS-Daten lesen, auf die Sie Zugriff haben",

@@ -381,7 +381,9 @@
     "needsShell": "Ouvrez une AAS pour utiliser ce module.",
     "connecting": "Démarrage de l'application…",
     "notStarted": "L'application n'a pas démarré",
-    "notStartedText": "Elle ne s'est pas connectée à Studio dans les 15 secondes. Ses fichiers sont peut-être injoignables, ou elle a échoué.",
+    "notStartedUnreachable": "Elle ne s'est pas connectée à Studio dans les 15 secondes, et ses fichiers sur {host} sont injoignables depuis ce navigateur.",
+    "notStartedError": "Elle ne s'est pas connectée à Studio dans les 15 secondes. Ses fichiers sur {host} ont répondu avec le statut {status}.",
+    "notStartedBlocked": "Elle ne s'est pas connectée à Studio dans les 15 secondes, bien que ses fichiers sur {host} se chargent. Le navigateur, une extension ou un bloqueur de contenu bloque probablement le cadre de l'application ; sinon, l'application a échoué au démarrage.",
     "frameTitle": "Application : {name}",
     "permission": {
       "studio_aas_read": "Lire les données AAS auxquelles vous avez accès",

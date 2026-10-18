@@ -381,7 +381,9 @@
     "needsShell": "このモジュールを使用するには管理シェルを開いてください。",
     "connecting": "アプリを起動しています…",
     "notStarted": "アプリが起動しませんでした",
-    "notStartedText": "15 秒以内に Studio に接続しませんでした。ファイルにアクセスできないか、アプリでエラーが発生した可能性があります。",
+    "notStartedUnreachable": "15 秒以内に Studio に接続しませんでした。このブラウザーから {host} 上のファイルにアクセスできません。",
+    "notStartedError": "15 秒以内に Studio に接続しませんでした。{host} 上のファイルはステータス {status} を返しました。",
+    "notStartedBlocked": "15 秒以内に Studio に接続しませんでした。{host} 上のファイルは読み込めます。ブラウザー、拡張機能、またはコンテンツブロッカーがアプリのフレームをブロックしている可能性があります。そうでなければ、アプリが起動中に失敗しました。",
     "frameTitle": "アプリ: {name}",
     "permission": {
       "studio_aas_read": "アクセス権のある AAS データの読み取り",
