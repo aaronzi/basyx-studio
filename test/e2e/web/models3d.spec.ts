@@ -1,6 +1,6 @@
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { key, registerOpenTarget, signIn } from './support'
+import { key, registerOpenTarget, signIn, waitUntilSettled } from './support'
 
 // 3D models in the hosted build (ADR 0038, 0039): the 3D view of File
 // elements in the Visualization tab, and the bundled 3D Models app for IDTA
@@ -15,6 +15,13 @@ let targetId: string
 
 function elementUrl (element: string) {
   return `/targets/${targetId}/shells/${key(shell)}?submodel=${key(files)}&element=${key(element)}&mode=visualization`
+}
+
+/** Clicks into the 3D Models app on the Overview once its frame stopped growing and moving. */
+async function clickInApp (page: Page, target: Locator) {
+  await expect(target).toBeVisible({ timeout: 30_000 })
+  await waitUntilSettled(page.locator('iframe[title="App: 3D Models"]').first())
+  await target.click()
 }
 
 async function expectModel (page: Page, format: string) {
@@ -69,11 +76,11 @@ test('shows the Models3D submodel in the bundled 3D Models app', async ({ page }
   await expect(frame.locator('[data-test="model-summary"]')).toContainText('Engineering design')
 
   // IFC in the app frame: web-ifc runs as WebAssembly in a blob: worker (ADR 0038).
-  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }).click()
+  await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }))
   await expect(frame.locator('[data-test="viewer-element"]')).toContainText('Click an element to see its properties.', { timeout: 30_000 })
 
   // A version only at an external host shows its preview and the link.
-  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Motor (external)' }).click()
+  await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Motor (external)' }))
   await expect(frame.getByRole('button', { name: 'Open external file' })).toBeVisible()
 })
 
@@ -83,18 +90,18 @@ test('opens the selected model and version in full screen', async ({ page }) => 
   const dialogFrame = page.frameLocator('.v-dialog iframe[title="App: 3D Models"]')
   await expect(frame.locator('[data-test="model-switcher-item"]')).toHaveCount(4, { timeout: 30_000 })
 
-  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }).click()
-  await frame.locator('[data-test="viewer-fullscreen"]').click()
+  await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }))
+  await clickInApp(page, frame.locator('[data-test="viewer-fullscreen"]'))
   await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('Workshop building', { timeout: 30_000 })
   await page.locator('[data-test="app-fullscreen-close"]').click()
   await expect(page.locator('.v-dialog')).toBeHidden()
 
   // An older version of the bracket.
-  await frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'L bracket' }).click()
-  await frame.locator('[data-test="version-menu"]').click()
-  await frame.getByRole('listitem').filter({ hasText: 'v1.0' }).click()
+  await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'L bracket' }))
+  await clickInApp(page, frame.locator('[data-test="version-menu"]'))
+  await clickInApp(page, frame.getByRole('listitem').filter({ hasText: 'v1.0' }))
   await expect(frame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)')
-  await frame.locator('[data-test="viewer-fullscreen"]').click()
+  await clickInApp(page, frame.locator('[data-test="viewer-fullscreen"]'))
   await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)', { timeout: 30_000 })
   await expect(dialogFrame.getByText('STEP AP214')).toBeVisible()
 })
