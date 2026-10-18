@@ -63,11 +63,10 @@ export default defineNuxtConfig({
   css: ['~/assets/styles/grid-layout.css'],
 
   app: {
+    // The CSS layer order (public/layers.css) is linked in app.vue, under the
+    // base path that is only known at runtime (STUDIO_BASE_PATH).
     head: {
       title: 'BaSyx Studio',
-      link: [
-        { rel: 'stylesheet', href: '/layers.css' },
-      ],
     },
   },
 

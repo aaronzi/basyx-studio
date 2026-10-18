@@ -89,7 +89,7 @@
                         <v-list-item
                           v-for="format in exportFormats"
                           :key="format.value"
-                          :href="`${apiBasePath}/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`"
+                          :href="studioUrl.api(`/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`)"
                           :prepend-icon="format.icon"
                           :subtitle="format.subtitle"
                           :title="format.title"
@@ -123,7 +123,7 @@
                           <v-list-item
                             v-for="format in exportFormats"
                             :key="format.value"
-                            :href="`${apiBasePath}/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`"
+                            :href="studioUrl.api(`/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`)"
                             :prepend-icon="format.icon"
                             :title="format.title"
                           />
@@ -651,7 +651,7 @@
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { childTypesFor, isContainerType, newElement, uniqueIdShort } from '#shared/aas/defaults'
-  import { apiBasePath, noCapabilities } from '#shared/contract'
+  import { noCapabilities } from '#shared/contract'
   import { expandAllCap, itemId, levelPageSize } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { decodeResourceKey, detailsModes, langText, modelTypeIcon } from '~/utils/aas'
@@ -661,6 +661,7 @@
   const route = useRoute()
   const router = useRouter()
   const api = useStudioApi()
+  const studioUrl = useStudioUrl()
   const invalidate = useInvalidate()
   const queryCache = useQueryCache()
   const ui = useUiStore()

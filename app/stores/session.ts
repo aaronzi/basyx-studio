@@ -7,6 +7,7 @@ export const useSessionStore = defineStore('session', () => {
   const context = ref<StudioContext | null>(null)
   const session = ref<StudioSession | null>(null)
   const loaded = ref(false)
+  const studioUrl = useStudioUrl()
 
   const csrfToken = computed(() => session.value?.csrfToken ?? null)
   const isAdmin = computed(() => session.value?.isAdmin ?? false)
@@ -34,7 +35,7 @@ export const useSessionStore = defineStore('session', () => {
       headers: csrfToken.value ? { 'X-CSRF-Token': csrfToken.value } : {},
     })
     // A full navigation discards every cached target response of this session.
-    window.location.assign(result.logoutUrl ?? '/')
+    window.location.assign(result.logoutUrl ?? studioUrl.page('/'))
   }
 
   return { context, session, loaded, csrfToken, isAdmin, isDesktop, needsLogin, ensureLoaded, login, logout }

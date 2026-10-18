@@ -23,6 +23,11 @@
   const { locale, localeCodes, setLocale } = useI18n()
   useHead(() => ({ htmlAttrs: { lang: locales.find(entry => entry.code === locale.value)?.language ?? 'en-US', dir: 'ltr' } }))
 
+  // Public files under the deployment's base path. The layer order must come
+  // before every other stylesheet, so Vuetify's layers stack as declared.
+  const publicBase = useRuntimeConfig().app.baseURL
+  useHead({ link: [{ rel: 'stylesheet', href: `${publicBase}layers.css`, tagPriority: 'critical' }] })
+
   // The user's appearance (Settings): light, dark or "system", which follows
   // the OS, and an accent and a background laid over both the light and the
   // dark theme. Like the shape, it is applied only after hydration: a theme

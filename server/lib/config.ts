@@ -60,6 +60,8 @@ export interface StudioConfig {
   deploymentMode: DeploymentMode
   /** Origin under which users reach this Studio Service; used for redirects and Origin checks. */
   publicUrl: string
+  /** Path Studio is served under on that origin, `/` or `/a/b/` (Nuxt's app.baseURL). */
+  basePath: string
   database: { kind: 'postgres', url: string } | { kind: 'pglite', dataDir: string }
   /** 32-byte key for encrypting token material and stored secrets at rest. */
   dataKey: Buffer
@@ -99,12 +101,25 @@ function decodeDataKey (encoded: string | undefined): Buffer {
   return key
 }
 
+const basePathPattern = /^\/(?:[\w.~-]+\/)*$/
+
+/** The base path with exactly one leading and one trailing slash. */
+function normalizeBasePath (value: string): string {
+  const normalized = `/${value.split('/').filter(Boolean).join('/')}/`.replace(/^\/\/$/, '/')
+  if (!basePathPattern.test(normalized) || normalized.split('/').some(segment => segment === '.' || segment === '..')) {
+    throw new ConfigurationError(`The base path must be a plain URL path such as /studio/, got "${value}".`)
+  }
+  return normalized
+}
+
 /**
  * Builds the validated Studio configuration from environment variables. The
- * deployment mode comes from Nuxt runtime config because it is a build-time
- * default (hosted vs. Electron build) that can be overridden at runtime.
+ * deployment mode and the base path come from Nuxt runtime config: the mode
+ * is a build-time default (hosted vs. Electron build) that can be overridden
+ * at runtime, and Nuxt serves everything under the base path
+ * (NUXT_APP_BASE_URL, set from STUDIO_BASE_PATH by the container image).
  */
-export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: DeploymentMode): StudioConfig {
+export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: DeploymentMode, basePath = '/'): StudioConfig {
   const parsed = envSchema.safeParse(env)
   if (!parsed.success) {
     const issues = parsed.error.issues.map(issue => `${issue.path.join('.')}: ${issue.message}`).join('; ')
@@ -113,11 +128,20 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
   const values = parsed.data
 
   const port = values.NITRO_PORT ?? values.PORT ?? 3000
+  const base = normalizeBasePath(basePath)
+  if (deploymentMode === 'desktop' && base !== '/') {
+    throw new ConfigurationError('The desktop Studio Service is always served under /.')
+  }
   let publicUrl: string
   if (deploymentMode === 'desktop') {
     publicUrl = `http://${values.NITRO_HOST ?? '127.0.0.1'}:${port}`
   } else if (values.STUDIO_PUBLIC_URL) {
-    publicUrl = new URL(values.STUDIO_PUBLIC_URL).origin
+    const url = new URL(values.STUDIO_PUBLIC_URL)
+    // The public URL may name the base path too, but must not contradict it.
+    if (url.pathname !== '/' && normalizeBasePath(url.pathname) !== base) {
+      throw new ConfigurationError(`STUDIO_PUBLIC_URL has the path ${url.pathname}, but Studio is served under ${base} (STUDIO_BASE_PATH).`)
+    }
+    publicUrl = url.origin
   } else {
     throw new ConfigurationError('STUDIO_PUBLIC_URL is required for hosted deployments.')
   }
@@ -145,12 +169,14 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
     if (appsOrigin === publicUrl) {
       throw new ConfigurationError('STUDIO_APPS_URL must be a different origin than STUDIO_PUBLIC_URL (ADR 0017).')
     }
-    appsBaseUrl = `${appsOrigin}/app/`
+    // The apps origin is routed to this same service, so it shares the base path.
+    appsBaseUrl = `${appsOrigin}${base}app/`
   }
 
   return {
     deploymentMode,
     publicUrl,
+    basePath: base,
     // Desktop always embeds PGlite (ADR 0011); hosted uses PostgreSQL when configured.
     database: values.STUDIO_DATABASE_URL && deploymentMode === 'hosted'
       ? { kind: 'postgres', url: values.STUDIO_DATABASE_URL }
