@@ -2,7 +2,8 @@
   <!-- One widget of the Overview (ADR 0032): a header to drag it by, its
        actions, and a body that scrolls when the widget is smaller than its content. -->
   <v-hover v-slot="{ isHovering, props: hover }">
-    <v-card v-bind="hover" class="d-flex flex-column h-100" :data-test="`overview-widget-${kind}`">
+    <!-- As tall as its row; collapsed, only its header (the row keeps the height of its open widgets). -->
+    <v-card v-bind="hover" :class="['d-flex flex-column', collapsed ? undefined : 'h-100']" :data-test="`overview-widget-${kind}`">
       <v-sheet
         :class="['overview-handle d-flex align-center ga-1 py-1 ps-1 pe-1 flex-shrink-0', draggable ? 'cursor-grab' : undefined]"
         color="transparent"

@@ -5259,7 +5259,7 @@ components:
             allOf:
               - { $ref: '#/components/schemas/AppContributionBase' }
               - type: object
-                required: [kind, reason]
+                required: [kind, reason, columns]
                 properties:
                   kind: { const: submodelView }
                   reason:
@@ -5267,6 +5267,17 @@ components:
                     required: [semanticId]
                     properties:
                       semanticId: { type: string }
+                  columns:
+                    type: object
+                    description: Default widths on a shell's Overview, in columns of 12, per Vuetify breakpoint of the Overview's width (manifest `columns`; ADR 0032).
+                    additionalProperties: false
+                    properties:
+                      xs: { type: integer, minimum: 3, maximum: 12 }
+                      sm: { type: integer, minimum: 3, maximum: 12 }
+                      md: { type: integer, minimum: 3, maximum: 12 }
+                      lg: { type: integer, minimum: 3, maximum: 12 }
+                      xl: { type: integer, minimum: 3, maximum: 12 }
+                      xxl: { type: integer, minimum: 3, maximum: 12 }
         modules:
           type: array
           items:

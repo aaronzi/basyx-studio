@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="root">
     <div class="d-flex align-center flex-wrap ga-2 mb-3">
       <span v-if="gridMode && visible.length > 1" class="text-body-small text-medium-emphasis">{{ t('overview.arrangeHint') }}</span>
 
@@ -36,12 +36,15 @@
       </template>
     </v-empty-state>
 
+    <!-- Not before the Overview knows its width: the layout depends on its breakpoint. -->
+    <v-skeleton-loader v-else-if="width === 0" type="card" />
+
     <ClientOnly v-else>
       <!-- Wider screens: a grid the user arranges (ADR 0032). Phones: the widgets one below the other, in the grid's reading order. -->
       <component
         :is="gridMode ? GridLayout : 'div'"
         ref="container"
-        v-bind="gridMode ? gridProps : { class: 'd-flex flex-column ga-4' }"
+        v-bind="gridMode ? { ...gridProps, class: rounded ? 'overview-rounded' : undefined } : { class: 'd-flex flex-column ga-4' }"
       >
         <component
           :is="gridMode ? GridItem : 'div'"
@@ -135,11 +138,11 @@
 
 <script lang="ts" setup>
   import type { SubmodelRef, SubmodelViewContributionInfo, Target } from '#shared/contract'
-  import type { OverviewPin } from '#shared/overview'
+  import type { OverviewPin, WidgetColumns } from '#shared/overview'
   import type { LiveSignal } from '~/composables/useShellOverview'
   import { GridItem, GridLayout } from 'grid-layout-plus'
   import { useDisplay } from 'vuetify'
-  import { overviewColumns, overviewHeaderHeight, overviewRows } from '#shared/overview'
+  import { columnsAt, overviewBreakpoint, overviewHeaderHeight, overviewRows } from '#shared/overview'
   import { pinWidgetId } from '~/composables/useShellOverview'
 
   /** One widget of the Overview: an app's view of a submodel, the live values, or a pinned value. */
@@ -148,12 +151,9 @@
     kind: 'view' | 'live' | 'pin'
     title: string
     subtitle: string | null
-    /** How the palette lists it, under its group. */
-    group: string
-    paletteTitle: string
-    paletteSubtitle: string | null
-    /** The size it starts with, in grid columns and rows. */
-    w: number
+    /** The width it starts with per breakpoint, in grid columns. */
+    columns: WidgetColumns
+    /** The height it starts with, in grid rows. */
     h: number
     view?: { submodel: SubmodelRef, contribution: SubmodelViewContributionInfo }
     pin?: OverviewPin
@@ -181,13 +181,35 @@
   }>()
 
   const { t } = useI18n()
-  const { mdAndUp } = useDisplay()
+  const { mdAndUp, thresholds } = useDisplay()
   const label = useLocalizedLabel()
   const overview = useShellOverview(() => props.target.id, () => props.shellKey)
+  const { preferences } = usePreferences()
 
   /** The grid needs room for its columns; narrower screens stack the widgets. */
   const gridMode = computed(() => mdAndUp.value)
   const defaultFrameHeight = 480
+  /** The widgets' radius follows the shape (Settings), for the grid's placeholder and resize corner. */
+  const rounded = computed(() => preferences.value.shape === 'rounded')
+
+  // The layout follows the breakpoint of the Overview's own width (Vuetify's
+  // thresholds), so open drawers count as much as the window.
+  const root = useTemplateRef<HTMLElement>('root')
+  const width = ref(0)
+  const resizes = import.meta.client ? new ResizeObserver(([entry]) => (width.value = entry?.contentRect.width ?? 0)) : null
+  watch(root, (element, previous) => {
+    if (previous) {
+      resizes?.unobserve(previous)
+    }
+    if (element) {
+      resizes?.observe(element)
+    }
+  })
+  onBeforeUnmount(() => resizes?.disconnect())
+  const breakpoint = computed(() => overviewBreakpoint(width.value, thresholds.value))
+
+  /** Views without widths in their manifest: full width, half from `lg`. */
+  const viewColumns: WidgetColumns = { md: 12, lg: 6 }
 
   const available = computed(() => props.refs.filter(ref => ref.status === 'available' && ref.semanticId))
   const contributions = useAppContributions(() => available.value.map(ref => ref.semanticId!))
@@ -204,15 +226,15 @@
       .toSorted((a, b) => Number(b.bundled) - Number(a.bundled))
       .map((contribution): Widget => {
         const submodelLabel = submodel.idShort ?? submodel.submodelId
+        const title = label(contribution.title)
+        const app = label(contribution.appTitle)
         return {
           id: `view:${submodel.key}:${contribution.installationId}:${contribution.id}`,
           kind: 'view',
-          title: label(contribution.title),
-          subtitle: t('overview.reason', { app: label(contribution.appTitle), submodel: submodelLabel }),
-          group: submodelLabel,
-          paletteTitle: label(contribution.title),
-          paletteSubtitle: label(contribution.appTitle),
-          w: 6,
+          title,
+          // The submodel it shows, and the app only when the view's own title does not already name it.
+          subtitle: app === title ? submodelLabel : t('overview.reason', { app, submodel: submodelLabel }),
+          columns: Object.keys(contribution.columns).length > 0 ? contribution.columns : viewColumns,
           h: overviewRows(defaultFrameHeight + overviewHeaderHeight),
           view: { submodel, contribution },
         }
@@ -223,10 +245,7 @@
         kind: 'live',
         title: t('overview.live'),
         subtitle: t('overview.liveSubtitle', { count: props.signals.length }),
-        group: t('overview.values'),
-        paletteTitle: t('overview.live'),
-        paletteSubtitle: null,
-        w: overviewColumns,
+        columns: { sm: 12 },
         h: overviewRows(overviewHeaderHeight + 168),
       }]
       : []
@@ -235,10 +254,7 @@
       kind: 'pin',
       title: pin.title,
       subtitle: submodelName(pin.submodelKey),
-      group: t('overview.values'),
-      paletteTitle: pin.title,
-      paletteSubtitle: submodelName(pin.submodelKey),
-      w: 3,
+      columns: { sm: 6, md: 4, lg: 3 },
       h: overviewRows(overviewHeaderHeight + 128),
       pin,
     }))
@@ -252,7 +268,8 @@
   const container = useTemplateRef<{ layoutUpdate?: () => void }>('container')
   const { grid, order, moving, ready: gridReady, gridProps, itemProps, undo, undoOpen, offerUndo, restoreUndo, fitToContent, onContentHeight, toggleCollapsed, setWidth, move } = useOverviewGrid({
     overview,
-    widgets: () => visible.value.map(widget => ({ id: widget.id, w: widget.w, h: widget.h, first: widget.kind === 'live' })),
+    breakpoint: () => breakpoint.value,
+    widgets: () => visible.value.map(widget => ({ id: widget.id, w: columnsAt(widget.columns, breakpoint.value), h: widget.h, first: widget.kind === 'live' })),
     container,
   })
 
