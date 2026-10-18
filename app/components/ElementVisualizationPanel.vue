@@ -19,7 +19,7 @@
     <template v-if="activeBuiltIn">
       <ModelView
         v-if="activeBuiltIn.id === model3dViewId && model3d"
-        :key="`${target.id}:${model3d.elementKey}`"
+        :key="`${target.id}:${model3d.submodelKey}:${model3d.elementKey}`"
         :element="model3d.element"
         :element-key="model3d.elementKey"
         :format="model3d.format"

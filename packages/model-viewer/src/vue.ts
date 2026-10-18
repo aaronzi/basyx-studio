@@ -29,6 +29,7 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
   let viewer: ModelViewer | null = null
   let ready: Promise<ModelViewer> | null = null
   let selection = 0
+  let requests = 0
   let unmounted = false
 
   async function create (): Promise<ModelViewer> {
@@ -61,8 +62,14 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
     }
   }
 
-  /** Downloads and shows a model; a later call replaces it. */
+  /**
+   * Downloads and shows a model; a later call replaces it. Only the latest
+   * call changes the state: an earlier download that finishes later is
+   * dropped before it is parsed.
+   */
   async function load (download: () => Promise<Uint8Array>, format: ModelFormat): Promise<void> {
+    const request = ++requests
+    const latest = () => request === requests && !unmounted
     problem.value = null
     result.value = null
     status.value = 'downloading'
@@ -71,19 +78,34 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
     try {
       bytes = await download()
     } catch (error) {
-      status.value = 'error'
-      problem.value = { code: 'download', message: error instanceof Error ? error.message : String(error), details: [] }
+      if (latest()) {
+        status.value = 'error'
+        problem.value = { code: 'download', message: error instanceof Error ? error.message : String(error), details: [] }
+      }
+      return
+    }
+    if (!latest()) {
       return
     }
     try {
       ready ??= create()
       const current = await ready
+      if (!latest()) {
+        return
+      }
       status.value = 'processing'
-      result.value = await current.load(bytes, format, value => (progress.value = value))
-      status.value = 'ready'
+      const loaded = await current.load(bytes, format, value => {
+        if (latest()) {
+          progress.value = value
+        }
+      })
+      if (latest()) {
+        result.value = loaded
+        status.value = 'ready'
+      }
     } catch (error) {
       const code = (error as { code?: ModelViewerErrorCode }).code
-      if (code === 'cancelled') {
+      if (code === 'cancelled' || !latest()) {
         return
       }
       status.value = 'error'
