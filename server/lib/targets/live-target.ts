@@ -39,6 +39,7 @@ import {
   toConceptDescriptionSummary,
   toEffectiveRights,
 } from '../aas/basyx-go'
+import { withBlobValuesFrom, withoutBlobValues } from '../aas/blobs'
 import { containerChildren, countSemanticUses, insertChild, moveChild, removeChild, replaceChild, semanticKey, shellMetadata, submodelReference, verifyConceptDescription, verifyShell, verifySubmodelMetadata, withChildren } from '../aas/edits'
 import { formatLocator, parseLocator } from '../aas/keys'
 import { checkRawQuery, toSdkQuery } from '../aas/query'
@@ -274,8 +275,9 @@ export class LiveAasTarget implements AasTarget {
     const token = parseRevision(revision)
     const base = await this.#submodelBase(submodelId)
     for (let attempt = 1; ; attempt++) {
+      // With Blob values: the elements are written back unchanged (lib/aas/blobs.ts).
       const read = await this.#send(base, configuration =>
-        this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: submodelId }))
+        this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: submodelId, extent: 'withBlobValue' }))
       if (!read.success) {
         throw await this.#http.problem(read.statusCode, read.recorder)
       }
@@ -371,15 +373,18 @@ export class LiveAasTarget implements AasTarget {
     const token = parseRevision(revision)
     const base = await this.#submodelBase(id)
     for (let attempt = 1; ; attempt++) {
+      // The user edited the submodel as Studio shows it, without Blob values;
+      // Blobs that still come without one keep the value they have.
       const read = await this.#send(base, configuration =>
-        this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: id }))
+        this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: id, extent: 'withBlobValue' }))
       if (!read.success) {
         throw await this.#http.problem(read.statusCode, read.recorder)
       }
-      if (contentHash(toJson(read.data)) !== token.hash) {
+      const current = toJson(read.data)
+      if (contentHash(withoutBlobValues(current)) !== token.hash) {
         throw new StudioProblem('revision_conflict')
       }
-      const parsed = jsonization.submodelFromJsonable(submodel as Parameters<typeof jsonization.submodelFromJsonable>[0])
+      const parsed = jsonization.submodelFromJsonable(withBlobValuesFrom(submodel, current) as Parameters<typeof jsonization.submodelFromJsonable>[0])
       if (parsed.error) {
         throw new StudioProblem('validation_failed', parsed.error.message)
       }
@@ -955,8 +960,9 @@ export class LiveAasTarget implements AasTarget {
       let etag: string | undefined
       let root: JsonObject = {}
       if (parentPath === null) {
+        // With Blob values, like element reads: the whole submodel is written back.
         const read = await this.#send(base, configuration =>
-          this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: submodelId }))
+          this.#submodelClient.getSubmodelById({ configuration, submodelIdentifier: submodelId, extent: 'withBlobValue' }))
         if (!read.success) {
           throw await this.#http.problem(read.statusCode, read.recorder)
         }
