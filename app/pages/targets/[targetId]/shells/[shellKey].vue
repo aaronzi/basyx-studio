@@ -370,10 +370,10 @@
 
                     <!-- The template and version the semantic ID names; the full ID on hover. -->
                     <v-chip
-                      v-if="mdAndUp && item.semanticId && semanticLabel(item.semanticId, item.title)"
+                      v-if="mdAndUp && templateLabel(item)"
                       v-tooltip="item.semanticId"
                       size="x-small"
-                      :text="semanticLabel(item.semanticId, item.title)!"
+                      :text="templateLabel(item)!"
                     />
                   </template>
 
@@ -865,6 +865,12 @@
     } finally {
       expanding.value = false
     }
+  }
+
+  /** The template and version of a submodel for its chip, from its semantic ID and administration. */
+  function templateLabel (item: ShellTreeItem): string | null {
+    const ref = submodelRefs.value.find(entry => entry.key === item.submodelKey)
+    return item.semanticId ? semanticLabel(item.semanticId, item.title, ref?.administration) : null
   }
 
   // Selection lives in the URL (`submodel`, `element`), so it can be shared and survives reloads.
