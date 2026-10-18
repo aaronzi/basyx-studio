@@ -1,11 +1,15 @@
 import type { DeploymentMode } from '#shared/contract'
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { extname, isAbsolute, resolve } from 'node:path'
 import { z } from 'zod'
 
 const csv = z
   .string()
   .transform(value => value.split(/[\s,]+/).filter(Boolean))
+
+const hexColor = z.string().regex(/^#[0-9A-F]{6}$/i, 'use #RRGGBB')
+const flag = z.enum(['true', 'false']).optional()
+const httpsUrl = z.url({ protocol: /^https?$/ })
 
 const envSchema = z.object({
   STUDIO_PUBLIC_URL: z.url({ protocol: /^https?$/ }).optional(),
@@ -31,6 +35,19 @@ const envSchema = z.object({
   STUDIO_INFRASTRUCTURES_FILE: z.string().min(1).optional(),
   STUDIO_INFRASTRUCTURES: z.string().optional(),
   STUDIO_INFRASTRUCTURES_EDITABLE: z.enum(['true', 'false']).optional(),
+  STUDIO_PRODUCT_NAME: z.string().trim().min(1).max(80).optional(),
+  STUDIO_LOGO: z.string().min(1).optional(),
+  STUDIO_LOGO_LIGHT: z.string().min(1).optional(),
+  STUDIO_LOGO_DARK: z.string().min(1).optional(),
+  STUDIO_PRIMARY_COLOR: hexColor.optional(),
+  STUDIO_PRIMARY_COLOR_LIGHT: hexColor.optional(),
+  STUDIO_PRIMARY_COLOR_DARK: hexColor.optional(),
+  STUDIO_COPYRIGHT_NAME: z.string().trim().min(1).max(200).optional(),
+  STUDIO_LEGAL_NOTICE_URL: httpsUrl.optional(),
+  STUDIO_PRIVACY_POLICY_URL: httpsUrl.optional(),
+  STUDIO_READ_ONLY: flag,
+  STUDIO_ALLOW_UPLOADS: flag,
+  STUDIO_APPS_ALLOW_INSTALL: flag,
   STUDIO_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().max(2 * 1024 * 1024 * 1024).default(100 * 1024 * 1024),
   NITRO_HOST: z.string().optional(),
   NITRO_PORT: z.coerce.number().int().optional(),
@@ -61,6 +78,24 @@ export interface StudioAppsConfig {
   workDir: string
 }
 
+/** A logo: an image on the web, or a mounted file that Studio serves at `<base>/branding/logo-<mode>`. */
+export type LogoSource = { url: string } | { file: string, contentType: string }
+
+/** Branding, legal links and feature toggles of a deployment (ADR 0035). */
+export interface DeploymentSettings {
+  productName: string
+  logo: { light: LogoSource | null, dark: LogoSource | null }
+  /** The default accent instead of the BaSyx one, for users who keep the default. */
+  accent: { light: string, dark: string } | null
+  legal: { copyrightName: string | null, legalNoticeUrl: string | null, privacyPolicyUrl: string | null }
+  /** No writes or uploads to any target (STUDIO_READ_ONLY). */
+  readOnly: boolean
+  /** File uploads to targets (STUDIO_ALLOW_UPLOADS). */
+  uploads: boolean
+  /** Administrators may install apps at runtime (STUDIO_APPS_ALLOW_INSTALL); bundled apps stay. */
+  appInstalls: boolean
+}
+
 export interface StudioConfig {
   deploymentMode: DeploymentMode
   /** Origin under which users reach this Studio Service; used for redirects and Origin checks. */
@@ -89,6 +124,7 @@ export interface StudioConfig {
   managedInfrastructures: Array<{ source: string, text: string }>
   /** Whether administrators may add, change and remove infrastructures in Studio. */
   infrastructuresEditable: boolean
+  deployment: DeploymentSettings
   /** Largest AASX, JSON or XML file users may upload to a target (D16). */
   uploadMaxBytes: number
   /** Local BaSyx instances on Docker or Podman (ADR 0033); desktop only. */
@@ -119,6 +155,31 @@ function readInfrastructureSources (file: string | undefined, inline: string | u
   return sources
 }
 
+const logoTypes: Record<string, string> = {
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+}
+
+function logoSource (value: string | undefined, name: string): LogoSource | null {
+  if (!value) {
+    return null
+  }
+  if (/^https?:\/\//.test(value)) {
+    return { url: new URL(value).href }
+  }
+  const contentType = logoTypes[extname(value).toLowerCase()]
+  if (!isAbsolute(value) || !contentType) {
+    throw new ConfigurationError(`${name} must be an http(s) URL or an absolute path to an SVG, PNG, WebP or JPEG file.`)
+  }
+  if (!existsSync(value)) {
+    throw new ConfigurationError(`${name}: ${value} does not exist.`)
+  }
+  return { file: value, contentType }
+}
+
 function decodeDataKey (encoded: string | undefined): Buffer {
   if (!encoded) {
     throw new ConfigurationError(
@@ -142,6 +203,30 @@ function normalizeBasePath (value: string): string {
     throw new ConfigurationError(`The base path must be a plain URL path such as /studio/, got "${value}".`)
   }
   return normalized
+}
+
+function deploymentSettings (values: z.infer<typeof envSchema>): DeploymentSettings {
+  return {
+    productName: values.STUDIO_PRODUCT_NAME ?? 'BaSyx Studio',
+    logo: {
+      light: logoSource(values.STUDIO_LOGO_LIGHT ?? values.STUDIO_LOGO, values.STUDIO_LOGO_LIGHT ? 'STUDIO_LOGO_LIGHT' : 'STUDIO_LOGO'),
+      dark: logoSource(values.STUDIO_LOGO_DARK ?? values.STUDIO_LOGO, values.STUDIO_LOGO_DARK ? 'STUDIO_LOGO_DARK' : 'STUDIO_LOGO'),
+    },
+    accent: values.STUDIO_PRIMARY_COLOR || values.STUDIO_PRIMARY_COLOR_LIGHT || values.STUDIO_PRIMARY_COLOR_DARK
+      ? {
+          light: (values.STUDIO_PRIMARY_COLOR_LIGHT ?? values.STUDIO_PRIMARY_COLOR ?? values.STUDIO_PRIMARY_COLOR_DARK)!.toUpperCase(),
+          dark: (values.STUDIO_PRIMARY_COLOR_DARK ?? values.STUDIO_PRIMARY_COLOR ?? values.STUDIO_PRIMARY_COLOR_LIGHT)!.toUpperCase(),
+        }
+      : null,
+    legal: {
+      copyrightName: values.STUDIO_COPYRIGHT_NAME ?? null,
+      legalNoticeUrl: values.STUDIO_LEGAL_NOTICE_URL ?? null,
+      privacyPolicyUrl: values.STUDIO_PRIVACY_POLICY_URL ?? null,
+    },
+    readOnly: values.STUDIO_READ_ONLY === 'true',
+    uploads: values.STUDIO_ALLOW_UPLOADS !== 'false',
+    appInstalls: values.STUDIO_APPS_ALLOW_INSTALL !== 'false',
+  }
 }
 
 /**
@@ -233,6 +318,7 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
     },
     managedInfrastructures: readInfrastructureSources(values.STUDIO_INFRASTRUCTURES_FILE, values.STUDIO_INFRASTRUCTURES),
     infrastructuresEditable: (values.STUDIO_INFRASTRUCTURES_EDITABLE ?? 'true') === 'true',
+    deployment: deploymentSettings(values),
     uploadMaxBytes: values.STUDIO_UPLOAD_MAX_BYTES,
     containers: deploymentMode === 'desktop' ? { dataDir: resolve(values.STUDIO_DATA_DIR, 'containers') } : null,
   }

@@ -12,6 +12,20 @@ export const studioContextSchema = z.object({
   anonymous: z.boolean(),
   /** Whether administrators may add, change and remove infrastructures (STUDIO_INFRASTRUCTURES_EDITABLE). */
   infrastructuresEditable: z.boolean(),
+  product: z.object({ name: z.string(), version: z.string(), commit: z.string().nullable(), buildDate: z.string().nullable() }),
+  /**
+   * The deployment's logos (an absolute URL, or a Studio path under the base
+   * path) and default accent; `null` keeps the BaSyx ones.
+   */
+  branding: z.object({
+    logoLight: z.string().nullable(),
+    logoDark: z.string().nullable(),
+    accentLight: z.string().nullable(),
+    accentDark: z.string().nullable(),
+  }),
+  legal: z.object({ copyrightName: z.string().nullable(), legalNoticeUrl: z.string().nullable(), privacyPolicyUrl: z.string().nullable() }),
+  /** Deployment-wide switches; they only ever narrow what roles allow. */
+  features: z.object({ readOnly: z.boolean(), uploads: z.boolean(), appInstalls: z.boolean() }),
 })
 export type StudioContext = z.infer<typeof studioContextSchema>
 

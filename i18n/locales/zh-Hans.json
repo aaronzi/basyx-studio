@@ -18,7 +18,9 @@
     "edit": "编辑",
     "account": "账户",
     "arcadeOn": "街机模式：+30 条命",
-    "arcadeOff": "街机模式已关闭。继续工作吧。"
+    "arcadeOff": "街机模式已关闭。继续工作吧。",
+    "legalNotice": "法律声明",
+    "privacyPolicy": "隐私政策"
   },
   "qr": {
     "title": "资产二维码",
@@ -425,7 +427,8 @@
     "bundledHint": "随 Studio 一同提供并随其更新。",
     "backendHint": "在 Studio 服务器上运行代码，与 Studio 及其他应用隔离。",
     "permissions": "权限：{list}",
-    "filters": "类型"
+    "filters": "类型",
+    "installsFixed": "此部署固定了其应用，因此无法在此处安装或删除。"
   },
   "nav": {
     "targets": "AAS 目标",
@@ -848,7 +851,12 @@
     "shapes": {
       "normal": "标准",
       "rounded": "更圆润"
-    }
+    },
+    "about": "关于 {name}",
+    "version": "版本 {version}",
+    "commit": "提交 {commit}",
+    "built": "构建于 {date}",
+    "readOnly": "此部署为只读：无法更改其基础设施上的任何内容。"
   },
   "invite": {
     "title": "接受邀请",

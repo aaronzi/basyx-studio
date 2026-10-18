@@ -1,7 +1,8 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A to E implemented (image, base path,
-  anonymous mode, managed infrastructures, export and import); F to H open
+- Status: In progress; phases A to F implemented (image, base path,
+  anonymous mode, managed infrastructures, export and import, deployment
+  settings); G (workflows) and H (examples, docs) open
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -274,6 +275,13 @@ documented in one table (Phase H).
 | `STUDIO_INFRASTRUCTURES_EDITABLE` | See Phase D. |
 
 Toggles only ever narrow what roles allow. They never grant anything.
+
+As built: `STUDIO_PRODUCT_NAME` sets the window title and the app bar, not the
+product name inside translated texts. `STUDIO_READ_ONLY` also hides the
+view/edit switch and is enforced in `openTargetFor` for every request that is
+not a read (searches, availability checks and validations count as reads).
+`STUDIO_APPS_ALLOW_INSTALL=false` blocks uninstalls too. Legal links appear on
+the sign-in page and in Settings → About.
 
 ## Phase G: workflows
 

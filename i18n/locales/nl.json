@@ -18,7 +18,9 @@
     "edit": "Bewerken",
     "account": "Account",
     "arcadeOn": "Arcademodus: +30 levens",
-    "arcadeOff": "Arcademodus uit. Weer aan het werk."
+    "arcadeOff": "Arcademodus uit. Weer aan het werk.",
+    "legalNotice": "Colofon",
+    "privacyPolicy": "Privacybeleid"
   },
   "qr": {
     "title": "QR-code van het asset",
@@ -425,7 +427,8 @@
     "bundledHint": "Meegeleverd met Studio en samen ermee bijgewerkt.",
     "backendHint": "Voert code uit op de Studio-server, geïsoleerd van Studio en andere apps.",
     "permissions": "Machtigingen: {list}",
-    "filters": "Soort"
+    "filters": "Soort",
+    "installsFixed": "Deze deployment legt zijn apps vast, dus ze kunnen hier niet worden geïnstalleerd of verwijderd."
   },
   "nav": {
     "targets": "AAS-doelen",
@@ -848,7 +851,12 @@
     "shapes": {
       "normal": "Normaal",
       "rounded": "Ronder"
-    }
+    },
+    "about": "Over {name}",
+    "version": "Versie {version}",
+    "commit": "Commit {commit}",
+    "built": "Gebouwd op {date}",
+    "readOnly": "Deze deployment is alleen-lezen: op de infrastructuren kan niets worden gewijzigd."
   },
   "invite": {
     "title": "Uitnodiging accepteren",

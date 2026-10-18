@@ -1,5 +1,10 @@
 import type { ElectronOptions } from 'nuxt-electron'
+import { readFileSync } from 'node:fs'
 import { locales } from './shared/i18n/locales'
+
+// Shown in Settings; container builds pass the snapshot or release version
+// and the commit as build arguments (Dockerfile).
+const packageVersion = (JSON.parse(readFileSync(new URL('package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 // nuxt-electron does not augment the Nuxt config type itself.
 declare module '@nuxt/schema' {
@@ -74,6 +79,9 @@ export default defineNuxtConfig({
     studio: {
       // Overridable at runtime with NUXT_STUDIO_DEPLOYMENT_MODE.
       deploymentMode: 'hosted',
+      version: process.env.STUDIO_VERSION || packageVersion,
+      commit: process.env.STUDIO_COMMIT_SHA ?? '',
+      buildDate: process.env.STUDIO_BUILD_DATE ?? '',
       // Path of the bundled Workspace Worker; set for `nuxt dev` by
       // modules/workspace-worker.ts, next to the server entry otherwise.
       workspaceWorker: '',

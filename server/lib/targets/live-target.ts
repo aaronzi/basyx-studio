@@ -23,6 +23,7 @@ import type { JsonObject } from '../aas/outline'
 import type { SyncPlan, SyncStep } from '../aas/sync'
 import type { FailureRecorder } from '../network/guarded-fetch'
 import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot, StructureResult } from './aas-target'
+import type { CapabilityRestrictions } from './capabilities'
 import type { TargetBase, TargetHttpOptions } from './http'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
 import type { Configuration, SubmodelRepositoryService } from 'basyx-typescript-sdk'
@@ -48,7 +49,7 @@ import { assetLinksOf, shellDescriptor, submodelDescriptor, submodelIdsOf } from
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
-import { liveCapabilities } from './capabilities'
+import { liveCapabilities, restrictCapabilities } from './capabilities'
 import { encodeIdentifier, messageText, TargetHttp } from './http'
 import { announcedFeatures } from './profiles'
 import { EndpointResolver } from './resolution'
@@ -76,6 +77,8 @@ const exportMediaTypes: Record<ExportFormat, string> = {
 export interface LiveTargetOptions extends TargetHttpOptions {
   /** The shell the request is about, for submodels reached through it. */
   shellContext?: string
+  /** What the deployment allows on targets (STUDIO_READ_ONLY, STUDIO_ALLOW_UPLOADS). */
+  restrictions?: CapabilityRestrictions
 }
 
 /**
@@ -128,7 +131,8 @@ export class LiveAasTarget implements AasTarget {
     this.#http = new TargetHttp(options)
     this.#record = options.record
     this.#resolver = new EndpointResolver(options.record, this.#http, options.shellContext)
-    this.capabilities = liveCapabilities(options.record)
+    const capabilities = liveCapabilities(options.record)
+    this.capabilities = options.restrictions ? restrictCapabilities(capabilities, options.restrictions) : capabilities
   }
 
   /** The shell list from the list source: the AAS registry's descriptors or the AAS repository (I3). */

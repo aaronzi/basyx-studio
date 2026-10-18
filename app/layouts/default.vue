@@ -9,16 +9,16 @@
 
       <v-btn
         :active="false"
-        :aria-label="lgAndUp ? undefined : t('app.name')"
+        :aria-label="lgAndUp ? undefined : branding.name.value"
         class="ms-2 me-3"
         size="large"
         to="/"
       >
         <template #prepend>
-          <v-img :alt="t('app.name')" :src="basyxLogo" width="28" />
+          <v-img :alt="branding.name.value" :src="branding.logo.value" width="28" />
         </template>
 
-        <span v-if="lgAndUp" class="text-title-medium font-weight-bold">{{ t('app.name') }}</span>
+        <span v-if="lgAndUp" class="text-title-medium font-weight-bold">{{ branding.name.value }}</span>
       </v-btn>
 
       <v-btn
@@ -85,7 +85,7 @@
         />
 
         <v-btn-toggle
-          v-if="smAndUp"
+          v-if="smAndUp && canEdit"
           v-model="ui.mode"
           class="me-2"
           mandatory
@@ -95,7 +95,7 @@
         </v-btn-toggle>
 
         <v-btn
-          v-else
+          v-else-if="canEdit"
           :aria-label="ui.editing ? t('app.view') : t('app.edit')"
           :color="ui.editing ? 'primary' : undefined"
           :icon="ui.editing ? 'mdi-pencil' : 'mdi-eye-outline'"
@@ -262,7 +262,6 @@
   import type { PanelName } from '~/composables/usePanel'
   import { useQuery } from '@pinia/colada'
   import { useDisplay, useHotkey, useTheme } from 'vuetify'
-  import basyxLogo from '~/assets/basyx-logo.svg'
   import { sectionOf } from '~/stores/navigation'
 
   const { t } = useI18n()
@@ -271,6 +270,7 @@
   const router = useRouter()
   const api = useStudioApi()
   const session = useSessionStore()
+  const branding = useBranding()
   const notifications = useNotificationsStore()
   const ui = useUiStore()
   const drafts = useDraftStore()
@@ -294,6 +294,16 @@
   // A remembered target that was removed or is no longer listed is not current.
   const activeTargetId = computed(() => targetId.value ?? target.value?.id ?? null)
   const draftCount = computed(() => activeTargetId.value ? drafts.countFor(activeTargetId.value) : 0)
+  /** Edit mode only where the target allows some change (not in a read-only deployment). */
+  const canEdit = computed(() => {
+    const capabilities = target.value?.capabilities
+    return !capabilities || capabilities.write || capabilities.writeStructure || capabilities.createResources || capabilities.deleteShells
+  })
+  watch(canEdit, allowed => {
+    if (!allowed) {
+      ui.mode = 'view'
+    }
+  }, { immediate: true })
   const targetItems = computed(() => (targets.data.value?.items ?? []).map(target => ({ title: target.name, value: target.id })))
 
   function switchTarget (id: string) {
@@ -415,7 +425,7 @@
     ui.commandOpen = true
   }, { inputs: true })
   useHotkey('cmd+e', () => {
-    if (activeTargetId.value) {
+    if (activeTargetId.value && canEdit.value) {
       ui.toggleMode()
     }
   })

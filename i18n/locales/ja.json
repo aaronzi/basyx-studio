@@ -18,7 +18,9 @@
     "edit": "編集",
     "account": "アカウント",
     "arcadeOn": "アーケードモード：残機 +30",
-    "arcadeOff": "アーケードモードを終了しました。仕事に戻りましょう。"
+    "arcadeOff": "アーケードモードを終了しました。仕事に戻りましょう。",
+    "legalNotice": "法的情報",
+    "privacyPolicy": "プライバシーポリシー"
   },
   "qr": {
     "title": "アセットの QR コード",
@@ -425,7 +427,8 @@
     "bundledHint": "Studio に同梱され、Studio と一緒に更新されます。",
     "backendHint": "Studio や他のアプリから分離して、Studio サーバー上でコードを実行します。",
     "permissions": "権限: {list}",
-    "filters": "種類"
+    "filters": "種類",
+    "installsFixed": "このデプロイではアプリが固定されているため、ここでインストールまたは削除することはできません。"
   },
   "nav": {
     "targets": "AAS ターゲット",
@@ -848,7 +851,12 @@
     "shapes": {
       "normal": "標準",
       "rounded": "より丸く"
-    }
+    },
+    "about": "{name} について",
+    "version": "バージョン {version}",
+    "commit": "コミット {commit}",
+    "built": "ビルド日 {date}",
+    "readOnly": "このデプロイは読み取り専用です。インフラストラクチャ上では何も変更できません。"
   },
   "invite": {
     "title": "招待を承諾",

@@ -19,7 +19,9 @@
     "account": "Account",
     "arcadeOn": "Arcade mode: +30 lives",
     "arcadeOff": "Arcade mode off. Back to work.",
-    "drafts": "no drafts | {count} draft | {count} drafts"
+    "drafts": "no drafts | {count} draft | {count} drafts",
+    "legalNotice": "Legal notice",
+    "privacyPolicy": "Privacy policy"
   },
   "qr": {
     "title": "QR code of the asset",
@@ -513,7 +515,8 @@
     "bundledHint": "Shipped with Studio and kept up to date with it.",
     "backendHint": "Runs code on the Studio server, isolated from Studio and other apps.",
     "permissions": "Permissions: {list}",
-    "filters": "Kind"
+    "filters": "Kind",
+    "installsFixed": "This deployment fixes its apps, so they cannot be installed or removed here."
   },
   "nav": {
     "targets": "AAS targets",
@@ -944,7 +947,12 @@
     "shapes": {
       "normal": "Normal",
       "rounded": "More rounded"
-    }
+    },
+    "about": "About {name}",
+    "version": "Version {version}",
+    "commit": "Commit {commit}",
+    "built": "Built {date}",
+    "readOnly": "This deployment is read-only: nothing on its infrastructures can be changed."
   },
   "invite": {
     "title": "Accept invitation",

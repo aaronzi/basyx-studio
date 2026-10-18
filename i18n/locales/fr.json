@@ -18,7 +18,9 @@
     "edit": "Modifier",
     "account": "Compte",
     "arcadeOn": "Mode arcade : +30 vies",
-    "arcadeOff": "Mode arcade désactivé. Au travail !"
+    "arcadeOff": "Mode arcade désactivé. Au travail !",
+    "legalNotice": "Mentions légales",
+    "privacyPolicy": "Politique de confidentialité"
   },
   "qr": {
     "title": "Code QR de l'actif",
@@ -425,7 +427,8 @@
     "bundledHint": "Livrée avec Studio et mise à jour avec lui.",
     "backendHint": "Exécute du code sur le serveur Studio, isolé de Studio et des autres applications.",
     "permissions": "Autorisations : {list}",
-    "filters": "Type"
+    "filters": "Type",
+    "installsFixed": "Ce déploiement fixe ses applications : elles ne peuvent pas être installées ou supprimées ici."
   },
   "nav": {
     "targets": "Cibles AAS",
@@ -848,7 +851,12 @@
     "shapes": {
       "normal": "Normale",
       "rounded": "Plus arrondie"
-    }
+    },
+    "about": "À propos de {name}",
+    "version": "Version {version}",
+    "commit": "Commit {commit}",
+    "built": "Compilé le {date}",
+    "readOnly": "Ce déploiement est en lecture seule : rien ne peut être modifié sur ses infrastructures."
   },
   "invite": {
     "title": "Accepter l'invitation",

@@ -19,7 +19,9 @@
     "account": "Konto",
     "arcadeOn": "Arcade-Modus: +30 Leben",
     "arcadeOff": "Arcade-Modus aus. Zurück an die Arbeit.",
-    "drafts": "keine Entwürfe | {count} Entwurf | {count} Entwürfe"
+    "drafts": "keine Entwürfe | {count} Entwurf | {count} Entwürfe",
+    "legalNotice": "Impressum",
+    "privacyPolicy": "Datenschutz"
   },
   "qr": {
     "title": "QR-Code des Assets",
@@ -513,7 +515,8 @@
     "bundledHint": "Mit Studio ausgeliefert und mit ihm aktuell gehalten.",
     "backendHint": "Führt Code auf dem Studio-Server aus, isoliert von Studio und anderen Apps.",
     "permissions": "Berechtigungen: {list}",
-    "filters": "Art"
+    "filters": "Art",
+    "installsFixed": "Dieses Deployment legt seine Apps fest, daher können sie hier nicht installiert oder entfernt werden."
   },
   "nav": {
     "targets": "AAS-Ziele",
@@ -944,7 +947,12 @@
     "shapes": {
       "normal": "Normal",
       "rounded": "Runder"
-    }
+    },
+    "about": "Über {name}",
+    "version": "Version {version}",
+    "commit": "Commit {commit}",
+    "built": "Erstellt am {date}",
+    "readOnly": "Dieses Deployment ist schreibgeschützt: An seinen Infrastrukturen lässt sich nichts ändern."
   },
   "invite": {
     "title": "Einladung annehmen",

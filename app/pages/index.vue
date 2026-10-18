@@ -2,13 +2,19 @@
   <v-container>
     <v-empty-state
       v-if="session.needsLogin"
-      :image="basyxLogo"
+      :image="branding.logo.value"
       size="96"
       :text="t('home.signInText')"
       :title="t('home.signInTitle')"
     >
       <template #actions>
-        <v-btn-primary :loading="signingIn" prepend-icon="mdi-login" :text="t('app.signIn')" @click="signIn" />
+        <div class="d-flex flex-column align-center ga-4">
+          <v-btn-primary :loading="signingIn" prepend-icon="mdi-login" :text="t('app.signIn')" @click="signIn" />
+
+          <div class="d-flex flex-wrap justify-center">
+            <LegalLinks />
+          </div>
+        </div>
       </template>
     </v-empty-state>
 
@@ -158,7 +164,6 @@
   import type { DesktopBridge } from '~/composables/useDesktopBridge'
   import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
-  import basyxLogo from '~/assets/basyx-logo.svg'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { securityModeIcons, targetIcon, targetSubtitle } from '~/utils/aas'
   import { filterRecords } from '~/utils/records'
@@ -166,6 +171,7 @@
   const { t } = useI18n()
   const route = useRoute()
   const session = useSessionStore()
+  const branding = useBranding()
   const api = useStudioApi()
 
   const targets = useQuery({

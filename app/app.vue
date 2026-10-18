@@ -13,7 +13,7 @@
 
 <script lang="ts" setup>
   import { useTheme } from 'vuetify'
-  import { roundedDefaults, themeColors } from '#shared/appearance'
+  import { accentShade, roundedDefaults, themeColors, withOnColors } from '#shared/appearance'
   import { locales } from '#shared/i18n/locales'
 
   // `<html lang>` from the locale's BCP 47 tag, so screen readers and the
@@ -37,6 +37,23 @@
   // light or dark theme.
   const theme = useTheme()
   const preferences = usePreferences()
+  const session = useSessionStore()
+  const branding = useBranding()
+  useHead({ title: () => branding.name.value })
+
+  // The deployment's default accent (STUDIO_PRIMARY_COLOR*) replaces the BaSyx
+  // one for users who keep the default. Applied here, before rendering, so the
+  // server renders it too and hydration sees the same theme.
+  function deploymentAccent (dark: boolean): string | null {
+    const brand = session.context?.branding
+    return (dark ? brand?.accentDark : brand?.accentLight) ?? null
+  }
+  for (const mode of ['light', 'dark'] as const) {
+    const accent = deploymentAccent(mode === 'dark')
+    if (accent) {
+      Object.assign(theme.themes.value[mode]!.colors, withOnColors({ primary: accentShade(accent, mode === 'dark') }))
+    }
+  }
   const shapeDefaults = ref<typeof roundedDefaults | undefined>(undefined)
   onMounted(() => {
     // The stored UI language (Settings), applied after hydration like the
@@ -54,7 +71,8 @@
       const stored = preferences.query.data.value
       if (stored) {
         for (const mode of ['light', 'dark'] as const) {
-          Object.assign(theme.themes.value[mode]!.colors, themeColors(stored.accent, stored.background, mode === 'dark'))
+          const accent = stored.accent === 'basyx' ? (deploymentAccent(mode === 'dark') ?? stored.accent) : stored.accent
+          Object.assign(theme.themes.value[mode]!.colors, themeColors(accent, stored.background, mode === 'dark'))
         }
         theme.change((stored.theme === 'system' ? dark.matches : stored.theme === 'dark') ? 'dark' : 'light')
       }
