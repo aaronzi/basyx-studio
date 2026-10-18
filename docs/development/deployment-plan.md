@@ -1,8 +1,7 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A to G implemented (image, base path,
-  anonymous mode, managed infrastructures, export and import, deployment
-  settings, workflows); H (examples, docs) open
+- Status: Implemented (phases A to H). Open outside this repository: the
+  Docker Hub repository and secrets (phase G), and the Helm chart
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -361,6 +360,13 @@ existing ones here.
 5. **Updates:** `deployment-variants.md` (env table), `README.md` (quick
    start with `docker run`), `docs/api/openapi.yaml` and `endpoints.md`
    (export, import, health).
+
+As built: both examples were run end to end with a local image. The
+production-like example routes Keycloak through Caddy under `/auth`, and gives
+Caddy the network aliases `studio.localhost` and `apps.studio.localhost`, so
+Studio reaches the IdP under the browser's issuer URL. It uses plain HTTP;
+the guide says to add TLS. Example AAS data is not included; users upload an
+AASX through Studio.
 
 ## Tests
 

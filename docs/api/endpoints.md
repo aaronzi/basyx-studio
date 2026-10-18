@@ -6,6 +6,11 @@ Funktionsebene, ohne die OpenAPI-Schemas zu duplizieren.
 
 ## Gemeinsame Regeln
 
+- Unter einem Basispfad (`STUDIO_BASE_PATH`, [ADR 0035](../adr/0035-container-image-and-base-path.md))
+  stehen alle Pfade darunter, z. B. `/studio/api/studio/v1`. Außerhalb der API
+  liegen die Probes `GET <base>health/live` und `GET <base>health/ready` sowie
+  die Logos des Deployments unter `GET <base>branding/logo-light` und `-dark`.
+
 - Basis: `/api/studio/v1`; derselbe Vertrag gilt für Browser und Electron.
 - Die Session ist ein opaker, serverseitiger HttpOnly-Cookie. OAuth-Tokens und
   Downstream-Credentials erreichen nie das Frontend.
@@ -45,6 +50,8 @@ Funktionsebene, ohne die OpenAPI-Schemas zu duplizieren.
 | `GET /infrastructures/{infrastructureId}` | Liefert sanitisierte Konfigurationsdetails, Endpoints, Service-Profile (`serviceProfiles`, `probedAt`, `announced`) und Revision. |
 | `PUT /infrastructures/{infrastructureId}` | Ersetzt die Konfiguration mit `If-Match`, erneuter Validierung und Probe. Ein weggelassenes `clientCertificate` bleibt erhalten, `null` entfernt es. |
 | `DELETE /infrastructures/{infrastructureId}` | Entfernt die Studio-Konfiguration, nicht die Daten der Infrastruktur. |
+| `GET /infrastructures/export` | Exportiert alle oder per `ids` gewählte Infrastrukturen im Dateiformat von `STUDIO_INFRASTRUCTURES_FILE` (YAML, [ADR 0037](../adr/0037-declared-infrastructures-export-and-import.md)). Referenzen auf Deployment-Secrets bleiben, in Studio gespeicherte Secrets und Zertifikate werden durch einen Kommentar ersetzt. `?download` liefert eine Datei. |
+| `POST /infrastructures/import` | Prüft (`dryRun`) oder importiert YAML im selben Format: meldet je Eintrag Probleme und Namenskonflikte und legt Einträge einzeln an oder ersetzt sie (`resolutions`), jeweils mit Probe. Nicht erlaubt, wenn das Deployment seine Infrastrukturen festlegt. |
 | `POST /infrastructures/{infrastructureId}/probe` | Fragt `/description` jedes Endpoints erneut ab, liefert Erreichbarkeit und Profile je Endpoint und ersetzt die gespeicherten Profile. |
 
 ## AAS- und Target-Daten

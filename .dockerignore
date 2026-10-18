@@ -25,3 +25,4 @@ playwright-report
 test-setup/fixtures/large
 test-setup/fixtures/demo
 docs
+examples/deployment
