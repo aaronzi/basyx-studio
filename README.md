@@ -38,7 +38,7 @@ Coding agents and LLM-based development tools must also follow [AGENTS.md](AGENT
 ## Run with Docker
 
 ```bash
-docker run -p 3000:3000 \
+docker run -p 127.0.0.1:3000:3000 \
   -e STUDIO_PUBLIC_URL=http://localhost:3000 \
   -e STUDIO_DATA_KEY="$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')" \
   -e STUDIO_AUTH_MODE=none -e STUDIO_ANONYMOUS_ROLES=studio-admin \

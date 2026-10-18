@@ -1,6 +1,7 @@
 import { defineEventHandler, getCookie, getRequestHeader, setCookie } from 'nuxt/server'
 import { apiBasePath } from '#shared/contract'
 import { createSession, findSession, sessionCookieName, sessionCookieOptions } from '../lib/sessions'
+import { actorOf } from '../utils/auth'
 import { useStudio } from '../utils/studio'
 
 const appCallsPath = `${apiBasePath}/app-calls`
@@ -15,9 +16,10 @@ declare module 'nuxt/schema' {
 /**
  * Without login (STUDIO_AUTH_MODE=none, ADR 0036), the first page or API
  * request of a browser gets a session as the `anonymous` user, so CSRF
- * tokens and per-user target credentials work as with a login. The server
- * render's own API calls send the new cookie (app/composables/useStudioFetch.ts),
- * so they use the same session instead of creating more.
+ * tokens and per-user target credentials work as with a login. This request
+ * already acts in the new session, and the server render's own API calls send
+ * its cookie (app/composables/useStudioFetch.ts), so they use the same session
+ * instead of creating more.
  */
 export default defineEventHandler(async event => {
   const path = event.url.pathname
@@ -38,8 +40,9 @@ export default defineEventHandler(async event => {
   if (existing && await findSession(studio, existing)) {
     return
   }
-  const { token } = await createSession(studio, { subject: 'anonymous', displayName: 'Anonymous', roles: anonymous.roles, idToken: undefined })
+  const { token, session } = await createSession(studio, { subject: 'anonymous', displayName: 'Anonymous', roles: anonymous.roles, idToken: undefined })
   setCookie(event, name, token, sessionCookieOptions(studio.config))
+  event.context.studioSession = { session, actor: actorOf(session, studio.config.adminRole) }
   const cookies = (getRequestHeader(event, 'cookie') ?? '').split(';').map(part => part.trim()).filter(part => part && !part.startsWith(`${name}=`))
   event.context.sessionCookieHeader = [...cookies, `${name}=${token}`].join('; ')
 })

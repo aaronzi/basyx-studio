@@ -55,10 +55,10 @@
 
         <v-btn-primary
           v-if="!done"
-          :disabled="importable === 0 || checking"
+          :disabled="importable === 0 || checking || busy"
           :loading="busy"
           :text="t('admin.importAction', importable)"
-          @click="run(false)"
+          @click="commit"
         />
       </template>
     </DialogCard>
@@ -93,45 +93,70 @@
     ? 0
     : (result.value?.entries ?? []).filter(entry => entry.problems.length === 0 && entry.resolution !== 'skip').length)
 
-  async function run (dryRun: boolean) {
+  /** Checks the text (a dry run); only the latest check may show its result. */
+  async function preview () {
     const current = ++sequence
     error.value = null
-    if (dryRun) {
-      checking.value = true
-    } else {
-      busy.value = true
-    }
     try {
       const response = await api<InfrastructureImportResult>('/infrastructures/import', {
         method: 'POST',
-        body: { yaml: text.value, dryRun, resolutions: resolutions.value },
+        body: { yaml: text.value, dryRun: true, resolutions: resolutions.value },
       })
       if (current === sequence) {
         result.value = response
-        if (!dryRun) {
-          done.value = true
-          emit('imported')
-        }
       }
+    } catch (error_) {
+      if (current === sequence) {
+        error.value = error_
+      }
+    } finally {
+      if (current === sequence) {
+        checking.value = false
+      }
+    }
+  }
+
+  /** Imports. A scheduled or running check never replaces what the import did. */
+  async function commit () {
+    clearTimeout(timer)
+    sequence++
+    checking.value = false
+    busy.value = true
+    error.value = null
+    try {
+      result.value = await api<InfrastructureImportResult>('/infrastructures/import', {
+        method: 'POST',
+        body: { yaml: text.value, dryRun: false, resolutions: resolutions.value },
+      })
+      done.value = true
+      emit('imported')
     } catch (error_) {
       error.value = error_
     } finally {
-      checking.value = false
       busy.value = false
     }
   }
 
+  /** Schedules a check; until it answers, the shown result may not match the text. */
   function check () {
     clearTimeout(timer)
+    sequence++
     done.value = false
     if (text.value.trim() === '') {
       result.value = null
+      checking.value = false
       return
     }
-    timer = setTimeout(() => run(true), 350)
+    checking.value = true
+    timer = setTimeout(preview, 350)
   }
 
-  watch(text, check)
+  // Choices belong to the entries they were made for, which are matched by
+  // position: new text, new choices, so a choice never moves to another entry.
+  watch(text, () => {
+    resolutions.value = {}
+    check()
+  })
 
   function resolve (index: number, resolution: ImportResolution) {
     resolutions.value = { ...resolutions.value, [String(index)]: resolution }

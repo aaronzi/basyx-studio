@@ -29,8 +29,8 @@ container and on values with special characters.
   code. `STUDIO_PUBLIC_URL` stays an origin and may repeat the base path, but
   must not contradict it.
 - **Session cookie.** The `__Host-` prefix requires `Path=/`, so a Studio
-  under a base path keeps the prefix and gets its own cookie name
-  (`__Host-studio_session_studio`) instead of a narrower path.
+  under a base path keeps the prefix and gets its own cookie name, derived
+  from a hash of the whole base path, instead of a narrower path.
 - **Health.** `<base>/health/live` answers without the Studio runtime;
   `<base>/health/ready` checks configuration, migrations and the database.
   A hosted service with an invalid configuration exits with code 1.

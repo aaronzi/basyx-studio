@@ -5,8 +5,9 @@
 #   docker compose up -d
 #   open http://localhost:3000
 #
-# Anyone who reaches port 3000 uses Studio as an administrator. Keep it on
-# your machine; examples/deployment/production-like adds a login.
+# Anyone who reaches port 3000 uses Studio as an administrator, so the port
+# is published on loopback only. examples/deployment/production-like adds a
+# login.
 
 name: basyx-studio-quickstart
 
@@ -14,7 +15,8 @@ services:
   studio:
     image: ${STUDIO_IMAGE:-eclipsebasyx/basyx-studio:SNAPSHOT}
     ports:
-      - "3000:3000"
+      # Loopback only: every visitor is an administrator.
+      - "127.0.0.1:3000:3000"
     environment:
       STUDIO_PUBLIC_URL: http://localhost:3000
       STUDIO_DATA_KEY: ${STUDIO_DATA_KEY:?set STUDIO_DATA_KEY in .env (see .env.example)}

@@ -166,6 +166,17 @@ function studioSyncs (record: InfrastructureRecord): boolean {
 
 type FlagCapability = Exclude<keyof Target['capabilities'], 'persistence' | 'search'>
 
+/**
+ * Fails when the deployment turns file uploads off (STUDIO_ALLOW_UPLOADS=false):
+ * File contents and thumbnails, besides the AASX/JSON/XML uploads that the
+ * `upload` capability covers. Downloads stay.
+ */
+export async function requireFileUploads (): Promise<void> {
+  if (!(await useStudio()).config.deployment.uploads) {
+    throw new StudioProblem('forbidden', 'This Studio deployment does not allow file uploads.')
+  }
+}
+
 /** Fails unless the target supports a capability, before any downstream request. */
 export async function requireCapability (opened: OpenedTarget, capability: FlagCapability): Promise<void> {
   if (!opened.target.capabilities[capability]) {

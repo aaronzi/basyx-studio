@@ -18,6 +18,24 @@ function childrenOf (element: JsonObject): { property: string, children: unknown
   return property && Array.isArray(children) ? { property, children } : null
 }
 
+/** Operation variables wrap their element in `value`. */
+const operationVariables = ['inputVariables', 'outputVariables', 'inoutputVariables'] as const
+
+/** The element with each operation variable's element mapped (Operations only). */
+function mapVariables (element: JsonObject, map: (variable: JsonObject, property: string) => JsonObject): JsonObject {
+  if (element.modelType !== 'Operation') {
+    return element
+  }
+  const next: JsonObject = { ...element }
+  for (const property of operationVariables) {
+    const variables = element[property]
+    if (Array.isArray(variables)) {
+      next[property] = variables.map(variable => isObject(variable) && isObject(variable.value) ? { ...variable, value: map(variable.value, property) } : variable)
+    }
+  }
+  return next
+}
+
 /** The submodel or element as a read without Blob values returns it, e.g. for its revision. */
 export function withoutBlobValues (element: JsonObject): JsonObject {
   if (element.modelType === 'Blob') {
@@ -26,16 +44,16 @@ export function withoutBlobValues (element: JsonObject): JsonObject {
   }
   const nested = childrenOf(element)
   if (!nested) {
-    return element
+    return mapVariables(element, withoutBlobValues)
   }
   return { ...element, [nested.property]: nested.children.map(child => isObject(child) ? withoutBlobValues(child) : child) }
 }
 
 /**
  * Gives every Blob of `next` that comes without a value the value of the Blob
- * at the same place in `current`: named children match by idShort, list
- * items by position. A Blob that comes with a value keeps it, so values
- * can still be replaced.
+ * at the same place in `current`: named children and operation variables
+ * match by idShort, list items by position. A Blob that comes with a value
+ * keeps it, so values can still be replaced.
  */
 export function withBlobValuesFrom (next: JsonObject, current: JsonObject | undefined): JsonObject {
   if (!current) {
@@ -45,6 +63,13 @@ export function withBlobValuesFrom (next: JsonObject, current: JsonObject | unde
     return next.value === undefined && current.modelType === 'Blob' && typeof current.value === 'string'
       ? { ...next, value: current.value }
       : next
+  }
+  if (next.modelType === 'Operation') {
+    return mapVariables(next, (variable, property) => {
+      const before = Array.isArray(current[property]) ? current[property] as unknown[] : []
+      const match = before.map(entry => isObject(entry) ? entry.value : undefined).find(value => isObject(value) && value.idShort === variable.idShort)
+      return withBlobValuesFrom(variable, isObject(match) ? match : undefined)
+    })
   }
   const nested = childrenOf(next)
   const before = childrenOf(current)

@@ -17,7 +17,7 @@ Compose and Kubernetes.
 ## Quick start
 
 ```bash
-docker run -p 3000:3000 \
+docker run -p 127.0.0.1:3000:3000 \
   -e STUDIO_PUBLIC_URL=http://localhost:3000 \
   -e STUDIO_DATA_KEY="$(openssl rand -base64 32 | tr '+/' '-_' | tr -d '=')" \
   -e STUDIO_AUTH_MODE=none -e STUDIO_ANONYMOUS_ROLES=studio-admin \
@@ -25,8 +25,9 @@ docker run -p 3000:3000 \
   eclipsebasyx/basyx-studio:SNAPSHOT
 ```
 
-This starts Studio without login on your machine, with an embedded database
-in the `studio-data` volume. Keep the data key: it encrypts stored tokens and
+This starts Studio without login on your machine, published on loopback only
+because every visitor is an administrator, with an embedded database in the
+`studio-data` volume. Keep the data key: it encrypts stored tokens and
 secrets, and a new key cannot read them.
 
 Two Compose examples go further:

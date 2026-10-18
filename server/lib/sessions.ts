@@ -1,5 +1,6 @@
 import type { StudioConfig } from './config'
 import type { StudioDeps } from './deps'
+import { createHash } from 'node:crypto'
 import { and, eq, gt, isNull, lt, or } from 'drizzle-orm'
 import { oidcTransactions, studioSessions } from '../database/schema'
 import { randomToken, sha256 } from './crypto/cipher'
@@ -12,11 +13,12 @@ export const desktopSessionId = 'desktop-local'
 /**
  * The session cookie's name. The __Host- prefix pins the cookie to this
  * origin, but requires HTTPS and `Path=/`; so instead of a narrower path,
- * a Studio under a base path gets its own name, and two Studios on one
- * origin (`/studio/`, `/studio-test/`) keep their sessions apart.
+ * a Studio under a base path gets its own name, from a hash of the whole
+ * path, and two Studios on one origin (`/a/b/`, `/a_b/`) keep their sessions
+ * apart.
  */
 export function sessionCookieName (config: Pick<StudioConfig, 'secureCookies' | 'basePath'>): string {
-  const suffix = config.basePath.split('/').filter(Boolean).join('_')
+  const suffix = config.basePath === '/' ? '' : createHash('sha256').update(config.basePath).digest('base64url').slice(0, 16)
   const name = suffix ? `studio_session_${suffix}` : 'studio_session'
   return config.secureCookies ? `__Host-${name}` : name
 }

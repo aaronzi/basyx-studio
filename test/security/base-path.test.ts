@@ -46,8 +46,10 @@ describe('base path', () => {
 
   it('gives each base path its own session cookie', () => {
     expect(sessionCookieName({ secureCookies: true, basePath: '/' })).toBe('__Host-studio_session')
-    expect(sessionCookieName({ secureCookies: true, basePath: '/studio/' })).toBe('__Host-studio_session_studio')
-    expect(sessionCookieName({ secureCookies: false, basePath: '/a/b/' })).toBe('studio_session_a_b')
+    expect(sessionCookieName({ secureCookies: true, basePath: '/studio/' })).toMatch(/^__Host-studio_session_[\w-]{16}$/)
+    expect(sessionCookieName({ secureCookies: false, basePath: '/studio/' })).toMatch(/^studio_session_[\w-]{16}$/)
+    // Paths that a joined name would confuse.
+    expect(sessionCookieName({ secureCookies: false, basePath: '/a/b/' })).not.toBe(sessionCookieName({ secureCookies: false, basePath: '/a_b/' }))
   })
 
   it('normalizes STUDIO_BASE_PATH in the container launcher like the service', () => {

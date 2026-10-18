@@ -133,9 +133,8 @@ no `linux/arm/v7` (Deno and PGlite don't support it).
    - `callbackUri` and the post-logout redirect use
      `publicUrl + basePath + callbackPath`.
    - Cookies keep `Path=/`, which the `__Host-` prefix requires. A Studio under
-     a base path gets its own cookie name instead
-     (`__Host-studio_session_studio`), so two Studios on one origin keep their
-     sessions apart.
+     a base path gets its own cookie name instead, from a hash of the whole
+     base path, so two Studios on one origin keep their sessions apart.
    - `returnTo` is validated against the base path.
    - The apps base URL becomes `${appsOrigin}${basePath}app/`.
 4. The `layers.css` head link moves from `nuxt.config.ts` to `app.vue`, under

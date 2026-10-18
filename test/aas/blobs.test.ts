@@ -21,17 +21,23 @@ const stored = {
       ],
     },
     { modelType: 'Property', idShort: 'Name', valueType: 'xs:string', value: 'kept' },
+    {
+      modelType: 'Operation',
+      idShort: 'Render',
+      inputVariables: [{ value: { modelType: 'Blob', idShort: 'Template', contentType: 'text/plain', value: 'dGVtcGxhdGU' } }],
+      outputVariables: [{ value: { modelType: 'Blob', idShort: 'Result', contentType: 'text/plain', value: 'cmVzdWx0' } }],
+    },
   ],
 }
 
 describe('Blob values in whole-submodel writes', () => {
   it('removes every Blob value, as a read without them returns the submodel', () => {
     const shown = withoutBlobValues(stored)
-    expect(JSON.stringify(shown)).not.toMatch(/cGljdHVyZQ|aW5uZXI|Zmlyc3Q|c2Vjb25k/)
+    expect(JSON.stringify(shown)).not.toMatch(/cGljdHVyZQ|aW5uZXI|Zmlyc3Q|c2Vjb25k|dGVtcGxhdGU|cmVzdWx0/)
     expect(shown.submodelElements).toContainEqual({ modelType: 'Property', idShort: 'Name', valueType: 'xs:string', value: 'kept' })
   })
 
-  it('restores the values by idShort, and by position in lists', () => {
+  it('restores the values by idShort, by position in lists, and in operation variables', () => {
     expect(withBlobValuesFrom(withoutBlobValues(stored), stored)).toEqual(stored)
   })
 
