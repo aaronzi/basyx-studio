@@ -1,8 +1,8 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A to F implemented (image, base path,
+- Status: In progress; phases A to G implemented (image, base path,
   anonymous mode, managed infrastructures, export and import, deployment
-  settings); G (workflows) and H (examples, docs) open
+  settings, workflows); H (examples, docs) open
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -320,7 +320,13 @@ existing ones here.
 4. **`vuln-scan.yml`**: add a Trivy image scan (not on PRs) as the Web UI
    does.
 5. **`dependabot.yml`**: add the `docker` ecosystem for the base images.
-6. **Prerequisite outside the repo:** Docker Hub repository
+6. **As built:** the smoke test is `.github/scripts/image-smoke-test.sh`
+   (also for local runs). It runs the container with `STUDIO_AUTH_MODE=none`
+   and an inline infrastructure instead of the plan's pages-only check, and
+   also asserts uid 1000 and the read-only root. Prereleases don't get
+   `latest`. The Dockerfile names its base images literally so Dependabot can
+   update them; Deno is bumped together with `devEngines` instead.
+7. **Prerequisite outside the repo:** Docker Hub repository
    `eclipsebasyx/basyx-studio` and the two secrets on
    `eclipse-basyx/basyx-studio`, requested from the Eclipse Foundation
    (helpdesk), as for the other BaSyx images.

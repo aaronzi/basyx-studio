@@ -6,16 +6,14 @@
 #   docker run -p 3000:3000 -e STUDIO_PUBLIC_URL=http://localhost:3000 \
 #     -e STUDIO_DATA_KEY=... -e STUDIO_OIDC_ISSUER=... -e STUDIO_OIDC_CLIENT_ID=... basyx-studio
 
-ARG NODE_IMAGE=node:24-trixie-slim
-# Matches devEngines.runtime in package.json; the image is multi-arch, so
-# each platform gets its own Deno binary.
-ARG DENO_IMAGE=denoland/deno:bin-2.9.6
-
-FROM ${DENO_IMAGE} AS deno
+# Base images are named literally so Dependabot can update them. Deno matches
+# devEngines.runtime in package.json and is updated together with it; the
+# image is multi-arch, so each platform gets its own Deno binary.
+FROM denoland/deno:bin-2.9.6 AS deno
 
 # The build emits platform-independent JavaScript and WebAssembly, so it runs
 # once on the build host's architecture.
-FROM --platform=$BUILDPLATFORM ${NODE_IMAGE} AS build
+FROM --platform=$BUILDPLATFORM node:24-trixie-slim AS build
 
 ARG STUDIO_VERSION=""
 ARG STUDIO_COMMIT_SHA=""
@@ -45,7 +43,7 @@ RUN STUDIO_VERSION="${STUDIO_VERSION}" \
     STUDIO_BUILD_DATE="${STUDIO_BUILD_DATE}" \
     pnpm build
 
-FROM ${NODE_IMAGE} AS runtime
+FROM node:24-trixie-slim AS runtime
 
 ARG STUDIO_VERSION=""
 ARG STUDIO_COMMIT_SHA=""
