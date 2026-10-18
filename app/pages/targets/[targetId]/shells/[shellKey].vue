@@ -782,15 +782,8 @@
 
   const autoRefresh = computed(() => preferences.preferences.value.autoRefresh)
   const refreshSeconds = computed(() => preferences.preferences.value.autoRefresh && !asOf.value ? preferences.preferences.value.refreshIntervalSeconds : null)
-  // The submodels and elements open in the tree. Until the user opens or
-  // closes one, the first available submodel is open: derived from the
-  // submodel references, so the server and the browser render the same tree
-  // (a watcher ran on the server before the data and left it closed).
-  const openedChoice = ref<string[] | null>(null)
-  const opened = computed<string[]>({
-    get: () => openedChoice.value ?? submodelRefs.value.filter(ref => ref.status === 'available').slice(0, 1).map(ref => ref.key),
-    set: ids => (openedChoice.value = ids),
-  })
+  // The submodels and elements open in the tree: none until the user opens one.
+  const opened = ref<string[]>([])
   const treeSearch = ref<string | null>('')
   const trees = useShellTrees({
     targetId: () => targetId.value,
@@ -979,8 +972,7 @@
 
   watch([targetId, shellKey], () => {
     asOf.value = null
-    // Another shell starts with its first submodel open again.
-    openedChoice.value = null
+    opened.value = []
   })
   // Remembered once the shell is loaded, with the title the user saw.
   watch(() => shell.data.value?.key, key => {

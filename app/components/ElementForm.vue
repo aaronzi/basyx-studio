@@ -202,7 +202,7 @@
           :hint="t('editor.categoryHint')"
           :items="categories"
           :label="t('details.category')"
-          :model-value="String(working.category ?? '')"
+          :model-value="str('category') || null"
           persistent-hint
           @update:model-value="value => set('category', value)"
         />

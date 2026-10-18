@@ -52,7 +52,7 @@
         clearable
         :items="categories"
         :label="t('details.category')"
-        :model-value="String(submodel.category ?? '')"
+        :model-value="typeof submodel.category === 'string' && submodel.category ? submodel.category : null"
         @update:model-value="value => set('category', value)"
       />
     </FormSection>
