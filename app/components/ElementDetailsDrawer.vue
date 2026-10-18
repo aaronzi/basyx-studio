@@ -195,6 +195,7 @@
 
         <div v-if="form && item.elementKey && detail">
           <ElementForm
+            :can-create-concept="canCreateConcept"
             :detail="detail"
             :explicit-save="capabilities.persistence === 'explicit_save'"
             :link-concepts="capabilities.conceptDescriptions"
@@ -206,8 +207,10 @@
 
         <div v-else-if="form && detail">
           <SubmodelForm
+            :can-create-concept="canCreateConcept"
             :detail="detail"
             :explicit-save="capabilities.persistence === 'explicit_save'"
+            :link-concepts="capabilities.conceptDescriptions"
             :submodel-key="item.submodelKey"
             :target-id="targetId"
             @changed="onChanged"
@@ -241,8 +244,8 @@
             </v-expansion-panel-text>
           </v-expansion-panel>
 
-          <!-- What the semantic ID means (MVP-6 plan, E1). -->
-          <v-expansion-panel v-if="showConcept" :title="t('cd.semanticsCard')" value="concept">
+          <!-- What the semantic ID means (MVP-6 plan, E1); in edit mode the form's Semantics section shows it. -->
+          <v-expansion-panel v-if="showConcept && !form" :title="t('cd.semanticsCard')" value="concept">
             <v-expansion-panel-text>
               <ConceptDescriptionCard :can-create="canCreateConcept" :node="value" :target-id="targetId" />
             </v-expansion-panel-text>

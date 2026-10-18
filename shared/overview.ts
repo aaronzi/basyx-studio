@@ -108,6 +108,9 @@ export function readingOrder<T extends GridBox> (items: T[]): T[] {
 export const overviewMinColumns = 3
 export const overviewRowLimit = Math.floor(overviewColumns / overviewMinColumns)
 
+/** The edge of a row, in grid rows, where a dropped widget gets a row of its own. */
+export const overviewRowEdge = 3
+
 /** A row of the Overview: its widgets, left to right. */
 export type OverviewRow = OverviewItem[]
 
@@ -295,10 +298,14 @@ export function resizeInRows (rows: OverviewRow[], id: string, w: number, h?: nu
 }
 
 /**
- * A widget dropped at column `x` (the pointer's, may be fractional) and
- * grid row `y` of the rows as they were when the drag began: over a row, it
- * joins that row where it was dropped, and the row's widgets share the width evenly; a
- * full row gets a new row below it; below all rows, it gets a row of its own.
+ * A widget dropped with the pointer at column `x` and grid row `y` (both may
+ * be fractional) of the rows as they were when the drag began: over the
+ * middle of a row, it joins that row where it was dropped, and the row's
+ * widgets share the width evenly; a full row gets a new row below it. Over
+ * the upper or lower edge of a row (a quarter of it, at most
+ * `overviewRowEdge` grid rows), or above or below all rows, it gets a row of
+ * its own there, so it can move without joining or resizing anything.
+ * Moved within its own row, it only changes places: every width stays.
  * `spans` are the rows' places on the grid as shown (a collapsed row is
  * lower than its height); by default the rows' heights stacked from the top.
  */
@@ -317,13 +324,27 @@ export function dropInRows (rows: OverviewRow[], id: string, x: number, y: numbe
   const target = rows.findIndex((_, index) => places[index] !== undefined && y >= places[index]!.top && y < places[index]!.top + places[index]!.height)
   const next = copyRows(rows).map(row => row.filter(item => item.i !== id))
   const moved: OverviewItem = { ...dragged, w: overviewColumns }
-  if (target === -1 || (target === from && next[from]!.length === 0)) {
-    // Below every row, or back into the row it was alone in.
-    if (target === -1) {
-      next.push([moved])
+  const alone = next[from]!.length === 0
+  if (target === -1) {
+    // Above or below every row.
+    if (y < 0) {
+      next.unshift([moved])
     } else {
-      next[from] = [moved]
+      next.push([moved])
     }
+    return refill(next)
+  }
+  const place = places[target]!
+  const edge = Math.min(overviewRowEdge, place.height / 4)
+  const side = y < place.top + edge ? 'above' : (y >= place.top + place.height - edge ? 'below' : null)
+  if (target === from && alone) {
+    // Back into the row it was alone in.
+    next[from] = [moved]
+    return refill(next)
+  }
+  if (side) {
+    // Between rows: a row of its own, nothing else changes.
+    next.splice(side === 'above' ? target : target + 1, 0, [moved])
     return refill(next)
   }
   const row = next[target]!
@@ -332,11 +353,22 @@ export function dropInRows (rows: OverviewRow[], id: string, x: number, y: numbe
     return refill(next)
   }
   // Before the first widget whose centre lies right of the drop.
-  const even = Math.floor(overviewColumns / (row.length + 1))
   const at = row.filter(item => item.x + item.w / 2 <= x).length
+  if (target === from) {
+    // Reordered within its row: every widget keeps its width.
+    next[target] = [...row.slice(0, at), dragged, ...row.slice(at)]
+    return refill(next)
+  }
+  const even = Math.floor(overviewColumns / (row.length + 1))
   const members = [...row.slice(0, at), { ...moved, h: row[0]?.h ?? moved.h, fit: row[0]?.fit ?? moved.fit }, ...row.slice(at)]
   next[target] = members.map(item => ({ ...item, w: even }))
   return refill(next)
+}
+
+/** The same rows: the same widgets in the same places, with the same sizes. */
+export function sameRows (a: OverviewRow[], b: OverviewRow[]): boolean {
+  const shape = (rows: OverviewRow[]) => JSON.stringify(rows.map(row => row.map(item => [item.i, item.w, item.h, item.fit, item.collapsed])))
+  return shape(a) === shape(b)
 }
 
 /** Rows without the empty ones, each filling the 12 columns. */

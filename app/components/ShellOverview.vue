@@ -1,18 +1,30 @@
 <template>
   <div ref="root">
-    <div class="d-flex align-center flex-wrap ga-2 mb-3">
-      <span v-if="gridMode && visible.length > 1" class="text-body-small text-medium-emphasis">{{ t('overview.arrangeHint') }}</span>
+    <!-- The Overview's actions in the tab row of the shell page: how to
+         arrange widgets, behind an icon, and the widget palette. -->
+    <ClientOnly>
+      <Teleport defer to="#shell-tab-actions">
+        <v-tooltip
+          v-if="gridMode && visible.length > 1"
+          location="bottom end"
+          max-width="320"
+          open-on-click
+          :text="t('overview.arrangeHint')"
+        >
+          <template #activator="{ props: hint }">
+            <v-btn-widget-icon v-bind="hint" :aria-label="t('overview.arrangeHelp')" icon="mdi-information-outline" />
+          </template>
+        </v-tooltip>
 
-      <v-spacer />
-
-      <OverviewPalette
-        v-if="widgets.length > 0"
-        :hidden="overview.layout.value.hidden"
-        :widgets="widgets"
-        @reset="reset"
-        @update:hidden="ids => overview.setHidden(ids)"
-      />
-    </div>
+        <OverviewPalette
+          v-if="widgets.length > 0"
+          :hidden="overview.layout.value.hidden"
+          :widgets="widgets"
+          @reset="reset"
+          @update:hidden="ids => overview.setHidden(ids)"
+        />
+      </Teleport>
+    </ClientOnly>
 
     <v-skeleton-loader v-if="contributions.isPending.value && widgets.length === 0" type="card" />
 
@@ -44,8 +56,13 @@
       <component
         :is="gridMode ? GridLayout : 'div'"
         ref="container"
-        v-bind="gridMode ? { ...gridProps, class: rounded ? 'overview-rounded' : undefined } : { class: 'd-flex flex-column ga-4' }"
+        v-bind="gridMode ? { ...gridProps, class: [gridProps.class, rounded ? 'overview-rounded' : undefined] } : { class: 'd-flex flex-column ga-4' }"
       >
+        <!-- Where a dragged widget lands, at the size it gets there (ADR 0032). -->
+        <GridItem v-if="gridMode && dropPreview" v-bind="dropPreview" static>
+          <v-card class="h-100" color="primary" :ripple="false" variant="tonal" />
+        </GridItem>
+
         <component
           :is="gridMode ? GridItem : 'div'"
           v-for="entry in entries"
@@ -62,11 +79,13 @@
             :first="entry.index === 0"
             :kind="entry.widget.kind"
             :last="entry.index === entries.length - 1"
+            :measure="entry.widget.kind !== 'view'"
             :moving="moving"
             :subtitle="entry.widget.subtitle"
             :title="entry.widget.title"
             :width="entry.box.w"
             @collapse="toggleCollapsed(entry.box)"
+            @content-height="height => onContentHeight(entry.box, height)"
             @fit="fitToContent(entry.box)"
             @fullscreen="frames.get(entry.widget.id)?.openFullscreen()"
             @hide="hide(entry.widget.id)"
@@ -121,6 +140,15 @@
           </OverviewWidget>
         </component>
       </component>
+
+      <!-- While a widget moves: room below the last row, where it gets a row
+           of its own at the end. -->
+      <v-card
+        v-if="gridMode && dropPreview"
+        class="mt-8 d-flex align-center justify-center text-body-medium text-medium-emphasis"
+        height="96"
+        :text="t('overview.dropBelow')"
+      />
 
       <template #fallback>
         <v-skeleton-loader type="card" />
@@ -266,7 +294,7 @@
   })
 
   const container = useTemplateRef<{ layoutUpdate?: () => void }>('container')
-  const { grid, order, moving, ready: gridReady, gridProps, itemProps, undo, undoOpen, offerUndo, restoreUndo, fitToContent, onContentHeight, toggleCollapsed, setWidth, move } = useOverviewGrid({
+  const { grid, order, moving, ready: gridReady, gridProps, itemProps, dropPreview, undo, undoOpen, offerUndo, restoreUndo, fitToContent, onContentHeight, toggleCollapsed, setWidth, move } = useOverviewGrid({
     overview,
     breakpoint: () => breakpoint.value,
     widgets: () => visible.value.map(widget => ({ id: widget.id, w: columnsAt(widget.columns, breakpoint.value), h: widget.h, first: widget.kind === 'live' })),

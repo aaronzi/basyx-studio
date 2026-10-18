@@ -52,3 +52,15 @@
 .vgl-layout.vgl-layout .vgl-item--resizing .vgl-item__resizer {
   opacity: 1;
 }
+
+/* While a widget moves, the Overview's own preview shows where it lands and
+   at which size, so the library's placeholder (at the pointer) is hidden. */
+.vgl-layout.vgl-layout.overview-dropping {
+  --vgl-placeholder-opacity: 0%;
+}
+
+/* A widget is dragged by its header: pressing there starts a drag, never a
+   text selection that would then grow over the widgets passed on the way. */
+.vgl-layout.vgl-layout .overview-handle {
+  user-select: none;
+}

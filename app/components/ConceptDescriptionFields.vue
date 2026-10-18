@@ -40,12 +40,14 @@
     >
       <LangStringsInput
         :label="t('details.displayName')"
+        :max-length="langStringMaxLength.name"
         :model-value="langStrings('displayName')"
         @update:model-value="strings => set('displayName', strings)"
       />
 
       <LangStringsInput
         :label="t('details.description')"
+        :max-length="langStringMaxLength.text"
         :model-value="langStrings('description')"
         @update:model-value="strings => set('description', strings)"
       />
@@ -91,7 +93,7 @@
   import type { LangString } from '#shared/contract'
   import type { Json } from '~/utils/editor'
   import { withField } from '~/utils/editor'
-  import { errorsFor, idShortPattern } from '~/utils/languages'
+  import { errorsFor, idShortPattern, langStringMaxLength } from '~/utils/languages'
 
   // The fields of a concept description (MVP-6 plan, F1), for editing in the
   // drawer and for creating in a dialog: the same inputs in both, as

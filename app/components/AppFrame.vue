@@ -34,7 +34,7 @@
     <!-- The same view again, filling the window (studio.ui.openFullscreen):
          a second frame, so the embedded one keeps its size and state. -->
     <v-dialog v-if="!fullscreen" v-model="fullscreenOpen" fullscreen>
-      <v-card class="d-flex flex-column" height="100%">
+      <v-card-fullscreen class="d-flex flex-column" height="100%">
         <v-toolbar class="flex-shrink-0" color="transparent" density="compact" :title="label(contribution.title)">
           <template #append>
             <v-btn :aria-label="t('common.close')" data-test="app-fullscreen-close" icon="mdi-close" @click="fullscreenOpen = false" />
@@ -51,7 +51,7 @@
           :submodel="submodel"
           :target="target"
         />
-      </v-card>
+      </v-card-fullscreen>
     </v-dialog>
   </div>
 </template>

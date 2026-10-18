@@ -1,7 +1,7 @@
 import type { OverviewItem, OverviewRow } from '#shared/overview'
 import { describe, expect, it } from 'vitest'
 import { defaultPreferences, preferencesSchema } from '#shared/contract'
-import { columnsAt, dropInRows, fillWidths, fitRow, groupRows, itemsAt, layoutRows, mergeOverviewLayout, moveInRows, overviewBreakpoint, overviewRows, readingOrder, resizeInRows, rowHeight } from '#shared/overview'
+import { columnsAt, dropInRows, fillWidths, fitRow, groupRows, itemsAt, layoutRows, mergeOverviewLayout, moveInRows, overviewBreakpoint, overviewRows, readingOrder, resizeInRows, rowHeight, sameRows } from '#shared/overview'
 
 /** An item at the given place; following its content unless `fit` is given. */
 function item (i: string, x: number, y: number, w: number, h = 4, fit = true): OverviewItem {
@@ -123,21 +123,35 @@ describe('overview layout', () => {
     const rows = [[item('a', 0, 0, 6), item('b', 6, 0, 6)], [item('c', 0, 4, 12)]]
 
     it('joins the row it is dropped on, where it is dropped, sharing the width evenly', () => {
-      expect(shape(dropInRows(rows, 'c', 0, 1))).toEqual([[['c', 4], ['a', 4], ['b', 4]]])
-      expect(shape(dropInRows(rows, 'c', 10.5, 0))).toEqual([[['a', 4], ['b', 4], ['c', 4]]])
+      expect(shape(dropInRows(rows, 'c', 0, 1.5))).toEqual([[['c', 4], ['a', 4], ['b', 4]]])
+      expect(shape(dropInRows(rows, 'c', 10.5, 2))).toEqual([[['a', 4], ['b', 4], ['c', 4]]])
+    })
+
+    it('gets a row of its own over the edge of a row, or above every row', () => {
+      // The rows are 4 grid rows high, so their edges are 1 grid row.
+      expect(shape(dropInRows(rows, 'c', 3, 0.5))).toEqual([[['c', 12]], [['a', 6], ['b', 6]]])
+      expect(shape(dropInRows(rows, 'c', 3, -1))).toEqual([[['c', 12]], [['a', 6], ['b', 6]]])
+      expect(shape(dropInRows(rows, 'a', 3, 3.5))).toEqual([[['b', 12]], [['a', 12]], [['c', 12]]])
     })
 
     it('takes the height of the row it joins', () => {
       const tall = [[item('a', 0, 0, 6, 9, false), item('b', 6, 0, 6, 9, false)], [item('c', 0, 9, 12)]]
-      expect(dropInRows(tall, 'c', 0, 0)[0]![0]).toMatchObject({ i: 'c', h: 9, fit: false })
+      expect(dropInRows(tall, 'c', 0, 4)[0]![0]).toMatchObject({ i: 'c', h: 9, fit: false })
     })
 
     it('gets a row of its own below every row', () => {
       expect(shape(dropInRows(rows, 'a', 0, 20))).toEqual([[['b', 12]], [['c', 12]], [['a', 12]]])
     })
 
-    it('reorders within its own row', () => {
-      expect(shape(dropInRows(rows, 'a', 10, 0))).toEqual([[['b', 6], ['a', 6]], [['c', 12]]])
+    it('reorders within its own row and keeps every width', () => {
+      expect(shape(dropInRows(rows, 'a', 10, 2))).toEqual([[['b', 6], ['a', 6]], [['c', 12]]])
+      const uneven = [[item('a', 0, 0, 8), item('b', 8, 0, 4)]]
+      expect(shape(dropInRows(uneven, 'a', 11, 2))).toEqual([[['b', 4], ['a', 8]]])
+    })
+
+    it('tells whether a drop changed anything', () => {
+      expect(sameRows(dropInRows(rows, 'c', 3, 5), rows)).toBe(true)
+      expect(sameRows(dropInRows(rows, 'a', 10, 2), rows)).toBe(false)
     })
 
     it('stays where it was when dropped back into the row it was alone in', () => {
@@ -146,13 +160,13 @@ describe('overview layout', () => {
 
     it('gets a new row below a full one', () => {
       const full = [[item('a', 0, 0, 3), item('b', 3, 0, 3), item('c', 6, 0, 3), item('d', 9, 0, 3)], [item('e', 0, 4, 12)]]
-      expect(shape(dropInRows(full, 'e', 0, 0))).toEqual([[['a', 3], ['b', 3], ['c', 3], ['d', 3]], [['e', 12]]])
+      expect(shape(dropInRows(full, 'e', 0, 2))).toEqual([[['a', 3], ['b', 3], ['c', 3], ['d', 3]], [['e', 12]]])
     })
 
     it('uses the rows as shown, where a collapsed row is lower', () => {
       // The first row is collapsed to 2 grid rows, so row 3 is already the second row.
       const spans = [{ top: 0, height: 2 }, { top: 2, height: 4 }]
-      expect(shape(dropInRows(rows, 'a', 0, 3, spans))).toEqual([[['b', 12]], [['a', 6], ['c', 6]]])
+      expect(shape(dropInRows(rows, 'a', 0, 4, spans))).toEqual([[['b', 12]], [['a', 6], ['c', 6]]])
     })
   })
 

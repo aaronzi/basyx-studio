@@ -1,6 +1,6 @@
 import type { GridBox, OverviewBreakpoint, OverviewItem, OverviewRow, OverviewSnapshot, OverviewWidgetSize } from '#shared/overview'
 import type { Ref } from 'vue'
-import { dropInRows, fitRow, groupRows, itemsAt, layoutRows, mergeOverviewLayout, moveInRows, overviewColumns, overviewGap, overviewHeaderHeight, overviewMinColumns, overviewRowHeight, overviewRows, readingOrder, resizeInRows, rowHeight } from '#shared/overview'
+import { dropInRows, fitRow, groupRows, itemsAt, layoutRows, mergeOverviewLayout, moveInRows, overviewColumns, overviewGap, overviewHeaderHeight, overviewMinColumns, overviewRowHeight, overviewRows, readingOrder, resizeInRows, rowHeight, sameRows } from '#shared/overview'
 
 /** A widget's place on the grid; the grid library moves and resizes these objects. */
 export interface OverviewBox extends GridBox {
@@ -8,6 +8,8 @@ export interface OverviewBox extends GridBox {
   rows: number
   fit: boolean
   collapsed: boolean
+  /** Kept in place by the grid while another widget is dragged or resized; the preview places it. */
+  static?: boolean
 }
 
 /** The rows a collapsed widget keeps: its header. */
@@ -53,20 +55,34 @@ export function useOverviewGrid (options: {
   const grid = ref<OverviewBox[]>([])
   const moving = ref(false)
 
+  /**
+   * Where laid-out items are shown: a row whose widgets are all collapsed is
+   * as low as their headers, and the rows below it move up.
+   */
+  function shown (items: OverviewItem[]): Map<string, GridBox> {
+    const places = new Map<string, GridBox>()
+    let y = 0
+    for (const row of groupRows(items)) {
+      const h = row.every(item => item.collapsed) ? collapsedRows : row[0]!.h
+      for (const item of row) {
+        places.set(item.i, { i: item.i, x: item.x, y, w: item.w, h })
+      }
+      y += h
+    }
+    return places
+  }
+
   /** Lays out rows and moves the boxes there; returns the items to store. */
   function apply (next: OverviewRow[]): OverviewItem[] {
     const items = layoutRows(next, heightOf)
     rows.value = groupRows(items)
-    const collapsedRow = new Set(rows.value.filter(row => row.every(item => item.collapsed)).flat().map(item => item.i))
+    const places = shown(items)
     const existing = new Map(grid.value.map(box => [box.i, box]))
-    grid.value = items.map(item => Object.assign(existing.get(item.i) ?? { i: item.i }, {
-      x: item.x,
-      y: item.y,
-      w: item.w,
-      h: collapsedRow.has(item.i) ? collapsedRows : item.h,
+    grid.value = items.map(item => Object.assign(existing.get(item.i) ?? { i: item.i }, places.get(item.i), {
       rows: item.h,
       fit: item.fit,
       collapsed: item.collapsed,
+      static: false,
     }) as OverviewBox)
     return items
   }
@@ -86,6 +102,8 @@ export function useOverviewGrid (options: {
     // Emitted when a drag or resize ends (and when the grid compacts).
     onLayoutUpdated: () => endGesture(),
     layout: grid.value,
+    // While a widget moves, the preview shows where it lands instead.
+    class: dropPreview.value ? 'overview-dropping' : undefined,
     colNum: overviewColumns,
     rowHeight: overviewRowHeight,
     margin: [overviewGap, overviewGap],
@@ -100,13 +118,17 @@ export function useOverviewGrid (options: {
       y: box.y,
       w: box.w,
       h: box.h,
+      static: box.static ?? false,
       minW: overviewMinColumns,
       minH: collapsedRows,
       isResizable: !box.collapsed,
       dragAllowFrom: '.overview-handle',
+      // The page scrolls while a widget is dragged near the window's edge,
+      // so rows out of sight and the area below the last row can be reached.
+      dragOption: { autoScroll: true },
       // The cell the widget is dragged to, before other widgets make room.
       onMove: (_id: string, x: number, y: number) => startGesture('move', box.i, { x, y }),
-      onResize: () => startGesture('resize', box.i),
+      onResize: (_id: string, h: number, w: number) => startGesture('resize', box.i, undefined, { w, h }),
       onDblclick: (event: MouseEvent) => {
         if ((event.target as HTMLElement | null)?.classList.contains('vgl-item__resizer')) {
           fitToContent(box)
@@ -149,22 +171,38 @@ export function useOverviewGrid (options: {
     undoOpen.value = false
   }
 
-  // The grid column under the pointer while a widget is dragged. The grid
-  // reports the widget's left cell, which it keeps inside the grid, so a
-  // wide widget could not be dropped on the right of a row.
-  let pointerColumn: number | null = null
+  // The grid column and row under the pointer while a widget is dragged, in
+  // grid units. The grid reports the widget's top left cell, which it keeps
+  // inside the grid: a wide widget could not be dropped on the right of a
+  // row, and the edges between rows need the pointer's own height.
+  let pointer: { column: number, row: number } | null = null
   function trackPointer (event: PointerEvent) {
     const element = options.container.value?.$el
     if (element instanceof HTMLElement) {
       const bounds = element.getBoundingClientRect()
-      pointerColumn = (event.clientX - bounds.left) / bounds.width * overviewColumns
+      pointer = {
+        column: (event.clientX - bounds.left) / bounds.width * overviewColumns,
+        // Rows start after the grid's outer gap, one row and one gap apart.
+        row: (event.clientY - bounds.top - overviewGap) / (overviewRowHeight + overviewGap),
+      }
     }
   }
 
-  // A drag or resize in progress: the widget, the rows when it began, and
-  // for a drag the cell it is dragged to.
-  let gesture: { kind: 'move' | 'resize', id: string, start: OverviewRow[], spans: { top: number, height: number }[], before: OverviewSnapshot, cell: { x: number, y: number } | null } | null = null
-  function startGesture (kind: 'move' | 'resize', id: string, cell?: { x: number, y: number }) {
+  // A drag or resize in progress: the widget, the rows when it began, for a
+  // drag the cell it is dragged to and for a resize its new size.
+  let gesture: {
+    kind: 'move' | 'resize'
+    id: string
+    start: OverviewRow[]
+    spans: { top: number, height: number }[]
+    before: OverviewSnapshot
+    cell: { x: number, y: number } | null
+    size: { w: number, h: number } | null
+  } | null = null
+  /** Where a dragged widget will land, shown while it moves. */
+  const dropPreview = ref<GridBox | null>(null)
+
+  function startGesture (kind: 'move' | 'resize', id: string, cell?: { x: number, y: number }, size?: { w: number, h: number }) {
     if (!gesture) {
       // Where the rows are shown when the gesture begins, before the grid makes room.
       const boxes = new Map(grid.value.map(box => [box.i, box]))
@@ -172,8 +210,8 @@ export function useOverviewGrid (options: {
         const shown = row.flatMap(item => boxes.get(item.i) ?? [])
         return { top: Math.min(...shown.map(box => box.y)), height: Math.max(...shown.map(box => box.h)) }
       })
-      gesture = { kind, id, start: structuredClone(toRaw(rows.value)), spans, before: overview.snapshot(), cell: null }
-      pointerColumn = null
+      gesture = { kind, id, start: structuredClone(toRaw(rows.value)), spans, before: overview.snapshot(), cell: null, size: null }
+      pointer = null
       if (kind === 'move') {
         document.addEventListener('pointermove', trackPointer)
       }
@@ -181,29 +219,63 @@ export function useOverviewGrid (options: {
     if (cell) {
       gesture.cell = cell
     }
+    if (size) {
+      gesture.size = size
+    }
     moving.value = true
+    showPreview()
+  }
+
+  /** The rows the gesture leads to so far; `null` while it changes nothing. */
+  function gestureRows (): OverviewRow[] | null {
+    if (!gesture) {
+      return null
+    }
+    const { kind, id, start, spans, cell, size } = gesture
+    const from = start.flat().find(item => item.i === id)
+    if (!from) {
+      return null
+    }
+    if (kind === 'resize') {
+      // The other widgets of the row share what is left; a new height is the whole row's.
+      return size && (size.w !== from.w || size.h !== from.h) ? resizeInRows(start, id, size.w, size.h === from.h ? undefined : size.h) : null
+    }
+    return cell ? dropInRows(start, id, pointer?.column ?? cell.x + from.w / 2, pointer?.row ?? cell.y + 1, spans) : null
+  }
+
+  /**
+   * Shows the result while the gesture goes on, so a drop or resize ends as
+   * previewed: the other widgets take their places and the grid keeps them
+   * there; a dragged widget's landing place is marked.
+   */
+  function showPreview () {
+    if (!gesture) {
+      return
+    }
+    const { kind, id, start } = gesture
+    const places = shown(layoutRows(gestureRows() ?? start, heightOf))
+    for (const box of grid.value) {
+      const place = places.get(box.i)
+      if (box.i !== id && place) {
+        Object.assign(box, { x: place.x, y: place.y, w: place.w, h: place.h, static: true })
+      }
+    }
+    dropPreview.value = kind === 'move' ? places.get(id) ?? null : null
   }
 
   function endGesture () {
     if (!gesture) {
       return
     }
-    const { kind, id, start, spans, before, cell } = gesture
+    const next = gestureRows()
+    const { kind, start, before } = gesture
     gesture = null
+    dropPreview.value = null
     document.removeEventListener('pointermove', trackPointer)
-    const box = grid.value.find(entry => entry.i === id)
-    const from = start.flat().find(item => item.i === id)
-    let next: OverviewRow[] | null = null
-    if (box && from && kind === 'resize' && (box.w !== from.w || box.h !== from.h)) {
-      // The other widgets of the row share what is left; a new height is the whole row's.
-      next = resizeInRows(start, id, box.w, box.h === from.h ? undefined : box.h)
-    } else if (box && from && kind === 'move' && cell && (cell.x !== from.x || cell.y !== from.y)) {
-      next = dropInRows(start, id, pointerColumn ?? cell.x + from.w / 2, cell.y, spans)
-    }
-    if (next) {
+    if (next && !sameRows(next, start)) {
       void commit(kind === 'resize' ? t('overview.resized') : t('overview.moved'), next, before)
     } else {
-      // Nothing changed: put back whatever the grid moved out of the way.
+      // Nothing changed (dropped where it was): put everything back, without a notice.
       apply(start)
       relayout()
     }
@@ -262,6 +334,7 @@ export function useOverviewGrid (options: {
     ready,
     gridProps,
     itemProps,
+    dropPreview,
     undo,
     undoOpen,
     offerUndo,

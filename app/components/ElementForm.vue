@@ -42,6 +42,7 @@
         <LangStringsInput
           v-else-if="modelType === 'MultiLanguageProperty'"
           :label="t('editor.value')"
+          :max-length="langStringMaxLength.text"
           :model-value="langStrings('value')"
           @update:model-value="strings => set('value', strings)"
         />
@@ -184,12 +185,14 @@
       <FormSection v-model:open="openNames" :badge="namesBadge" collapsible :title="t('editor.sections.names')">
         <LangStringsInput
           :label="t('details.displayName')"
+          :max-length="langStringMaxLength.name"
           :model-value="langStrings('displayName')"
           @update:model-value="strings => set('displayName', strings)"
         />
 
         <LangStringsInput
           :label="t('details.description')"
+          :max-length="langStringMaxLength.text"
           :model-value="langStrings('description')"
           @update:model-value="strings => set('description', strings)"
         />
@@ -205,24 +208,16 @@
         />
       </FormSection>
 
-      <FormSection v-model:open="openSemantics" collapsible :hint="t('editor.semanticsHint')" :title="t('editor.sections.semantics')">
-        <!-- Point the semantic ID at a concept description of this target (MVP-6 plan, E5). -->
-        <template v-if="linkConcepts" #actions>
-          <v-btn
-            prepend-icon="mdi-link-variant"
-            size="small"
-            :text="t('cd.link')"
-            @click.stop="linking = true"
-          />
-        </template>
-
-        <ReferenceInput
-          :error-messages="errorsFor(violations, 'semanticId')"
-          :label="t('details.semanticId')"
-          :model-value="working.semanticId"
-          @update:model-value="reference => set('semanticId', reference)"
-        />
-      </FormSection>
+      <SemanticsSection
+        v-model:open="openSemantics"
+        :can-create="canCreateConcept"
+        :error-messages="errorsFor(violations, 'semanticId')"
+        :link-concepts="linkConcepts"
+        :node="working"
+        :semantic-id="working.semanticId"
+        :target-id="targetId"
+        @update:semantic-id="reference => set('semanticId', reference)"
+      />
 
       <FormSection v-model:open="openSupplemental" :badge="supplemental.length || undefined" collapsible :title="t('editor.sections.supplemental')">
         <div v-for="(reference, index) in supplemental" :key="index">
@@ -244,14 +239,6 @@
           @click="set('supplementalSemanticIds', [...supplemental, { type: 'ExternalReference', keys: [{ type: 'GlobalReference', value: '' }] }])"
         />
       </FormSection>
-
-      <ConceptDescriptionPickerDialog
-        v-if="linkConcepts"
-        v-model="linking"
-        :current="semanticKey"
-        :target-id="targetId"
-        @pick="linkConcept"
-      />
 
       <DataSpecificationsInput
         :findings="violations"
@@ -316,7 +303,7 @@
   import { StudioApiError } from '~/composables/useStudioApi'
   import { newElementDraftKey } from '~/stores/drafts'
   import { entityTypes, eventDirections, eventStates, listElementTypes, valueTypes, withField } from '~/utils/editor'
-  import { categories, errorsFor, idShortPattern, unclaimed } from '~/utils/languages'
+  import { categories, errorsFor, idShortPattern, langStringMaxLength, unclaimed } from '~/utils/languages'
 
   // The element form of the edit area (MVP-5 plan, U1, U2): the sections of
   // the element's type, a draft of the whole element, and findings from AAS
@@ -333,6 +320,8 @@
     explicitSave: boolean
     /** The target has concept descriptions to link the semantic ID to. */
     linkConcepts?: boolean
+    /** New concept descriptions can be created from the element (Semantics section). */
+    canCreateConcept?: boolean
   }>()
   const emit = defineEmits<{
     /** The element changed at its source; reload what shows it. */
@@ -383,15 +372,6 @@
   const supplemental = computed(() => (Array.isArray(working.value.supplementalSemanticIds) ? working.value.supplementalSemanticIds : []) as unknown[])
   const openSupplemental = ref(supplemental.value.length > 0)
   const specifications = computed(() => (Array.isArray(working.value.embeddedDataSpecifications) ? working.value.embeddedDataSpecifications : []) as Json[])
-
-  // Linking sets the semantic ID to the concept description's ID, as a global reference.
-  const linking = ref(false)
-  const semanticKey = computed(() => (working.value.semanticId as { keys?: Array<{ value?: string }> } | undefined)?.keys?.[0]?.value ?? null)
-
-  function linkConcept (id: string) {
-    set('semanticId', { type: 'ExternalReference', keys: [{ type: 'GlobalReference', value: id }] })
-    openSemantics.value = true
-  }
 
   function setSupplemental (index: number, value: unknown) {
     set('supplementalSemanticIds', supplemental.value.map((entry, position) => position === index ? value : entry).filter(entry => entry !== null))
