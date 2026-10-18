@@ -368,7 +368,13 @@
                       :text="t('shell.autoRefresh')"
                     />
 
-                    <v-chip v-if="mdAndUp && item.semanticId" size="x-small" :text="semanticLabel(item.semanticId)" />
+                    <!-- The template and version the semantic ID names; the full ID on hover. -->
+                    <v-chip
+                      v-if="mdAndUp && item.semanticId && semanticLabel(item.semanticId, item.title)"
+                      v-tooltip="item.semanticId"
+                      size="x-small"
+                      :text="semanticLabel(item.semanticId, item.title)!"
+                    />
                   </template>
 
                   <span v-else-if="item.preview" class="text-body-small text-medium-emphasis text-truncate ms-2">
@@ -658,6 +664,7 @@
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { childTypesFor, isContainerType, newElement, uniqueIdShort } from '#shared/aas/defaults'
+  import { semanticLabel } from '#shared/aas/semantic-label'
   import { apiBasePath, noCapabilities } from '#shared/contract'
   import { expandAllCap, itemId, levelPageSize } from '~/composables/useShellTrees'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -858,12 +865,6 @@
     } finally {
       expanding.value = false
     }
-  }
-
-  /** Short label of a semantic ID for the submodel chip, e.g. `Nameplate 3.0`. */
-  function semanticLabel (semanticId: string): string {
-    const idta = /\/([A-Z]+)\/(\d+)\/(\d+)(?:\/[A-Z]+)?$/i.exec(semanticId)
-    return idta ? `${idta[1]} ${idta[2]}.${idta[3]}` : (semanticId.split(/[/#]/).findLast(Boolean) ?? semanticId)
   }
 
   // Selection lives in the URL (`submodel`, `element`), so it can be shared and survives reloads.
