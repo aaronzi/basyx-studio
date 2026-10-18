@@ -1,6 +1,7 @@
 <template>
-  <!-- The shape of Settings: the rounded defaults over vuetify.config.ts. -->
-  <v-defaults-provider :defaults="shapeDefaults">
+  <!-- The shape of Settings (the rounded defaults over vuetify.config.ts),
+       and full-screen dialogs on phones. -->
+  <v-defaults-provider :defaults="defaults">
     <NuxtLayout>
       <NuxtPage />
     </NuxtLayout>
@@ -12,7 +13,7 @@
 </template>
 
 <script lang="ts" setup>
-  import { useTheme } from 'vuetify'
+  import { useDisplay, useTheme } from 'vuetify'
   import { accentShade, roundedDefaults, themeColors, withOnColors } from '#shared/appearance'
   import { locales } from '#shared/i18n/locales'
 
@@ -24,9 +25,16 @@
   useHead(() => ({ htmlAttrs: { lang: locales.find(entry => entry.code === locale.value)?.language ?? 'en-US', dir: 'ltr' } }))
 
   // Public files under the deployment's base path. The layer order must come
-  // before every other stylesheet, so Vuetify's layers stack as declared.
+  // before every other stylesheet, so Vuetify's layers stack as declared. The
+  // BaSyx logo is the favicon; favicon.ico for browsers without SVG icons.
   const publicBase = useRuntimeConfig().app.baseURL
-  useHead({ link: [{ rel: 'stylesheet', href: `${publicBase}layers.css`, tagPriority: 'critical' }] })
+  useHead({
+    link: [
+      { rel: 'stylesheet', href: `${publicBase}layers.css`, tagPriority: 'critical' },
+      { rel: 'icon', type: 'image/svg+xml', href: `${publicBase}favicon.svg` },
+      { rel: 'icon', sizes: '48x48', href: `${publicBase}favicon.ico` },
+    ],
+  })
 
   // The user's appearance (Settings): light, dark or "system", which follows
   // the OS, and an accent and a background laid over both the light and the
@@ -55,6 +63,9 @@
     }
   }
   const shapeDefaults = ref<typeof roundedDefaults | undefined>(undefined)
+  // On phones every dialog fills the screen; DialogCard then drops its radius and border.
+  const { xs } = useDisplay()
+  const defaults = computed(() => ({ ...shapeDefaults.value, ...(xs.value ? { VDialog: { fullscreen: true } } : {}) }))
   onMounted(() => {
     // The stored UI language (Settings), applied after hydration like the
     // theme; setLocale() also rewrites the i18n_redirected cookie, so the

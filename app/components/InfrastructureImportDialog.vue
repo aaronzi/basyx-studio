@@ -1,11 +1,5 @@
 <template>
-  <v-dialog
-    v-model="open"
-    :fullscreen="xs"
-    max-width="760"
-    persistent
-    scrollable
-  >
+  <v-dialog v-model="open" max-width="760" persistent scrollable>
     <DialogCard flush :title="t('admin.importTitle')">
       <FileDropZone :text="t('admin.importDropHint')" :title="t('admin.importDrop')" @file="readFile">
         <v-sheet color="transparent" height="300">
@@ -83,7 +77,6 @@
 
   const { t } = useI18n()
   const api = useStudioApi()
-  const { xs } = useDisplay()
 
   const text = ref('')
   const resolutions = ref<Record<string, ImportResolution>>({})

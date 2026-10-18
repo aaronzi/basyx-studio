@@ -68,10 +68,14 @@ export default defineNuxtConfig({
   css: ['~/assets/styles/grid-layout.css'],
 
   app: {
-    // The CSS layer order (public/layers.css) is linked in app.vue, under the
-    // base path that is only known at runtime (STUDIO_BASE_PATH).
+    // The CSS layer order (public/layers.css) and the favicons are linked in
+    // app.vue, under the base path that is only known at runtime
+    // (STUDIO_BASE_PATH).
     head: {
       title: 'BaSyx Studio',
+      meta: [
+        { name: 'description', content: 'BaSyx Studio: view, edit and extend Asset Administration Shells across infrastructures and AASX packages.' },
+      ],
     },
   },
 
@@ -95,6 +99,9 @@ export default defineNuxtConfig({
   },
 
   nitro: {
+    // Bundles and styles are served gzip- and brotli-compressed, built once
+    // (Lighthouse: about 1.3 MB less per first load without a compressing proxy).
+    compressPublicAssets: true,
     // The ESM build of aas-core3.1-typescript uses extensionless relative
     // imports that plain Node ESM cannot load, so it must be bundled.
     externals: {
