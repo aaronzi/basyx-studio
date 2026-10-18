@@ -16,7 +16,7 @@
       <PageHeader :subtitle="items.length > 3 ? t('home.subtitleCount', items.length) : t('home.subtitle')" :title="t('home.title')">
         <template #actions>
           <v-btn-secondary
-            v-if="session.isAdmin"
+            v-if="session.canEditInfrastructures"
             prepend-icon="mdi-plus"
             :text="t('home.addInfrastructure')"
             @click="addOpen = true"
@@ -140,15 +140,15 @@
       <v-empty-state
         v-else-if="targets.data.value"
         icon="mdi-server-network-off"
-        :text="session.isAdmin ? t('home.noTargetsAdmin') : t('home.noTargetsUser')"
+        :text="session.canEditInfrastructures ? t('home.noTargetsAdmin') : t('home.noTargetsUser')"
         :title="t('home.noTargets')"
       >
-        <template v-if="session.isAdmin" #actions>
+        <template v-if="session.canEditInfrastructures" #actions>
           <v-btn-primary :text="t('home.addInfrastructure')" @click="addOpen = true" />
         </template>
       </v-empty-state>
 
-      <InfrastructureDialog v-if="session.isAdmin" v-model="addOpen" :existing="null" @saved="added" />
+      <InfrastructureDialog v-if="session.canEditInfrastructures" v-model="addOpen" :existing="null" @saved="added" />
     </template>
   </v-container>
 </template>

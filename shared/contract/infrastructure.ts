@@ -244,6 +244,9 @@ export const infrastructureInputSchema = z.object({
 })
 export type InfrastructureInput = z.input<typeof infrastructureInputSchema>
 
+/** Stable identity of an infrastructure in the deployment's infrastructure file (ADR 0037). */
+export const managedInfrastructureKeySchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/, 'use 1 to 63 lowercase letters, digits and hyphens, starting with a letter or digit')
+
 /** The `/description` profiles of each endpoint at the last probe; `null` where the endpoint did not answer with them. */
 export const serviceProfilesSchema = z.partialRecord(endpointTypeSchema, z.array(z.string()).nullable())
 export type ServiceProfiles = z.infer<typeof serviceProfilesSchema>
@@ -264,6 +267,8 @@ export const infrastructureSchema = z.object({
   security: securitySummarySchema,
   clientCertificate: clientCertificateSummarySchema.nullable(),
   allowPrivateNetwork: z.boolean(),
+  /** Declared in the deployment's infrastructure file: read-only in Studio. */
+  managed: z.boolean(),
   revision: z.number().int(),
   createdAt: z.string(),
   updatedAt: z.string(),

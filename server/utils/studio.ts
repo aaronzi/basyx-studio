@@ -15,7 +15,8 @@ import { SecretCipher } from '../lib/crypto/cipher'
 import { openDatabase } from '../lib/database/client'
 import { applyMigrations } from '../lib/database/migrate'
 import { FileGrantStore } from '../lib/desktop/grants'
-import { createInfrastructure, deleteInfrastructure } from '../lib/infrastructures'
+import { parseInfrastructureSources } from '../lib/infrastructure-file'
+import { createInfrastructure, deleteInfrastructure, reconcileManagedInfrastructures } from '../lib/infrastructures'
 import { ensureDesktopSession } from '../lib/sessions'
 import { CredentialBroker } from '../lib/targets/credentials'
 import { studioPath } from '../lib/urls'
@@ -79,6 +80,12 @@ async function initialize (): Promise<StudioRuntime> {
       console.info(`[studio] applied database migrations: ${applied.join(', ')}`)
     }
     const deps: StudioDeps = { config, db: handle.db, cipher: new SecretCipher(config.dataKey) }
+    const declared = await reconcileManagedInfrastructures(deps, parseInfrastructureSources(config.managedInfrastructures))
+    for (const change of ['created', 'updated', 'removed'] as const) {
+      if (declared[change].length > 0) {
+        console.info(`[studio] declared infrastructures ${change}: ${declared[change].join(', ')}`)
+      }
+    }
     if (config.deploymentMode === 'desktop') {
       await ensureDesktopSession(deps)
     }

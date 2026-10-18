@@ -26,6 +26,9 @@ const envSchema = z.object({
   STUDIO_APPS_URL: z.url({ protocol: /^https?$/ }).optional(),
   STUDIO_APPS_ALLOW_UNSIGNED: z.enum(['true', 'false']).optional(),
   STUDIO_DENO_PATH: z.string().min(1).optional(),
+  STUDIO_INFRASTRUCTURES_FILE: z.string().min(1).optional(),
+  STUDIO_INFRASTRUCTURES: z.string().optional(),
+  STUDIO_INFRASTRUCTURES_EDITABLE: z.enum(['true', 'false']).optional(),
   STUDIO_UPLOAD_MAX_BYTES: z.coerce.number().int().positive().max(2 * 1024 * 1024 * 1024).default(100 * 1024 * 1024),
   NITRO_HOST: z.string().optional(),
   NITRO_PORT: z.coerce.number().int().optional(),
@@ -72,6 +75,13 @@ export interface StudioConfig {
   allowPrivateNetworkTargets: boolean
   secureCookies: boolean
   apps: StudioAppsConfig
+  /**
+   * The deployment's infrastructure declarations as YAML text, each with
+   * where it came from (ADR 0037); parsed and applied at startup.
+   */
+  managedInfrastructures: Array<{ source: string, text: string }>
+  /** Whether administrators may add, change and remove infrastructures in Studio. */
+  infrastructuresEditable: boolean
   /** Largest AASX, JSON or XML file users may upload to a target (D16). */
   uploadMaxBytes: number
   /** Local BaSyx instances on Docker or Podman (ADR 0033); desktop only. */
@@ -85,6 +95,21 @@ function readSecret (value: string | undefined, file: string | undefined, name: 
     throw new ConfigurationError(`Set either ${name} or ${name}_FILE, not both.`)
   }
   return file ? readFileSync(file, 'utf8').trim() : value
+}
+
+function readInfrastructureSources (file: string | undefined, inline: string | undefined): StudioConfig['managedInfrastructures'] {
+  const sources: StudioConfig['managedInfrastructures'] = []
+  if (file) {
+    try {
+      sources.push({ source: file, text: readFileSync(file, 'utf8') })
+    } catch {
+      throw new ConfigurationError(`STUDIO_INFRASTRUCTURES_FILE: ${file} could not be read.`)
+    }
+  }
+  if (inline?.trim()) {
+    sources.push({ source: 'STUDIO_INFRASTRUCTURES', text: inline })
+  }
+  return sources
 }
 
 function decodeDataKey (encoded: string | undefined): Buffer {
@@ -197,6 +222,8 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
       capabilityUrl: `http://127.0.0.1:${port}`,
       workDir: resolve(values.STUDIO_DATA_DIR, 'app-backends'),
     },
+    managedInfrastructures: readInfrastructureSources(values.STUDIO_INFRASTRUCTURES_FILE, values.STUDIO_INFRASTRUCTURES),
+    infrastructuresEditable: (values.STUDIO_INFRASTRUCTURES_EDITABLE ?? 'true') === 'true',
     uploadMaxBytes: values.STUDIO_UPLOAD_MAX_BYTES,
     containers: deploymentMode === 'desktop' ? { dataDir: resolve(values.STUDIO_DATA_DIR, 'containers') } : null,
   }

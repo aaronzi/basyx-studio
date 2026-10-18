@@ -8,5 +8,6 @@ export default defineStudioHandler(async (): Promise<StudioContext> => {
     apiVersion: '1',
     deploymentMode: studio.config.deploymentMode,
     loginRequired: studio.config.deploymentMode === 'hosted',
+    infrastructuresEditable: studio.config.infrastructuresEditable,
   }
 })

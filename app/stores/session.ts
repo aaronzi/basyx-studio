@@ -11,6 +11,8 @@ export const useSessionStore = defineStore('session', () => {
 
   const csrfToken = computed(() => session.value?.csrfToken ?? null)
   const isAdmin = computed(() => session.value?.isAdmin ?? false)
+  /** Administrators may change infrastructures unless the deployment fixes them. */
+  const canEditInfrastructures = computed(() => isAdmin.value && (context.value?.infrastructuresEditable ?? true))
   const isDesktop = computed(() => context.value?.deploymentMode === 'desktop')
   const needsLogin = computed(() => (context.value?.loginRequired ?? false) && session.value === null)
 
@@ -38,5 +40,5 @@ export const useSessionStore = defineStore('session', () => {
     window.location.assign(result.logoutUrl ?? studioUrl.page('/'))
   }
 
-  return { context, session, loaded, csrfToken, isAdmin, isDesktop, needsLogin, ensureLoaded, login, logout }
+  return { context, session, loaded, csrfToken, isAdmin, canEditInfrastructures, isDesktop, needsLogin, ensureLoaded, login, logout }
 })

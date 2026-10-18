@@ -8,6 +8,8 @@ export const studioContextSchema = z.object({
   deploymentMode: deploymentModeSchema,
   /** Whether users must sign in to Studio (hosted) or are the local OS user (desktop). */
   loginRequired: z.boolean(),
+  /** Whether administrators may add, change and remove infrastructures (STUDIO_INFRASTRUCTURES_EDITABLE). */
+  infrastructuresEditable: z.boolean(),
 })
 export type StudioContext = z.infer<typeof studioContextSchema>
 

@@ -1,6 +1,7 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A (image) and B (base path) implemented
+- Status: In progress; phases A (image), B (base path) and D (managed
+  infrastructures) implemented
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -166,8 +167,9 @@ no `linux/arm/v7` (Deno and PGlite don't support it).
 ## Phase D: managed infrastructures from YAML
 
 1. **Sources** (all optional, merged, duplicate `key` is a startup error):
-   - `STUDIO_INFRASTRUCTURES_FILE`: path to a YAML file. The image looks for
-     `/etc/basyx-studio/infrastructures.yaml` when the variable is unset.
+   - `STUDIO_INFRASTRUCTURES_FILE`: path to a YAML file; a missing file is a
+     startup error. There is no implicit default path, so a mounted file is
+     always named in the configuration.
    - `STUDIO_INFRASTRUCTURES`: the same YAML inline, handy for Helm values
      and compose.
 2. **Runtime additions:** `STUDIO_INFRASTRUCTURES_EDITABLE=true|false`
@@ -209,8 +211,13 @@ no `linux/arm/v7` (Deno and PGlite don't support it).
    - It probes changed entries as `withProfiles` already does.
    - It writes audit events with actor `deployment`.
 
-   Plain secret values in the file are stored encrypted like UI input.
-   References stay references.
+   Secrets follow the API's rule: hosted Studio accepts only `env:`/`file:`
+   references, so a plain `value` in the file is a startup error there.
+   Endpoints are checked only statically (scheme, no credentials), not
+   resolved or contacted, because BaSyx may start after Studio; the first
+   load probes them. A `managed_digest` (HMAC of the entry under the data key)
+   skips unchanged entries, so restarts don't bump revisions. A transaction
+   with an advisory lock keeps replicas that start together from racing.
 5. **API and UI:** `Infrastructure` gets `managed: boolean`. The panel shows a
    *Managed by deployment* chip, the dialog opens read-only for managed rows,
    and the BFF rejects writes to them. `GET /context` carries
