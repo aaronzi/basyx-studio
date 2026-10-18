@@ -247,7 +247,13 @@
         @update:model-value="list => set('embeddedDataSpecifications', list)"
       />
 
-      <FormSection v-model:open="openQualifiers" :badge="qualifiers.length || undefined" collapsible :title="t('editor.sections.qualifiers')">
+      <FormSection
+        v-model:open="openQualifiers"
+        :badge="qualifiers.length || undefined"
+        collapsible
+        last
+        :title="t('editor.sections.qualifiers')"
+      >
         <QualifiersInput :model-value="qualifiers" @update:model-value="list => set('qualifiers', list)" />
       </FormSection>
 

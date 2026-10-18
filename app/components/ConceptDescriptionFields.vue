@@ -80,7 +80,7 @@
       />
     </FormSection>
 
-    <FormSection v-model:open="openAdmin" collapsible :title="t('shell.administration')">
+    <FormSection v-model:open="openAdmin" collapsible last :title="t('shell.administration')">
       <div class="d-flex align-start ga-3">
         <v-text-field :label="t('details.version')" :model-value="String(administration.version ?? '')" @update:model-value="text => set('administration', withField(administration, 'version', text))" />
         <v-text-field :label="t('shell.revisionLabel')" :model-value="String(administration.revision ?? '')" @update:model-value="text => set('administration', withField(administration, 'revision', text))" />

@@ -217,8 +217,9 @@
           />
         </div>
 
-        <!-- In edit mode the form holds the fields; only what it cannot edit stays. -->
-        <v-list v-if="metadata.length > 0" class="px-2" lines="two">
+        <!-- In edit mode the form holds the fields; only what it cannot edit
+             stays, divided from the form's last section, which has no line. -->
+        <v-list v-if="metadata.length > 0" :class="['px-2', form ? 'border-t' : undefined]" lines="two">
           <v-list-subheader :title="t('details.metadata')" />
 
           <v-list-item
@@ -235,32 +236,37 @@
           </v-list-item>
         </v-list>
 
-        <v-divider />
+        <!-- In edit mode the form has these (and the concept description in its
+             Semantics section): nothing below the metadata, so no divider
+             above the footer's own line. -->
+        <template v-if="!form">
+          <v-divider />
 
-        <v-expansion-panels :model-value="['description', 'concept']" multiple>
-          <v-expansion-panel v-if="!form" :title="t('details.description')" value="description">
-            <v-expansion-panel-text class="text-body-medium text-medium-emphasis">
-              {{ description ?? t('details.noDescription') }}
-            </v-expansion-panel-text>
-          </v-expansion-panel>
+          <v-expansion-panels :model-value="['description', 'concept']" multiple>
+            <v-expansion-panel :title="t('details.description')" value="description">
+              <v-expansion-panel-text class="text-body-medium text-medium-emphasis">
+                {{ description ?? t('details.noDescription') }}
+              </v-expansion-panel-text>
+            </v-expansion-panel>
 
-          <!-- What the semantic ID means (MVP-6 plan, E1); in edit mode the form's Semantics section shows it. -->
-          <v-expansion-panel v-if="showConcept && !form" :title="t('cd.semanticsCard')" value="concept">
-            <v-expansion-panel-text>
-              <ConceptDescriptionCard :can-create="canCreateConcept" :node="value" :target-id="targetId" />
-            </v-expansion-panel-text>
-          </v-expansion-panel>
+            <!-- What the semantic ID means (MVP-6 plan, E1). -->
+            <v-expansion-panel v-if="showConcept" :title="t('cd.semanticsCard')" value="concept">
+              <v-expansion-panel-text>
+                <ConceptDescriptionCard :can-create="canCreateConcept" :node="value" :target-id="targetId" />
+              </v-expansion-panel-text>
+            </v-expansion-panel>
 
-          <v-expansion-panel v-if="!form" :title="t('details.qualifiers')" value="qualifiers">
-            <v-expansion-panel-text>
-              <div v-if="qualifiers.length > 0" class="d-flex flex-wrap ga-2">
-                <v-chip v-for="qualifier in qualifiers" :key="qualifier" prepend-icon="mdi-tag-outline" :text="qualifier" />
-              </div>
+            <v-expansion-panel :title="t('details.qualifiers')" value="qualifiers">
+              <v-expansion-panel-text>
+                <div v-if="qualifiers.length > 0" class="d-flex flex-wrap ga-2">
+                  <v-chip v-for="qualifier in qualifiers" :key="qualifier" prepend-icon="mdi-tag-outline" :text="qualifier" />
+                </div>
 
-              <span v-else class="text-body-medium text-medium-emphasis">{{ t('details.noQualifiers') }}</span>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
+                <span v-else class="text-body-medium text-medium-emphasis">{{ t('details.noQualifiers') }}</span>
+              </v-expansion-panel-text>
+            </v-expansion-panel>
+          </v-expansion-panels>
+        </template>
       </div>
 
       <div v-else-if="mode === 'visualization' && submodelRef" class="flex-grow-1 overflow-y-auto">
