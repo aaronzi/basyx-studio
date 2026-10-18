@@ -6,7 +6,10 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.0'
+export const studioAppApiVersion = '0.1.1'
+
+/** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
+export const readFileMaxBytes = 200 * 1024 * 1024
 
 export const permissions = [
   'studio.aas.read',
@@ -34,10 +37,23 @@ export interface AppManifest {
   runtimes: ('hosted' | 'desktop')[]
   permissions: Permission[]
   backend?: { runtime: 'deno', entry: string }
+  /**
+   * What the app's pages may run beyond scripts (ADR 0038): WebAssembly
+   * modules, and workers started from `blob:` URLs. An administrator sees
+   * both at install.
+   */
+  sandbox?: AppSandbox
   contributes: {
     submodelViews?: SubmodelViewContribution[]
     modules?: ModuleContribution[]
   }
+}
+
+export interface AppSandbox {
+  /** Compile and run WebAssembly (CSP `'wasm-unsafe-eval'`), e.g. for file parsers. */
+  webAssembly?: boolean
+  /** Start dedicated workers from `blob:` URLs, e.g. to parse large files off the page. */
+  workers?: boolean
 }
 
 /** Vuetify's breakpoint names, smallest first. */
@@ -104,6 +120,13 @@ export interface ElementSnapshot {
   /** Opaque revision; pass it unchanged to `setElementValue`. */
   revision: string
   concurrency: ConcurrencyMode
+}
+
+/** The content of a File element (`studio.ui.readFile`). */
+export interface FileContent {
+  bytes: Uint8Array
+  /** The media type Studio received, e.g. `model/gltf-binary`. */
+  contentType: string
 }
 
 export interface ShellSummary {
@@ -289,6 +312,12 @@ export interface Methods {
   'studio.ui.setHeight': { params: { height: number }, result: null }
   /** Opens the content of a File element of the active target in a new browser tab (or downloads it). */
   'studio.ui.openFile': { params: { submodelId: string, idShortPath: string, download?: boolean }, result: null }
+  /**
+   * Reads the content of a File element of the active target into the app,
+   * e.g. a 3D model or an image to show. Studio's page loads it, so the
+   * frame needs no network access; up to `readFileMaxBytes`.
+   */
+  'studio.ui.readFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
   /** Opens the same view again in a full-screen dialog of Studio; ignored inside that dialog. */
   'studio.ui.openFullscreen': { params: Record<string, never>, result: null }
   'studio.aas.listShells': { params: { limit?: number, cursor?: string }, result: Page<ShellSummary> }
@@ -348,6 +377,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.navigate': 'studio.ui.navigation',
   'studio.ui.setHeight': null,
   'studio.ui.openFile': 'studio.aas.read',
+  'studio.ui.readFile': 'studio.aas.read',
   'studio.ui.openFullscreen': null,
   'studio.aas.listShells': 'studio.aas.read',
   'studio.aas.getShell': 'studio.aas.read',
