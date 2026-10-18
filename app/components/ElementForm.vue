@@ -182,7 +182,7 @@
         <div v-else class="text-body-medium text-medium-emphasis">{{ t('editor.noValue', { type: modelType }) }}</div>
       </FormSection>
 
-      <FormSection v-model:open="openNames" :badge="namesBadge" collapsible :title="t('editor.sections.names')">
+      <FormSection v-model:open="openNames" collapsible :title="t('editor.sections.names')">
         <LangStringsInput
           :label="t('details.displayName')"
           :max-length="langStringMaxLength.name"
@@ -371,7 +371,6 @@
 
   // Closed groups say whether they hold something; a group with content starts open.
   const hasNames = computed(() => langStrings('displayName').length > 0 || langStrings('description').length > 0 || Boolean(working.value.category))
-  const namesBadge = computed(() => hasNames.value ? '✓' : undefined)
   const openNames = ref(hasNames.value)
   const openSemantics = ref(Boolean(source.value.semanticId))
   const openQualifiers = ref(qualifiers.value.length > 0)

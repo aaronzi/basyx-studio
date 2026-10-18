@@ -33,7 +33,6 @@
 
     <FormSection
       v-model:open="openNames"
-      :badge="hasNames ? '✓' : undefined"
       collapsible
       :hint="t('cd.namesHint')"
       :title="t('editor.sections.names')"

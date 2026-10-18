@@ -83,7 +83,7 @@
       />
     </FormSection>
 
-    <FormSection v-model:open="openNames" :badge="hasNames ? '✓' : undefined" collapsible :title="t('editor.sections.names')">
+    <FormSection v-model:open="openNames" collapsible :title="t('editor.sections.names')">
       <LangStringsInput
         :label="t('details.displayName')"
         :max-length="langStringMaxLength.name"
