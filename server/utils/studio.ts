@@ -7,7 +7,7 @@ import { apiBasePath } from '#shared/contract'
 import { BackendRunner } from '../lib/apps/runner'
 import { installBundledApp } from '../lib/apps/store'
 import { capabilityTokenKey } from '../lib/apps/tokens'
-import { loadStudioConfig } from '../lib/config'
+import { configurationWarnings, loadStudioConfig } from '../lib/config'
 import { systemDiscoveryEnvironment } from '../lib/containers/discovery'
 import { infrastructureInputOf } from '../lib/containers/infrastructure'
 import { ContainerManager } from '../lib/containers/manager'
@@ -73,6 +73,9 @@ async function initialize (): Promise<StudioRuntime> {
   const { app, studio: runtimeConfig } = useRuntimeConfig()
   const deploymentMode = runtimeConfig.deploymentMode as DeploymentMode
   const config = loadStudioConfig(process.env, deploymentMode, app.baseURL)
+  for (const warning of configurationWarnings(config, process.env)) {
+    console.warn(`[studio] ${warning}`)
+  }
   const handle = await openDatabase(config.database)
   try {
     const applied = await applyMigrations(handle.db, await loadMigrationsFromAssets())

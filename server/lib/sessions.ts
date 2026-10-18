@@ -21,6 +21,18 @@ export function sessionCookieName (config: Pick<StudioConfig, 'secureCookies' | 
   return config.secureCookies ? `__Host-${name}` : name
 }
 
+/** Options of the session cookie; also for anonymous sessions (ADR 0036). */
+export function sessionCookieOptions (config: Pick<StudioConfig, 'secureCookies' | 'sessionTtlMs'>) {
+  return {
+    httpOnly: true,
+    secure: config.secureCookies,
+    // Lax: the cookie must accompany the top-level redirect back from the IdP.
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: Math.floor(config.sessionTtlMs / 1000),
+  }
+}
+
 export async function createSession (
   deps: StudioDeps,
   user: { subject: string, displayName: string, roles: string[], idToken: string | undefined },

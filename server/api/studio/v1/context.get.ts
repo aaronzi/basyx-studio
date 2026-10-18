@@ -7,7 +7,8 @@ export default defineStudioHandler(async (): Promise<StudioContext> => {
   return {
     apiVersion: '1',
     deploymentMode: studio.config.deploymentMode,
-    loginRequired: studio.config.deploymentMode === 'hosted',
+    loginRequired: studio.config.login !== null,
+    anonymous: studio.config.anonymous !== null,
     infrastructuresEditable: studio.config.infrastructuresEditable,
   }
 })

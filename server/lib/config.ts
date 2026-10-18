@@ -13,6 +13,8 @@ const envSchema = z.object({
   STUDIO_DATA_DIR: z.string().min(1).default('.data/studio'),
   STUDIO_DATA_KEY: z.string().optional(),
   STUDIO_DATA_KEY_FILE: z.string().optional(),
+  STUDIO_AUTH_MODE: z.enum(['oidc', 'none']).default('oidc'),
+  STUDIO_ANONYMOUS_ROLES: csv.default([]),
   STUDIO_OIDC_ISSUER: z.url({ protocol: /^https?$/ }).optional(),
   STUDIO_OIDC_CLIENT_ID: z.string().min(1).optional(),
   STUDIO_OIDC_CLIENT_SECRET: z.string().min(1).optional(),
@@ -69,6 +71,11 @@ export interface StudioConfig {
   /** 32-byte key for encrypting token material and stored secrets at rest. */
   dataKey: Buffer
   login: StudioOidcConfig | null
+  /**
+   * Hosted without login (STUDIO_AUTH_MODE=none, ADR 0036): every browser
+   * gets its own session as the shared `anonymous` user with these roles.
+   */
+  anonymous: { roles: string[] } | null
   rolesClaim: string
   adminRole: string
   sessionTtlMs: number
@@ -174,7 +181,8 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
   const dataKey = decodeDataKey(readSecret(values.STUDIO_DATA_KEY, values.STUDIO_DATA_KEY_FILE, 'STUDIO_DATA_KEY'))
 
   let login: StudioOidcConfig | null = null
-  if (deploymentMode === 'hosted') {
+  const anonymous = deploymentMode === 'hosted' && values.STUDIO_AUTH_MODE === 'none' ? { roles: values.STUDIO_ANONYMOUS_ROLES } : null
+  if (deploymentMode === 'hosted' && !anonymous) {
     if (!values.STUDIO_OIDC_ISSUER || !values.STUDIO_OIDC_CLIENT_ID) {
       throw new ConfigurationError('STUDIO_OIDC_ISSUER and STUDIO_OIDC_CLIENT_ID are required for hosted deployments.')
     }
@@ -208,6 +216,7 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
       : { kind: 'pglite', dataDir: resolve(values.STUDIO_DATA_DIR, 'db') },
     dataKey,
     login,
+    anonymous,
     rolesClaim: values.STUDIO_OIDC_ROLES_CLAIM,
     adminRole: values.STUDIO_ADMIN_ROLE,
     sessionTtlMs: values.STUDIO_SESSION_TTL_HOURS * 60 * 60 * 1000,
@@ -227,4 +236,21 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
     uploadMaxBytes: values.STUDIO_UPLOAD_MAX_BYTES,
     containers: deploymentMode === 'desktop' ? { dataDir: resolve(values.STUDIO_DATA_DIR, 'containers') } : null,
   }
+}
+
+/** Settings that work but deserve a line in the log at startup. */
+export function configurationWarnings (config: StudioConfig, env: NodeJS.ProcessEnv): string[] {
+  const warnings: string[] = []
+  if (config.anonymous) {
+    if (env.STUDIO_OIDC_ISSUER || env.STUDIO_OIDC_CLIENT_ID) {
+      warnings.push('STUDIO_AUTH_MODE=none: the STUDIO_OIDC_* settings are ignored.')
+    }
+    const host = new URL(config.publicUrl).hostname
+    const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(host) || host.endsWith('.localhost')
+    warnings.push(`STUDIO_AUTH_MODE=none: everyone who reaches ${config.publicUrl}${config.basePath} uses Studio without signing in.`)
+    if (!loopback && config.anonymous.roles.includes(config.adminRole)) {
+      warnings.push(`STUDIO_ANONYMOUS_ROLES includes ${config.adminRole}: every visitor may change infrastructures and apps. Restrict access to this deployment.`)
+    }
+  }
+  return warnings
 }

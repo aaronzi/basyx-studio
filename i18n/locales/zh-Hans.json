@@ -7,6 +7,7 @@
     "signIn": "登录",
     "signOut": "退出登录",
     "localUser": "本地用户",
+    "anonymous": "匿名用户",
     "administrator": "管理员",
     "apps": "应用",
     "appModules": "应用模块",

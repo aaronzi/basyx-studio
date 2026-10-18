@@ -29,7 +29,7 @@ export interface ApiRequest {
  * token to state-changing requests.
  */
 export function useStudioApi () {
-  const requestFetch = useRequestFetch()
+  const requestFetch = useStudioFetch()
   const session = useSessionStore()
   const route = useRoute()
 

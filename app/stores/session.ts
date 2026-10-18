@@ -20,7 +20,7 @@ export const useSessionStore = defineStore('session', () => {
     if (loaded.value) {
       return
     }
-    const requestFetch = useRequestFetch()
+    const requestFetch = useStudioFetch()
     context.value = await requestFetch<StudioContext>(`${apiBasePath}/context`)
     session.value = await requestFetch<StudioSession>(`${apiBasePath}/session`).catch(() => null)
     loaded.value = true

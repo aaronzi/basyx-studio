@@ -8,6 +8,8 @@ export const studioContextSchema = z.object({
   deploymentMode: deploymentModeSchema,
   /** Whether users must sign in to Studio (hosted) or are the local OS user (desktop). */
   loginRequired: z.boolean(),
+  /** Hosted without login: everyone is the shared anonymous user (STUDIO_AUTH_MODE=none). */
+  anonymous: z.boolean(),
   /** Whether administrators may add, change and remove infrastructures (STUDIO_INFRASTRUCTURES_EDITABLE). */
   infrastructuresEditable: z.boolean(),
 })

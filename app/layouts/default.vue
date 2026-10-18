@@ -143,7 +143,7 @@
             <v-list-item
               prepend-icon="mdi-account-circle"
               :subtitle="session.isAdmin ? t('app.administrator') : undefined"
-              :title="session.isDesktop ? t('app.localUser') : session.session.user.name"
+              :title="displayName"
             />
 
             <v-divider class="my-1" />
@@ -174,7 +174,7 @@
             />
 
             <v-list-item
-              v-if="!session.isDesktop"
+              v-if="session.context?.loginRequired"
               prepend-icon="mdi-logout"
               :title="t('app.signOut')"
               @click="session.logout()"
@@ -399,9 +399,16 @@
     void preferences.update(current => ({ ...current, theme: theme.current.value.dark ? 'light' : 'dark' }))
   }
 
+  /** The desktop's local user, the anonymous user without login, or the signed-in user. */
+  const displayName = computed(() => {
+    if (session.isDesktop) {
+      return t('app.localUser')
+    }
+    return session.context?.anonymous ? t('app.anonymous') : (session.session?.user.name ?? '')
+  })
+
   const initials = computed(() => {
-    const name = session.isDesktop ? t('app.localUser') : (session.session?.user.name ?? '')
-    return name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join('')
+    return displayName.value.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]!.toUpperCase()).join('')
   })
 
   useHotkey('cmd+k', () => {

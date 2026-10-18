@@ -1,7 +1,7 @@
 # Deployment plan: container image, configuration and managed infrastructures
 
-- Status: In progress; phases A (image), B (base path), D (managed
-  infrastructures) and E (export and import) implemented
+- Status: In progress; phases A to E implemented (image, base path,
+  anonymous mode, managed infrastructures, export and import); F to H open
 - Date: 2026-10-18
 - Template: the BaSyx AAS Web UI (`eclipse-basyx/basyx-aas-web-ui`,
   `aas-web-ui/Dockerfile`, `entrypoint.sh`, `docker-prerelease-ui.yml`,
@@ -163,6 +163,10 @@ no `linux/arm/v7` (Deno and PGlite don't support it).
 6. Write an ADR (0036) as an amendment to ADR 0002 that states the threat
    model: this mode is for demos, closed networks, or setups behind an
    authenticating proxy.
+7. The server render's own API calls send the session cookie created during
+   the same request (`app/composables/useStudioFetch.ts`); rewriting the
+   request's cookie header does not reach Nitro's internal fetches, and one
+   page load created four sessions that way.
 
 ## Phase D: managed infrastructures from YAML
 

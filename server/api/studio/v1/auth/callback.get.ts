@@ -6,7 +6,7 @@ import { getInfrastructure } from '~~/server/lib/infrastructures'
 import { completeAuthorization, getOidcClient, readRoles } from '~~/server/lib/oidc/client'
 import { consumeTransaction } from '~~/server/lib/oidc/transactions'
 import { StudioProblem } from '~~/server/lib/problem'
-import { createSession, sessionCookieName } from '~~/server/lib/sessions'
+import { createSession, sessionCookieName, sessionCookieOptions } from '~~/server/lib/sessions'
 import { studioPath } from '~~/server/lib/urls'
 import { requestIdOf } from '~~/server/utils/handler'
 import { useStudio } from '~~/server/utils/studio'
@@ -49,14 +49,7 @@ async function completeLogin (event: RequestEvent, transaction: AuthorizationTra
     roles: readRoles(claims, studio.config.rolesClaim),
     idToken: tokens.idToken,
   })
-  setCookie(event, sessionCookieName(studio.config), token, {
-    httpOnly: true,
-    secure: studio.config.secureCookies,
-    // Lax: the cookie must accompany the top-level redirect back from the IdP.
-    sameSite: 'lax',
-    path: '/',
-    maxAge: Math.floor(studio.config.sessionTtlMs / 1000),
-  })
+  setCookie(event, sessionCookieName(studio.config), token, sessionCookieOptions(studio.config))
   await recordAudit(studio, { action: 'studio.login', outcome: 'success', requestId: requestIdOf(event), actorSubject: subject })
 }
 
