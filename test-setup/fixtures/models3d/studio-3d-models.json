@@ -10,7 +10,7 @@
       ],
       "id": "urn:studio:test:aas:models3d",
       "assetInformation": {
-        "assetKind": "Type",
+        "assetKind": "Instance",
         "globalAssetId": "urn:studio:test:asset:models3d"
       },
       "submodels": [
@@ -77,6 +77,12 @@
         {
           "idShort": "GltfExternalBuffer",
           "value": "/aasx/files/models3d/bracket-external.gltf",
+          "contentType": "model/gltf+json",
+          "modelType": "File"
+        },
+        {
+          "idShort": "GltfExternalTexture",
+          "value": "/aasx/files/models3d/bracket-external-texture.gltf",
           "contentType": "model/gltf+json",
           "modelType": "File"
         },

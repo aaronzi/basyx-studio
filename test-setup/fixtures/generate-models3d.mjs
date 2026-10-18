@@ -133,6 +133,20 @@ function gltfExternal () {
   return `${JSON.stringify(json, null, 2)}\n`
 }
 
+/**
+ * A glTF whose base color texture is in a file next to it, with alpha
+ * masking: shown without the texture, it must stay visible.
+ */
+function gltfExternalTexture () {
+  const { json, buffer } = gltfParts()
+  json.buffers[0].uri = `data:application/octet-stream;base64,${buffer.toString('base64')}`
+  json.images = [{ uri: 'bracket-color.png' }]
+  json.textures = [{ source: 0 }]
+  Object.assign(json.materials[0], { alphaMode: 'MASK', alphaCutoff: 0.5 })
+  json.materials[0].pbrMetallicRoughness.baseColorTexture = { index: 0 }
+  return `${JSON.stringify(json, null, 2)}\n`
+}
+
 function glb () {
   const { json, buffer } = gltfParts()
   const pad = (bytes, fill) => Buffer.concat([bytes, Buffer.alloc((4 - (bytes.length % 4)) % 4, fill)])
@@ -392,6 +406,7 @@ const files = {
   'bracket.gltf': { content: gltfEmbedded(), contentType: 'model/gltf+json' },
   'bracket.glb': { content: glb(), contentType: 'model/gltf-binary' },
   'bracket-external.gltf': { content: gltfExternal(), contentType: 'model/gltf+json' },
+  'bracket-external-texture.gltf': { content: gltfExternalTexture(), contentType: 'model/gltf+json' },
   'bracket.step': { content: step(), contentType: 'model/step' },
   'workshop.ifc': { content: ifc(), contentType: 'application/x-step' },
   'bracket.png': { content: bracketPreview(), contentType: 'image/png' },
@@ -557,6 +572,7 @@ const filesSubmodel = {
     ['Gltf', 'bracket.gltf'],
     ['Glb', 'bracket.glb'],
     ['GltfExternalBuffer', 'bracket-external.gltf'],
+    ['GltfExternalTexture', 'bracket-external-texture.gltf'],
     ['Step', 'bracket.step'],
     ['Ifc', 'workshop.ifc'],
     ['Preview', 'bracket.png'],
@@ -668,7 +684,8 @@ const environment = {
     id: 'urn:studio:test:aas:models3d',
     idShort: 'Models3DDemo',
     displayName: [{ language: 'en', text: '3D models demo' }],
-    assetInformation: { assetKind: 'Type', globalAssetId: 'urn:studio:test:asset:models3d' },
+    // The open infrastructure holds instances only (test/integration/live-target-search.test.ts).
+    assetInformation: { assetKind: 'Instance', globalAssetId: 'urn:studio:test:asset:models3d' },
     submodels: Object.values(submodelIds).map(id => ({ type: 'ModelReference', keys: [{ type: 'Submodel', value: id }] })),
   }],
   submodels: [filesSubmodel, modelsSubmodel],
