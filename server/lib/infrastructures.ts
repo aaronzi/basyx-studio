@@ -487,6 +487,12 @@ function requireUnmanaged (record: Pick<InfrastructureRecord, 'managedKey'>): vo
   }
 }
 
+/** Rejects changes to an infrastructure that the deployment fixes or manages. */
+export function requireChangeable (deps: StudioDeps, record: Pick<InfrastructureRecord, 'managedKey'>): void {
+  requireEditable(deps)
+  requireUnmanaged(record)
+}
+
 export async function createInfrastructure (deps: StudioDeps, actor: Actor, raw: unknown, requestId: string): Promise<InfrastructureRecord> {
   requireEditable(deps)
   const input = parseInput(deps, raw)

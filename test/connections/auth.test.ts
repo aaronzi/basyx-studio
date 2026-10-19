@@ -196,6 +196,21 @@ describe('connections in use', () => {
     delete process.env.AUTH_TEST_INFLUX_TOKEN
   })
 
+  it('tests only the saved connection where the deployment fixes or manages the infrastructure', async () => {
+    process.env.AUTH_TEST_INFLUX_TOKEN = 'influx-secret'
+    // An edit keeps the stored secret, so it would send it to the edited URL.
+    const edited = { key: 'influx', type: 'influxdb2', url: 'http://127.0.0.1:2', allowPrivateNetwork: true, auth: { scheme: 'token' }, settings: { organization: 'basyx' } }
+    const record = await insert({ mode: 'unsecured' }, [influxConnection()])
+    const managed = { ...record, managedKey: 'plant' }
+    await expect(testConnection(deps, broker, managed, 'influx', actor, 'r1', edited)).rejects.toMatchObject({ code: 'forbidden' })
+    const fixed = { ...deps, config: { ...deps.config, infrastructuresEditable: false } }
+    await expect(testConnection(fixed, broker, record, 'influx', actor, 'r2', edited)).rejects.toMatchObject({ code: 'forbidden' })
+    expect(influx.requests).toHaveLength(0)
+    expect((await testConnection(deps, broker, managed, 'influx', actor, 'r3')).ok).toBe(true)
+    expect((await testConnection(fixed, broker, record, 'influx', actor, 'r4')).ok).toBe(true)
+    delete process.env.AUTH_TEST_INFLUX_TOKEN
+  })
+
   it('sends queries to the configured URL only, never following redirects', async () => {
     process.env.AUTH_TEST_INFLUX_TOKEN = 'influx-secret'
     const connection = influxConnection()

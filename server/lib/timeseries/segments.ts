@@ -31,8 +31,10 @@ export function segmentKindOf (segment: JsonObject): SegmentKind | null {
 export interface TimeSeriesSelection {
   segment: JsonObject
   kind: SegmentKind
-  /** The segment's idShort as stored, for idShort paths. */
+  /** The segment's idShort as stored, for messages. */
   segmentIdShort: string
+  /** The segment's idShort path as stored (`Segments.<segment>`), for elements below it. */
+  segmentPath: string
   /** The `Metadata.Record` entries of the time and of each value, as stored. */
   time: JsonObject
   values: JsonObject[]
@@ -51,7 +53,8 @@ export function selectTimeSeries (submodel: JsonObject, request: { segment: stri
   if (!semanticIdsOf(submodel).includes(timeSeriesSemanticId)) {
     throw invalid(`The submodel is not a Time Series Data submodel (${timeSeriesSemanticId}).`)
   }
-  const segment = childNamed(childNamed(submodel, 'Segments'), request.segment)
+  const segments = childNamed(submodel, 'Segments')
+  const segment = childNamed(segments, request.segment)
   if (!segment) {
     throw invalid(`The submodel has no segment ${request.segment}.`)
   }
@@ -71,6 +74,7 @@ export function selectTimeSeries (submodel: JsonObject, request: { segment: stri
     segment,
     kind,
     segmentIdShort: segment.idShort as string,
+    segmentPath: `${segments!.idShort as string}.${segment.idShort as string}`,
     time: entry(request.time),
     values: request.values.map(value => entry(value)),
   }

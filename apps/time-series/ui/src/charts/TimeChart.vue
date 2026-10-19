@@ -67,15 +67,23 @@
     chart = null
   })
 
+  // New data replaces the series; ApexCharts then restores the stored axis
+  // bounds, so a zoomed or panned viewport is put back afterwards.
   watch(
     () => props.series,
-    series => {
+    async series => {
       if (!chart) {
         render()
         return
       }
-      void chart.updateSeries(apexSeries(series), true)
-      void chart.updateOptions(seriesLabels(series))
+      const current = chart
+      const { minX, maxX } = current.getState()
+      const viewport = isViewportZoomed ? { minX, maxX } : null
+      await current.updateSeries(apexSeries(series), !viewport)
+      if (viewport && chart === current) {
+        current.zoomX(viewport.minX, viewport.maxX)
+      }
+      void current.updateOptions(seriesLabels(series))
     },
   )
 

@@ -11,22 +11,156 @@ export const allowedFluxImports = new Set(['strings', 'math', 'date', 'array', '
 /** The point count per graph that `v.windowPeriod` aims at, as in the BaSyx AAS Web UI. */
 export const pointsPerGraph = 360
 
-/** The query without comments and string contents, so checks see code only. */
-function codeOf (query: string): string {
-  return query
-    .replaceAll(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replaceAll(/\/\/[^\n]*/g, '')
+type FluxToken = { kind: 'word' | 'punct', text: string } | { kind: 'string', text: string }
+
+function refuse (message: string): StudioProblem {
+  return new StudioProblem('connection_request_refused', message)
 }
 
-/** Refuses a query that imports other packages or writes (`to()`). */
-export function checkFluxQuery (query: string): void {
-  const imports = [...query.matchAll(/^\s*import\s+(?:\w+\s+)?"([^"]*)"/gm)].map(match => match[1]!)
-  const refused = imports.filter(name => !allowedFluxImports.has(name))
-  if (refused.length > 0) {
-    throw new StudioProblem('connection_request_refused', `The Flux query imports ${refused.join(', ')}; Studio only sends queries that import ${[...allowedFluxImports].join(', ')}.`)
+/** Keywords after which an expression, and so a regular expression literal, starts. */
+const expressionKeywords = new Set(['return', 'then', 'else', 'and', 'or', 'not', 'exists'])
+
+/** Whether a `/` after this token starts a regular expression literal, as Flux reads it; otherwise it divides. */
+function regexMayFollow (previous: FluxToken | undefined): boolean {
+  if (!previous) {
+    return true
   }
-  if (/(?:^|[^\w.])to\s*\(/.test(codeOf(query))) {
-    throw new StudioProblem('connection_request_refused', 'The Flux query writes data (to()); Studio only sends queries that read.')
+  if (previous.kind === 'word') {
+    return expressionKeywords.has(previous.text)
+  }
+  return previous.kind === 'punct' && !')]}'.includes(previous.text)
+}
+
+/**
+ * The query as tokens, without comments: words (identifiers, keywords and
+ * numbers), strings with their text, and single punctuation characters. The
+ * code inside string interpolations (`${…}`) is tokenized too, as Flux runs
+ * it. Fails closed on anything it cannot read, such as an unterminated string.
+ */
+function tokenize (query: string): FluxToken[] {
+  const tokens: FluxToken[] = []
+  let index = 0
+
+  const readString = (): void => {
+    let text = ''
+    index++ // opening quote
+    while (index < query.length && query[index] !== '"') {
+      if (query[index] === '\\') {
+        text += query[index + 1] ?? ''
+        index += 2
+      } else if (query.startsWith('${', index)) {
+        index += 2
+        readCode('}')
+      } else {
+        text += query[index]
+        index++
+      }
+    }
+    if (index >= query.length) {
+      throw refuse('The Flux query has a string that does not end; Studio only sends queries it can check.')
+    }
+    index++ // closing quote
+    tokens.push({ kind: 'string', text })
+  }
+
+  /** Reads code up to `end` (the `}` of an interpolation) or the end of the query. */
+  const readCode = (end: string | null): void => {
+    let depth = 0
+    while (index < query.length) {
+      const char = query[index]!
+      if (end && char === end && depth === 0) {
+        index++
+        return
+      }
+      if (query.startsWith('//', index)) {
+        index = query.includes('\n', index) ? query.indexOf('\n', index) : query.length
+      } else if (char === '"') {
+        readString()
+      } else if (/\s/.test(char)) {
+        index++
+      } else if (/\w/.test(char)) {
+        const word = /^\w+/.exec(query.slice(index))![0]
+        tokens.push({ kind: 'word', text: word })
+        index += word.length
+      } else if (char === '/' && regexMayFollow(tokens.at(-1))) {
+        const literal = /^\/(?:[^/\\\n]|\\.)*\//.exec(query.slice(index))
+        if (!literal) {
+          throw refuse('The Flux query has a regular expression that does not end; Studio only sends queries it can check.')
+        }
+        index += literal[0].length
+        tokens.push({ kind: 'punct', text: 'regex' })
+      } else {
+        if (char === '{') {
+          depth++
+        } else if (char === '}') {
+          depth--
+        }
+        tokens.push({ kind: 'punct', text: char })
+        index++
+      }
+    }
+    if (end) {
+      throw refuse('The Flux query has a string interpolation that does not end; Studio only sends queries it can check.')
+    }
+  }
+
+  readCode(null)
+  return tokens
+}
+
+function isCall (tokens: FluxToken[], index: number, name: string) {
+  return tokens[index]?.kind === 'word' && tokens[index]!.text === name
+    && tokens[index + 1]?.text === '(' && tokens[index + 1]?.kind === 'punct'
+    && !(tokens[index - 1]?.kind === 'punct' && tokens[index - 1]!.text === '.')
+}
+
+/** Whether the call whose `(` is at `open` names `argument` at its own level. */
+function hasArgument (tokens: FluxToken[], open: number, argument: string): boolean {
+  let depth = 0
+  for (let index = open; index < tokens.length; index++) {
+    const token = tokens[index]!
+    if (token.kind === 'punct' && '([{'.includes(token.text)) {
+      depth++
+    } else if (token.kind === 'punct' && ')]}'.includes(token.text)) {
+      depth--
+      if (depth === 0) {
+        return false
+      }
+    } else if (depth === 1 && token.kind === 'word' && token.text === argument && tokens[index + 1]?.text === ':') {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Refuses a query that imports other packages, writes (`to()`) or makes
+ * InfluxDB query another server (`from(host: …)`). Every import counts,
+ * wherever it stands, also inside string interpolations.
+ */
+export function checkFluxQuery (query: string): void {
+  const tokens = tokenize(query)
+  const refused: string[] = []
+  for (const [index, token] of tokens.entries()) {
+    if (token.kind !== 'word' || token.text !== 'import' || tokens[index - 1]?.text === '.') {
+      continue
+    }
+    const target = tokens[index + 1]?.kind === 'word' ? tokens[index + 2] : tokens[index + 1]
+    if (target?.kind !== 'string') {
+      throw refuse('The Flux query has an import Studio cannot read; Studio only sends queries it can check.')
+    }
+    if (!allowedFluxImports.has(target.text)) {
+      refused.push(target.text)
+    }
+  }
+  if (refused.length > 0) {
+    throw refuse(`The Flux query imports ${refused.join(', ')}; Studio only sends queries that import ${[...allowedFluxImports].join(', ')}.`)
+  }
+  if (tokens.some((_, index) => isCall(tokens, index, 'to'))) {
+    throw refuse('The Flux query writes data (to()); Studio only sends queries that read.')
+  }
+  if (tokens.some((_, index) => isCall(tokens, index, 'from') && hasArgument(tokens, index + 1, 'host'))) {
+    throw refuse('The Flux query reads from another server (from(host: …)); Studio only sends queries to the configured database.')
   }
 }
 

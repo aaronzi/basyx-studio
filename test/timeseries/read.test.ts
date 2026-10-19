@@ -1,4 +1,5 @@
 import type { Connection } from '#shared/contract'
+import type { JsonObject } from '~~/server/lib/aas/outline'
 import type { ConnectionClient } from '~~/server/lib/connections/client'
 import type { TimeSeriesSources } from '~~/server/lib/timeseries/read'
 import { describe, expect, it, vi } from 'vitest'
@@ -43,6 +44,9 @@ function sources (overrides: Partial<TimeSeriesSources> = {}): TimeSeriesSources
     submodel: timeSeriesSubmodel(),
     conceptDescription: async id => id === airQualityConceptDescription.id ? airQualityConceptDescription : null,
     attachment: async () => ({ bytes: new TextEncoder().encode(''), contentType: 'text/csv', fileName: 'air.csv' }),
+    element: async idShortPath => {
+      throw new StudioProblem('target_resource_not_found', `No element ${idShortPath}.`)
+    },
     download: async url => {
       throw new StudioProblem('connection_request_refused', `${url} is not an endpoint of this infrastructure.`)
     },
@@ -137,6 +141,23 @@ describe('ExternalSegment', () => {
     await expect(readTimeSeries(params({ segment: 'ExternalSegment' }), sources({ attachment: login }))).rejects.toMatchObject({ code: 'timeseries_invalid' })
   })
 
+  it('fetches a Blob value that the submodel read left out', async () => {
+    const withoutValue = timeSeriesSubmodel({ data: { modelType: 'Blob', idShort: 'Data', contentType: 'text/csv' } })
+    const element = vi.fn(async () => ({ modelType: 'Blob', idShort: 'Data', contentType: 'text/csv', value: Buffer.from('Time,AirQuality\n2026-05-13T19:15:53Z,2\n').toString('base64') }))
+    const { result } = await readTimeSeries(params({ segment: 'ExternalSegment' }), sources({ submodel: withoutValue, element }))
+    expect(element).toHaveBeenCalledWith('Segments.ExternalSegment.Data')
+    expect(result.series[0]!.points).toEqual([[Date.parse('2026-05-13T19:15:53Z'), 2]])
+  })
+
+  it('addresses the Data file by the stored idShorts, whatever their case', async () => {
+    const submodel = timeSeriesSubmodel()
+    const segments = (submodel.submodelElements as JsonObject[]).find(element => element.idShort === 'Segments')!
+    segments.idShort = 'segments'
+    const attachment = vi.fn(async () => ({ bytes: new TextEncoder().encode(csv), contentType: 'text/csv', fileName: null }))
+    await readTimeSeries(params({ segment: 'externalsegment' }), sources({ submodel, attachment }))
+    expect(attachment).toHaveBeenCalledWith('segments.ExternalSegment.Data')
+  })
+
   it('warns about columns the data does not have', async () => {
     const attachment = async () => ({ bytes: new TextEncoder().encode('time,rpm\n2026-05-13T19:15:53Z,1\n'), contentType: 'text/csv', fileName: null })
     const { result } = await readTimeSeries(params({ segment: 'ExternalSegment', values: ['AirQuality', 'rpm'] }), sources({ attachment }))
@@ -194,11 +215,31 @@ describe('LinkedSegment', () => {
       'import "sql"\nsql.from(driverName: "postgres", dataSourceName: "x", query: "select 1")',
       'import "influxdata/influxdb/secrets"\nsecrets.get(key: "token")',
       'import "experimental"\nexperimental.to(bucket: "b")',
+      // A second import on the same line.
+      'import "array" import "experimental/http/requests"\nrequests.get(url: "https://attacker.example.org")',
+      // Code in a string interpolation runs too.
+      'from(bucket: "a") |> range(start: -1h) |> map(fn: (r) => ({ r with s: "${to(bucket: "b")}" }))',
+      // A regular expression that would hide the rest from a string-based check.
+      'from(bucket: "a") |> filter(fn: (r) => r._field =~ /"/)\nimport "http"',
+      'from(bucket: "a", host: "https://attacker.example.org", token: "t") |> range(start: -1h)',
+      'from(bucket: "a) |> range(start: -1h)',
+      'import http\nfrom(bucket: "a")',
     ]) {
       await expect(readTimeSeries(params({ segment: 'LinkedSegment' }), sources({ submodel: timeSeriesSubmodel({ query }), linked: linkedSource }))).rejects.toMatchObject({ code: 'connection_request_refused' })
     }
     expect(linkedSource).not.toHaveBeenCalled()
-    expect(() => checkFluxQuery('import "strings"\nimport agg "experimental/aggregate"\nfrom(bucket: "to(x)") // to(y)\n|> range(start: -1h)')).not.toThrow()
+    expect(() => checkFluxQuery('import "strings"\nimport agg "experimental/aggregate"\nfrom(bucket: "to(x)") // to(y) import "http"\n|> range(start: -1h)')).not.toThrow()
+    expect(() => checkFluxQuery(String.raw`from(bucket: "a") |> filter(fn: (r) => r.host == "x" and r._field =~ /^a\/b"/) |> map(fn: (r) => ({ r with host: "y", v: r._value / 2.0 }))`)).not.toThrow()
+  })
+
+  it('checks each query after the record idShorts took the place of {{y-value}}', async () => {
+    const submodel = timeSeriesSubmodel({ query: 'im{{y-value}} "http"\nfrom(bucket: "a") |> range(start: v.timeRangeStart)' })
+    const metadata = (submodel.submodelElements as JsonObject[]).find(element => element.idShort === 'Metadata')!
+    const record = (metadata.value as JsonObject[])[0]!
+    ;(record.value as JsonObject[]).push({ modelType: 'Property', idShort: 'port', valueType: 'xs:double' })
+    const linkedSource = vi.fn()
+    await expect(readTimeSeries(params({ segment: 'LinkedSegment', values: ['port'] }), sources({ submodel, linked: linkedSource }))).rejects.toMatchObject({ code: 'connection_request_refused' })
+    expect(linkedSource).not.toHaveBeenCalled()
   })
 
   it('refuses endpoints that no connection of the infrastructure names', async () => {

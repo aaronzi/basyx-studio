@@ -5,6 +5,7 @@ import type { ConnectionTokenSource } from './auth'
 import type { ConnectionCheck } from './registry'
 import { connectionInputSchema } from '#shared/contract'
 import { recordAudit } from '../audit'
+import { requireChangeable } from '../infrastructures'
 import { StudioProblem } from '../problem'
 import { openConnection } from './client'
 import { connectionAdapters } from './registry'
@@ -15,6 +16,10 @@ import { storeConnections } from './secrets'
  * checks against the stored connection `key`, or against an edited one
  * whose omitted secret is the stored one. The result names each check with
  * its status and a message, never the secret.
+ *
+ * An edited connection may send the stored secret to a new URL, so it is
+ * tested only where the infrastructure may be changed; a managed or fixed
+ * one is tested as saved.
  */
 export async function testConnection (
   deps: StudioDeps,
@@ -27,6 +32,7 @@ export async function testConnection (
 ): Promise<ConnectionTestResult> {
   let tested = record
   if (edited !== undefined) {
+    requireChangeable(deps, record)
     const parsed = connectionInputSchema.safeParse(edited)
     if (!parsed.success) {
       throw new StudioProblem('invalid_request', 'The connection is invalid.', {

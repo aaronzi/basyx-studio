@@ -58,6 +58,7 @@ export async function performTimeSeriesRead (studio: StudioRuntime, call: AppCal
       submodel: await target.submodel(params.submodelId),
       conceptDescription: id => target.conceptDescription(id).catch(() => null),
       attachment: idShortPath => target.attachment(params.submodelId, idShortPath),
+      element: async idShortPath => (await target.element(params.submodelId, idShortPath)).value,
       download: url => target.download(url),
       linked: async endpoint => {
         if (!record) {

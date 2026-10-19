@@ -24,6 +24,8 @@ export interface TimeSeriesSources {
   conceptDescription: (id: string) => Promise<JsonObject | null>
   /** The content of a File element of the submodel. */
   attachment: (idShortPath: string) => Promise<BinaryContent>
+  /** An element of the submodel with its Blob value, which a submodel read leaves out. */
+  element: (idShortPath: string) => Promise<JsonObject>
   /** A file at an absolute URL on one of the target's endpoints; refuses others. */
   download: (url: string) => Promise<BinaryContent>
   /** The connection of the target's infrastructure that serves time series for a content endpoint; refuses when there is none. */
@@ -78,14 +80,17 @@ function columnIndex (header: string[], idShort: string): number {
 
 async function externalSeries (selection: TimeSeriesSelection, sources: TimeSeriesSources, timeIdShort: string, values: string[], warnings: Warning[]): Promise<RawSeries> {
   const data = childNamed(selection.segment, 'Data')
+  const dataPath = `${selection.segmentPath}.${data?.idShort as string}`
   let content: BinaryContent
   if (data?.modelType === 'Blob') {
-    content = { bytes: Buffer.from(stringValue(data) ?? '', 'base64'), contentType: String(data.contentType ?? 'text/csv'), fileName: null }
+    // AAS servers leave Blob values out of a submodel unless asked for them.
+    const blob = stringValue(data) === undefined ? await sources.element(dataPath) : data
+    content = { bytes: Buffer.from(stringValue(blob) ?? '', 'base64'), contentType: String(blob.contentType ?? 'text/csv'), fileName: null }
   } else if (data?.modelType === 'File' && stringValue(data)?.trim()) {
     const location = stringValue(data)!.trim()
     content = /^[a-z][\d+.a-z-]*:/i.test(location)
       ? await sources.download(location)
-      : await sources.attachment(`Segments.${selection.segmentIdShort}.${data.idShort as string}`)
+      : await sources.attachment(dataPath)
   } else {
     throw new StudioProblem('timeseries_invalid', `The segment ${selection.segmentIdShort} has no Data file with a path or URL.`)
   }
@@ -146,7 +151,13 @@ async function linkedSeries (
   if (!endpoint || !/^https?:$/.test(endpoint.protocol)) {
     throw new StudioProblem('timeseries_invalid', `The Endpoint of the LinkedSegment ${selection.segmentIdShort} is not an http(s) URL.`)
   }
-  checkFluxQuery(query)
+  // The queries as sent: record idShorts take the place of `{{y-value}}`,
+  // so the check reads each query after interpolation.
+  const perValue = isValueTemplate(query)
+  const queries = perValue ? values.map(value => interpolateFlux(query, value, range)) : [interpolateFlux(query, null, range)]
+  for (const text of queries) {
+    checkFluxQuery(text)
+  }
 
   const client = await sources.linked(endpoint)
   const { connection } = client
@@ -154,8 +165,6 @@ async function linkedSeries (
     throw new StudioProblem('connection_request_refused', `The connection ${(connection as Connection).key} cannot read time series.`)
   }
   const parameters = influxQueryParameters(connection, endpoint)
-  const perValue = isValueTemplate(query)
-  const queries = perValue ? values.map(value => interpolateFlux(query, value, range)) : [interpolateFlux(query, null, range)]
   const answers = await Promise.all(queries.map(text => runFluxQuery(client, text, parameters)))
   const tables = answers.map(answer => parseFluxCsv(answer))
 
