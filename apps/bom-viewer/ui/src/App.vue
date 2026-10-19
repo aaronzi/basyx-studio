@@ -59,13 +59,7 @@
 
         <template v-if="tree.items.length > 0">
           <div class="d-flex align-center px-4 pb-2">
-            <v-btn-toggle
-              v-model="view"
-              color="primary"
-              density="compact"
-              mandatory
-              variant="outlined"
-            >
+            <v-btn-toggle v-model="view" mandatory>
               <v-btn data-test="view-graph" prepend-icon="mdi-graph-outline" :text="t('bom.graph')" value="graph" />
               <v-btn data-test="view-tree" prepend-icon="mdi-file-tree-outline" :text="t('bom.tree')" value="tree" />
             </v-btn-toggle>

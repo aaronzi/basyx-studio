@@ -13,8 +13,6 @@
         :color="validationError ? 'error' : undefined"
         data-test="time-range"
         prepend-icon="mdi-clock-outline"
-        size="small"
-        variant="tonal"
         v-bind="menuProps"
       >
         {{ buttonLabel }}
@@ -36,35 +34,28 @@
       </v-card-title>
 
       <v-card-text>
-        <v-btn-toggle
-          v-model="mode"
-          class="d-flex mb-3"
-          color="primary"
-          density="compact"
-          divided
-          mandatory
-          variant="outlined"
-        >
+        <v-btn-toggle v-model="mode" class="d-flex mb-3" mandatory>
           <v-btn class="flex-grow-1" value="relative">{{ t('timeRange.relative') }}</v-btn>
           <v-btn class="flex-grow-1" value="absolute">{{ t('timeRange.absolute') }}</v-btn>
         </v-btn-toggle>
 
         <template v-if="mode === 'relative'">
-          <v-row class="mb-2" density="compact">
-            <v-col v-for="preset in TIME_RANGE_PRESETS" :key="preset.id" cols="3">
-              <v-btn
-                :active="selectedPreset === preset.id"
-                :aria-label="preset.id === 'custom' ? t('timeRange.customTitle') : t('timeRange.last', { range: preset.id })"
-                block
-                :color="selectedPreset === preset.id ? 'primary' : undefined"
-                size="small"
-                variant="outlined"
-                @click="selectedPreset = preset.id"
-              >
-                {{ preset.id === 'custom' ? t('timeRange.custom') : preset.id }}
-              </v-btn>
-            </v-col>
-          </v-row>
+          <v-chip-group
+            v-model="selectedPreset"
+            class="mb-2"
+            column
+            mandatory
+            selected-class="text-primary"
+          >
+            <v-chip
+              v-for="preset in TIME_RANGE_PRESETS"
+              :key="preset.id"
+              :aria-label="preset.id === 'custom' ? t('timeRange.customTitle') : t('timeRange.last', { range: preset.id })"
+              filter
+              :text="preset.id === 'custom' ? t('timeRange.custom') : preset.id"
+              :value="preset.id"
+            />
+          </v-chip-group>
 
           <v-row v-if="selectedPreset === 'custom'" density="compact">
             <v-col cols="7">
@@ -85,22 +76,15 @@
             <v-col cols="5">
               <div class="text-caption mb-1">{{ t('timeRange.unit') }}</div>
 
-              <v-row density="compact">
-                <v-col v-for="unit in RELATIVE_TIME_UNITS" :key="unit" cols="3">
-                  <v-btn
-                    :active="relativeUnit === unit"
-                    :aria-label="t(`units.${unit}`)"
-                    block
-                    :color="relativeUnit === unit ? 'primary' : undefined"
-                    size="small"
-                    slim
-                    variant="outlined"
-                    @click="relativeUnit = unit"
-                  >
-                    {{ RELATIVE_UNIT_SHORT[unit] }}
-                  </v-btn>
-                </v-col>
-              </v-row>
+              <v-chip-group v-model="relativeUnit" column mandatory selected-class="text-primary">
+                <v-chip
+                  v-for="unit in RELATIVE_TIME_UNITS"
+                  :key="unit"
+                  :aria-label="t(`units.${unit}`)"
+                  :text="RELATIVE_UNIT_SHORT[unit]"
+                  :value="unit"
+                />
+              </v-chip-group>
             </v-col>
           </v-row>
         </template>

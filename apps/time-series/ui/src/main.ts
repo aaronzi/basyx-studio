@@ -4,6 +4,8 @@ import { VBtn } from 'vuetify/components/VBtn'
 import { VBtnGroup } from 'vuetify/components/VBtnGroup'
 import { VBtnToggle } from 'vuetify/components/VBtnToggle'
 import { VCard, VCardActions, VCardItem, VCardSubtitle, VCardText, VCardTitle } from 'vuetify/components/VCard'
+import { VChip } from 'vuetify/components/VChip'
+import { VChipGroup } from 'vuetify/components/VChipGroup'
 import { VDivider } from 'vuetify/components/VDivider'
 import { VEmptyState } from 'vuetify/components/VEmptyState'
 import { VCol, VRow, VSpacer } from 'vuetify/components/VGrid'
@@ -29,6 +31,8 @@ await mountApp(App, {
   VCardSubtitle,
   VCardText,
   VCardTitle,
+  VChip,
+  VChipGroup,
   VCol,
   VDivider,
   VEmptyState,

@@ -1,5 +1,6 @@
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
+import { buttonGroupDefaults } from './shared/button-groups.ts'
 
 // The single place for Studio's look and feel. Components rely on these
 // defaults instead of repeating props, and on Vuetify utility classes instead
@@ -101,7 +102,8 @@ export default defineVuetifyConfiguration({
     VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none' },
     // One bordered group, divided between its buttons. Only the group is
     // rounded: the buttons' own rounding (VBtn above) would show at the dividers.
-    VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
+    // VBtnToggle and VBtnGroup, shared with the bundled apps.
+    ...buttonGroupDefaults,
     // As the toggle's own buttons (VBtnGroup sets height, flat and the rest).
     VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
     VBtnWidgetIcon: { variant: 'text', rounded: 'lg', density: 'comfortable', size: 'small' },

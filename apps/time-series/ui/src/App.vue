@@ -75,7 +75,7 @@
             />
 
             <div class="d-flex justify-end mt-2">
-              <v-btn-group border density="compact">
+              <v-btn-group>
                 <TimeRangeSelector v-model="timeRangeSelection" />
                 <AutoRefreshSelector v-model="autoRefreshSelection" />
               </v-btn-group>

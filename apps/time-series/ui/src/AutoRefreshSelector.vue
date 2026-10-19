@@ -13,8 +13,6 @@
         :color="validationError ? 'error' : undefined"
         data-test="auto-refresh"
         prepend-icon="mdi-refresh"
-        size="small"
-        variant="tonal"
         v-bind="menuProps"
       >
         {{ buttonLabel }}
@@ -65,25 +63,18 @@
           <v-col cols="5">
             <div class="text-caption mb-1">{{ t('autoRefresh.unit') }}</div>
 
-            <div class="d-flex ga-1">
+            <v-btn-toggle v-model="unit" class="d-flex" :disabled="!enabled" mandatory>
               <v-btn
                 v-for="unitOption in AUTO_REFRESH_UNITS"
                 :key="unitOption"
-                :active="unit === unitOption"
                 :aria-label="t(`units.${unitOption}`)"
                 class="flex-grow-1"
-                :color="unit === unitOption ? 'primary' : undefined"
-                :disabled="!enabled"
-                height="40"
                 min-width="0"
-                size="small"
-                slim
-                variant="outlined"
-                @click="unit = unitOption"
+                :value="unitOption"
               >
                 {{ AUTO_REFRESH_UNIT_SHORT[unitOption] }}
               </v-btn>
-            </div>
+            </v-btn-toggle>
           </v-col>
         </v-row>
 
