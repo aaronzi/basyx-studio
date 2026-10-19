@@ -86,6 +86,17 @@ All downstream and app-mediated requests require:
 
 Local Docker targets are a supported desktop use case, so loopback/private-address policy must be explicit rather than globally forbidden.
 
+## Connections to third-party services
+
+An infrastructure may declare connections to services that are not AAS services, such as a time series database ([ADR 0040](../adr/0040-connections-on-infrastructures.md)). Their credentials follow the rules of infrastructure secrets: references to deployment secrets when hosted, encrypted values on desktop, summaries only in responses and exports.
+
+- Only the Studio Service uses a connection, through its type's adapter or, from MVP-7, through operations an administrator bound to an app. There is no generic proxy.
+- A credential is used only for content read from the same infrastructure. When AAS content names a service, its origin must match the connection's URL or one of its aliases, and the request goes to the configured URL, never to the URL in the content.
+- Requests go through the guarded fetch with the connection's origin as the only allowed origin, no redirects, a timeout of at most 120 s and a 20 MiB response cap.
+- Adapters check what AAS content asks for. The time series adapter only sends Flux queries to `/api/v2/query` and rejects writes (`to()`) and imports other than `strings`, `math`, `date`, `array` and `experimental/aggregate`. The documented boundary is still a read-only database token for the needed buckets.
+- The user's identity reaches a service only by token exchange (RFC 8693) or, where an administrator allows it, by forwarding the user's token if its audience names the service.
+- Every use is audited with user, app, infrastructure, connection and operation, without request or response bodies.
+
 ## App security
 
 App signatures establish artifact integrity and publisher identity; they do not prove that an app is safe. Runtime permissions and isolation remain mandatory.
@@ -94,6 +105,7 @@ App signatures establish artifact integrity and publisher identity; they do not 
 - Backend apps use separate constrained runtimes/processes.
 - Capability requests are validated, authorized, and audited.
 - Network plus AAS-read permission receives an explicit data-egress warning.
+- Purpose-specific capabilities that read through connections (`studio.timeseries.read`) are reserved for bundled apps until installed apps get an install-time warning for them.
 - Apps never receive OAuth tokens, client secrets, database credentials, host Pinia stores, or unrestricted Electron IPC.
 - Revoked artifacts cannot be newly installed and can be disabled according to deployment policy.
 
