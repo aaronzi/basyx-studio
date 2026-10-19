@@ -506,7 +506,8 @@
       "studio_ui_navigation": "Het eigen paginaadres wijzigen, doelen openen en links in je browser openen",
       "studio_backend": "Code aan de serverkant uitvoeren (geïsoleerd)",
       "studio_ui_clipboard": "Tekst naar het klembord kopiëren wanneer je klikt",
-      "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)"
+      "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)",
+      "studio_timeseries_read": "Tijdreeksen lezen, ook uit de databases van de verbindingen van de infrastructuur (alleen apps die met Studio worden meegeleverd)"
     },
     "bundled": "Meegeleverd",
     "bundledHint": "Meegeleverd met Studio en samen ermee bijgewerkt.",

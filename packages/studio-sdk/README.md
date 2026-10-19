@@ -51,6 +51,7 @@ The schema is [`app-manifest.schema.json`](app-manifest.schema.json).
 | `studio.ui.notifications` | `ui.notify` |
 | `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes) |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
+| `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio; Studio app API 0.1.2 |
 
 ## UI
 

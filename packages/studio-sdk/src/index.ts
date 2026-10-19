@@ -109,6 +109,11 @@ export class StudioClient {
     },
   }
 
+  readonly timeseries = {
+    /** Reads a segment of an IDTA Time Series Data submodel (bundled apps; Studio ≥ 0.1.2). */
+    read: (params: Methods['studio.timeseries.read']['params']) => this.call('studio.timeseries.read', params),
+  }
+
   readonly backend = {
     /** Calls an exported handler of the app's backend. */
     call: <T = unknown>(method: string, params?: unknown) => this.call('studio.backend.call', { method, params }) as Promise<T>,

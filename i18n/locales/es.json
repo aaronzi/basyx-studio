@@ -506,7 +506,8 @@
       "studio_ui_navigation": "Cambiar la dirección de su propia página, abrir destinos y abrir enlaces en tu navegador",
       "studio_backend": "Ejecutar código en el servidor (aislado)",
       "studio_ui_clipboard": "Copiar texto al portapapeles cuando haces clic",
-      "studio_containers": "Iniciar, detener, exportar y eliminar instancias locales de BaSyx en Docker o Podman (solo aplicaciones incluidas con Studio)"
+      "studio_containers": "Iniciar, detener, exportar y eliminar instancias locales de BaSyx en Docker o Podman (solo aplicaciones incluidas con Studio)",
+      "studio_timeseries_read": "Leer series temporales, también de las bases de datos de las conexiones de la infraestructura (solo apps incluidas con Studio)"
     },
     "bundled": "Incluida",
     "bundledHint": "Se entrega con Studio y se mantiene actualizada con él.",

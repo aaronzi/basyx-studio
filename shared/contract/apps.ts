@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { displayBreakpoints } from '../overview'
 import { engineHostSchema, stackComponentIdSchema, stackSpecSchema } from './containers'
 import { langStringSchema, listQuerySchema } from './target'
+import { timeSeriesReadParamsSchema } from './timeseries'
 import { fileHandleSchema } from './workspace'
 
 // Runtime-installable apps (ADR 0004, MVP-3). The `studio-sdk/0` message
@@ -176,6 +177,7 @@ export const appMethodParamsSchemas = {
   'studio.containers.pickFiles': z.object({ kind: z.enum(stackFileKinds), suggestedName: z.string().max(200).optional() }).strict(),
   'studio.containers.exportStack': z.object({ stackId, fileHandle: fileHandleSchema }).strict(),
   'studio.containers.importStack': z.object({ fileHandle: fileHandleSchema }).strict(),
+  'studio.timeseries.read': timeSeriesReadParamsSchema,
 } satisfies Record<MethodName, z.ZodType>
 
 export type AppMethodParams<M extends MethodName> = Methods[M]['params']

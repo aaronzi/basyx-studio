@@ -594,7 +594,8 @@
       "studio_ui_navigation": "Die eigene Seitenadresse ändern, Ziele öffnen und Links im Browser öffnen",
       "studio_backend": "Serverseitigen Code ausführen (isoliert)",
       "studio_ui_clipboard": "Text auf Klick in die Zwischenablage kopieren",
-      "studio_containers": "Lokale BaSyx-Instanzen mit Docker oder Podman starten, stoppen, exportieren und löschen (nur mit Studio ausgelieferte Apps)"
+      "studio_containers": "Lokale BaSyx-Instanzen mit Docker oder Podman starten, stoppen, exportieren und löschen (nur mit Studio ausgelieferte Apps)",
+      "studio_timeseries_read": "Zeitreihen lesen, auch aus den Datenbanken der Verbindungen der Infrastruktur (nur mit Studio ausgelieferte Apps)"
     },
     "bundled": "Enthalten",
     "bundledHint": "Mit Studio ausgeliefert und mit ihm aktuell gehalten.",

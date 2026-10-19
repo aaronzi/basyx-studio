@@ -2786,7 +2786,12 @@ paths:
         apps and backend callers and is unavailable in hosted Studio.
         Lifecycle methods return jobs polled with studio.containers.getJob;
         export/import/log saving use native file grants added by the host.
-      x-requirements: [APP-006, APP-009, APP-010, SEC-005]
+        Bundled apps may call studio.timeseries.read (ADR 0040): Studio reads
+        the Time Series Data submodel from the frame's target as the user
+        and, for a LinkedSegment, queries the database of a connection of the
+        same infrastructure; the app never sends a URL, query or credential.
+        Every use of a connection and every refusal is audited.
+      x-requirements: [APP-006, APP-009, APP-010, SEC-005, CON-002, CON-003, CON-004, CON-006]
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -5332,6 +5337,7 @@ components:
         - studio.views.binding.invoke
         - studio.backend
         - studio.containers
+        - studio.timeseries.read
     AppCapabilityRequest:
       type: object
       additionalProperties: false
@@ -5638,6 +5644,7 @@ components:
             - studio.containers.pickFiles
             - studio.containers.exportStack
             - studio.containers.importStack
+            - studio.timeseries.read
         params:
           description: Method parameters as defined by `@basyx/studio-sdk` (`studio-sdk/0`). The context returned by `studio.ui.getContext` includes Studio's `mode` (`view` or `edit`); apps show edit controls only in `edit` (MVP-4, UX-006).
     AppCallResult:

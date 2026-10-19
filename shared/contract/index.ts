@@ -8,6 +8,7 @@ export * from './preferences'
 export * from './problem'
 export * from './session'
 export * from './target'
+export * from './timeseries'
 export * from './workspace'
 
 export const apiBasePath = '/api/studio/v1'
