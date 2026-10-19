@@ -241,7 +241,8 @@
     "connection_error": "服务报告了错误。",
     "connection_request_refused": "Studio 不会发送此请求。",
     "timeseries_invalid": "无法读取时序数据。",
-    "external_file_unavailable": "无法获取外部文件。"
+    "external_file_unavailable": "无法获取外部文件。",
+    "external_file_refused": "Studio 不会从此地址获取文件。"
   },
   "admin": {
     "title": "基础设施",

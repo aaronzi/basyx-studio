@@ -241,7 +241,8 @@
     "connection_error": "De dienst heeft een fout gemeld.",
     "connection_request_refused": "Studio verstuurt dit verzoek niet.",
     "timeseries_invalid": "De tijdreeks kan niet worden gelezen.",
-    "external_file_unavailable": "Het externe bestand kon niet worden opgehaald."
+    "external_file_unavailable": "Het externe bestand kon niet worden opgehaald.",
+    "external_file_refused": "Studio haalt geen bestanden op van dit adres."
   },
   "admin": {
     "title": "Infrastructuren",

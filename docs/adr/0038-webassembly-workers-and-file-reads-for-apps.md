@@ -65,8 +65,11 @@ workers (`worker-src 'none'`).
   `readExternalFile` declares `"^0.1.2"`.
 - External files reach an app only from addresses that AAS content holds, as
   in Studio's own viewers, and the app's CSP stays closed: the frame still
-  contacts no host. A host that does not allow cross-origin reads (CORS) is
-  not reached; the 3D Models app then shows the preview image and the link.
+  contacts no host. The browser cannot read a file from a host that does not
+  allow cross-origin reads (CORS); Studio's server then fetches it for the
+  origins the deployment lists
+  ([ADR 0042](0042-external-files-through-studio.md)), and otherwise the 3D
+  Models app shows the preview image and the link.
 - The hostile probe app checks that WebAssembly and `blob:` workers stay
   blocked for an app that does not declare them.
 

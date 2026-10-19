@@ -97,6 +97,15 @@ An infrastructure may declare connections to services that are not AAS services,
 - The user's identity reaches a service only by token exchange (RFC 8693) or, where an administrator allows it, by forwarding the user's token if its audience names the service.
 - Every use is audited with user, app, infrastructure, connection and operation, without request or response bodies.
 
+## External files
+
+AAS content may name a file by its address at another host. Studio's viewers and `studio.ui.readExternalFile` fetch it in the browser, without credentials or referrer. When the host sends no CORS headers, Studio's server fetches it instead, but only for origins the deployment lists in `STUDIO_EXTERNAL_FILE_ORIGINS` ([ADR 0042](../adr/0042-external-files-through-studio.md)).
+
+- The route takes an element, never an address: Studio reads the element as the user and fetches the address stored in it.
+- Hosted deployments list no origins by default; desktop allows `*`. In hosted deployments, `*` never reaches private or loopback addresses.
+- The guarded fetch applies the address policy to every hop, follows at most three redirects to listed origins, and stops at 30 s and 200 MiB. The request carries no credentials, cookies, user token, `Origin` or `Referer`.
+- The answer is a sandboxed download with `nosniff`. Every fetch is audited with the origin, not the path.
+
 ## App security
 
 App signatures establish artifact integrity and publisher identity; they do not prove that an app is safe. Runtime permissions and isolation remain mandatory.

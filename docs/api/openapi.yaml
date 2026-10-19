@@ -1260,6 +1260,34 @@ paths:
         '428': { $ref: '#/components/responses/PreconditionRequired' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/external-file:
+    parameters:
+      - $ref: '#/components/parameters/TargetId'
+      - $ref: '#/components/parameters/SubmodelKey'
+      - $ref: '#/components/parameters/ElementKey'
+    get:
+      tags: [AAS]
+      operationId: getElementExternalFile
+      summary: Fetch the file that an element names at another host
+      description: >-
+        For a File element whose value is an http(s) address, or a Property
+        holding one. Studio reads the element as the user and fetches the
+        stored address, without credentials, for browsers that may not read
+        it there (CORS). Only origins listed in `STUDIO_EXTERNAL_FILE_ORIGINS`
+        (desktop: any) are fetched, else `external_file_refused`; a host that
+        fails gives `external_file_unavailable`. At most three redirects,
+        30 s and 200 MiB. The answer always downloads (ADR 0042).
+      x-requirements: [PROD-001, SEC-008]
+      responses:
+        '200':
+          description: File content; the media type is the element's `contentType`, else the host's
+          headers:
+            Content-Disposition:
+              schema: { type: string }
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        default: { $ref: '#/components/responses/Problem' }
   /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/invocations:
     post:
       tags: [AAS]
@@ -5919,6 +5947,7 @@ components:
         - app_backend_unavailable
         - app_backend_failed
         - external_file_unavailable
+        - external_file_refused
         - connection_not_configured
         - connection_credentials_unavailable
         - connection_rejected

@@ -58,8 +58,10 @@ export const problemCodes = [
   'app_permission_not_declared',
   'app_backend_unavailable',
   'app_backend_failed',
-  /** A file that AAS content names at another host could not be fetched in the browser (unreachable, refused by CORS, or too large). */
+  /** A file that AAS content names at another host could not be fetched (unreachable, refused by CORS, an error status, or too large). */
   'external_file_unavailable',
+  /** The deployment does not let Studio's server fetch files from that origin or address (ADR 0042). */
+  'external_file_refused',
   // Local BaSyx instances (ADR 0033)
   /** No container engine answers, or the chosen one is not running. */
   'container_engine_unavailable',

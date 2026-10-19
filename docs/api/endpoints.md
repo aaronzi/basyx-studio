@@ -80,6 +80,7 @@ selects the BaSyx TypeScript SDK client or the Workspace Worker server-side.
 | `POST /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/moves` | Moves an element to a position among its siblings; `If-Match` with the structure revision of the parent node (`structure_conflict` on a concurrent structural change). |
 | `PUT /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/value` | Sets the value of a Property or MultiLanguageProperty with `If-Match`. |
 | `GET/PUT /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/attachment` | Streams the content of a File element or replaces it with `If-Match`. |
+| `GET /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/external-file` | Fetches the file that a File or Property element names at another host, for origins the deployment lists (ADR 0042). |
 | `POST /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/invocations` | Invokes an Operation synchronously or asynchronously; asynchronous invocations return a handle. |
 | `GET /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/invocations/{handle}` | Queries the state and outputs of an asynchronous invocation. |
 | `GET/POST /targets/{targetId}/concept-descriptions` | Lists or creates concept descriptions (without an ID, Studio generates one following the infrastructure's scheme; `identifier_conflict` if the ID exists). |

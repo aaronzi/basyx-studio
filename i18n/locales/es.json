@@ -241,7 +241,8 @@
     "connection_error": "El servicio informó de un error.",
     "connection_request_refused": "Studio no envía esta solicitud.",
     "timeseries_invalid": "No se puede leer la serie temporal.",
-    "external_file_unavailable": "No se pudo obtener el archivo externo."
+    "external_file_unavailable": "No se pudo obtener el archivo externo.",
+    "external_file_refused": "Studio no obtiene archivos de esta dirección."
   },
   "admin": {
     "title": "Infraestructuras",

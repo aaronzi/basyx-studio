@@ -89,6 +89,7 @@ holds the value (for Docker and Kubernetes secrets); set one or the other.
 | `STUDIO_SESSION_TTL_HOURS` | `12` | Lifetime of a Studio session. |
 | `STUDIO_UPLOAD_MAX_BYTES` | 100 MiB | Largest AASX, JSON or XML file users may upload. |
 | `STUDIO_PRIVATE_NETWORK_TARGETS` | `deny` | `allow` lets infrastructures on private or loopback addresses be used (each also needs `allowPrivateNetwork`). Needed for services on the same Compose or cluster network. |
+| `STUDIO_EXTERNAL_FILE_ORIGINS` | none (desktop: `*`) | Origins, comma-separated, whose files Studio's server fetches when AAS content names a file there and the browser may not read it (no CORS headers), e.g. `https://c1.api.wago.com`. `*` allows any public HTTPS origin, never private addresses. See [ADR 0042](../adr/0042-external-files-through-studio.md). |
 
 ### Login
 

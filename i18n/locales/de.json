@@ -321,7 +321,8 @@
     "connection_error": "Der Dienst hat einen Fehler gemeldet.",
     "connection_request_refused": "Studio sendet diese Anfrage nicht.",
     "timeseries_invalid": "Die Zeitreihe kann nicht gelesen werden.",
-    "external_file_unavailable": "Die externe Datei konnte nicht abgerufen werden."
+    "external_file_unavailable": "Die externe Datei konnte nicht abgerufen werden.",
+    "external_file_refused": "Studio ruft Dateien von dieser Adresse nicht ab."
   },
   "admin": {
     "title": "Infrastrukturen",

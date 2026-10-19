@@ -241,7 +241,8 @@
     "connection_error": "サービスがエラーを報告しました。",
     "connection_request_refused": "Studio はこの要求を送信しません。",
     "timeseries_invalid": "時系列を読み取れません。",
-    "external_file_unavailable": "外部ファイルを取得できませんでした。"
+    "external_file_unavailable": "外部ファイルを取得できませんでした。",
+    "external_file_refused": "Studio はこのアドレスからファイルを取得しません。"
   },
   "admin": {
     "title": "インフラストラクチャ",

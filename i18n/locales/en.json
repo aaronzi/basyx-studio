@@ -321,7 +321,8 @@
     "connection_error": "The service reported an error.",
     "connection_request_refused": "Studio does not send this request.",
     "timeseries_invalid": "The time series cannot be read.",
-    "external_file_unavailable": "The external file could not be fetched."
+    "external_file_unavailable": "The external file could not be fetched.",
+    "external_file_refused": "Studio does not fetch files from this address."
   },
   "admin": {
     "title": "Infrastructures",

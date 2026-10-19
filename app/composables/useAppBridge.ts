@@ -23,54 +23,6 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
 /** Methods that act outside the app's frame and so need a click or key press in it just before. */
 const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal'])
 
-/**
- * Fetches a file at another host as Studio's own viewers do (ModelView,
- * FileValue): without credentials or referrer, so the host learns nothing
- * but the address it serves; it must allow the request (CORS). At most
- * `readFileMaxBytes`, also when the host does not say the size up front.
- */
-async function fetchExternalFile (url: string): Promise<{ bytes: Uint8Array, contentType: string }> {
-  const host = new URL(url).host
-  const unavailable = (detail: string) => hostProblem('external_file_unavailable', detail, 502)
-  let response: Response
-  try {
-    response = await fetch(url, { credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' })
-  } catch {
-    throw unavailable(`${host} could not be reached, or it does not allow Studio to read the file (CORS).`)
-  }
-  if (!response.ok || !response.body) {
-    await response.body?.cancel()
-    throw unavailable(`${host} answered with HTTP ${response.status}.`)
-  }
-  const tooLarge = () => unavailable(`The file at ${host} is larger than ${readFileMaxBytes / 1024 / 1024} MiB.`)
-  if (Number(response.headers.get('content-length')) > readFileMaxBytes) {
-    await response.body.cancel()
-    throw tooLarge()
-  }
-  const chunks: Uint8Array[] = []
-  let size = 0
-  const reader = response.body.getReader()
-  for (;;) {
-    const { done, value } = await reader.read()
-    if (done) {
-      break
-    }
-    size += value.byteLength
-    if (size > readFileMaxBytes) {
-      await reader.cancel()
-      throw tooLarge()
-    }
-    chunks.push(value)
-  }
-  const bytes = new Uint8Array(size)
-  let offset = 0
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset)
-    offset += chunk.byteLength
-  }
-  return { bytes, contentType: response.headers.get('content-type')?.split(';', 1)[0]?.trim() || 'application/octet-stream' }
-}
-
 function problemOf (error: unknown): Problem {
   if (error instanceof StudioApiError && error.problem) {
     return error.problem
@@ -93,6 +45,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   const copy = useClipboard()
   const desktop = useDesktopBridge()
   const studioUrl = useStudioUrl()
+  const readExternalFile = useExternalFile()
   const connected = ref(false)
   /** Content height the app asked for (`studio.ui.setHeight`), or `null`. */
   const height = ref<number | null>(null)
@@ -202,7 +155,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         if (!url) {
           throw hostProblem('unsupported_operation', 'The element does not name a file by an http(s) address.', 422)
         }
-        const content = await fetchExternalFile(url)
+        const content = await readExternalFile(url, { targetId: options.targetId, submodelKey: resourceKey(file.submodelId), elementKey: resourceKey(file.idShortPath) })
         return { result: content, transfer: [content.bytes.buffer] }
       }
       case 'studio.ui.navigate': {

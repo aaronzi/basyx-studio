@@ -50,6 +50,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0039](0039-3d-viewer-libraries.md) | Proposed | three.js, web-ifc and OpenCascade (occt-import-js) for the 3D view of File elements |
 | [0040](0040-connections-on-infrastructures.md) | Proposed | Connections to third-party services on infrastructures, used only by Studio-side adapters; `studio.timeseries.read` |
 | [0041](0041-apexcharts-for-time-series.md) | Proposed | ApexCharts in the bundled Time Series Data app, not in Studio |
+| [0042](0042-external-files-through-studio.md) | Proposed | Files that AAS content names at other hosts, fetched by Studio's server for origins the deployment lists |
 
 ## Template
 
