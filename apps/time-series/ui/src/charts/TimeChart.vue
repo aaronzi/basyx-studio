@@ -1,27 +1,7 @@
 <template>
   <!-- The Web UI's LineChart, AreaChart and ScatterChart in one component.
-       Line and area charts have the interpolation option. -->
-  <div>
-    <template v-if="type !== 'scatter'">
-      <div class="text-title-small mb-2">{{ t('chart.options') }}</div>
-
-      <v-row align="center">
-        <v-col cols="12" md="4" sm="6">
-          <v-select
-            v-model="curve"
-            data-test="interpolation"
-            density="compact"
-            hide-details
-            :items="curveItems"
-            :label="t('chart.interpolation')"
-            variant="outlined"
-          />
-        </v-col>
-      </v-row>
-    </template>
-
-    <div ref="container" data-test="time-chart" />
-  </div>
+       The view sets the interpolation of line and area charts. -->
+  <div ref="container" data-test="time-chart" />
 </template>
 
 <script lang="ts" setup>
@@ -31,9 +11,8 @@
   import type { ThemeTokens } from '@basyx/studio-sdk'
   import type { ApexOptions } from 'apexcharts'
   import ApexCharts from 'apexcharts'
-  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-  import { apexLocale, apexSeries, INTERPOLATIONS, markerStroke, seriesLabels, themeOptions, timeChartOptions } from '../chartOptions'
-  import { useI18n } from '../i18n'
+  import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+  import { apexLocale, apexSeries, markerStroke, seriesLabels, themeOptions, timeChartOptions } from '../chartOptions'
   import { toApexTimeRange } from '../timeRange'
 
   const props = defineProps<{
@@ -44,13 +23,11 @@
     locale: string
     /** Changes when a different time range is committed: the viewport is reset (Web UI). */
     viewportResetKey: string
+    /** Line and area charts. */
+    curve: Interpolation
   }>()
 
-  const { t } = useI18n()
-
   const container = ref<HTMLElement | null>(null)
-  const curve = ref<Interpolation>('smooth')
-  const curveItems = computed(() => INTERPOLATIONS.map(value => ({ title: t(`interpolation.${value}`), value })))
 
   let chart: ApexCharts | null = null
   let isViewportZoomed = false
@@ -66,7 +43,7 @@
       range: props.range,
       theme: props.theme,
       locale: props.locale,
-      curve: curve.value,
+      curve: props.curve,
       events: {
         beforeResetZoom: () => {
           isViewportZoomed = false
@@ -136,7 +113,7 @@
     locale => chart?.setLocale(apexLocale(locale)),
   )
 
-  watch(curve, value => {
+  watch(() => props.curve, value => {
     void chart?.updateOptions({ stroke: { curve: value } })
   })
 </script>

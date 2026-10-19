@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "Time Series Data"
-  },
   "config": {
     "title": "Preview configuration",
     "segment": "Segment",
@@ -11,11 +8,9 @@
     "fetch": "Fetch data"
   },
   "chart": {
-    "title": "Preview chart",
     "type": "Chart type",
     "emptyTitle": "No data in the selected time range",
     "emptyText": "Choose another time range or fetch the data again.",
-    "options": "Options",
     "interpolation": "Interpolation",
     "bins": "Bins",
     "stacked": "Stacked"

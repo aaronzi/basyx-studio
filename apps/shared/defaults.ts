@@ -1,4 +1,4 @@
-import { buttonGroupDefaults } from '../../shared/button-groups.ts'
+import { buttonGroupDefaults, fieldDefaults } from '../../shared/vuetify-defaults.ts'
 
 // Vuetify defaults of the apps shipped with Studio (ADR 0023). They follow
 // Studio's look: a view renders flat inside the card Studio gives it (an
@@ -15,6 +15,7 @@ export const appDefaults = {
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text' },
   VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
   ...buttonGroupDefaults,
+  ...fieldDefaults,
   VChip: { label: true, size: 'small', variant: 'tonal' },
   VList: { density: 'comfortable', bgColor: 'transparent' },
   VListItem: { rounded: 'lg' },

@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "时间序列数据"
-  },
   "config": {
     "title": "预览配置",
     "segment": "分段",
@@ -11,11 +8,9 @@
     "fetch": "获取数据"
   },
   "chart": {
-    "title": "预览图表",
     "type": "图表类型",
     "emptyTitle": "所选时间范围内没有数据",
     "emptyText": "请选择其他时间范围，或重新获取数据。",
-    "options": "选项",
     "interpolation": "插值",
     "bins": "分组数",
     "stacked": "堆叠"

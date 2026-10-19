@@ -37,9 +37,6 @@
         <v-switch
           v-model="enabled"
           class="mb-3"
-          color="primary"
-          density="compact"
-          hide-details
           :label="t('autoRefresh.enabled')"
         />
 
@@ -56,7 +53,6 @@
               :min="unit === 'seconds' ? MIN_SECONDS : 1"
               step="1"
               type="number"
-              variant="outlined"
             />
           </v-col>
 

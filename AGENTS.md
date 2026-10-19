@@ -22,7 +22,7 @@
   `<v-btn-group>` (related actions or menus). Do not style the group or its
   buttons (`variant`, `color`, `density`, `rounded`, `border`, `divided`,
   `size`) and do not build a toggle from separate buttons with `:active`.
-  The look comes from `shared/button-groups.ts`.
+  The look comes from `shared/vuetify-defaults.ts`.
 - The bundled apps (`apps/`) have their own Vuetify instance. Its defaults
   are in `apps/shared/defaults.ts`, and the rules above apply there too.
 - Vue single-file components are ordered `<template>`, `<script>`, `<style>`.

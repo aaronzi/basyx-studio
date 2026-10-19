@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "Datos de series temporales"
-  },
   "config": {
     "title": "Configuración de la vista previa",
     "segment": "Segmento",
@@ -11,11 +8,9 @@
     "fetch": "Obtener datos"
   },
   "chart": {
-    "title": "Gráfico de vista previa",
     "type": "Tipo de gráfico",
     "emptyTitle": "No hay datos en el intervalo de tiempo seleccionado",
     "emptyText": "Elija otro intervalo de tiempo u obtenga los datos de nuevo.",
-    "options": "Opciones",
     "interpolation": "Interpolación",
     "bins": "Intervalos",
     "stacked": "Apilado"

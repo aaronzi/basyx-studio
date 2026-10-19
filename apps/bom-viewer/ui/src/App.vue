@@ -17,7 +17,6 @@
             :label="t('bom.archetype')"
             :loading="saving"
             min-width="160"
-            variant="outlined"
             @update:model-value="saveArchetype"
           >
             <template #item="{ props: itemProps, item }">

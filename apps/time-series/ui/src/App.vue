@@ -9,14 +9,8 @@
       <v-alert v-else-if="error" class="ma-4" :text="error" type="error" />
 
       <div v-else class="d-flex flex-column ga-4 pa-4">
-        <!-- Header -->
-        <v-card>
-          <v-card-title>
-            <div class="text-body-large text-wrap" data-test="name">{{ name }}</div>
-          </v-card-title>
-
-          <v-card-text v-if="description" class="pt-0">{{ description }}</v-card-text>
-        </v-card>
+        <!-- Studio's card names the submodel; its description adds what the data is. -->
+        <div v-if="description" class="text-body-medium text-medium-emphasis">{{ description }}</div>
 
         <!-- Preview configuration -->
         <v-card>
@@ -24,29 +18,27 @@
             <v-card-title class="text-title-small">{{ t('config.title') }}</v-card-title>
           </v-card-item>
 
-          <v-card-text class="pt-1">
-            <v-select
-              v-model="segmentId"
-              clearable
-              data-test="segment"
-              density="compact"
-              :items="segmentItems"
-              :label="t('config.segment')"
-              :no-data-text="t('config.noData')"
-              variant="outlined"
-            />
+          <v-card-text>
+            <v-row dense>
+              <v-col cols="12">
+                <v-select
+                  v-model="segmentId"
+                  clearable
+                  data-test="segment"
+                  :items="segmentItems"
+                  :label="t('config.segment')"
+                  :no-data-text="t('config.noData')"
+                />
+              </v-col>
 
-            <v-row>
               <v-col cols="12" md="6">
                 <v-select
                   v-model="timeId"
                   clearable
                   data-test="time"
-                  density="compact"
                   :items="recordItems"
                   :label="t('config.time')"
                   :no-data-text="t('config.noData')"
-                  variant="outlined"
                 />
               </v-col>
 
@@ -55,78 +47,91 @@
                   v-model="valueIds"
                   clearable
                   data-test="values"
-                  density="compact"
                   :items="recordItems"
                   :label="t('config.values')"
                   multiple
                   :no-data-text="t('config.noData')"
-                  variant="outlined"
                 />
               </v-col>
             </v-row>
 
             <v-alert
               v-if="connectionProblem"
-              class="mb-2"
+              class="mt-4"
               data-test="connection-problem"
               density="compact"
               :text="connectionProblem"
               type="warning"
             />
-
-            <div class="d-flex justify-end mt-2">
-              <v-btn-group>
-                <TimeRangeSelector v-model="timeRangeSelection" />
-                <AutoRefreshSelector v-model="autoRefreshSelection" />
-              </v-btn-group>
-            </div>
           </v-card-text>
 
           <v-divider />
 
-          <v-card-actions>
+          <v-card-actions class="flex-wrap ga-2 px-4">
+            <v-btn-group>
+              <TimeRangeSelector v-model="timeRangeSelection" />
+              <AutoRefreshSelector v-model="autoRefreshSelection" />
+            </v-btn-group>
+
             <v-spacer />
 
             <v-btn-primary
               data-test="fetch"
               :disabled="!canFetch"
               :loading="isFetching"
-              size="small"
+              :text="t('config.fetch')"
               @click="fetchData(true)"
-            >
-              {{ t('config.fetch') }}
-            </v-btn-primary>
+            />
           </v-card-actions>
         </v-card>
 
-        <!-- Preview chart -->
-        <v-card>
-          <v-card-item class="pb-0">
-            <v-card-title class="text-title-small">{{ t('chart.title') }}</v-card-title>
-          </v-card-item>
+        <!-- Preview chart, once data was fetched -->
+        <v-card v-if="hasFetched">
+          <v-card-text>
+            <v-row dense>
+              <v-col cols="12" md="4" sm="6">
+                <v-select v-model="chartType" data-test="chart-type" :items="chartTypeItems" :label="t('chart.type')" />
+              </v-col>
 
-          <v-card-text class="pt-1">
-            <v-select
-              v-model="chartType"
-              data-test="chart-type"
-              density="compact"
-              :items="chartTypeItems"
-              :label="t('chart.type')"
-              variant="outlined"
-            />
+              <v-col v-if="chartType === 'line' || chartType === 'area'" cols="12" md="4" sm="6">
+                <v-select v-model="curve" data-test="interpolation" :items="curveItems" :label="t('chart.interpolation')" />
+              </v-col>
+
+              <template v-if="chartType === 'histogram'">
+                <v-col cols="12" md="4" sm="6">
+                  <v-text-field
+                    v-model="binsInput"
+                    data-test="bins"
+                    :error-messages="binsError"
+                    :label="t('chart.bins')"
+                    :max="MAX_HISTOGRAM_BINS"
+                    min="1"
+                    step="1"
+                    type="number"
+                    @blur="applyBins"
+                    @keydown.enter="applyBins"
+                  />
+                </v-col>
+
+                <v-col class="d-flex align-center" cols="12" md="4" sm="6">
+                  <v-switch v-model="stacked" :label="t('chart.stacked')" />
+                </v-col>
+              </template>
+            </v-row>
 
             <v-empty-state
-              v-if="hasFetched && !hasData"
+              v-if="!hasData"
               data-test="empty"
               icon="mdi-chart-line-variant"
               :text="t('chart.emptyText')"
               :title="t('chart.emptyTitle')"
             />
 
-            <template v-else-if="hasData">
+            <div v-else class="mt-2">
               <TimeChart
                 v-if="chartType === 'line' || chartType === 'area' || chartType === 'scatter'"
                 :key="chartType"
+                :curve="curve"
                 :locale="locale"
                 :range="resolvedRange"
                 :series="series"
@@ -135,12 +140,19 @@
                 :viewport-reset-key="viewportResetKey"
               />
 
-              <HistogramChart v-else-if="chartType === 'histogram'" :locale="locale" :series="series" :theme="theme" />
+              <HistogramChart
+                v-else-if="chartType === 'histogram'"
+                :bins="bins"
+                :locale="locale"
+                :series="series"
+                :stacked="stacked"
+                :theme="theme"
+              />
 
               <GaugeChart v-else-if="chartType === 'gauge'" :series="series" :theme="theme" />
 
               <DisplayField v-else :series="series" />
-            </template>
+            </div>
           </v-card-text>
         </v-card>
       </div>
@@ -150,7 +162,7 @@
 
 <script lang="ts" setup>
   import type { AutoRefreshSelection } from './autoRefresh'
-  import type { ChartType } from './chartOptions'
+  import type { ChartType, Interpolation } from './chartOptions'
   import type { ResolvedTimeRange, TimeRangeSelection } from './timeRange'
   import type { AppContext, JsonObject, StudioClient, TimeSeriesReadParams, TimeSeriesResult } from '@basyx/studio-sdk'
   import { StudioError } from '@basyx/studio-sdk'
@@ -165,7 +177,7 @@
     validateAutoRefreshSelection,
   } from './autoRefresh'
   import AutoRefreshSelector from './AutoRefreshSelector.vue'
-  import { CHART_TYPES } from './chartOptions'
+  import { CHART_TYPES, INTERPOLATIONS } from './chartOptions'
   import DisplayField from './charts/DisplayField.vue'
   import GaugeChart from './charts/GaugeChart.vue'
   import HistogramChart from './charts/HistogramChart.vue'
@@ -178,7 +190,7 @@
     validateTimeRangeSelection,
   } from './timeRange'
   import TimeRangeSelector from './TimeRangeSelector.vue'
-  import { defaultSelection, findRecords, findSegments, hasPoints, prepareSeries, readParams } from './timeseries'
+  import { DEFAULT_HISTOGRAM_BINS, defaultSelection, findRecords, findSegments, hasPoints, MAX_HISTOGRAM_BINS, parseBins, prepareSeries, readParams } from './timeseries'
 
   // IDTA 02008 Time Series Data 1.1 (time series plan U1 to U6).
   const props = defineProps<{ client: StudioClient }>()
@@ -197,7 +209,6 @@
 
   const segments = computed(() => findSegments(submodel.value))
   const records = computed(() => findRecords(submodel.value))
-  const name = computed(() => langText(submodel.value?.displayName, locale.value) || t('app.title'))
   const description = computed(() => langText(submodel.value?.description, locale.value))
 
   // The Web UI lists segments and records by idShort.
@@ -216,6 +227,12 @@
   const resolvedRange = ref<ResolvedTimeRange | null>(null)
   const result = ref<TimeSeriesResult | null>(null)
   const chartType = ref<ChartType>('line')
+  const curve = ref<Interpolation>('smooth')
+  const curveItems = computed(() => INTERPOLATIONS.map(value => ({ title: t(`interpolation.${value}`), value })))
+  const bins = ref(DEFAULT_HISTOGRAM_BINS)
+  const binsInput = ref<string | number>(DEFAULT_HISTOGRAM_BINS)
+  const binsError = computed(() => (parseBins(binsInput.value) === null ? t('validation.bins', { max: MAX_HISTOGRAM_BINS }) : undefined))
+  const stacked = ref(false)
   const hasFetched = ref(false)
   const isFetching = ref(false)
   /** The detail of a `connection_not_configured` problem, shown until the next successful read. */
@@ -248,6 +265,14 @@
       }
     }
     lastReport = key
+  }
+
+  /** The Web UI applies the bins on blur and Enter. */
+  function applyBins (): void {
+    const value = parseBins(binsInput.value)
+    if (value !== null) {
+      bins.value = value
+    }
   }
 
   function invalidatePendingRequest (): void {

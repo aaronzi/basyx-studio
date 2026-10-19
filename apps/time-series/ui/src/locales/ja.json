@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "時系列データ"
-  },
   "config": {
     "title": "プレビューの設定",
     "segment": "セグメント",
@@ -11,11 +8,9 @@
     "fetch": "データを取得"
   },
   "chart": {
-    "title": "プレビューチャート",
     "type": "チャートの種類",
     "emptyTitle": "選択した期間にデータがありません",
     "emptyText": "別の期間を選ぶか、もう一度データを取得してください。",
-    "options": "オプション",
     "interpolation": "補間",
     "bins": "階級数",
     "stacked": "積み上げ"

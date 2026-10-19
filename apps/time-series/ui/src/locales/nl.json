@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "Tijdreeksgegevens"
-  },
   "config": {
     "title": "Voorbeeldconfiguratie",
     "segment": "Segment",
@@ -11,11 +8,9 @@
     "fetch": "Gegevens ophalen"
   },
   "chart": {
-    "title": "Voorbeeldgrafiek",
     "type": "Grafiektype",
     "emptyTitle": "Geen gegevens in het gekozen tijdsbereik",
     "emptyText": "Kies een ander tijdsbereik of haal de gegevens opnieuw op.",
-    "options": "Opties",
     "interpolation": "Interpolatie",
     "bins": "Klassen",
     "stacked": "Gestapeld"

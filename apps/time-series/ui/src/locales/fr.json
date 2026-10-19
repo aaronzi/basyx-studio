@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "Données de séries temporelles"
-  },
   "config": {
     "title": "Configuration de l'aperçu",
     "segment": "Segment",
@@ -11,11 +8,9 @@
     "fetch": "Récupérer les données"
   },
   "chart": {
-    "title": "Graphique d'aperçu",
     "type": "Type de graphique",
     "emptyTitle": "Aucune donnée dans la plage de temps sélectionnée",
     "emptyText": "Choisissez une autre plage de temps ou récupérez à nouveau les données.",
-    "options": "Options",
     "interpolation": "Interpolation",
     "bins": "Classes",
     "stacked": "Empilé"

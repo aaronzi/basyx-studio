@@ -1,7 +1,7 @@
 import vuetify from 'eslint-config-vuetify'
 import withNuxt from './.nuxt/eslint.config.mjs'
 import { appDefaults } from './apps/shared/defaults.ts'
-import { buttonGroupStyleProps } from './shared/button-groups.ts'
+import { buttonGroupStyleProps } from './shared/vuetify-defaults.ts'
 import vuetifyConfig from './vuetify.config.ts'
 
 // VAppBar -> v-app-bar, maxWidth -> max-width
@@ -28,13 +28,13 @@ function restatedDefaults (defaults, source = 'vuetify.config.ts') {
 }
 
 /**
- * Grouped buttons look the same everywhere (shared/button-groups.ts): a
+ * Grouped buttons look the same everywhere (shared/vuetify-defaults.ts): a
  * bare <v-btn-toggle> or <v-btn-group>, never styled in a template.
  */
 const styledButtonGroups = ['v-btn-toggle', 'v-btn-group'].flatMap(element => buttonGroupStyleProps.map(key => ({
   element,
   key,
-  message: `\`${key}\` on <${element}>: grouped buttons get their look from shared/button-groups.ts; remove it (see AGENTS.md).`,
+  message: `\`${key}\` on <${element}>: grouped buttons get their look from shared/vuetify-defaults.ts; remove it (see AGENTS.md).`,
 })))
 
 export default withNuxt(

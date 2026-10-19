@@ -65,11 +65,9 @@
                 v-model.number="relativeValue"
                 :aria-label="t('timeRange.range')"
                 density="compact"
-                hide-details="auto"
                 min="0"
                 step="any"
                 type="number"
-                variant="outlined"
               />
             </v-col>
 
@@ -94,10 +92,8 @@
             <v-text-field
               v-model="absoluteStart"
               density="compact"
-              hide-details="auto"
               :label="t('timeRange.from')"
               type="datetime-local"
-              variant="outlined"
             />
           </v-col>
 
@@ -105,10 +101,8 @@
             <v-text-field
               v-model="absoluteStop"
               density="compact"
-              hide-details="auto"
               :label="t('timeRange.to')"
               type="datetime-local"
-              variant="outlined"
             />
           </v-col>
         </v-row>

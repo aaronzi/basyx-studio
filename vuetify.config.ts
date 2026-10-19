@@ -1,6 +1,6 @@
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
-import { buttonGroupDefaults } from './shared/button-groups.ts'
+import { buttonGroupDefaults, fieldDefaults } from './shared/vuetify-defaults.ts'
 
 // The single place for Studio's look and feel. Components rely on these
 // defaults instead of repeating props, and on Vuetify utility classes instead
@@ -14,8 +14,6 @@ const status = {
   light: { error: '#B00020', info: '#2196F3', success: '#4CAF50', warning: '#FB8C00' },
   dark: { error: '#CF6679', info: '#2196F3', success: '#4CAF50', warning: '#FB8C00' },
 }
-
-const field = { variant: 'outlined', density: 'comfortable', hideDetails: 'auto' } as const
 
 // Studio's light and dark themes: the BaSyx accent on Vuetify's own
 // surfaces, with the status colours. The accent and background chosen in
@@ -158,14 +156,8 @@ export default defineVuetifyConfiguration({
     VListRecords: { slim: true, lines: 'two', class: 'py-0', VListItem: { rounded: false, class: 'ps-3' } },
     VChip: { label: true, size: 'small', variant: 'tonal' },
     VAlert: { border: 'start', variant: 'tonal', VBtn: { size: 'small' } },
-    VTextField: field,
-    VSelect: field,
-    VAutocomplete: field,
-    VCombobox: field,
-    VFileInput: field,
-    VTextarea: field,
-    VCheckbox: { density: 'compact', color: 'primary', hideDetails: 'auto' },
-    VSwitch: { color: 'primary', inset: true, hideDetails: true, density: 'compact' },
+    // Fields, checkboxes and switches, shared with the bundled apps.
+    ...fieldDefaults,
     VProgressLinear: { indeterminate: true, color: 'primary' },
     VBreadcrumbs: { class: 'pa-0' },
     // Items register from props, so closed groups are not rendered: large lists stay fast (MVP-4 plan, T1).

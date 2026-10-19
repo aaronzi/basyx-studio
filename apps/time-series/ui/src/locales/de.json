@@ -1,7 +1,4 @@
 {
-  "app": {
-    "title": "Zeitreihendaten"
-  },
   "config": {
     "title": "Vorschau-Konfiguration",
     "segment": "Segment",
@@ -11,11 +8,9 @@
     "fetch": "Daten abrufen"
   },
   "chart": {
-    "title": "Vorschau-Diagramm",
     "type": "Diagrammtyp",
     "emptyTitle": "Keine Daten im gewählten Zeitraum",
     "emptyText": "Wählen Sie einen anderen Zeitraum oder rufen Sie die Daten erneut ab.",
-    "options": "Optionen",
     "interpolation": "Interpolation",
     "bins": "Klassen",
     "stacked": "Gestapelt"
