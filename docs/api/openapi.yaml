@@ -5326,6 +5326,7 @@ components:
         - studio.ui.notifications
         - studio.ui.navigation
         - studio.ui.clipboard
+        - studio.ui.externalFiles
         - studio.ui.commands
         - studio.ui.panels
         - studio.semantic.read
@@ -5623,6 +5624,7 @@ components:
             - studio.aas.setElementValue
             - studio.backend.call
             - studio.ui.openFullscreen
+            - studio.ui.readExternalFile
             - studio.ui.openTarget
             - studio.ui.openExternal
             - studio.ui.copyText
@@ -5916,6 +5918,7 @@ components:
         - app_permission_not_declared
         - app_backend_unavailable
         - app_backend_failed
+        - external_file_unavailable
         - connection_not_configured
         - connection_credentials_unavailable
         - connection_rejected

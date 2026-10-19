@@ -240,7 +240,8 @@
     "connection_unavailable": "サービスに到達できませんでした。",
     "connection_error": "サービスがエラーを報告しました。",
     "connection_request_refused": "Studio はこの要求を送信しません。",
-    "timeseries_invalid": "時系列を読み取れません。"
+    "timeseries_invalid": "時系列を読み取れません。",
+    "external_file_unavailable": "外部ファイルを取得できませんでした。"
   },
   "admin": {
     "title": "インフラストラクチャ",
@@ -507,7 +508,8 @@
       "studio_backend": "サーバー側コードの実行（分離）",
       "studio_ui_clipboard": "クリック時にテキストをクリップボードへコピー",
       "studio_containers": "Docker または Podman 上のローカル BaSyx インスタンスの起動、停止、エクスポート、削除（Studio 同梱アプリのみ）",
-      "studio_timeseries_read": "時系列を読み取る（インフラストラクチャの接続先データベースからも。Studio に同梱のアプリのみ）"
+      "studio_timeseries_read": "時系列を読み取る（インフラストラクチャの接続先データベースからも。Studio に同梱のアプリのみ）",
+      "studio_ui_externalFiles": "管理シェルが他のホスト上で指定するファイルをブラウザーで取得する（それらのホストにはあなたのアドレスが見えます）"
     },
     "bundled": "同梱",
     "bundledHint": "Studio に同梱され、Studio と一緒に更新されます。",

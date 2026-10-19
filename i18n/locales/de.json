@@ -320,7 +320,8 @@
     "connection_unavailable": "Der Dienst konnte nicht erreicht werden.",
     "connection_error": "Der Dienst hat einen Fehler gemeldet.",
     "connection_request_refused": "Studio sendet diese Anfrage nicht.",
-    "timeseries_invalid": "Die Zeitreihe kann nicht gelesen werden."
+    "timeseries_invalid": "Die Zeitreihe kann nicht gelesen werden.",
+    "external_file_unavailable": "Die externe Datei konnte nicht abgerufen werden."
   },
   "admin": {
     "title": "Infrastrukturen",
@@ -595,7 +596,8 @@
       "studio_backend": "Serverseitigen Code ausführen (isoliert)",
       "studio_ui_clipboard": "Text auf Klick in die Zwischenablage kopieren",
       "studio_containers": "Lokale BaSyx-Instanzen mit Docker oder Podman starten, stoppen, exportieren und löschen (nur mit Studio ausgelieferte Apps)",
-      "studio_timeseries_read": "Zeitreihen lesen, auch aus den Datenbanken der Verbindungen der Infrastruktur (nur mit Studio ausgelieferte Apps)"
+      "studio_timeseries_read": "Zeitreihen lesen, auch aus den Datenbanken der Verbindungen der Infrastruktur (nur mit Studio ausgelieferte Apps)",
+      "studio_ui_externalFiles": "Dateien, die die Verwaltungsschale bei anderen Hosts nennt, in Ihrem Browser abrufen (diese Hosts sehen Ihre Adresse)"
     },
     "bundled": "Enthalten",
     "bundledHint": "Mit Studio ausgeliefert und mit ihm aktuell gehalten.",

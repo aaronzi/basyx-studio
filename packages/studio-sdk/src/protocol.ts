@@ -18,6 +18,12 @@ export const permissions = [
   'studio.ui.navigation',
   /** Copying text to the user's clipboard after a click in the app. */
   'studio.ui.clipboard',
+  /**
+   * Reading files that AAS content names by an http(s) address at another
+   * host. The user's browser fetches them, without credentials or referrer,
+   * so that host learns the user's address and which file they view.
+   */
+  'studio.ui.externalFiles',
   'studio.backend',
   /** Desktop only, bundled first-party apps only: local BaSyx instances on Docker or Podman (ADR 0033). */
   'studio.containers',
@@ -359,6 +365,15 @@ export interface Methods {
    */
   'studio.ui.readFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
   /**
+   * Reads a file that an element of the active target names by an http(s)
+   * address at another host: a File whose value is such an address, or a
+   * Property holding one (IDTA 02026 `ExternalUrl`). Studio reads the element
+   * itself, so the app cannot name an address of its own, and Studio's page
+   * fetches the file without credentials or referrer; the host must allow it
+   * (CORS). Up to `readFileMaxBytes` (Studio app API 0.1.2).
+   */
+  'studio.ui.readExternalFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
+  /**
    * Opens the same view again in a full-screen dialog of Studio; ignored
    * inside that dialog. `state` (up to 4,000 characters) reaches the view
    * there as `context.viewState`, so it can show what the user had selected.
@@ -424,6 +439,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.setHeight': null,
   'studio.ui.openFile': 'studio.aas.read',
   'studio.ui.readFile': 'studio.aas.read',
+  'studio.ui.readExternalFile': 'studio.ui.externalFiles',
   'studio.ui.openFullscreen': null,
   'studio.aas.listShells': 'studio.aas.read',
   'studio.aas.getShell': 'studio.aas.read',

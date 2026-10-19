@@ -240,7 +240,8 @@
     "connection_unavailable": "Le service n'a pas pu être joint.",
     "connection_error": "Le service a signalé une erreur.",
     "connection_request_refused": "Studio n'envoie pas cette requête.",
-    "timeseries_invalid": "La série temporelle ne peut pas être lue."
+    "timeseries_invalid": "La série temporelle ne peut pas être lue.",
+    "external_file_unavailable": "Le fichier externe n'a pas pu être récupéré."
   },
   "admin": {
     "title": "Infrastructures",
@@ -507,7 +508,8 @@
       "studio_backend": "Exécuter du code côté serveur (isolé)",
       "studio_ui_clipboard": "Copier du texte dans le presse-papiers lorsque vous cliquez",
       "studio_containers": "Démarrer, arrêter, exporter et supprimer des instances BaSyx locales sur Docker ou Podman (applications fournies avec Studio uniquement)",
-      "studio_timeseries_read": "Lire des séries temporelles, y compris dans les bases de données des connexions de l'infrastructure (applications fournies avec Studio uniquement)"
+      "studio_timeseries_read": "Lire des séries temporelles, y compris dans les bases de données des connexions de l'infrastructure (applications fournies avec Studio uniquement)",
+      "studio_ui_externalFiles": "Récupérer dans votre navigateur des fichiers que l'AAS désigne sur d'autres hôtes (ces hôtes voient votre adresse)"
     },
     "bundled": "Incluse",
     "bundledHint": "Livrée avec Studio et mise à jour avec lui.",

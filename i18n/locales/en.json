@@ -320,7 +320,8 @@
     "connection_unavailable": "The service could not be reached.",
     "connection_error": "The service reported an error.",
     "connection_request_refused": "Studio does not send this request.",
-    "timeseries_invalid": "The time series cannot be read."
+    "timeseries_invalid": "The time series cannot be read.",
+    "external_file_unavailable": "The external file could not be fetched."
   },
   "admin": {
     "title": "Infrastructures",
@@ -595,7 +596,8 @@
       "studio_backend": "Run server-side code (isolated)",
       "studio_ui_clipboard": "Copy text to your clipboard when you click",
       "studio_containers": "Start, stop, export and delete local BaSyx instances on Docker or Podman (apps shipped with Studio only)",
-      "studio_timeseries_read": "Read time series, also from the databases of the infrastructure's connections (apps shipped with Studio only)"
+      "studio_timeseries_read": "Read time series, also from the databases of the infrastructure's connections (apps shipped with Studio only)",
+      "studio_ui_externalFiles": "Fetch files that the AAS names at other hosts, in your browser (those hosts see your address)"
     },
     "bundled": "Included",
     "bundledHint": "Shipped with Studio and kept up to date with it.",

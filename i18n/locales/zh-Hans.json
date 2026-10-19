@@ -240,7 +240,8 @@
     "connection_unavailable": "无法访问该服务。",
     "connection_error": "服务报告了错误。",
     "connection_request_refused": "Studio 不会发送此请求。",
-    "timeseries_invalid": "无法读取时序数据。"
+    "timeseries_invalid": "无法读取时序数据。",
+    "external_file_unavailable": "无法获取外部文件。"
   },
   "admin": {
     "title": "基础设施",
@@ -507,7 +508,8 @@
       "studio_backend": "运行服务器端代码（隔离）",
       "studio_ui_clipboard": "点击时将文本复制到剪贴板",
       "studio_containers": "在 Docker 或 Podman 上启动、停止、导出和删除本地 BaSyx 实例（仅限 Studio 自带的应用）",
-      "studio_timeseries_read": "读取时序数据，包括从基础设施连接的数据库中读取（仅限随 Studio 提供的应用）"
+      "studio_timeseries_read": "读取时序数据，包括从基础设施连接的数据库中读取（仅限随 Studio 提供的应用）",
+      "studio_ui_externalFiles": "在浏览器中获取管理壳在其他主机上指定的文件（这些主机可以看到您的地址）"
     },
     "bundled": "内置",
     "bundledHint": "随 Studio 一同提供并随其更新。",

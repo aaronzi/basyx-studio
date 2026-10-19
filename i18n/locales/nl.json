@@ -240,7 +240,8 @@
     "connection_unavailable": "De dienst kon niet worden bereikt.",
     "connection_error": "De dienst heeft een fout gemeld.",
     "connection_request_refused": "Studio verstuurt dit verzoek niet.",
-    "timeseries_invalid": "De tijdreeks kan niet worden gelezen."
+    "timeseries_invalid": "De tijdreeks kan niet worden gelezen.",
+    "external_file_unavailable": "Het externe bestand kon niet worden opgehaald."
   },
   "admin": {
     "title": "Infrastructuren",
@@ -507,7 +508,8 @@
       "studio_backend": "Code aan de serverkant uitvoeren (geïsoleerd)",
       "studio_ui_clipboard": "Tekst naar het klembord kopiëren wanneer je klikt",
       "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)",
-      "studio_timeseries_read": "Tijdreeksen lezen, ook uit de databases van de verbindingen van de infrastructuur (alleen apps die met Studio worden meegeleverd)"
+      "studio_timeseries_read": "Tijdreeksen lezen, ook uit de databases van de verbindingen van de infrastructuur (alleen apps die met Studio worden meegeleverd)",
+      "studio_ui_externalFiles": "Bestanden die de AAS bij andere hosts noemt in uw browser ophalen (die hosts zien uw adres)"
     },
     "bundled": "Meegeleverd",
     "bundledHint": "Meegeleverd met Studio en samen ermee bijgewerkt.",
