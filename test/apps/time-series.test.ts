@@ -492,14 +492,14 @@ describe('chart options', () => {
 
   it('follows Studio\'s theme', () => {
     expect(themeOptions(theme)).toEqual({
-      chart: { background: 'transparent', foreColor: '#EEEEEE' },
+      chart: { background: 'transparent', parentHeightOffset: 0, foreColor: '#EEEEEE' },
       colors: ['#1E88E5', '#26A69A', '#E53935'],
       grid: { borderColor: 'rgba(238, 238, 238, 0.12)' },
       theme: { mode: 'dark' },
     })
     expect(withOpacity('#fff', 0.5)).toBe('rgba(255, 255, 255, 0.5)')
     expect(withOpacity('rgb(1, 2, 3)', 0.5)).toBeUndefined()
-    expect(themeOptions({ dark: false, colors: {} })).toEqual({ chart: { background: 'transparent' }, theme: { mode: 'light' } })
+    expect(themeOptions({ dark: false, colors: {} })).toEqual({ chart: { background: 'transparent', parentHeightOffset: 0 }, theme: { mode: 'light' } })
   })
 
   it('maps Studio\'s locales to ApexCharts locales', () => {

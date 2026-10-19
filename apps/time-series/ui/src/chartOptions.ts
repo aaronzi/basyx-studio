@@ -66,6 +66,8 @@ export function themeOptions (theme: ThemeTokens): ApexOptions {
   return {
     chart: {
       background: 'transparent',
+      // ApexCharts keeps 15 px free below every chart by default.
+      parentHeightOffset: 0,
       ...(foreColor ? { foreColor } : {}),
     },
     ...(colors.length > 0 ? { colors } : {}),

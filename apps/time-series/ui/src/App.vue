@@ -18,8 +18,10 @@
             <v-card-title class="text-title-small">{{ t('config.title') }}</v-card-title>
           </v-card-item>
 
-          <v-card-text>
-            <v-row dense>
+          <!-- 16 px from the title, so a floating field label keeps its distance;
+               16 px between fields, as to the card's border. -->
+          <v-card-text class="pt-4">
+            <v-row gap="16">
               <v-col cols="12">
                 <v-select
                   v-model="segmentId"
@@ -67,13 +69,11 @@
 
           <v-divider />
 
-          <v-card-actions class="flex-wrap ga-2 px-4">
+          <v-card-actions class="flex-wrap justify-end ga-2 px-4">
             <v-btn-group>
               <TimeRangeSelector v-model="timeRangeSelection" />
               <AutoRefreshSelector v-model="autoRefreshSelection" />
             </v-btn-group>
-
-            <v-spacer />
 
             <v-btn-primary
               data-test="fetch"
@@ -88,7 +88,7 @@
         <!-- Preview chart, once data was fetched -->
         <v-card v-if="hasFetched">
           <v-card-text>
-            <v-row dense>
+            <v-row gap="16">
               <v-col cols="12" md="4" sm="6">
                 <v-select v-model="chartType" data-test="chart-type" :items="chartTypeItems" :label="t('chart.type')" />
               </v-col>
@@ -127,7 +127,7 @@
               :title="t('chart.emptyTitle')"
             />
 
-            <div v-else class="mt-2">
+            <div v-else class="mt-4">
               <TimeChart
                 v-if="chartType === 'line' || chartType === 'area' || chartType === 'scatter'"
                 :key="chartType"
