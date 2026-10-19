@@ -13,6 +13,7 @@
     "download": "Télécharger le modèle 3D",
     "fullscreen": "Plein écran",
     "openExternal": "Ouvrir le fichier externe",
+    "external": "Le modèle est stocké en dehors de cette AAS, sur {host}. Studio affiche son image d'aperçu.",
     "loading": "Chargement du fichier…",
     "processing": "Préparation du modèle 3D…",
     "unsupported": "{format} ne peut pas être affiché en 3D ; téléchargez le fichier pour l'ouvrir.",

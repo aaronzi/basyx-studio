@@ -13,6 +13,7 @@
     "download": "3D-Modell herunterladen",
     "fullscreen": "Vollbild",
     "openExternal": "Externe Datei öffnen",
+    "external": "Das Modell liegt außerhalb dieser Verwaltungsschale, bei {host}. Studio zeigt sein Vorschaubild.",
     "loading": "Datei wird geladen…",
     "processing": "3D-Modell wird vorbereitet…",
     "unsupported": "{format} kann nicht in 3D angezeigt werden; laden Sie die Datei herunter, um sie zu öffnen.",

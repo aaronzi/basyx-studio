@@ -6,25 +6,13 @@
         <div v-show="showModel" ref="host" class="position-absolute top-0 left-0 w-100 h-100" data-test="viewer-canvas" />
 
         <div v-if="!showModel" class="d-flex flex-column align-center justify-center h-100 w-100">
-          <div class="flex-grow-1 w-100 overflow-hidden">
-            <PreviewImage
-              :alt="title"
-              :client="client"
-              contain
-              :file="version?.preview ?? null"
-              icon-size="64"
-              :submodel-id="submodelId"
-            />
-          </div>
-
-          <v-btn
-            v-if="!version?.digital && externalUrl"
-            class="mb-4"
-            color="primary"
-            prepend-icon="mdi-open-in-new"
-            :text="t('viewer.openExternal')"
-            variant="tonal"
-            @click="emit('open', externalUrl)"
+          <PreviewImage
+            :alt="title"
+            :client="client"
+            contain
+            :file="version?.preview ?? null"
+            icon-size="64"
+            :submodel-id="submodelId"
           />
         </div>
 
@@ -53,15 +41,16 @@
           variant="elevated"
         />
 
-        <!-- Controls over the canvas, as the BOM viewer's graph has them. -->
+        <!-- Controls over the canvas, as the BOM viewer's graph has them; solid, like the format chip, so they show on a light preview image too. -->
         <div class="position-absolute top-0 right-0 d-flex ga-1 ma-2">
           <v-btn
             v-if="showModel"
             :aria-label="t('viewer.resetView')"
+            color="surface"
             :disabled="viewer.status.value !== 'ready'"
             icon
             size="small"
-            variant="tonal"
+            variant="flat"
             @click="viewer.resetView()"
           >
             <v-icon icon="mdi-fit-to-screen-outline" />
@@ -71,10 +60,11 @@
           <v-btn
             v-if="canToggle"
             :aria-label="toggleLabel"
+            color="surface"
             data-test="viewer-toggle"
             icon
             size="small"
-            variant="tonal"
+            variant="flat"
             @click="showImage = !showImage"
           >
             <v-icon :icon="showImage ? 'mdi-rotate-3d-variant' : 'mdi-image-outline'" />
@@ -84,9 +74,10 @@
           <v-btn
             v-if="version?.digital"
             :aria-label="t('viewer.download')"
+            color="surface"
             icon
             size="small"
-            variant="tonal"
+            variant="flat"
             @click="emit('download', version.digital.path)"
           >
             <v-icon icon="mdi-download" />
@@ -96,10 +87,11 @@
           <v-btn
             v-if="!fullscreen"
             :aria-label="t('viewer.fullscreen')"
+            color="surface"
             data-test="viewer-fullscreen"
             icon
             size="small"
-            variant="tonal"
+            variant="flat"
             @click="emit('fullscreen')"
           >
             <v-icon icon="mdi-fullscreen" />
@@ -110,6 +102,20 @@
     </v-sheet>
 
     <v-alert v-if="notice" density="compact" :text="notice" type="info" />
+
+    <!-- Only a link to the file: the preview fills the box, and the link is said and offered below it. -->
+    <v-alert
+      v-if="!version?.digital && externalUrl"
+      data-test="viewer-external"
+      density="compact"
+      :text="t('viewer.external', { host: externalHost })"
+      type="info"
+    >
+      <template #append>
+        <v-btn prepend-icon="mdi-open-in-new" :text="t('viewer.openExternal')" @click="emit('open', externalUrl)" />
+      </template>
+    </v-alert>
+
     <v-alert v-if="problemText && !showImage" density="compact" :text="problemText" type="warning" />
 
     <v-alert
@@ -190,6 +196,7 @@
   const canToggle = computed(() => canView.value && Boolean(props.version?.preview) && !viewer.problem.value)
   const toggleLabel = computed(() => (showImage.value ? t('viewer.showModel') : t('viewer.showImage')))
   const externalUrl = computed(() => props.version?.externalFiles.find(file => /^https?:\/\//i.test(file.url))?.url ?? '')
+  const externalHost = computed(() => URL.parse(externalUrl.value)?.host ?? externalUrl.value)
   const formatText = computed(() => {
     // "binary (.glb)" → ".glb"
     const qualifier = props.version?.format.qualifier.match(/\(([^)]+)\)/)?.[1]
