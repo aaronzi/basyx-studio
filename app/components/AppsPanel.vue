@@ -35,6 +35,7 @@
               v-model="file"
               accept=".zip,application/zip"
               class="flex-grow-1"
+              :disabled="checking"
               hide-details
               :label="t('apps.package')"
               prepend-icon="mdi-folder-zip-outline"
@@ -44,6 +45,7 @@
               v-model="signatureFile"
               accept=".sig,.bundle,.json"
               class="flex-grow-1"
+              :disabled="checking"
               hide-details
               :label="t('apps.signature')"
               prepend-icon="mdi-file-certificate-outline"
@@ -423,23 +425,38 @@
     return { 'Studio-App-Signature': value }
   }
 
+  /** The bytes and signature Studio checked; the confirmation installs exactly these. */
+  let inspected: { body: ArrayBuffer, headers: Record<string, string> } | null = null
+  /** Counts inspections, so the answer to an outdated one is dropped. */
+  let inspections = 0
+
+  // Another file invalidates what was checked and shown for consent.
+  watch([file, signatureFile], () => {
+    inspections++
+    inspected = null
+    inspection.value = null
+  })
+
   /** Step one (ADR 0044): Studio checks the package and says what installing it does. */
   async function inspect () {
     if (!file.value) {
       return
     }
+    const run = ++inspections
     checking.value = true
     installed.value = null
     installError.value = null
     try {
-      inspection.value = await api<AppPackageInspection>('/app-installations', {
-        method: 'POST',
-        query: { inspect: 'true' },
-        body: file.value,
-        headers: { 'Content-Type': 'application/zip', ...await signatureHeader() },
-      })
+      const payload = { body: await file.value.arrayBuffer(), headers: { 'Content-Type': 'application/zip', ...await signatureHeader() } }
+      const result = await api<AppPackageInspection>('/app-installations', { method: 'POST', query: { inspect: 'true' }, ...payload })
+      if (run === inspections) {
+        inspected = payload
+        inspection.value = result
+      }
     } catch (error) {
-      installError.value = error
+      if (run === inspections) {
+        installError.value = error
+      }
     } finally {
       checking.value = false
     }
@@ -448,16 +465,13 @@
   /** Step two: install, or update in place, after the administrator confirmed. */
   async function install () {
     const checked = inspection.value
-    if (!file.value || !checked) {
+    const payload = inspected
+    if (!checked || !payload) {
       return
     }
     installing.value = true
     try {
-      const installation = await api<AppInstallation>('/app-installations', {
-        method: 'POST',
-        body: file.value,
-        headers: { 'Content-Type': 'application/zip', ...await signatureHeader() },
-      })
+      const installation = await api<AppInstallation>('/app-installations', { method: 'POST', ...payload })
       installed.value = t(checked.update ? 'apps.updated' : 'apps.installed', { name: label(installation.title), version: installation.version })
       file.value = null
       signatureFile.value = null
@@ -466,6 +480,7 @@
       installError.value = error
     } finally {
       installing.value = false
+      inspected = null
       inspection.value = null
     }
   }
