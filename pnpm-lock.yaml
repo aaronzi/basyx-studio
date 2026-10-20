@@ -260,6 +260,9 @@ importers:
       '@basyx/model-viewer':
         specifier: workspace:*
         version: link:packages/model-viewer
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:packages/studio-sdk
@@ -341,6 +344,9 @@ importers:
 
   apps/bom-viewer:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -372,6 +378,9 @@ importers:
 
   apps/carbon-footprint:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -397,6 +406,9 @@ importers:
 
   apps/handover-documentation:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -425,6 +437,9 @@ importers:
       '@basyx/model-viewer':
         specifier: workspace:*
         version: link:../../packages/model-viewer
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -450,6 +465,9 @@ importers:
 
   apps/nameplate:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -475,6 +493,9 @@ importers:
 
   apps/technical-data:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -500,6 +521,9 @@ importers:
 
   apps/time-series:
     dependencies:
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../packages/studio-app-kit
       '@basyx/studio-sdk':
         specifier: workspace:*
         version: link:../../packages/studio-sdk
@@ -622,6 +646,49 @@ importers:
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@6.0.3)
+
+  packages/studio-app-kit:
+    dependencies:
+      '@mdi/font':
+        specifier: 7.4.47
+        version: 7.4.47
+      ajv:
+        specifier: ^8.20.0
+        version: 8.20.0
+      ajv-formats:
+        specifier: ^3.0.1
+        version: 3.0.1(ajv@8.20.0)
+      fflate:
+        specifier: ^0.8.3
+        version: 0.8.3
+      semver:
+        specifier: ^7.8.5
+        version: 7.8.5
+    devDependencies:
+      '@basyx/studio-sdk':
+        specifier: workspace:*
+        version: link:../studio-sdk
+      '@types/node':
+        specifier: ^26.6.4
+        version: 26.6.4
+      '@types/semver':
+        specifier: ^7.7.1
+        version: 7.7.1
+      sass:
+        specifier: ^1.105.2
+        version: 1.105.2
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      vuetify:
+        specifier: ^4.2.6
+        version: 4.2.6(patch_hash=b38d9461aa6dd0e33f8dde3a31e3cc6edbb1acfc432894b391b1750f568c4687)(@floating-ui/dom@1.8.0)(typescript@6.0.3)(vue-i18n@11.4.13(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3))
 
   packages/studio-sdk:
     devDependencies:

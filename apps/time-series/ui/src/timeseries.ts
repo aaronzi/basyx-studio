@@ -1,6 +1,6 @@
 import type { TimeRangeSelection } from './timeRange'
 import type { JsonObject, TimeSeriesReadParams, TimeSeriesResult } from '@basyx/studio-sdk'
-import { langText } from '../../../shared/aas'
+import { langText } from '@basyx/studio-app-kit/aas'
 import { resolveTimeRange } from './timeRange'
 
 // Reading an IDTA 02008 Time Series Data 1.1 submodel in the app: the

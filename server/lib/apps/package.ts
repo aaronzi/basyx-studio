@@ -1,64 +1,16 @@
 import type { DeploymentMode } from '#shared/contract'
 import type { Violation } from '../problem'
-import type { ArchiveLimits } from '../workspaces/archive'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { createHash } from 'node:crypto'
+import { appArchiveLimits, contentTypeOf, isArchiveLitter, maxManifestBytes } from '@basyx/studio-app-kit/manifest'
 import { unzipSync } from 'fflate'
 import { StudioProblem } from '../problem'
 import { inspectArchive } from '../workspaces/archive'
 import { checkCompatibility, checkManifestConsistency, manifestFileName, parseManifest } from './manifest'
 
-const MiB = 1024 * 1024
-
-/** Developer-mode uploads are small; the marketplace may allow more. */
-export const appArchiveLimits: ArchiveLimits = {
-  maxArchiveBytes: 20 * MiB,
-  maxEntries: 2000,
-  maxEntryBytes: 20 * MiB,
-  maxTotalBytes: 50 * MiB,
-  maxCompressionRatio: 100,
-  ratioThresholdBytes: MiB,
-}
-
-const maxManifestBytes = 64 * 1024
-
-/**
- * File types an app package may contain, with the content type they are
- * served with. Content types are never sniffed.
- */
-export const appContentTypes: Readonly<Record<string, string>> = {
-  html: 'text/html; charset=utf-8',
-  js: 'text/javascript; charset=utf-8',
-  mjs: 'text/javascript; charset=utf-8',
-  css: 'text/css; charset=utf-8',
-  json: 'application/json',
-  map: 'application/json',
-  svg: 'image/svg+xml',
-  png: 'image/png',
-  jpg: 'image/jpeg',
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
-  gif: 'image/gif',
-  avif: 'image/avif',
-  ico: 'image/x-icon',
-  woff2: 'font/woff2',
-  woff: 'font/woff',
-  ttf: 'font/ttf',
-  otf: 'font/otf',
-  eot: 'application/vnd.ms-fontobject',
-  wasm: 'application/wasm',
-  txt: 'text/plain; charset=utf-8',
-}
-
-export function contentTypeOf (path: string): string | null {
-  const extension = /\.([a-z0-9]+)$/i.exec(path)?.[1]?.toLowerCase()
-  return extension ? (appContentTypes[extension] ?? null) : null
-}
-
-/** Archive litter from desktop file managers, skipped instead of rejected. */
-function isLitter (path: string): boolean {
-  return path.startsWith('__MACOSX/') || /(?:^|\/)(?:\.DS_Store|Thumbs\.db)$/.test(path)
-}
+// The package limits, file types and litter rules are shared with the app
+// kit's `studio-app` command (ADR 0043).
+export { appArchiveLimits, appContentTypes, contentTypeOf } from '@basyx/studio-app-kit/manifest'
 
 export function sha256Hex (bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex')
@@ -104,7 +56,7 @@ export function readAppPackage (bytes: Uint8Array, deploymentMode: DeploymentMod
   }
 
   const entries = unzipSync(bytes)
-  let names = Object.keys(entries).filter(name => !name.endsWith('/') && !isLitter(name))
+  let names = Object.keys(entries).filter(name => !name.endsWith('/') && !isArchiveLitter(name))
 
   // Accept archives of a folder: strip a single top-level directory that
   // holds the manifest.

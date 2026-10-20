@@ -1,0 +1,115 @@
+{
+  "name": "@basyx/studio-app-kit",
+  "version": "0.1.0",
+  "description": "Build BaSyx Studio apps: Studio's look for Vue and Vuetify, a Vite preset, and the studio-app command to pack, sign and verify app packages",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eclipse-basyx/basyx-studio.git",
+    "directory": "packages/studio-app-kit"
+  },
+  "homepage": "https://github.com/eclipse-basyx/basyx-studio/tree/main/packages/studio-app-kit#readme",
+  "type": "module",
+  "bin": {
+    "studio-app": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./aas": "./src/aas.ts",
+    "./i18n": "./src/i18n.ts",
+    "./defaults": "./src/defaults.ts",
+    "./vuetify-defaults": "./src/vuetify-defaults.ts",
+    "./settings.scss": "./src/settings.scss",
+    "./vite": "./src/vite.ts",
+    "./manifest": "./src/manifest.ts",
+    "./package": "./src/package.ts",
+    "./signature": "./src/signature.ts"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs settings.scss",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mdi/font": "7.4.47",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "fflate": "^0.8.3",
+    "semver": "^7.8.5"
+  },
+  "peerDependencies": {
+    "@basyx/studio-sdk": "workspace:^",
+    "sass": "^1.105.2",
+    "vite": "^8.3.4",
+    "vue": "^3.5.44",
+    "vuetify": "^4.2.6"
+  },
+  "peerDependenciesMeta": {
+    "sass": {
+      "optional": true
+    },
+    "vite": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@basyx/studio-sdk": "workspace:*",
+    "@types/node": "^26.6.4",
+    "@types/semver": "^7.7.1",
+    "sass": "^1.105.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4",
+    "vue": "^3.5.44",
+    "vuetify": "^4.2.6"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "bin": {
+      "studio-app": "./dist/cli.js"
+    },
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./aas": {
+        "types": "./dist/aas.d.ts",
+        "default": "./dist/aas.js"
+      },
+      "./i18n": {
+        "types": "./dist/i18n.d.ts",
+        "default": "./dist/i18n.js"
+      },
+      "./defaults": {
+        "types": "./dist/defaults.d.ts",
+        "default": "./dist/defaults.js"
+      },
+      "./vuetify-defaults": {
+        "types": "./dist/vuetify-defaults.d.ts",
+        "default": "./dist/vuetify-defaults.js"
+      },
+      "./settings.scss": "./dist/settings.scss",
+      "./vite": {
+        "types": "./dist/vite.d.ts",
+        "default": "./dist/vite.js"
+      },
+      "./manifest": {
+        "types": "./dist/manifest.d.ts",
+        "default": "./dist/manifest.js"
+      },
+      "./package": {
+        "types": "./dist/package.d.ts",
+        "default": "./dist/package.js"
+      },
+      "./signature": {
+        "types": "./dist/signature.d.ts",
+        "default": "./dist/signature.js"
+      }
+    }
+  }
+}

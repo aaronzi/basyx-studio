@@ -1,8 +1,8 @@
-import type { Node } from '../../../shared/aas'
 import type { ModelFormat } from '@basyx/model-viewer'
+import type { Node } from '@basyx/studio-app-kit/aas'
 import type { JsonObject } from '@basyx/studio-sdk'
 import { detectModelFormat } from '@basyx/model-viewer'
-import { childrenOf, langText } from '../../../shared/aas'
+import { childrenOf, langText } from '@basyx/studio-app-kit/aas'
 
 // Reading IDTA 02026-1-0 "Provision of 3D Models" (Models3D, templates 1.0,
 // 1.0.1 and 1.0.2, which differ only in qualifier kinds). Ported from the

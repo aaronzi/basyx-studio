@@ -1,6 +1,6 @@
-// Vuetify defaults that Studio (vuetify.config.ts) and the apps shipped
-// with it (apps/shared/defaults.ts) share, so controls look the same in
-// both.
+// Vuetify defaults that Studio (vuetify.config.ts) and its apps
+// (./defaults.ts) share, so controls look the same in both. Studio imports
+// them from this package (ADR 0043).
 
 /** Text fields, selects and the like: outlined, 36 px tall with Studio's Sass settings. */
 const field = { variant: 'outlined', density: 'comfortable', hideDetails: 'auto' } as const

@@ -1,5 +1,5 @@
-import type { Translate } from '../../../shared/i18n'
 import type { Api, Application, BoundingBox, Model3DEntry, Model3DVersion, Organization, ReferenceSystem, Vector } from './models3d'
+import type { Translate } from '@basyx/studio-app-kit/i18n'
 import { pickText } from './models3d'
 
 // What the view shows of a model, as label and value rows. Based on the

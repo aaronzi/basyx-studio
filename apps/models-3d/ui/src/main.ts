@@ -1,3 +1,4 @@
+import { mountApp } from '@basyx/studio-app-kit'
 import { VAlert } from 'vuetify/components/VAlert'
 import { VApp } from 'vuetify/components/VApp'
 import { VBtn } from 'vuetify/components/VBtn'
@@ -17,7 +18,6 @@ import { VSheet } from 'vuetify/components/VSheet'
 import { VSlideGroup, VSlideGroupItem } from 'vuetify/components/VSlideGroup'
 import { VTable } from 'vuetify/components/VTable'
 import { VTooltip } from 'vuetify/components/VTooltip'
-import { mountApp } from '../../../shared/app'
 import App from './App.vue'
 
 await mountApp(App, {

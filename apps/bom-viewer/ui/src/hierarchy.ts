@@ -1,6 +1,6 @@
-import type { Node } from '../../../shared/aas'
+import type { Node } from '@basyx/studio-app-kit/aas'
 import type { JsonObject } from '@basyx/studio-sdk'
-import { childrenOf, langText } from '../../../shared/aas'
+import { childrenOf, langText } from '@basyx/studio-app-kit/aas'
 
 // Reads the Hierarchical Structures enabling Bills of Material submodel
 // (IDTA 02011-1). Ported from the BaSyx AAS Web UI

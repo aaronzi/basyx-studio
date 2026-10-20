@@ -3,6 +3,9 @@ packages:
   # The Studio SDK for app authors and the example apps (MVP-3).
   - "packages/*"
   - "examples/apps/*"
+  # An app in a repository of its own, built from the packed packages
+  # (ADR 0043, scripts/check-app-tarballs.mjs).
+  - "!examples/apps/starter"
   # Apps shipped with Studio (ADR 0023).
   - "apps/*"
 

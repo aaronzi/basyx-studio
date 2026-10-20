@@ -1,6 +1,6 @@
-import { buttonGroupDefaults, fieldDefaults } from '../../shared/vuetify-defaults.ts'
+import { buttonGroupDefaults, fieldDefaults } from './vuetify-defaults.ts'
 
-// Vuetify defaults of the apps shipped with Studio (ADR 0023). They follow
+// Vuetify defaults of Studio's apps (ADR 0023, ADR 0043). They follow
 // Studio's look: a view renders flat inside the card Studio gives it (an
 // Overview widget, the details drawer, the full-screen dialog), which
 // already has the border, the radius and the view's title. Without Vue or

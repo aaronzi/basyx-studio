@@ -1,15 +1,13 @@
+import { studioApp } from '@basyx/studio-app-kit/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import { vuetifySettings } from '../shared/vite.ts'
 
-// The UI is served under /app/<installation>/ui/, so every URL is relative.
+// The UI in ui/ is built to dist/ui/ with relative URLs, as Studio serves
+// it under /app/<installation>/ui/, and Vuetify gets Studio's Sass settings
+// (studioApp(), ADR 0043).
 export default defineConfig({
-  root: 'ui',
-  base: './',
-  plugins: [vue(), vuetifySettings()],
+  plugins: [vue(), studioApp()],
   build: {
-    outDir: '../dist/ui',
-    emptyOutDir: true,
     chunkSizeWarningLimit: 2000,
   },
 })

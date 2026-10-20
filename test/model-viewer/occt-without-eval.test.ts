@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { createContext, runInContext } from 'node:vm'
+import { withoutEval } from '@basyx/studio-app-kit/vite'
 import { describe, expect, it } from 'vitest'
-import { withoutEval } from '../../apps/shared/vite'
 
 // App frames forbid evaluating strings as code (no 'unsafe-eval' in their
 // CSP, ADR 0017). The apps' build replaces occt-import-js's embind invokers,
-// which use `new Function`, with closures (apps/shared/vite.ts). A context
+// which use `new Function`, with closures (@basyx/studio-app-kit/vite). A context
 // that refuses code generation from strings stands in for the CSP.
 
 const require = createRequire(new URL('../../packages/model-viewer/package.json', import.meta.url))
