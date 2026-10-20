@@ -247,7 +247,8 @@
     "external_file_refused": "Studio ne récupère pas de fichiers depuis cette adresse.",
     "app_signature_invalid": "La signature ne correspond au paquet avec aucune clé d’un éditeur de confiance.",
     "app_signer_not_allowed": "Le signataire ne peut pas publier ni mettre à jour cette app.",
-    "app_revoked": "Ce déploiement ne fait plus confiance à cette app."
+    "app_revoked": "Ce déploiement ne fait plus confiance à cette app.",
+    "app_outdated": "L’app a été mise à jour. Rechargez-la pour utiliser la nouvelle version."
   },
   "admin": {
     "title": "Infrastructures",

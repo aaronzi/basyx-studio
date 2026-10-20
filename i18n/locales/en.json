@@ -327,7 +327,8 @@
     "external_file_refused": "Studio does not fetch files from this address.",
     "app_signature_invalid": "The signature does not match the package with any key of a trusted publisher.",
     "app_signer_not_allowed": "The signer may not publish or update this app.",
-    "app_revoked": "This app is no longer trusted by this deployment."
+    "app_revoked": "This app is no longer trusted by this deployment.",
+    "app_outdated": "The app was updated. Reload it to use the new version."
   },
   "admin": {
     "title": "Infrastructures",

@@ -247,7 +247,8 @@
     "external_file_refused": "Studio 不会从此地址获取文件。",
     "app_signature_invalid": "签名与包不匹配，任何受信任发布者的密钥都无法验证。",
     "app_signer_not_allowed": "签名者无权发布或更新此应用。",
-    "app_revoked": "此部署已不再信任此应用。"
+    "app_revoked": "此部署已不再信任此应用。",
+    "app_outdated": "应用已更新。请重新加载以使用新版本。"
   },
   "admin": {
     "title": "基础设施",

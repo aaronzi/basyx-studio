@@ -247,7 +247,8 @@
     "external_file_refused": "Studio no obtiene archivos de esta dirección.",
     "app_signature_invalid": "La firma no coincide con el paquete con ninguna clave de un editor de confianza.",
     "app_signer_not_allowed": "El firmante no puede publicar ni actualizar esta app.",
-    "app_revoked": "Esta implementación ya no confía en esta app."
+    "app_revoked": "Esta implementación ya no confía en esta app.",
+    "app_outdated": "La app se ha actualizado. Recárguela para usar la nueva versión."
   },
   "admin": {
     "title": "Infraestructuras",

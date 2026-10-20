@@ -327,7 +327,8 @@
     "external_file_refused": "Studio ruft Dateien von dieser Adresse nicht ab.",
     "app_signature_invalid": "Die Signatur passt mit keinem Schlüssel eines vertrauenswürdigen Herausgebers zum Paket.",
     "app_signer_not_allowed": "Der Signierende darf diese App nicht veröffentlichen oder aktualisieren.",
-    "app_revoked": "Diese Bereitstellung vertraut dieser App nicht mehr."
+    "app_revoked": "Diese Bereitstellung vertraut dieser App nicht mehr.",
+    "app_outdated": "Die App wurde aktualisiert. Laden Sie sie neu, um die neue Version zu verwenden."
   },
   "admin": {
     "title": "Infrastrukturen",

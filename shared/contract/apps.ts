@@ -104,6 +104,8 @@ const contributionBase = {
   /** URL of the sandboxed entry document on the app origin. */
   entryUrl: z.string(),
   permissions: z.array(appPermissionSchema),
+  /** The package the entry is served from; a frame's calls carry it, so an update cuts off frames of the old version. */
+  digest: z.string(),
   /** Installed in developer mode, without a signature (ADR 0044). */
   unsigned: z.boolean(),
   bundled: z.boolean(),
@@ -257,6 +259,12 @@ export const appMethodNameSchema = z.enum(Object.keys(appMethodParamsSchemas) as
 export const appCallInputSchema = z.object({
   /** Required for host calls; implied by the token for backend calls. */
   installationId: z.string().max(64).optional(),
+  /**
+   * The package digest the calling frame was loaded from (ADR 0044). Studio's
+   * page always sends it; a call from an older version is refused with
+   * `app_outdated`.
+   */
+  digest: z.string().max(80).optional(),
   /** The target the frame is bound to; `null` for a global module outside a target. */
   targetId: z.string().max(200).nullable().optional(),
   /** The shell the frame shows, if any; some infrastructures reach submodels only through it. */

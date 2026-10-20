@@ -247,7 +247,8 @@
     "external_file_refused": "Studio haalt geen bestanden op van dit adres.",
     "app_signature_invalid": "De handtekening past met geen enkele sleutel van een vertrouwde uitgever bij het pakket.",
     "app_signer_not_allowed": "De ondertekenaar mag deze app niet publiceren of bijwerken.",
-    "app_revoked": "Deze implementatie vertrouwt deze app niet meer."
+    "app_revoked": "Deze implementatie vertrouwt deze app niet meer.",
+    "app_outdated": "De app is bijgewerkt. Laad hem opnieuw om de nieuwe versie te gebruiken."
   },
   "admin": {
     "title": "Infrastructuren",

@@ -10,7 +10,7 @@ import { manifestOf } from './support'
 
 describe('capability tokens', () => {
   const key = capabilityTokenKey(randomBytes(32))
-  const claims = { installationId: 'app-0123456789abcdef', sessionId: 'session', targetId: 'target' }
+  const claims = { installationId: 'app-0123456789abcdef', digest: 'sha256:0123', sessionId: 'session', targetId: 'target' }
 
   it('round-trips the claims until the token expires', () => {
     const now = Date.now()

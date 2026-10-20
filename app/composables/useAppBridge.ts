@@ -51,6 +51,8 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   const height = ref<number | null>(null)
 
   let port: MessagePort | null = null
+  /** The package the connected document was loaded from; its calls carry it (ADR 0044). */
+  let digest: string | null = null
   let handedOut = false
   let loads = 0
   let reloading = false
@@ -103,12 +105,17 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       }
       const { result } = await api<AppCallResult>('/app-calls', {
         method: 'POST',
-        body: { installationId: contribution.installationId, targetId: options.targetId, shellId: options.context().shell?.id ?? null, method: method.data, params },
+        body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: options.context().shell?.id ?? null, method: method.data, params },
       })
       const replaced = await carryOut(method.data, params, contribution)
       respond({ type: 'response', id, result: replaced ? replaced.result : result }, replaced?.transfer)
     } catch (error) {
-      respond({ type: 'error', id, problem: problemOf(error) })
+      const problem = problemOf(error)
+      if (problem.code === 'app_outdated') {
+        // The app was updated in place: new contributions reload the frame.
+        void queryCache.invalidateQueries({ key: ['app-contributions'] })
+      }
+      respond({ type: 'error', id, problem })
     }
   }
 
@@ -200,6 +207,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   function closePort () {
     port?.close()
     port = null
+    digest = null
     connected.value = false
   }
 
@@ -211,6 +219,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       return
     }
     handedOut = true
+    digest = options.contribution().digest
     const channel = new MessageChannel()
     port = channel.port1
     port.addEventListener('message', event => void onRequest(event))

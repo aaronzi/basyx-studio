@@ -60,6 +60,8 @@ export const problemCodes = [
   'app_signer_not_allowed',
   /** The key that signed the installed app was removed from the trust store, or no longer covers its app ID. */
   'app_revoked',
+  /** The calling frame or backend runs an older version of the app than the installed one; reload it. */
+  'app_outdated',
   'app_not_found',
   'app_permission_not_declared',
   'app_backend_unavailable',

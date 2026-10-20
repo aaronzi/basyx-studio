@@ -50,6 +50,18 @@ export function authorizeAppCall (installation: AppInstallationRecord, method: A
   }
 }
 
+/**
+ * Refuses a call from code of another package than the installed one: a
+ * frame or backend that was loaded before an in-place update (ADR 0044).
+ * Its permissions and trust are those of the version it runs, not of the
+ * update.
+ */
+export function requireInstalledRevision (installation: AppInstallationRecord, digest: string | undefined): void {
+  if (digest !== undefined && digest !== installation.digest) {
+    throw new StudioProblem('app_outdated', `${installation.appId} was updated to ${installation.version} after this frame was loaded. Reload it.`)
+  }
+}
+
 export type ContainerMethodName = Extract<AppMethodName, `studio.containers.${string}`>
 
 export function isContainerMethod (method: AppMethodName): method is ContainerMethodName {
