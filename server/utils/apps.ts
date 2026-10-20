@@ -3,9 +3,10 @@ import type { AppCaller } from '../lib/apps/calls'
 import type { AppInstallationRecord } from '../lib/apps/store'
 import type { Actor } from '../lib/deps'
 import type { StudioRuntime } from './studio'
+import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { authorizeAppCall, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
+import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
 import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
@@ -89,11 +90,17 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   if (method === 'studio.timeseries.read') {
     return performTimeSeriesRead(studio, call, params as never, requestId)
   }
-  if (!isAasMethod(method)) {
+  if (!isAasMethod(method) && method !== 'studio.ui.openShell') {
     return null
   }
   if (!targetId) {
     throw new StudioProblem('invalid_request', 'This app frame is not bound to a target.')
+  }
+  if (method === 'studio.ui.openShell') {
+    const shell = params as Methods['studio.ui.openShell']['params']
+    const opened = await openTargetFor({ actor, targetId, requestId, operation: method, read: true, appInstallationId: installation.id, shellId: shell.shellId })
+    await checkShellToOpen(opened.target, shell)
+    return null
   }
 
   const opened = await openTargetFor({

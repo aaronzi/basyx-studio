@@ -5,8 +5,8 @@
   "version": "0.1.0",
   "publisher": { "name": "Eclipse BaSyx" },
   "title": { "en": "Shell Explorer" },
-  "description": { "en": "Lists the shells of the active target and their submodels, with a page per shell." },
-  "studioApi": "^0.1.0",
+  "description": { "en": "Lists the shells of the active target and their submodels, with a page per shell, and opens them on Studio's shell page." },
+  "studioApi": "^0.1.4",
   "runtimes": ["hosted", "desktop"],
   "permissions": ["studio.aas.read", "studio.ui.navigation"],
   "contributes": {

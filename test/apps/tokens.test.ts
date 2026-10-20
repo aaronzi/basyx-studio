@@ -2,7 +2,7 @@ import type { AppInstallationRecord } from '~~/server/lib/apps/store'
 import type { AasTarget } from '~~/server/lib/targets/aas-target'
 import { randomBytes } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
-import { authorizeAppCall, executeAasMethod } from '~~/server/lib/apps/calls'
+import { authorizeAppCall, checkShellToOpen, executeAasMethod } from '~~/server/lib/apps/calls'
 import { capabilityTokenKey, capabilityTokenTtlMs, issueCapabilityToken, verifyCapabilityToken } from '~~/server/lib/apps/tokens'
 import { emptyTrustStore } from '~~/server/lib/apps/trust'
 import { StudioProblem } from '~~/server/lib/problem'
@@ -48,6 +48,10 @@ describe('app call authorization', () => {
     expect(code(() => authorizeAppCall(installation, 'studio.aas.setElementValue', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
     expect(code(() => authorizeAppCall(installation, 'studio.ui.notify', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
     expect(code(() => authorizeAppCall(installation, 'studio.backend.call', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall(installation, 'studio.ui.openShell', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
+    const navigating = { ...installation, manifest: manifestOf({ permissions: ['studio.ui.navigation'] }) }
+    expect(code(() => authorizeAppCall(navigating, 'studio.ui.openShell', 'host', emptyTrustStore))).toBe('allowed')
+    expect(code(() => authorizeAppCall(navigating, 'studio.ui.openShell', 'backend', emptyTrustStore))).toBe('unsupported_operation')
   })
 
   it('limits backends to AAS methods', () => {
@@ -114,5 +118,17 @@ describe('AAS capability methods', () => {
     await expect(executeAasMethod(target, 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: '../x' }))
       .rejects
       .toMatchObject({ code: 'invalid_request' })
+  })
+
+  it('opens only shells the user can read, and only submodels the shell references', async () => {
+    const target = fakeTarget()
+    await expect(checkShellToOpen(target, { shellId: 'urn:shell', submodelId: 'urn:sm:2' })).resolves.toBeUndefined()
+    expect(target.shell).toHaveBeenCalledWith('urn:shell')
+    await expect(checkShellToOpen(target, { shellId: 'urn:shell', submodelId: 'urn:sm:other' })).rejects.toMatchObject({ code: 'target_resource_not_found' })
+    target.shell = vi.fn(async () => {
+      throw new StudioProblem('target_forbidden')
+    })
+    await expect(checkShellToOpen(target, { shellId: 'urn:shell' })).rejects.toMatchObject({ code: 'target_forbidden' })
+    expect(target.submodelIds).toHaveBeenCalledTimes(2)
   })
 })

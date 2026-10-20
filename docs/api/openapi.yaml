@@ -5853,6 +5853,7 @@ components:
             - studio.ui.openFullscreen
             - studio.ui.readExternalFile
             - studio.ui.openTarget
+            - studio.ui.openShell
             - studio.ui.openExternal
             - studio.ui.copyText
             - studio.containers.listEngines

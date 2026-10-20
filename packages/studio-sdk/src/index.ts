@@ -56,6 +56,12 @@ export class StudioClient {
     /** Opens a target in Studio (needs studio.ui.navigation). */
     openTarget: (targetId: string) => this.call('studio.ui.openTarget', { targetId }),
     /**
+     * Opens Studio's page of a shell of the active target in this tab, where
+     * the submodel views show its submodels; `submodelId` selects one of them
+     * (needs studio.ui.navigation; Studio ≥ 0.1.4). Call it from a click handler.
+     */
+    openShell: (shellId: string, options: { submodelId?: string } = {}) => this.call('studio.ui.openShell', options.submodelId === undefined ? { shellId } : { shellId, submodelId: options.submodelId }),
+    /**
      * Opens a URL in the system browser (needs studio.ui.navigation): https,
      * or http to this computer. Call it from a click handler.
      */

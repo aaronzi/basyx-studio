@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.3'
+export const studioAppApiVersion = '0.1.4'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -423,6 +423,15 @@ export interface Methods {
   'studio.backend.call': { params: { method: string, params?: unknown }, result: unknown }
   /** Opens a target in Studio. */
   'studio.ui.openTarget': { params: { targetId: string }, result: null }
+  /**
+   * Opens Studio's page of a shell of the active target in the same tab,
+   * where Studio's and the bundled apps' submodel views show its submodels.
+   * With `submodelId`, a submodel the shell references is selected and shown
+   * in its view, if it has one. Needs a click in the app just before. Studio
+   * reads the shell as the user first: a shell the user cannot read is
+   * refused, and Studio stays on the app (Studio app API 0.1.4).
+   */
+  'studio.ui.openShell': { params: { shellId: string, submodelId?: string }, result: null }
   /** Opens an http(s) URL in the system browser. */
   /** Needs a click in the app just before. Only https, or http to this computer (127.0.0.1, localhost, [::1]). */
   'studio.ui.openExternal': { params: { url: string }, result: null }
@@ -481,6 +490,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.aas.setElementValue': 'studio.aas.write',
   'studio.backend.call': 'studio.backend',
   'studio.ui.openTarget': 'studio.ui.navigation',
+  'studio.ui.openShell': 'studio.ui.navigation',
   'studio.ui.openExternal': 'studio.ui.navigation',
   'studio.ui.copyText': 'studio.ui.clipboard',
   'studio.containers.listEngines': 'studio.containers',

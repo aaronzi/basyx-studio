@@ -77,6 +77,20 @@ function addressable (idShortPath: string): string {
   return path
 }
 
+/**
+ * Checks that the user can read the shell an app opens with
+ * `studio.ui.openShell` (external apps plan X2), and that the shell
+ * references the submodel to select, before Studio's page leaves the app.
+ * The target applies the user's rights, so a shell they cannot read is
+ * refused as it would be on its page.
+ */
+export async function checkShellToOpen (target: AasTarget, params: Methods['studio.ui.openShell']['params']): Promise<void> {
+  await target.shell(params.shellId)
+  if (params.submodelId !== undefined && !(await target.submodelIds(params.shellId)).includes(params.submodelId)) {
+    throw new StudioProblem('target_resource_not_found', 'The shell does not reference this submodel.')
+  }
+}
+
 /** Runs an AAS capability method on the caller's target. Parameters are already validated. */
 export async function executeAasMethod<M extends AasMethodName> (target: AasTarget, method: M, params: Methods[M]['params']): Promise<Methods[M]['result']>
 export async function executeAasMethod (target: AasTarget, method: AasMethodName, params: Record<string, any>): Promise<unknown> {

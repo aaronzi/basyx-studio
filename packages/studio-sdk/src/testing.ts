@@ -43,6 +43,8 @@ export interface TestNotification {
   level: NonNullable<Methods['studio.ui.notify']['params']['level']>
 }
 
+export type TestOpenedShell = Methods['studio.ui.openShell']['params']
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -52,6 +54,8 @@ export interface TestStudio {
   readonly calls: TestCall[]
   /** What the app showed with `studio.ui.notify`. */
   readonly notifications: TestNotification[]
+  /** The shells the app opened with `studio.ui.openShell`, where Studio would have left the app's page. */
+  readonly openedShells: TestOpenedShell[]
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -119,6 +123,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   let closed = false
   const calls: TestCall[] = []
   const notifications: TestNotification[] = []
+  const openedShells: TestOpenedShell[] = []
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -137,6 +142,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
     'studio.ui.notify': ({ message, level }) => {
       notifications.push({ message, level: level ?? 'info' })
+      return null
+    },
+    'studio.ui.openShell': shell => {
+      openedShells.push(shell)
       return null
     },
   }
@@ -218,6 +227,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
     calls,
     notifications,
+    openedShells,
     setContext,
     close: () => transport.close(),
   }

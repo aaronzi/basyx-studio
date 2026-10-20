@@ -208,6 +208,16 @@ test('adds module routes, nested routes and shell modules that follow the active
   await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
   await expect(frame.locator('[data-test="submodels"]')).toContainText('Nameplate')
 
+  // studio.ui.openShell (external apps plan X2): Studio's shell page in the
+  // same tab, with the submodel shown in its view; going back returns to the app.
+  const explorerUrl = page.url()
+  await frame.locator('[data-test="submodels"]').getByText('Nameplate', { exact: true }).click()
+  await expect(page).toHaveURL(`/targets/${openTargetId}/shells/${key(motorShell)}?submodel=${key(motorNameplate)}&mode=visualization`)
+  await expect(page.locator('iframe[title="App: Digital Nameplate"]')).toBeVisible()
+  await page.goBack()
+  await expect(page).toHaveURL(explorerUrl)
+  await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
+
   // A new target gets a new frame that sees only that target.
   await page.goto(`/targets/${securedTargetId}/apps/${installationId}/explorer`)
   await expect(frame.locator('[data-test="heading"]')).toHaveText('Shells of E2E apps secured (as Studio)')

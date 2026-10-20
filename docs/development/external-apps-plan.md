@@ -130,7 +130,7 @@ Decided on 2026-10-20.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
-| T1 | Latest values | `anchor: 'latest'` also works for LinkedSegments: the InfluxDB adapter asks for the last point per series before the range end and moves the range to it, within the Flux guard. |
+| T1 | Latest values | `anchor: 'latest'` also works for LinkedSegments: the InfluxDB adapter asks for the last point per series before the range end and moves the range to it, within the Flux guard. *Done (app API 0.1.4):* Studio sends the segment's own query for earlier ranges (the range as given, then eight times as far back at each step, up to five years) and, for a query that aggregates by `v.windowPeriod`, narrows down to a window no longer than the read's own. Only the range variables change and every query is checked, so Studio sends no Flux of its own. The latest point of all selected series counts; without any, the range stays as given. The result's range is the range read (ADR 0040). The bundled Time Series Data app anchors relative ranges of LinkedSegments too. |
 | T2 | Time series for installed apps | `studio.timeseries.read` is allowed for apps whose trust-store entry grants it (U7). The time series plan's "installed apps with an install warning" is covered by the consent step (U6). |
 
 ### Pilot decisions
@@ -138,7 +138,7 @@ Decided on 2026-10-20.
 | # | Topic | Decision |
 | --- | --- | --- |
 | X1 | Embedded third-party pages | *Amended on 2026-10-20 by [ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md).* Originally: Studio keeps `frame-src 'none'`, dashboards become charts over TimeSeries submodels (T1, T2), other pages become links through `studio.ui.openExternal`, and no `sandbox.frameOrigins` extension is planned. Reviewing the pilot showed that public pages, such as a 3D-capture viewer, have no replacement, and that they stay blank only because the app frame's opaque origin is inherited by embedded pages. Now: each installation may have its own origin, app frames there get `allow-same-origin`, and the manifest declares `sandbox.frameOrigins`. Charts over TimeSeries submodels stay the way for the pilot's own data. Pages that need the third party's sign-in remain unsupported. |
-| X2 | Bill of material and other existing views | The pilot does not reimplement Studio's submodel views. It opens Studio's shell page with `studio.ui.openShell({shellId})` (MVP-7 M6, taken here for full Studio), where the bundled views show the submodels. Apps embedding other apps' views is the follow-up (see [Later](#later)). |
+| X2 | Bill of material and other existing views | The pilot does not reimplement Studio's submodel views. It opens Studio's shell page with `studio.ui.openShell({shellId})` (MVP-7 M6, taken here for full Studio), where the bundled views show the submodels. Apps embedding other apps' views is the follow-up (see [Later](#later)). *Done (app API 0.1.4):* `studio.ui.openShell({ shellId, submodelId? })` with permission `studio.ui.navigation`, for a shell of the frame's target. It navigates the current tab, so going back returns to the app; with `submodelId`, that submodel is selected and shown in its view (`?submodel=…&mode=visualization`), or in its details without one. Like `openExternal`, it needs a click or key press in the app just before, because it leaves the app's page. Studio reads the shell as the user before the page leaves the app: a shell the user cannot read, or a submodel the shell does not reference, is refused with Studio's problem, and the app stays. Desktop works the same, for infrastructures and AASX workspaces. Backends cannot call it. |
 | X3 | FileSystem view | A bundled Studio app for the FileSystem submodel (`https://basyx.org/FileSystem/FileSystem/0/1`): a folder tree, preview, upload, rename, move and delete in edit mode. It uses MVP-7 A1 and A2, so it is their first consumer. The pilot reaches it as in X2. |
 | X4 | Delivery | The pilot runs as an app in a full Studio. Single-app mode stays with MVP-7 and is not a condition of this plan. The package will run unchanged in it (SAP-002). |
 
@@ -181,6 +181,13 @@ Decided on 2026-10-20.
 | E | Capabilities: MVP-7 K1–K9 (HTTP connections), A1 and A2 (structural writes and attachments), T1 and T2, `studio.ui.openShell` (X2), and the bundled FileSystem view (X3) | The pilot calls its third-party API through a connection and shows charts from `studio.timeseries.read` instead of embedded dashboards. Files are managed in the FileSystem view on Studio's shell page. No credential reaches the browser. |
 | F | Report: what the pilot still misses, and the end of the forked web UI image | A follow-up plan lists the remaining gaps |
 
+### Phase E status
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| T1 | Done | `server/lib/timeseries/read.ts`. Unit tests against a fake InfluxDB that honours ranges and windows: points days before the range, windows narrowed down, current data in one query, no data after five years back, the latest point of several series, the Flux check before anything is sent. The time series example's smoke test reads an hour ending tomorrow and gets the hour before the sensor's latest point |
+| X2 | Done | `studio.ui.openShell` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkShellToOpen`), the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`openedShells`). Unit tests for the shell and submodel check, authorization and the test Studio |
+
 ## Relation to MVP-7
 
 This plan runs before the rest of MVP-7 and takes parts of it:
@@ -190,8 +197,8 @@ This plan runs before the rest of MVP-7 and takes parts of it:
 - **M2** (managed packages) moves to phase C, because signed uploads, updates
   and managed packages share one install path.
 - **K1–K9, A1, A2** are done in phase E, in MVP-7's form.
-- **`studio.ui.openShell`** from M6 is done in phase E for full Studio. Its
-  single-app behaviour (`STUDIO_APP_STUDIO_PAGES`) stays with MVP-7.
+- **`studio.ui.openShell`** from M6 is done in phase E for full Studio (X2).
+  Its single-app behaviour (`STUDIO_APP_STUDIO_PAGES`) stays with MVP-7.
 - **MVP-7 phase G**, "port an existing multi-service AAS application outside
   this repository", is this plan's pilot. It is done when this plan's
   phase F is.
