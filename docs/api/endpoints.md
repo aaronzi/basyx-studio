@@ -200,13 +200,13 @@ service URLs and file system paths are excluded.
 | --- | --- |
 | `GET /apps/catalog` | Sanitized marketplace projection for the UI, including compatibility and applicability. |
 | `GET /apps/catalog/{appId}/versions/{version}` | Immutable version with digest, signature/revocation status, SBOM/review information and requested capabilities. |
-| `GET/POST /app-installations` | Shows installations or installs digest-pinned with explicit permissions. Installation runs asynchronously; a developer mode package (`application/zip`) is checked and installed synchronously (MVP-3). |
-| `GET/DELETE /app-installations/{installationId}` | Shows lifecycle and permissions or removes the installation. Apps shipped with Studio (`bundled`, ADR 0023) cannot be removed (MVP-4). |
+| `GET/POST /app-installations` | Shows installations or installs digest-pinned with explicit permissions. Installation runs asynchronously; a package (`application/zip`) is checked and installed synchronously (MVP-3). Its signature goes in `Studio-App-Signature`; a signed package of a trusted publisher needs no developer mode. `?inspect=true` only checks the package and returns the verification result and, for an update, the changed permissions. Installing an installed app ID updates it in place under the same installation ID (ADR 0044). Each installation has its `trust`, verified publisher and revocation. |
+| `GET/DELETE /app-installations/{installationId}` | Shows lifecycle and permissions or removes the installation. Apps shipped with Studio (`bundled`, ADR 0023) and managed packages (`managed`, ADR 0044) cannot be removed (MVP-4). |
 | `GET /app-installations/{installationId}/compatibility` | Assesses technical compatibility and semantic applicability separately. |
 | `GET /app-contributions` | Modules of the installed apps and, for one or more semantic IDs (repeated parameter, MVP-4), matching submodel views with a reason (MVP-3). |
 | `POST /app-calls` | Capability call for an app: from the host bridge by session or from the backend by a short-lived capability token; checked against the manifest and user rights (MVP-3, ADR 0018). MVP-4 adds `shellId`, `studio.ui.setHeight` and `studio.ui.openFile`; the app context names the mode (`view` or `edit`). `studio.ui.openFullscreen` opens the view again in a fullscreen dialog (without permission, only in the host bridge); there, `fullscreen` is set in the context. |
 | `POST/DELETE /app-installations/{installationId}/activations` | Activates or deactivates for a target/context. |
-| `POST /app-installations/{installationId}/updates` | Checks a signed immutable version and provides it as an update. |
+| `POST /app-installations/{installationId}/updates` | Checks a signed immutable version from the marketplace and provides it as an update. Uploaded updates use `POST /app-installations` (ADR 0044). |
 | `POST /app-installations/{installationId}/rollbacks` | Rolls back to a verified previous version. |
 | `GET/PUT /app-installations/{installationId}/visibility` | Manages visibility for users/groups independently of the installation scope. |
 

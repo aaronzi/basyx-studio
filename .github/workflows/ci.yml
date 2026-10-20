@@ -115,6 +115,13 @@ jobs:
         env:
           STUDIO_IMAGE: basyx-studio:ci
 
+      # Signed apps end to end: packages signed with cosign install without
+      # developer mode, update in place and are revoked with their key (ADR 0044).
+      - name: Signed app example
+        run: node examples/deployment/signed-app/smoke-test.mjs
+        env:
+          STUDIO_IMAGE: basyx-studio:ci
+
   integration:
     name: Integration tests against the test environment
     needs: checks

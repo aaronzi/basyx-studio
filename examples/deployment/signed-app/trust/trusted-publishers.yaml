@@ -1,0 +1,18 @@
+# The trust store (ADR 0044): who may sign app packages for this deployment.
+# Studio reads it at startup; removing a key revokes the apps it signed at
+# the next start.
+version: 1
+publishers:
+  # The name the Apps page shows as "verified publisher".
+  - name: Example Team
+    # PEM public keys from `cosign generate-key-pair`, inline or as paths
+    # relative to this file. Only ECDSA P-256 keys are accepted.
+    keys:
+      - keys/example-team.pub
+    # The app IDs these keys may sign: IDs, prefixes ending in .*, or *.
+    appIds:
+      - org.example.*
+    # Reserved permissions the publisher's apps may use. Without this line,
+    # their calls to studio.timeseries.read are refused.
+    permissions:
+      - studio.timeseries.read

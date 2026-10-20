@@ -20,6 +20,27 @@ UI apps (submodel views and modules) and Deno backend apps. Its decisions are
 
 Installations pin immutable artifact digests, not mutable tags. App updates are independent from Studio binary updates but constrained by declared Studio API compatibility.
 
+## Signed packages and updates
+
+Until the marketplace exists, deployments install signed packages directly
+([ADR 0044](../adr/0044-app-package-signatures-trust-store-and-updates.md)):
+
+- A package carries a detached signature over its bytes, as
+  `cosign sign-blob --key` writes it. The deployment's trust store
+  (`STUDIO_APPS_TRUSTED_PUBLISHERS`) lists publishers, their public keys and
+  the app IDs each may sign. Signed packages install without developer mode.
+- Every installation records its trust: `bundled`, `signed` (with the trust
+  store's publisher name and the key fingerprint), `managed` (mounted by the
+  operator through `STUDIO_APP_PACKAGES`) or `unsigned` (developer mode).
+- Uploads are inspected first; the administrator confirms the verified
+  publisher and the requested permissions, and, for an update, what changes.
+- An update replaces the files of the installation in place and keeps its ID.
+  It needs the same publisher's signature and a higher version; managed
+  packages may also go back.
+- A trust store entry may grant reserved permissions (`studio.timeseries.read`)
+  to its publisher's apps.
+- Removing a key revokes the apps it signed at the next start.
+
 ## App categories
 
 ### UI-only app

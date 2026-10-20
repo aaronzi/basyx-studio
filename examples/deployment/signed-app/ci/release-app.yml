@@ -1,0 +1,69 @@
+# A release workflow for an app in its own repository (ADR 0044): build,
+# pack, sign with cosign and attach the package and its signature to the
+# GitHub release. Copy it to .github/workflows/ of the app's repository.
+#
+# Secrets of that repository:
+#   COSIGN_PRIVATE_KEY   the content of cosign.key (cosign generate-key-pair)
+#   COSIGN_PASSWORD      its password
+# cosign.pub is committed next to this workflow and given to the operators of
+# the Studio deployments, who add it to their trust store.
+
+name: Release app
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  APP_ID: org.example.my-app
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # Pin actions to commit SHAs in a real repository.
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # studio-app.json and the built files at the root of the archive. The
+      # version in studio-app.json must be higher than the installed one.
+      # `studio-app pack` of @basyx/studio-app-kit replaces this step once it
+      # is published (external apps plan, P4).
+      - name: Pack
+        run: |
+          package="${APP_ID}-${GITHUB_REF_NAME#v}.zip"
+          (cd dist && zip -X -r "../${package}" .)
+          echo "PACKAGE=${package}" >> "$GITHUB_ENV"
+
+      - uses: sigstore/cosign-installer@v3
+
+      # A detached signature over the exact package bytes. cosign 3 needs both
+      # flags to sign offline with a key; cosign 2 has no --use-signing-config.
+      # Without them, cosign 3 writes a Sigstore bundle (--bundle) and
+      # records the signature in the public Rekor log; Studio reads such
+      # bundles too.
+      - name: Sign
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+        run: >-
+          cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY
+          --use-signing-config=false --tlog-upload=false
+          --output-signature "${PACKAGE}.sig" "${PACKAGE}"
+
+      - name: Verify
+        run: cosign verify-blob --key cosign.pub --insecure-ignore-tlog=true --signature "${PACKAGE}.sig" "${PACKAGE}"
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" "${PACKAGE}" "${PACKAGE}.sig" --verify-tag --generate-notes

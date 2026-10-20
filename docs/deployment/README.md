@@ -30,7 +30,7 @@ because every visitor is an administrator, with an embedded database in the
 `studio-data` volume. Keep the data key: it encrypts stored tokens and
 secrets, and a new key cannot read them.
 
-Three Compose examples go further:
+Four Compose examples go further:
 
 - [`examples/deployment/quickstart`](../../examples/deployment/quickstart):
   Studio without login and a BaSyx Go AAS environment, declared as a managed
@@ -44,6 +44,9 @@ Three Compose examples go further:
   Series Data submodel, and an `influxdb2` connection with a read-only token
   (see [Connections and time series](#connections-and-time-series)). Its
   `smoke-test.mjs` checks the stack end to end and runs in CI.
+- [`examples/deployment/signed-app`](../../examples/deployment/signed-app):
+  a trust store, a directory of managed packages, and a guide for signing apps
+  with cosign in another repository's CI (see [Signed apps](#signed-apps)).
 
 ## Image tags and verification
 
@@ -118,8 +121,10 @@ Register `<public URL>/api/studio/v1/auth/callback` as redirect URI and
 | Variable | Default | Description |
 | --- | --- | --- |
 | `STUDIO_APPS_URL` | none | Separate origin app files are served from, e.g. `https://apps.example.org`, routed to the same service. Without it, apps are off. |
-| `STUDIO_APPS_ALLOW_UNSIGNED` | `false` | Developer-mode installs of unsigned packages. |
-| `STUDIO_APPS_ALLOW_INSTALL` | `true` | `false` keeps administrators from installing or removing apps; bundled apps stay. |
+| `STUDIO_APPS_TRUSTED_PUBLISHERS` | none | YAML file with the publishers whose keys may sign app packages ([below](#signed-apps)). Signed packages install without developer mode. |
+| `STUDIO_APPS_ALLOW_UNSIGNED` | `false` | Developer-mode installs of unsigned packages. A signature that is present must still verify. |
+| `STUDIO_APPS_ALLOW_INSTALL` | `true` | `false` keeps administrators from installing, updating or removing apps; bundled and managed apps stay. |
+| `STUDIO_APP_PACKAGES` | none | Comma-separated `.zip` files or directories of them, installed and updated at startup ([below](#managed-packages)). |
 
 ### Branding, legal links and switches
 
@@ -263,6 +268,63 @@ database:
    Studio reaches InfluxDB and the address in the submodels' `Endpoint` (for
    example `http://localhost:8086`) under `aliases`.
 
+## Signed apps
+
+Apps are installed from ZIP packages. A package signed by a publisher the
+deployment trusts installs without developer mode
+([ADR 0044](../adr/0044-app-package-signatures-trust-store-and-updates.md)).
+The signature is detached and covers the exact package bytes, as
+`cosign sign-blob --key` writes it (ECDSA P-256, `<package>.zip.sig`); a
+Sigstore bundle works too.
+
+`STUDIO_APPS_TRUSTED_PUBLISHERS` names the trust store, read at startup:
+
+```yaml
+version: 1
+publishers:
+  - name: Example GmbH              # shown as the verified publisher
+    keys:                           # PEM public keys, inline or as paths
+      - keys/example.pub            # relative to this file
+    appIds: [org.example.*]         # IDs, prefixes ending in .*, or *
+    permissions:                    # reserved permissions it may use
+      - studio.timeseries.read
+```
+
+- A key signs only the app IDs of its publisher. Only ECDSA P-256 keys
+  (`cosign generate-key-pair`) are accepted, and a key belongs to one
+  publisher. Studio does not start with an invalid trust store.
+- The *Apps* page takes a package and its signature, shows the verified
+  publisher and what the app requests, and installs on confirmation. The API
+  takes the signature in the `Studio-App-Signature` header;
+  `POST /app-installations?inspect=true` checks a package without installing
+  it.
+- Installing an app that is installed updates it in place: the installation
+  ID, deep links and audit records stay, and a running backend restarts with
+  the new files. The update must be signed by the same publisher and have a
+  higher version. The dialog marks permissions the update adds.
+- `permissions` may grant `studio.timeseries.read`, which apps otherwise
+  cannot use. `studio.containers` stays with the apps shipped with Studio.
+- Removing a key revokes the apps it signed at the next start: their files and
+  calls are refused, and the *Apps* page says why. A package signed with a
+  trusted key restores them. When rotating a key, add the new one, release
+  with it, then remove the old one.
+
+### Managed packages
+
+`STUDIO_APP_PACKAGES` lets the deployment install apps itself, for example
+from a mounted volume or an init container. At every start, Studio installs
+or updates each package by digest and marks it as managed:
+
+- A `<package>.zip.sig` next to a package must verify against the trust store;
+  otherwise the package is skipped and its previous version stays. Unsigned
+  packages are accepted: the operator vouches for them.
+- Managed packages may go back to a lower version, replace an app with the
+  same ID that an administrator or Studio installed, and work with
+  `STUDIO_APPS_ALLOW_INSTALL=false`. The *Apps* page cannot update or remove
+  them.
+- A managed app whose package is no longer configured is uninstalled at the
+  next start. When a configured package fails, nothing is removed.
+
 ## Without login
 
 `STUDIO_AUTH_MODE=none` is for demos, closed networks and deployments behind
@@ -288,6 +350,9 @@ For a Helm chart (planned in `eclipse-basyx/charts`):
   `file:`.
 - Infrastructures: `STUDIO_INFRASTRUCTURES_FILE` from a `ConfigMap`, or
   `STUDIO_INFRASTRUCTURES` from values.
+- Apps: the trust store and its keys from a `ConfigMap`
+  (`STUDIO_APPS_TRUSTED_PUBLISHERS`); packages and their signatures on a
+  volume filled by an init container (`STUDIO_APP_PACKAGES`).
 - Ingress: the Studio host (path `STUDIO_BASE_PATH`) and, with apps, the apps
   host, both to the same service.
 - Shutdown: Studio stops on `SIGTERM`; startup with an invalid configuration

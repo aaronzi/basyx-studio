@@ -130,6 +130,8 @@ Studio Service serves both roles ([ADR 0017](../adr/0017-app-origin-and-content-
 | --- | --- |
 | `STUDIO_APPS_URL` | Origin app files are served from, e.g. `https://apps.studio.example`. Route it to the same Studio Service; it must differ from `STUDIO_PUBLIC_URL`. Without it, apps are disabled. |
 | `STUDIO_APPS_ALLOW_UNSIGNED` | `true` allows developer-mode installs of unsigned packages. Defaults to `false` when hosted. |
+| `STUDIO_APPS_TRUSTED_PUBLISHERS` | Trust store of publisher keys per app ID; signed packages install without developer mode ([ADR 0044](../adr/0044-app-package-signatures-trust-store-and-updates.md)). |
+| `STUDIO_APP_PACKAGES` | Packages the deployment installs and updates at startup, each with an optional `.sig`. |
 | `STUDIO_DENO_PATH` | Deno executable for backend apps. Defaults to the pnpm-managed runtime in `node_modules/deno`. |
 
 The reverse proxy must pass the original `Host` header, because the service

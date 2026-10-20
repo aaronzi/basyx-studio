@@ -1,0 +1,40 @@
+# BaSyx Studio with signed apps (ADR 0044): Studio without login, a trust
+# store with one publisher, and a directory of packages that Studio installs
+# at startup. Uploads on the Apps page need a signature of a trusted
+# publisher; developer mode (STUDIO_APPS_ALLOW_UNSIGNED) stays off.
+#
+#   see README.md for the key pair and a signed package, then
+#   docker compose up -d
+#   open http://localhost:3000/?panel=apps
+#
+# smoke-test.mjs signs packages with cosign and checks the whole flow.
+
+name: basyx-studio-signed-app
+
+services:
+  studio:
+    image: ${STUDIO_IMAGE:-eclipsebasyx/basyx-studio:SNAPSHOT}
+    ports:
+      # Loopback only: every visitor is an administrator.
+      - "127.0.0.1:${STUDIO_PORT:-3000}:3000"
+    environment:
+      STUDIO_PUBLIC_URL: http://localhost:${STUDIO_PORT:-3000}
+      # Apps run on a separate origin (ADR 0017); *.localhost is loopback.
+      STUDIO_APPS_URL: http://apps.localhost:${STUDIO_PORT:-3000}
+      # Example only: generate your own (see docs/deployment).
+      STUDIO_DATA_KEY: ${STUDIO_DATA_KEY:-c2lnbmVkLWFwcC1leGFtcGxlLWRhdGEta2V5LTAwMDA}
+      STUDIO_AUTH_MODE: none
+      STUDIO_ANONYMOUS_ROLES: studio-admin
+      # Publishers whose keys may sign app packages, and for which app IDs.
+      STUDIO_APPS_TRUSTED_PUBLISHERS: /etc/basyx-studio/trust/trusted-publishers.yaml
+      # Packages installed and updated at startup; a <package>.zip.sig next
+      # to a package must verify.
+      STUDIO_APP_PACKAGES: /opt/apps
+    volumes:
+      - studio-data:/data
+      - ${STUDIO_TRUST_DIR:-./trust}:/etc/basyx-studio/trust:ro
+      - ${STUDIO_PACKAGES_DIR:-./packages}:/opt/apps:ro
+    restart: unless-stopped
+
+volumes:
+  studio-data:
