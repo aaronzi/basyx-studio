@@ -252,7 +252,7 @@ infrastructures:
 
 | Phase | Content | Done when |
 | --- | --- | --- |
-| A | Three ADRs: ADR 0042 (single-app mode, managed packages, app-requested edit mode), ADR 0043 (HTTP connections, declared operations, token exchange), ADR 0044 (image and media origins for app frames, extending ADR 0038). Updates to `security.md`, `app-platform.md` and `deployment-variants.md`. | ADRs reviewed |
+| A | Three ADRs: ADR 0045 (single-app mode, managed packages, app-requested edit mode), ADR 0046 (HTTP connections, declared operations, token exchange), ADR 0047 (image and media origins for app frames, extending ADR 0038). ADR 0042 to 0044 are taken (external files, and the [external apps plan](external-apps-plan.md)). Updates to `security.md`, `app-platform.md` and `deployment-variants.md`. | ADRs reviewed |
 | B | Managed packages, single-app mode (M1–M7), the `/_studio` prefix, branded sign-in, and the Compose example with Fleet Atlas | Fleet Atlas runs as its own product at the root URL; deep links, reload and back work; hidden Studio pages are unreachable; full Studio is unchanged when `STUDIO_APP` is unset |
 | C | SDK transport split, test transport, `studioApi` 0.2.0, `/app-calls` in the OpenAPI document | Existing apps work unchanged; one example app has unit tests on the test transport |
 | D | AAS capabilities A1–A5, with server-side edit-mode checks and audit | Contract tests per method, on a live target and on a workspace; registry sync and findings as in the editor |
