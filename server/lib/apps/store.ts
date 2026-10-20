@@ -49,6 +49,19 @@ export const managedInstaller = 'deployment'
 
 type Transaction = Parameters<Parameters<StudioDatabase['transaction']>[0]>[0]
 
+// Arbitrary constant: the first key of the per-app advisory locks; the
+// two-key form never meets the migration lock.
+const appLockClass = 7_240_044
+
+/**
+ * Serializes every change of one app ID until the transaction ends, so
+ * concurrent installs, updates and removals see each other's result.
+ * Unlike a row lock, it also covers an app ID that is not installed yet.
+ */
+export async function lockAppId (tx: Transaction, appId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(${appLockClass}, hashtext(${appId}))`)
+}
+
 /** How an installation is trusted and who owns it (ADR 0044). */
 export interface InstallationSource {
   trust: AppTrustLevel
@@ -205,6 +218,8 @@ export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Ar
   const id = existing?.id ?? newInstallationId()
 
   const record = await deps.db.transaction(async tx => {
+    await lockAppId(tx, pkg.manifest.id)
+    // What the checks saw must still be installed; otherwise they ran against an older state.
     const [current] = await tx.select({ id: appInstallations.id, digest: appInstallations.digest }).from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
     if (current?.id !== existing?.id || current?.digest !== existing?.digest) {
       throw new StudioProblem('app_already_installed', `${pkg.manifest.id} was installed or changed in the meantime.`)
@@ -245,6 +260,7 @@ export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): P
     return 'skipped'
   }
   return deps.db.transaction(async tx => {
+    await lockAppId(tx, pkg.manifest.id)
     const [existing] = await tx.select().from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
     if (existing && !existing.bundled) {
       return 'skipped'
@@ -267,6 +283,7 @@ export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): P
 /** Removes a first-party app retired from Studio; user-installed apps are never touched. */
 export async function removeBundledApp (deps: Pick<StudioDeps, 'db'>, appId: string): Promise<boolean> {
   return deps.db.transaction(async tx => {
+    await lockAppId(tx, appId)
     const [existing] = await tx.select({ id: appInstallations.id, bundled: appInstallations.bundled }).from(appInstallations).where(eq(appInstallations.appId, appId))
     if (!existing?.bundled) {
       return false
@@ -314,6 +331,7 @@ export async function uninstallApp (deps: StudioDeps, actor: Actor, id: string, 
 export async function removeInstallation (deps: StudioDeps, record: AppInstallationRecord, actorSubject: string, requestId?: string): Promise<void> {
   const { id } = record
   await deps.db.transaction(async tx => {
+    await lockAppId(tx, record.appId)
     await tx.delete(appInstallations).where(eq(appInstallations.id, id))
     await tx.delete(appBlobs).where(notExists(
       tx.select({ one: sql`1` }).from(appFiles).where(eq(appFiles.digest, appBlobs.digest)),

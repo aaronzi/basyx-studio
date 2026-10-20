@@ -9,16 +9,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { and, eq } from 'drizzle-orm'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { appBlobs, appFiles, auditEvents } from '~~/server/database/schema'
-import { authorizeAppCall } from '~~/server/lib/apps/calls'
+import { appBlobs, appFiles, appInstallations, auditEvents } from '~~/server/database/schema'
+import { authorizeAppCall, requireInstalledRevision } from '~~/server/lib/apps/calls'
+import { contributionsFor } from '~~/server/lib/apps/contributions'
 import { reconcileManagedPackages } from '~~/server/lib/apps/packages'
 import { parsePublicKey, signPackage } from '~~/server/lib/apps/signature'
-import { getInstallation, inspectAppPackage, installApp, installBundledApp, listActiveInstallations, listInstallations, readAppFile, toAppInstallation, uninstallApp } from '~~/server/lib/apps/store'
+import { getInstallation, inspectAppPackage, installApp, installBundledApp, listActiveInstallations, listInstallations, lockAppId, readAppFile, toAppInstallation, uninstallApp } from '~~/server/lib/apps/store'
 import { parseTrustStore } from '~~/server/lib/apps/trust'
 import { SecretCipher } from '~~/server/lib/crypto/cipher'
 import { openDatabase } from '~~/server/lib/database/client'
 import { applyMigrations, loadMigrationsFromDirectory } from '~~/server/lib/database/migrate'
 import { StudioProblem } from '~~/server/lib/problem'
+import { testenvAvailable, testenvDatabaseUrl } from '../support/testenv'
 import { keyPair, manifestOf, zipApp } from './support'
 
 const migrationsDirectory = new URL('../../server/database/migrations', import.meta.url).pathname
@@ -133,6 +135,17 @@ describe('signed installs and in-place updates', () => {
     expect((await handle.db.select({ digest: appBlobs.digest }).from(appBlobs)).every(row => used.has(row.digest))).toBe(true)
     const [audit] = await handle.db.select().from(auditEvents).where(and(eq(auditEvents.appInstallationId, record.id), eq(auditEvents.action, 'app.update')))
     expect(audit?.details).toMatchObject({ version: '1.1.0', previousVersion: '1.0.0', trust: 'signed', publisher: 'Example GmbH' })
+  })
+
+  it('refuses calls from frames and backends of the version before an update', async () => {
+    const record = (await listInstallations(deps)).find(entry => entry.appId === 'org.example.app')!
+    const [update] = await handle.db.select().from(auditEvents).where(and(eq(auditEvents.appInstallationId, record.id), eq(auditEvents.action, 'app.update')))
+    const previous = (update!.details as { previousDigest: string }).previousDigest
+    expect(() => requireInstalledRevision(record, previous)).toThrow(expect.objectContaining({ code: 'app_outdated' }))
+    expect(() => requireInstalledRevision(record, record.digest)).not.toThrow()
+    // Frames get the digest with their contribution, and send it with every call.
+    const [view] = contributionsFor([record], 'http://apps.localhost:3000/app/', ['urn:example:semantic']).submodelViews
+    expect(view?.digest).toBe(record.digest)
   })
 
   it('refuses the same version, downgrades, other publishers and unsigned updates of signed apps', async () => {
@@ -304,5 +317,52 @@ describe('managed packages', () => {
     mount('private.zip', bytes, signPackage(bytes, example.privateKey))
     chmodSync(join(directory, 'private.zip.sig'), 0o000)
     expect((await reconcileManagedPackages(deps, [join(directory, 'private.zip')])).failed).toEqual([`${join(directory, 'private.zip.sig')} cannot be read`])
+  })
+})
+
+const engines = [
+  { name: 'PGlite (in memory)', open: () => openDatabase({ kind: 'memory' }), enabled: true },
+  { name: 'PostgreSQL 18 (test environment)', open: () => openDatabase({ kind: 'postgres', url: testenvDatabaseUrl }), enabled: testenvAvailable },
+]
+
+describe.each(engines)('concurrent changes on $name', ({ open, enabled }) => {
+  it.runIf(enabled)('waits for another change of the same app ID before checking the installed version', async () => {
+    const handle = await open()
+    const deps: StudioDeps = { config: configWith({}), db: handle.db, cipher: new SecretCipher(randomBytes(32)) }
+    // The test environment's database outlives the test.
+    const appId = `org.example.concurrent-${randomBytes(4).toString('hex')}`
+    const signed = (version: string) => {
+      const bytes = packageOf({ id: appId, version })
+      return [bytes, signPackage(bytes, example.privateKey)] as const
+    }
+    try {
+      await applyMigrations(handle.db, await loadMigrationsFromDirectory(migrationsDirectory))
+      const { record } = await installApp(deps, admin, ...signed('1.0.0'), 'c1')
+
+      // Another update holds the app ID, e.g. on another replica.
+      let release!: () => void
+      const held = new Promise<void>(resolve => (release = resolve))
+      let locked!: () => void
+      const holding = new Promise<void>(resolve => (locked = resolve))
+      const other = handle.db.transaction(async tx => {
+        await lockAppId(tx, appId)
+        locked()
+        await held
+        await tx.update(appInstallations).set({ version: '3.0.0', digest: 'sha256:other' }).where(eq(appInstallations.id, record.id))
+      })
+      await holding
+      let finished = false
+      const update = installApp(deps, admin, ...signed('2.0.0'), 'c2').finally(() => (finished = true))
+      await new Promise(resolve => setTimeout(resolve, 300))
+      expect(finished).toBe(false)
+      release()
+      await other
+      // It saw 1.0.0 before; now 3.0.0 is installed, so it must not overwrite it.
+      expect((await failure(update)).code).toBe('app_already_installed')
+      expect((await getInstallation(deps, record.id)).version).toBe('3.0.0')
+      await uninstallApp(deps, admin, record.id, 'c3')
+    } finally {
+      await handle.close()
+    }
   })
 })

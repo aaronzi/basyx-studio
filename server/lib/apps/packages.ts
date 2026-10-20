@@ -7,7 +7,7 @@ import { appInstallations } from '../../database/schema'
 import { recordAudit } from '../audit'
 import { StudioProblem } from '../problem'
 import { appArchiveLimits, readAppPackage } from './package'
-import { bundledOnlyPermissions, listInstallations, managedInstaller, newInstallationId, removeInstallation, sourceOf, writeInstallation } from './store'
+import { bundledOnlyPermissions, listInstallations, lockAppId, managedInstaller, newInstallationId, removeInstallation, sourceOf, writeInstallation } from './store'
 import { verifyPackageSignature } from './trust'
 
 // Managed packages (ADR 0044, MVP-7 M2): app packages the deployment mounts
@@ -79,6 +79,7 @@ export async function installManagedApp (deps: StudioDeps, item: ManagedPackage,
   const source = sourceOf(signer, 'managed', { bundled: false, managed: true, installedBy: managedInstaller })
 
   const result = await deps.db.transaction(async tx => {
+    await lockAppId(tx, pkg.manifest.id)
     const [existing] = await tx.select().from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
     if (existing?.managed && existing.digest === pkg.digest && existing.trust === source.trust && existing.keyFingerprint === source.keyFingerprint) {
       return { existing, outcome: 'unchanged' as const }
