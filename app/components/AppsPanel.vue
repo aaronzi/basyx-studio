@@ -182,6 +182,11 @@
                 {{ t('apps.sandbox', { list: [item.sandbox.webAssembly && t('apps.sandboxWebAssembly'), item.sandbox.workers && t('apps.sandboxWorkers')].filter(Boolean).join(', ') }) }}
               </v-list-item-subtitle>
 
+              <!-- Third-party origins with the data-egress note (ADR 0045). -->
+              <v-list-item-subtitle v-if="originsOf(item).length > 0" v-tooltip="t('apps.egressNote')">
+                {{ originKinds.filter(kind => item.sandbox[kind].length > 0).map(kind => `${t(`apps.originKind.${kind}`)} ${item.sandbox[kind].join(', ')}`).join(' · ') }}
+              </v-list-item-subtitle>
+
               <template #meta>
                 <span class="text-body-small text-medium-emphasis text-no-wrap">{{ item.version }}</span>
               </template>
@@ -272,6 +277,20 @@
             </template>
           </v-list-item>
 
+          <v-list-item
+            v-for="entry in originsOf(inspection)"
+            :key="`${entry.kind}:${entry.origin}`"
+            :prepend-icon="originIcons[entry.kind]"
+            :subtitle="t(`apps.originKind.${entry.kind}`)"
+            :title="entry.origin"
+          >
+            <template v-if="inspection.update?.originsAdded.some(added => added.kind === entry.kind && added.origin === entry.origin)" #append>
+              <v-chip color="warning" size="x-small" :text="t('apps.new')" />
+            </template>
+          </v-list-item>
+
+          <v-list-item v-if="inspection.remoteCode" prepend-icon="mdi-code-braces" :title="t('apps.remoteCode')" />
+
           <v-list-item v-if="inspection.backend" prepend-icon="mdi-server" :title="t('apps.backendHint')">
             <template v-if="inspection.update?.backendAdded" #append>
               <v-chip color="warning" size="x-small" :text="t('apps.new')" />
@@ -279,7 +298,7 @@
           </v-list-item>
 
           <v-list-item
-            v-if="inspection.permissions.length === 0 && !inspection.backend && sandboxFlags(inspection).length === 0"
+            v-if="inspection.permissions.length === 0 && !inspection.backend && sandboxFlags(inspection).length === 0 && originsOf(inspection).length === 0"
             prepend-icon="mdi-check"
             :title="t('apps.requestsNothing')"
           />
@@ -288,6 +307,24 @@
         <p v-if="inspection.update && inspection.update.permissionsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
           {{ t('apps.permissionsRemoved', { list: inspection.update.permissionsRemoved.map(permission => permissionLabel(permission)).join(', ') }) }}
         </p>
+
+        <p v-if="inspection.update && inspection.update.originsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
+          {{ t('apps.originsRemoved', { list: inspection.update.originsRemoved.map(entry => entry.origin).join(', ') }) }}
+        </p>
+
+        <v-alert
+          v-if="originsOf(inspection).length > 0"
+          class="mt-4"
+          :text="t('apps.egressNote')"
+          type="info"
+        />
+
+        <v-alert
+          v-if="inspection.sandbox.frameOrigins.length > 0 && !list.data.value?.installationOrigins"
+          class="mt-4"
+          :text="t('apps.framesOpaque')"
+          type="warning"
+        />
 
         <template #actions>
           <v-btn :text="t('apps.cancel')" @click="inspection = null" />
@@ -310,7 +347,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AppInstallation, AppInstallationList, AppPackageInspection, AppPermission } from '#shared/contract'
+  import type { AppInstallation, AppInstallationList, AppPackageInspection, AppPermission, SandboxOriginKind } from '#shared/contract'
   import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -389,6 +426,19 @@
 
   function sandboxFlags (inspection: AppPackageInspection): Array<'webAssembly' | 'workers'> {
     return (['webAssembly', 'workers'] as const).filter(flag => inspection.sandbox[flag])
+  }
+
+  /** The third-party origins a manifest declares (ADR 0045), in the order of the kinds. */
+  const originKinds: SandboxOriginKind[] = ['frameOrigins', 'connectOrigins', 'imageOrigins', 'mediaOrigins']
+  const originIcons: Record<SandboxOriginKind, string> = {
+    frameOrigins: 'mdi-application-outline',
+    connectOrigins: 'mdi-swap-horizontal',
+    imageOrigins: 'mdi-image-outline',
+    mediaOrigins: 'mdi-play-box-outline',
+  }
+
+  function originsOf (app: Pick<AppInstallation, 'sandbox'>): Array<{ kind: SandboxOriginKind, origin: string }> {
+    return originKinds.flatMap(kind => app.sandbox[kind].map(origin => ({ kind, origin })))
   }
 
   const file = ref<File | null>(null)

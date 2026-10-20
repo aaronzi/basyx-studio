@@ -248,6 +248,7 @@
     "app_signature_invalid": "De handtekening past met geen enkele sleutel van een vertrouwde uitgever bij het pakket.",
     "app_signer_not_allowed": "De ondertekenaar mag deze app niet publiceren of bijwerken.",
     "app_revoked": "Deze implementatie vertrouwt deze app niet meer.",
+    "app_sandbox_not_granted": "De uitgever mag geen apps publiceren die code van buiten hun pakket uitvoeren.",
     "app_outdated": "De app is bijgewerkt. Laad hem opnieuw om de nieuwe versie te gebruiken."
   },
   "admin": {
@@ -535,7 +536,8 @@
     "revoked": "Ingetrokken",
     "revokedHint": {
       "keyRemoved": "De sleutel waarmee de app is ondertekend wordt niet meer vertrouwd. De weergaven en modules staan uit tot er een pakket is geïnstalleerd dat met een vertrouwde sleutel is ondertekend.",
-      "appIdNotAllowed": "De uitgever mag deze app-ID niet meer ondertekenen. De weergaven en modules staan uit tot er een pakket is geïnstalleerd dat met een vertrouwde sleutel is ondertekend."
+      "appIdNotAllowed": "De uitgever mag deze app-ID niet meer ondertekenen. De weergaven en modules staan uit tot er een pakket is geïnstalleerd dat met een vertrouwde sleutel is ondertekend.",
+      "remoteCodeNotGranted": "Ze laadt code van andere origins, en haar uitgever mag zulke apps niet meer publiceren. Haar weergaven en modules staan uit tot de trust store het weer toestaat."
     },
     "installTitle": "{name} {version} installeren?",
     "updateTitle": "{name} bijwerken naar {version}?",
@@ -548,9 +550,19 @@
     "notGranted": "Niet verleend",
     "notGrantedHint": "Deze implementatie verleent de machtiging niet aan de uitgever van de app, dus aanroepen die haar nodig hebben worden geweigerd.",
     "permissionsRemoved": "Niet meer gevraagd: {list}",
+    "originsRemoved": "Bereikt niet meer: {list}",
     "update": "Bijwerken",
     "confirmInstall": "Installeren",
-    "updated": "{name} bijgewerkt naar {version}."
+    "updated": "{name} bijgewerkt naar {version}.",
+    "originKind": {
+      "frameOrigins": "Sluit pagina’s in van",
+      "connectOrigins": "Stuurt verzoeken naar",
+      "imageOrigins": "Laadt afbeeldingen van",
+      "mediaOrigins": "Laadt audio en video van"
+    },
+    "remoteCode": "Mag code uitvoeren die ze van deze origins laadt (WebAssembly of workers)",
+    "egressNote": "Je browser maakt rechtstreeks contact met deze origins. Ze zien je adres en wat je bekijkt, en de app kan ze gegevens sturen die ze leest, in verzoeken en in URL’s.",
+    "framesOpaque": "Deze Studio levert alle apps vanaf één origin. Ingesloten pagina’s draaien daar zonder cookies of opslag, en veel blijven leeg."
   },
   "nav": {
     "targets": "AAS-doelen",

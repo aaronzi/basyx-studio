@@ -1,5 +1,18 @@
 <template>
-  <v-container max-width="none">
+  <!-- A full-page module (ADR 0045): only the frame, from the rail to the
+       window's edges. Anything Studio shows instead keeps the standard page. -->
+  <v-sheet-full-page v-if="fullPage && module">
+    <AppFrame
+      :key="`${targetId ?? ''}:${shellKey ?? ''}:${module.installationId}:${module.id}`"
+      :contribution="module"
+      :shell-id="shellId"
+      :sub-path="subPath"
+      :target="target?.data.value ?? null"
+      @navigate="navigate"
+    />
+  </v-sheet-full-page>
+
+  <v-container v-else max-width="none">
     <TargetHeader v-if="targetId" :target="target?.data.value" :trail="trail" />
 
     <PageHeader v-else :title="title" />
@@ -69,6 +82,18 @@
     .find(item => item.installationId === props.installationId && item.route === props.route) ?? null)
   const target = props.targetId ? useTarget(() => props.targetId!) : null
   const shellId = computed(() => props.shellKey ? decodeResourceKey(props.shellKey) : null)
+
+  /** The frame can be shown: the module is installed, and its target is open, authorized and has the shell it needs. */
+  const frameReady = computed(() => {
+    if (!module.value) {
+      return false
+    }
+    if (!target) {
+      return true
+    }
+    return Boolean(target.data.value && !target.error.value && !target.needsAuthorization.value && (module.value.context !== 'shell' || shellId.value))
+  })
+  const fullPage = computed(() => module.value?.layout === 'fullPage' && frameReady.value)
 
   const title = computed(() => module.value ? label(module.value.title) : t('app.apps'))
   const trail = computed(() => [{ title: title.value }])

@@ -89,6 +89,9 @@ export default defineVuetifyConfiguration({
     // The fields of a resource form (shell, submodel, element): the same
     // comfortable inputs in the drawer and in dialogs, which default to compact.
     VFormFields: 'VSheet',
+    // The whole of v-main, below the app bar and beside the rail, for a page
+    // that is one frame: a full-page app module (ADR 0045).
+    VSheetFullPage: 'VSheet',
   },
 
   defaults: {
@@ -144,6 +147,13 @@ export default defineVuetifyConfiguration({
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },
+    VSheetFullPage: {
+      color: 'transparent',
+      rounded: 0,
+      // v-main sets the layout variables: the app bar above, the phone navigation below.
+      height: 'calc(100dvh - var(--v-layout-top) - var(--v-layout-bottom))',
+      class: 'd-flex flex-column',
+    },
     VFormFields: {
       color: 'transparent',
       VTextField: { density: 'comfortable' },

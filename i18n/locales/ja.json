@@ -248,6 +248,7 @@
     "app_signature_invalid": "署名は、信頼できる発行元のどの鍵でもパッケージと一致しません。",
     "app_signer_not_allowed": "署名者はこのアプリを公開または更新できません。",
     "app_revoked": "このデプロイはこのアプリをもう信頼していません。",
+    "app_sandbox_not_granted": "このパブリッシャーは、パッケージ外のコードを実行するアプリを公開できません。",
     "app_outdated": "アプリが更新されました。新しいバージョンを使うには再読み込みしてください。"
   },
   "admin": {
@@ -535,7 +536,8 @@
     "revoked": "失効",
     "revokedHint": {
       "keyRemoved": "署名した鍵はもう信頼されていません。信頼できる鍵で署名されたパッケージがインストールされるまで、ビューとモジュールは無効です。",
-      "appIdNotAllowed": "発行元はこのアプリ ID にもう署名できません。信頼できる鍵で署名されたパッケージがインストールされるまで、ビューとモジュールは無効です。"
+      "appIdNotAllowed": "発行元はこのアプリ ID にもう署名できません。信頼できる鍵で署名されたパッケージがインストールされるまで、ビューとモジュールは無効です。",
+      "remoteCodeNotGranted": "他のオリジンからコードを読み込みますが、パブリッシャーはそのようなアプリを公開できなくなりました。トラストストアで再び許可されるまで、ビューとモジュールは無効です。"
     },
     "installTitle": "{name} {version} をインストールしますか?",
     "updateTitle": "{name} を {version} に更新しますか?",
@@ -548,9 +550,19 @@
     "notGranted": "未付与",
     "notGrantedHint": "このデプロイはアプリの発行元にこの権限を付与していないため、それを必要とする呼び出しは拒否されます。",
     "permissionsRemoved": "要求されなくなった権限: {list}",
+    "originsRemoved": "アクセスしなくなったオリジン: {list}",
     "update": "更新",
     "confirmInstall": "インストール",
-    "updated": "{name} を {version} に更新しました。"
+    "updated": "{name} を {version} に更新しました。",
+    "originKind": {
+      "frameOrigins": "ページを埋め込むオリジン",
+      "connectOrigins": "リクエストの送信先",
+      "imageOrigins": "画像の読み込み元",
+      "mediaOrigins": "音声と動画の読み込み元"
+    },
+    "remoteCode": "これらのオリジンから読み込んだコードを実行できます（WebAssembly またはワーカー）",
+    "egressNote": "ブラウザーはこれらのオリジンに直接接続します。オリジン側にはあなたのアドレスと閲覧内容が伝わり、アプリは読み取ったデータをリクエストや URL で送信できます。",
+    "framesOpaque": "この Studio はすべてのアプリを 1 つのオリジンから配信しています。埋め込みページは Cookie やストレージなしで動作し、多くは空白のままです。"
   },
   "nav": {
     "targets": "AAS ターゲット",

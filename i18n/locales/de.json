@@ -328,6 +328,7 @@
     "app_signature_invalid": "Die Signatur passt mit keinem Schlüssel eines vertrauenswürdigen Herausgebers zum Paket.",
     "app_signer_not_allowed": "Der Signierende darf diese App nicht veröffentlichen oder aktualisieren.",
     "app_revoked": "Diese Bereitstellung vertraut dieser App nicht mehr.",
+    "app_sandbox_not_granted": "Der Herausgeber darf keine Apps veröffentlichen, die Code von außerhalb ihres Pakets ausführen.",
     "app_outdated": "Die App wurde aktualisiert. Laden Sie sie neu, um die neue Version zu verwenden."
   },
   "admin": {
@@ -615,6 +616,15 @@
     "sandbox": "Führt außerdem aus: {list}",
     "sandboxWebAssembly": "WebAssembly (z. B. Datei-Parser)",
     "sandboxWorkers": "Hintergrund-Worker",
+    "originKind": {
+      "frameOrigins": "Bettet Seiten ein von",
+      "connectOrigins": "Sendet Anfragen an",
+      "imageOrigins": "Lädt Bilder von",
+      "mediaOrigins": "Lädt Audio und Video von"
+    },
+    "remoteCode": "Darf Code ausführen, den sie von diesen Origins lädt (WebAssembly oder Worker)",
+    "egressNote": "Ihr Browser kontaktiert diese Origins direkt. Sie erfahren Ihre Adresse und was Sie sich ansehen, und die App kann ihnen Daten senden, die sie liest, in Anfragen und in URLs.",
+    "framesOpaque": "Dieses Studio liefert alle Apps von einem Origin aus. Eingebettete Seiten laufen dort ohne Cookies und Speicher, und viele bleiben leer.",
     "installHintSigned": "Ein signiertes App-Paket (.zip) und seine Signatur (.sig oder Sigstore-Bundle). Vertrauenswürdige Herausgeber: {publishers}.",
     "installHintSignedOrUnsigned": "Ein App-Paket (.zip) und seine Signatur (.sig oder Sigstore-Bundle). Vertrauenswürdige Herausgeber: {publishers}. Unsignierte Pakete werden im Entwicklermodus installiert.",
     "signature": "Signatur (optional)",
@@ -626,7 +636,8 @@
     "revoked": "Widerrufen",
     "revokedHint": {
       "keyRemoved": "Dem Schlüssel, mit dem sie signiert wurde, wird nicht mehr vertraut. Ihre Ansichten und Module sind aus, bis ein mit einem vertrauenswürdigen Schlüssel signiertes Paket installiert wird.",
-      "appIdNotAllowed": "Ihr Herausgeber darf diese App-ID nicht mehr signieren. Ihre Ansichten und Module sind aus, bis ein mit einem vertrauenswürdigen Schlüssel signiertes Paket installiert wird."
+      "appIdNotAllowed": "Ihr Herausgeber darf diese App-ID nicht mehr signieren. Ihre Ansichten und Module sind aus, bis ein mit einem vertrauenswürdigen Schlüssel signiertes Paket installiert wird.",
+      "remoteCodeNotGranted": "Sie lädt Code von anderen Origins, und ihr Herausgeber darf solche Apps nicht mehr veröffentlichen. Ihre Ansichten und Module sind aus, bis der Trust Store es wieder erlaubt."
     },
     "installTitle": "{name} {version} installieren?",
     "updateTitle": "{name} auf {version} aktualisieren?",
@@ -639,6 +650,7 @@
     "notGranted": "Nicht gewährt",
     "notGrantedHint": "Diese Bereitstellung gewährt dem Herausgeber der App diese Berechtigung nicht, daher werden Aufrufe, die sie brauchen, abgelehnt.",
     "permissionsRemoved": "Nicht mehr angefordert: {list}",
+    "originsRemoved": "Nicht mehr erreicht: {list}",
     "update": "Aktualisieren",
     "confirmInstall": "Installieren",
     "updated": "{name} auf {version} aktualisiert."
