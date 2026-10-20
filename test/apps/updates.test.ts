@@ -4,7 +4,7 @@ import type { StudioConfig } from '~~/server/lib/config'
 import type { DatabaseHandle } from '~~/server/lib/database/client'
 import type { Actor, StudioDeps } from '~~/server/lib/deps'
 import { randomBytes } from 'node:crypto'
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { and, eq } from 'drizzle-orm'
@@ -297,7 +297,12 @@ describe('managed packages', () => {
     expect((await listInstallations(deps)).map(record => record.appId).toSorted()).toEqual(['org.example.bundled', 'org.example.taken'])
   })
 
-  it('reports paths that cannot be read', async () => {
+  it('reports paths and signatures that cannot be read', async () => {
     expect((await reconcileManagedPackages(deps, [join(directory, 'missing.zip')])).failed).toEqual([`${join(directory, 'missing.zip')} cannot be read`])
+    // cosign writes signatures readable by their owner only.
+    const bytes = packageOf({ id: 'org.example.private', version: '1.0.0' })
+    mount('private.zip', bytes, signPackage(bytes, example.privateKey))
+    chmodSync(join(directory, 'private.zip.sig'), 0o000)
+    expect((await reconcileManagedPackages(deps, [join(directory, 'private.zip')])).failed).toEqual([`${join(directory, 'private.zip.sig')} cannot be read`])
   })
 })

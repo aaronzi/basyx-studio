@@ -27,7 +27,8 @@ function appFrame (): FrameLocator {
 }
 
 async function install (file: string | { name: string, mimeType: string, buffer: Buffer }, title: string) {
-  await window.locator('input[type="file"]').setInputFiles(file)
+  // The package, not its signature (ADR 0044).
+  await window.locator('input[type="file"][accept^=".zip"]').setInputFiles(file)
   await window.getByRole('button', { name: 'Install app' }).click()
   // Studio checks the package first and asks to confirm what it requests (ADR 0044).
   await window.getByRole('dialog').getByRole('button', { name: 'Install', exact: true }).click()

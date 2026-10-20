@@ -44,12 +44,18 @@ export function readManagedPackages (paths: string[]): { packages: ManagedPackag
         problems.push(`${file} is larger than 20 MiB`)
         continue
       }
+      const bytes = new Uint8Array(readFileSync(file))
       const signaturePath = `${file}.sig`
-      packages.push({
-        path: file,
-        bytes: new Uint8Array(readFileSync(file)),
-        signature: existsSync(signaturePath) ? readFileSync(signaturePath, 'utf8') : null,
-      })
+      let signature: string | null = null
+      if (existsSync(signaturePath)) {
+        try {
+          signature = readFileSync(signaturePath, 'utf8')
+        } catch {
+          problems.push(`${signaturePath} cannot be read`)
+          continue
+        }
+      }
+      packages.push({ path: file, bytes, signature })
     } catch {
       problems.push(`${file} cannot be read`)
     }

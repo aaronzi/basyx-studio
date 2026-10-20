@@ -92,6 +92,8 @@ function sign (name, key) {
     }
     cosign(...args)
   }
+  // cosign writes 0600; Studio runs as another user in its container.
+  chmodSync(join(work, `${name}.sig`), 0o644)
   return readFileSync(join(work, `${name}.sig`), 'utf8').trim()
 }
 
