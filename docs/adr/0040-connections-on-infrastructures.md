@@ -4,6 +4,8 @@
 - Date: 2026-10-19
 - Deciders: BaSyx Studio maintainers
 - Requirements: CON-001 to CON-007, SEC-005, SEC-007, OPS-006
+- Extended by: [ADR 0047](0047-http-connections-for-apps.md) (the `http`
+  type, bindings to app connections and `studio.connections.call`)
 
 ## Context
 

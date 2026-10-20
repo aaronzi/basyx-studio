@@ -51,7 +51,7 @@ Until the marketplace exists, deployments install signed packages directly
 
 Runs in a sandboxed iframe on a separate origin: its installation's own origin, or an opaque one when all apps share one apps origin ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)). It has no access to host cookies, Pinia, Nuxt internals, DOM, tokens, or unrestricted browser APIs. It communicates using a versioned message protocol.
 
-Its manifest may declare third-party origins in `sandbox`: pages it embeds (`frameOrigins`), keyless public APIs it reads (`connectOrigins`), and images and media (`imageOrigins`, `mediaOrigins`). Each extends one directive of the frame's Content Security Policy, and the install dialog lists them with a data-egress note. Services with secrets or per-deployment endpoints stay with connections. A module may set `layout: fullPage` to fill the page without Studio's header and card.
+Its manifest may declare third-party origins in `sandbox`: pages it embeds (`frameOrigins`), keyless public APIs it reads (`connectOrigins`), and images and media (`imageOrigins`, `mediaOrigins`). Each extends one directive of the frame's Content Security Policy, and the install dialog lists them with a data-egress note. Services with secrets or per-deployment endpoints stay with connections: the manifest's `connections` name OpenAPI documents in the package and the operations the app calls, an administrator binds them to an `http` connection of an infrastructure, and Studio's server sends the calls ([ADR 0047](../adr/0047-http-connections-for-apps.md)). A module may set `layout: fullPage` to fill the page without Studio's header and card.
 
 This is the default and lowest-trust category.
 
@@ -71,7 +71,7 @@ Apps use `@basyx/studio-sdk` capabilities rather than host implementation object
 
 - `studio.aas`: query, mutate, invoke operations, observe active target; structural writes and attachment uploads run the editor's code paths and only in Studio's edit mode, which Studio's server checks ([ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md))
 - `studio.files`: pick, open, save, and bounded streams
-- `studio.http`: permission-controlled requests to declared origins
+- `studio.connections`: calls of declared OpenAPI operations through HTTP connections an administrator bound to the app; the URL and the credentials stay with Studio ([ADR 0047](../adr/0047-http-connections-for-apps.md)). It replaces the planned `studio.http` with free requests to declared origins
 - `studio.ui`: notifications, commands, panels, and context
 - `studio.semantic`: active semantic index and applicability information
 - `studio.jobs`: start and observe bounded long-running app tasks
