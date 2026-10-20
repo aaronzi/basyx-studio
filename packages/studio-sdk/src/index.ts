@@ -167,8 +167,8 @@ export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
   }
   return new Promise((resolve, reject) => {
     const hello: HelloMessage = { protocol: protocolVersion, type: 'hello' }
-    // The frame has an opaque origin and cannot name its parent's origin;
-    // the hello carries no data, and the reply is checked by its source.
+    // The frame does not know Studio's origin (and may have an opaque one
+    // itself); the hello carries no data, and the reply is checked by its source.
     const send = () => window.parent.postMessage(hello, '*')
     const retry = setInterval(send, 250)
     const timeout = setTimeout(() => {

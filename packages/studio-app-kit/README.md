@@ -74,10 +74,15 @@ studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
   `<id>-<version>.zip`. The same files always give the same bytes.
 - `pack` and `verify` run the checks of Studio's upload (ADR 0016): the
   manifest schema, unique contribution IDs and routes, entries that exist,
-  the backend permission, the app API range against the installed
-  `@basyx/studio-sdk`, file types and archive limits (20 MiB, 50 MiB
-  expanded, 2,000 entries). Studio's server imports the same code. The
-  runtime is checked at install.
+  the backend permission, the format of `sandbox` origins, an app API range
+  that includes every field the manifest uses (`^0.1.3` for origins and
+  `layout`), the app API range against the installed `@basyx/studio-sdk`,
+  file types and archive limits (20 MiB, 50 MiB expanded, 2,000 entries).
+  Studio's server imports the same code. The runtime, origins that cover the
+  deployment's own, and the trust store's `remoteCode` grant for
+  `connectOrigins` with `webAssembly` or `workers` are checked at install
+  ([ADR 0045](../../docs/adr/0045-app-origins-embeds-and-full-page-modules.md));
+  `pack` and `verify` print a note when a package needs that grant.
 - `sign` writes `<package.zip>.sig`: ECDSA P-256 with SHA-256 over the exact
   package bytes, DER-encoded, in base64. That is what
   `cosign sign-blob --key --output-signature` writes, so

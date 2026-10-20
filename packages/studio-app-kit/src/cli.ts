@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import type { Finding } from './manifest.ts'
+import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import type { KeyObject } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
+import { needsRemoteCodeGrant } from './manifest.ts'
 import { checkPackage, packApp } from './package.ts'
 import { keyFingerprint, privateKeyOf, signatureExtension, signPackage, verifyPackageSignature } from './signature.ts'
 
@@ -36,6 +38,13 @@ function report (findings: Finding[]): void {
   }
 }
 
+/** What a package needs from the Studio that installs it, beyond passing the checks. */
+function notes (manifest: AppManifest): void {
+  if (needsRemoteCodeGrant(manifest)) {
+    console.info('  Note: sandbox.connectOrigins together with webAssembly or workers installs only if the trust store grants the publisher remoteCode (ADR 0045).')
+  }
+}
+
 function fail (message: string): never {
   console.error(message)
   process.exit(1)
@@ -55,6 +64,7 @@ async function pack (positionals: string[], values: Record<string, string | stri
     process.exit(1)
   }
   console.info(`${relative(process.cwd(), result.file) || result.file}: ${result.manifest!.id} ${result.manifest!.version}, ${result.files.length + 1} files`)
+  notes(result.manifest!)
 }
 
 async function sign (positionals: string[], values: Record<string, string | string[] | boolean | undefined>): Promise<void> {
@@ -90,6 +100,7 @@ async function verify (positionals: string[], values: Record<string, string | st
     process.exit(1)
   }
   console.info(`${file}: ${check.manifest.id} ${check.manifest.version} passes Studio's package checks.`)
+  notes(check.manifest)
   if (typeof values.key === 'string') {
     const signatureFile = typeof values.signature === 'string' ? values.signature : `${file}${signatureExtension}`
     if (!existsSync(signatureFile)) {
