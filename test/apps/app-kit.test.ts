@@ -186,4 +186,25 @@ describe('the studio-app command from source', () => {
       await rm(directory, { recursive: true, force: true })
     }
   })
+
+  it('signs with an encrypted key and the passphrase of STUDIO_APP_KEY_PASSPHRASE', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'studio-app-cli-'))
+    try {
+      await writeFile(join(directory, 'app.zip'), zipApp(manifestOf()))
+      const { privateKey, publicKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+      await writeFile(join(directory, 'key.pem'), privateKey.export({ type: 'pkcs8', format: 'pem', cipher: 'aes-256-cbc', passphrase: 'secret' }))
+      await writeFile(join(directory, 'key.pub'), publicKey.export({ type: 'spki', format: 'pem' }))
+      const sign = (passphrase: string) => execFileSync(process.execPath, [cli, 'sign', 'app.zip', '--key', 'key.pem'], {
+        cwd: directory,
+        encoding: 'utf8',
+        stdio: 'pipe',
+        env: { ...process.env, STUDIO_APP_KEY_PASSPHRASE: passphrase },
+      })
+      expect(sign('secret')).toContain(`signed with ${keyFingerprint(publicKey)}`)
+      expect(run(directory, 'verify', 'app.zip', '--key', 'key.pub')).toContain('signed by sha256:')
+      expect(() => sign('wrong')).toThrow(/could not be signed/)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
 })

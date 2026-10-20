@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 import type { Finding } from './manifest.ts'
+import type { KeyObject } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { checkPackage, packApp } from './package.ts'
-import { keyFingerprint, signatureExtension, signPackage, verifyPackageSignature } from './signature.ts'
+import { keyFingerprint, privateKeyOf, signatureExtension, signPackage, verifyPackageSignature } from './signature.ts'
 
 // The `studio-app` command (ADR 0043): pack, sign and verify Studio app
 // packages with the checks of Studio's upload.
@@ -62,15 +63,18 @@ async function sign (positionals: string[], values: Record<string, string | stri
     fail('studio-app sign needs a package and --key <private key file>.')
   }
   const bytes = await readFile(file)
+  // Read once: an encrypted key is decrypted with the passphrase only here.
+  let key: KeyObject
   let signature: string
   try {
-    signature = signPackage(bytes, await readFile(values.key), process.env.STUDIO_APP_KEY_PASSPHRASE)
+    key = privateKeyOf(await readFile(values.key), process.env.STUDIO_APP_KEY_PASSPHRASE)
+    signature = signPackage(bytes, key)
   } catch (error) {
     fail(`The package could not be signed: ${error instanceof Error ? error.message : String(error)}`)
   }
   const output = typeof values.out === 'string' ? values.out : `${file}${signatureExtension}`
   await writeFile(output, signature)
-  console.info(`${output}: signed with ${keyFingerprint(await readFile(values.key))}`)
+  console.info(`${output}: signed with ${keyFingerprint(key)}`)
 }
 
 async function verify (positionals: string[], values: Record<string, string | string[] | boolean | undefined>): Promise<void> {

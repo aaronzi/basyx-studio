@@ -19,7 +19,8 @@ function p256 (key: KeyObject, role: string): KeyObject {
   return key
 }
 
-function privateKeyOf (key: KeyInput, passphrase?: string): KeyObject {
+/** A private ECDSA P-256 key from PEM (PKCS#8 or SEC1); an encrypted PKCS#8 key needs its passphrase. */
+export function privateKeyOf (key: KeyInput, passphrase?: string): KeyObject {
   if (key instanceof KeyObject) {
     return p256(key, 'private key')
   }
