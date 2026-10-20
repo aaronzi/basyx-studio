@@ -120,7 +120,7 @@ Register `<public URL>/api/studio/v1/auth/callback` as redirect URI and
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `STUDIO_APPS_URL` | none | Separate origin app files are served from, e.g. `https://apps.example.org`, routed to the same service. Without it, apps are off. |
+| `STUDIO_APPS_URL` | none | Origin app files are served from, routed to the same service: one origin per installation with `{installation}` as the first label, e.g. `https://{installation}.apps.example.org`, or one shared origin, e.g. `https://apps.example.org` ([below](#apps-origins)). Without it, apps are off. |
 | `STUDIO_APPS_TRUSTED_PUBLISHERS` | none | YAML file with the publishers whose keys may sign app packages ([below](#signed-apps)). Signed packages install without developer mode. |
 | `STUDIO_APPS_ALLOW_UNSIGNED` | `false` | Developer-mode installs of unsigned packages. A signature that is present must still verify. |
 | `STUDIO_APPS_ALLOW_INSTALL` | `true` | `false` keeps administrators from installing, updating or removing apps; bundled and managed apps stay. |
@@ -154,11 +154,65 @@ http://example.org {
 }
 ```
 
-The proxy must keep the original `Host` header. On the apps origin it must
+The proxy must keep the original `Host` header. On the apps origins it must
 not add `X-Frame-Options` or a `Content-Security-Policy`, and must keep the
 CORS headers Studio sets ([deployment variants](../architecture/deployment-variants.md#apps-origin-and-backend-runtime-mvp-3)).
 Two Studios under different paths of one origin keep separate session
 cookies.
+
+## Apps origins
+
+App files are never served from Studio's own origin. `STUDIO_APPS_URL` has two
+forms ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)):
+
+- **One origin per installation:** `https://{installation}.apps.example.org`.
+  Each installation is served at its own host, e.g.
+  `https://app-0123456789abcdef.apps.example.org`, and nowhere else. App
+  frames keep that origin (`allow-same-origin`), so pages that apps embed
+  (`sandbox.frameOrigins`) get their own origin, cookies and storage. Use
+  this form for apps that embed pages.
+- **One shared origin:** `https://apps.example.org`. Every frame runs in an
+  opaque origin, as before. Embedded pages run without cookies or storage
+  there, and many of them stay blank; the *Apps* page says so.
+
+Locally, `*.localhost` needs no DNS: Chromium resolves every name below
+`.localhost` to loopback, also `app-0123456789abcdef.apps.localhost`. A
+Compose setup with Studio on port 3000 sets:
+
+```yaml
+STUDIO_PUBLIC_URL: http://localhost:3000
+STUDIO_APPS_URL: http://{installation}.apps.localhost:3000
+```
+
+Other programs may not resolve these names (Node.js, curl, container DNS);
+only the browser has to. Hosted, the apps domain needs:
+
+- a wildcard DNS record, e.g. `*.apps.example.org`, to the proxy;
+- a wildcard TLS certificate for it; ACME issues those with the DNS-01
+  challenge only (with Caddy, a build with your DNS provider's module);
+- a proxy rule for the wildcard host that keeps the `Host` header:
+
+  ```caddyfile
+  *.apps.example.org {
+  	tls {
+  		dns <provider> <credentials>
+  	}
+  	reverse_proxy studio:3000
+  }
+  ```
+
+Prefer a registrable domain of its own for apps, e.g.
+`*.example-apps.net`: script on a subdomain of Studio's domain can set cookies
+for the parent domain. Studio's session cookie has the `__Host-` prefix on
+https, so apps cannot overwrite it, but other services of that domain may be
+less careful. `examples/deployment/production-like` routes
+`*.apps.studio.localhost` through Caddy.
+
+Apps declare the third-party origins they reach in the manifest's `sandbox`:
+pages they embed, keyless public APIs, images and media. The *Apps* page
+shows them, with the note that the user's browser contacts them directly.
+Studio refuses origins that cover its own origin or an apps origin, and
+loopback origins (`http://localhost:…`) unless developer mode is on.
 
 ## Declared infrastructures
 
@@ -288,6 +342,7 @@ publishers:
     appIds: [org.example.*]         # IDs, prefixes ending in .*, or *
     permissions:                    # reserved permissions it may use
       - studio.timeseries.read
+    remoteCode: true                # connect origins with WebAssembly or workers
 ```
 
 - A key signs only the app IDs of its publisher. Only ECDSA P-256 keys
@@ -304,6 +359,12 @@ publishers:
   higher version. The dialog marks permissions the update adds.
 - `permissions` may grant `studio.timeseries.read`, which apps otherwise
   cannot use. `studio.containers` stays with the apps shipped with Studio.
+- `remoteCode: true` lets the publisher's apps combine `connectOrigins` with
+  `webAssembly` or `workers`. Such an app could fetch code and run it, so it
+  would not be limited to the code in its signed package. Without the grant,
+  these packages are refused, in developer mode and as managed packages too,
+  and installed ones are revoked at the next start
+  ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)).
 - Removing a key revokes the apps it signed at the next start: their files and
   calls are refused, and the *Apps* page says why. A package signed with a
   trusted key restores them. When rotating a key, add the new one, release
@@ -354,6 +415,7 @@ For a Helm chart (planned in `eclipse-basyx/charts`):
   (`STUDIO_APPS_TRUSTED_PUBLISHERS`); packages and their signatures on a
   volume filled by an init container (`STUDIO_APP_PACKAGES`).
 - Ingress: the Studio host (path `STUDIO_BASE_PATH`) and, with apps, the apps
-  host, both to the same service.
+  host, both to the same service. With one origin per installation, the apps
+  host is a wildcard (`*.apps.example.org`) with a wildcard certificate.
 - Shutdown: Studio stops on `SIGTERM`; startup with an invalid configuration
   exits with code 1.

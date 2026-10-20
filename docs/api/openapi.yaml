@@ -5757,7 +5757,7 @@ components:
         installedBy: { type: string }
     AppContributionBase:
       type: object
-      required: [installationId, appId, appTitle, id, title, entryUrl, permissions, unsigned, bundled]
+      required: [installationId, appId, appTitle, id, title, entryUrl, permissions, unsigned, bundled, frameOrigin]
       properties:
         installationId: { type: string }
         appId: { $ref: '#/components/schemas/AppId' }
@@ -5772,6 +5772,9 @@ components:
           items: { $ref: '#/components/schemas/AppCapabilityName' }
         unsigned: { type: boolean }
         bundled: { type: boolean }
+        frameOrigin:
+          type: [string, 'null']
+          description: The installation's own origin, which its frames keep (`allow-same-origin`); `null` when all apps share one apps origin and frames stay opaque (ADR 0045).
     AppContributions:
       type: object
       additionalProperties: false
@@ -5808,12 +5811,15 @@ components:
             allOf:
               - { $ref: '#/components/schemas/AppContributionBase' }
               - type: object
-                required: [kind, icon, route, context]
+                required: [kind, icon, route, context, layout]
                 properties:
                   kind: { const: module }
                   icon: { type: [string, 'null'] }
                   route: { type: string, pattern: '^[a-z][a-z0-9-]{0,63}$' }
                   context: { enum: [global, target, shell] }
+                  layout:
+                    enum: [standard, fullPage]
+                    description: '`fullPage`: the frame fills the page, without header, card or padding (ADR 0045).'
     AppCallRequest:
       type: object
       additionalProperties: false

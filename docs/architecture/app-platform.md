@@ -49,7 +49,9 @@ Until the marketplace exists, deployments install signed packages directly
 
 ### UI-only app
 
-Runs in a sandboxed iframe on a separate or opaque origin. It has no access to host cookies, Pinia, Nuxt internals, DOM, tokens, or unrestricted browser APIs. It communicates using a versioned message protocol.
+Runs in a sandboxed iframe on a separate origin: its installation's own origin, or an opaque one when all apps share one apps origin ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)). It has no access to host cookies, Pinia, Nuxt internals, DOM, tokens, or unrestricted browser APIs. It communicates using a versioned message protocol.
+
+Its manifest may declare third-party origins in `sandbox`: pages it embeds (`frameOrigins`), keyless public APIs it reads (`connectOrigins`), and images and media (`imageOrigins`, `mediaOrigins`). Each extends one directive of the frame's Content Security Policy, and the install dialog lists them with a data-egress note. Services with secrets or per-deployment endpoints stay with connections. A module may set `layout: fullPage` to fill the page without Studio's header and card.
 
 This is the default and lowest-trust category.
 
