@@ -50,6 +50,7 @@ ADRs are normative for architecture. If a later decision changes an accepted ADR
 - [MVP-7 plan](development/mvp-7-plan.md): standalone app products (single-app mode, app capabilities, HTTP connections)
 - [BaSyx Docker plan](development/basyx-docker-plan.md): local BaSyx Go instances on Docker or Podman from the desktop app
 - [Time series plan](development/time-series-plan.md): the Time Series Data view and connections on infrastructures
+- [External apps plan](development/external-apps-plan.md): published SDK and app kit, signed packages and updates, and a pilot app from another repository
 - [Test environment](../test-setup/README.md): local IdP and BaSyx targets for dev, build, and Electron testing
 
 ## Document authority
