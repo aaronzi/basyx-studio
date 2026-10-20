@@ -21,7 +21,9 @@
     "arcadeOff": "Arcade mode off. Back to work.",
     "drafts": "no drafts | {count} draft | {count} drafts",
     "legalNotice": "Legal notice",
-    "privacyPolicy": "Privacy policy"
+    "privacyPolicy": "Privacy policy",
+    "mainNavigation": "Main navigation",
+    "toggleSubmodelList": "Show or hide the submodel list"
   },
   "qr": {
     "title": "QR code of the asset",
@@ -618,7 +620,10 @@
     "shells": "Shells",
     "shellsShort": "Shells",
     "concepts": "Concept descriptions",
-    "conceptsShort": "Concepts"
+    "conceptsShort": "Concepts",
+    "more": "More",
+    "submodels": "Submodels",
+    "submodelsShort": "Submodels"
   },
   "common": {
     "copy": "Copy",
@@ -664,7 +669,8 @@
       "dashboard": "Go to the target's home page",
       "concepts": "Go to concept descriptions",
       "infrastructures": "Manage infrastructures",
-      "import": "Import AASX, JSON or XML file"
+      "import": "Import AASX, JSON or XML file",
+      "submodels": "Go to submodels"
     },
     "structure": {
       "add": "Add element to {name}",
@@ -723,7 +729,8 @@
       "invalidJson": "Not valid JSON: {message}",
       "notObject": "A query is a JSON object with $condition.",
       "edit": "Edit the advanced query",
-      "conceptDescriptions": "Runs on the concept description repository"
+      "conceptDescriptions": "Runs on the concept description repository",
+      "submodels": "Runs on the submodel repository"
     },
     "search": "Search shells",
     "filters": {
@@ -749,7 +756,8 @@
       "assetKind": "Asset kind",
       "assetType": "Asset type",
       "globalAssetId": "Global asset ID",
-      "specificAssetId": "Specific asset ID"
+      "specificAssetId": "Specific asset ID",
+      "semanticId": "Semantic ID"
     },
     "empty": "No shells yet",
     "emptyText": "This target has no shells yet.",
@@ -927,7 +935,9 @@
     "unpin": "Unpin from Overview",
     "pinsFull": "The Overview holds no more pinned values",
     "pinned": "Value pinned",
-    "unpinned": "Value unpinned"
+    "unpinned": "Value unpinned",
+    "submodelNone": "No views for this submodel",
+    "submodelNoneText": "No installed app offers a view for this submodel. Use the Elements tab to browse its structure."
   },
   "changes": {
     "title": "Changes",
@@ -951,7 +961,8 @@
     },
     "times": "{count} time | {count} times",
     "since": "since {time}",
-    "feedLimits": "The infrastructure's event feed names the changed shell or submodel, not the element or who changed it."
+    "feedLimits": "The infrastructure's event feed names the changed shell or submodel, not the element or who changed it.",
+    "submodelSubtitle": "Changes of this submodel"
   },
   "landing": {
     "subtitle": "AAS infrastructure",
@@ -1098,7 +1109,8 @@
     "removeSubmodelTitle": "Remove {name}?",
     "removeSubmodelText": "The submodel is removed from this shell. Other shells that reference it keep it.",
     "alsoDelete": "Also delete the submodel itself",
-    "editSubmodel": "Edit submodel"
+    "editSubmodel": "Edit submodel",
+    "openInSubmodels": "Open in submodel view"
   },
   "instance": {
     "create": "Create instance",
@@ -1259,5 +1271,57 @@
       "download": "The file could not be loaded: {message}",
       "parse": "The file could not be read as a 3D model: {message}"
     }
+  },
+  "submodels": {
+    "title": "Select a submodel from the list",
+    "headline": "Pick a submodel to explore",
+    "text": "Every submodel of the target, including those no shell references. Press ⌘K to search the whole target.",
+    "browse": "Browse submodels",
+    "search": "Search submodels",
+    "localOnly": "Filters the loaded submodels only: this infrastructure announces no query endpoint for submodels.",
+    "all": "All",
+    "instances": "Instances",
+    "templates": "Templates",
+    "template": "Template",
+    "kindUnknown": "The submodel registry does not record whether a submodel is an instance or a template.",
+    "orphan": "Not referenced by any shell",
+    "noOwnerFound": "No referencing shell found",
+    "empty": "No submodels yet",
+    "emptyText": "This target has no submodels yet.",
+    "none": "No submodels found",
+    "noneText": "Try another search or kind.",
+    "loadMore": "Load more submodels",
+    "fromRegistry": "Submodels from the submodel registry",
+    "fromRepository": "Submodels from the submodel repository",
+    "fromTemplateTitle": "New submodel from a template",
+    "fromJsonTitle": "New submodel from JSON",
+    "idShortHint": "Left empty, the template’s idShort is used.",
+    "unsupported": "No submodel view for this target",
+    "unsupportedText": "This target serves submodels only through their shells. Open them from the shell browser.",
+    "edit": "Edit",
+    "semanticId": "Semantic ID",
+    "templateId": "Template ID",
+    "referencedBy": "Referenced by",
+    "ownersFailed": "The referencing shells could not be read.",
+    "scannedAll": "Found by reading all {count} shells",
+    "scannedFirst": "Only the first {count} shells were checked",
+    "addToShell": "Add to shell",
+    "addToShellTitle": "Add {name} to a shell",
+    "addedToShell": "Added to {name}",
+    "pickShell": "Shell",
+    "noShells": "No shells found",
+    "delete": "Delete submodel",
+    "deleteTitle": "Delete {name}?",
+    "deleteText": "The submodel and all its elements are removed from the infrastructure.",
+    "deleted": "{name} deleted",
+    "referencedWarning": "One shell references this submodel. | {count} shells reference this submodel.",
+    "referencingShells": "Referencing shells",
+    "removeReferences": "Remove the reference from this shell | Remove the references from these {count} shells",
+    "ownersIncomplete": "Studio checked only the first {count} shells; others may still reference this submodel.",
+    "jsonLabel": "AAS 3.1 · JSON serialization",
+    "tabs": {
+      "elements": "Elements"
+    },
+    "identifier": "Identifier"
   }
 }

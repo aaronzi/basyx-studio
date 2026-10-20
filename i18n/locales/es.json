@@ -20,7 +20,9 @@
     "arcadeOn": "Modo arcade: +30 vidas",
     "arcadeOff": "Modo arcade desactivado. A trabajar.",
     "legalNotice": "Aviso legal",
-    "privacyPolicy": "Política de privacidad"
+    "privacyPolicy": "Política de privacidad",
+    "mainNavigation": "Navegación principal",
+    "toggleSubmodelList": "Mostrar u ocultar la lista de submodelos"
   },
   "qr": {
     "title": "Código QR del activo",
@@ -527,7 +529,10 @@
     "shells": "AAS",
     "shellsShort": "AAS",
     "concepts": "Descripciones de conceptos",
-    "conceptsShort": "Conceptos"
+    "conceptsShort": "Conceptos",
+    "more": "Más",
+    "submodels": "Submodelos",
+    "submodelsShort": "Submodelos"
   },
   "common": {
     "copy": "Copiar",
@@ -573,7 +578,8 @@
       "dashboard": "Ir a la página de inicio del destino",
       "concepts": "Ir a las descripciones de conceptos",
       "infrastructures": "Gestionar infraestructuras",
-      "import": "Importar un archivo AASX, JSON o XML"
+      "import": "Importar un archivo AASX, JSON o XML",
+      "submodels": "Ir a los submodelos"
     }
   },
   "capabilities": {
@@ -624,7 +630,8 @@
       "invalidJson": "JSON no válido: {message}",
       "notObject": "Una consulta es un objeto JSON con $condition.",
       "edit": "Editar la consulta avanzada",
-      "conceptDescriptions": "Se ejecuta en el repositorio de descripciones de concepto"
+      "conceptDescriptions": "Se ejecuta en el repositorio de descripciones de concepto",
+      "submodels": "Se ejecuta en el repositorio de submodelos"
     },
     "search": "Buscar AAS",
     "filters": {
@@ -650,7 +657,8 @@
       "assetKind": "Clase de activo",
       "assetType": "Tipo de activo",
       "globalAssetId": "ID global del activo",
-      "specificAssetId": "ID específico del activo"
+      "specificAssetId": "ID específico del activo",
+      "semanticId": "ID semántico"
     },
     "empty": "Aún no hay AAS",
     "emptyText": "Este destino aún no tiene AAS.",
@@ -828,7 +836,9 @@
     "unpin": "Quitar del resumen",
     "pinsFull": "El resumen no admite más valores fijados",
     "pinned": "Valor fijado",
-    "unpinned": "Valor quitado"
+    "unpinned": "Valor quitado",
+    "submodelNone": "No hay vistas para este submodelo",
+    "submodelNoneText": "Ninguna aplicación instalada ofrece una vista para este submodelo. Usa la pestaña Elementos para explorar su estructura."
   },
   "changes": {
     "title": "Cambios",
@@ -852,7 +862,8 @@
     },
     "times": "{count} vez | {count} veces",
     "since": "desde {time}",
-    "feedLimits": "El feed de eventos de la infraestructura indica la AAS o el submodelo que cambió, no el elemento ni quién lo cambió."
+    "feedLimits": "El feed de eventos de la infraestructura indica la AAS o el submodelo que cambió, no el elemento ni quién lo cambió.",
+    "submodelSubtitle": "Cambios de este submodelo"
   },
   "landing": {
     "subtitle": "Infraestructura AAS",
@@ -1048,5 +1059,60 @@
       "typ": "Típico",
       "max": "Máximo"
     }
+  },
+  "edit": {
+    "openInSubmodels": "Abrir en la vista de submodelos"
+  },
+  "submodels": {
+    "title": "Selecciona un submodelo de la lista",
+    "headline": "Elige un submodelo para explorar",
+    "text": "Todos los submodelos del destino, incluidos los que ninguna AAS referencia. Pulsa ⌘K para buscar en todo el destino.",
+    "browse": "Explorar submodelos",
+    "search": "Buscar submodelos",
+    "localOnly": "Filtra solo los submodelos cargados: esta infraestructura no anuncia ningún endpoint de consulta para submodelos.",
+    "all": "Todos",
+    "instances": "Instancias",
+    "templates": "Plantillas",
+    "template": "Plantilla",
+    "kindUnknown": "El registro de submodelos no indica si un submodelo es una instancia o una plantilla.",
+    "orphan": "Ninguna AAS lo referencia",
+    "noOwnerFound": "No se encontró ninguna AAS que lo referencie",
+    "empty": "Aún no hay submodelos",
+    "emptyText": "Este destino aún no tiene submodelos.",
+    "none": "No se encontraron submodelos",
+    "noneText": "Prueba otra búsqueda u otro tipo.",
+    "loadMore": "Cargar más submodelos",
+    "fromRegistry": "Submodelos del registro de submodelos",
+    "fromRepository": "Submodelos del repositorio de submodelos",
+    "fromTemplateTitle": "Nuevo submodelo a partir de una plantilla",
+    "fromJsonTitle": "Nuevo submodelo a partir de JSON",
+    "idShortHint": "Si se deja vacío, se usa el idShort de la plantilla.",
+    "unsupported": "No hay vista de submodelos para este destino",
+    "unsupportedText": "Este destino solo ofrece los submodelos a través de sus AAS. Ábrelos desde su AAS.",
+    "edit": "Editar",
+    "semanticId": "ID semántico",
+    "templateId": "ID de plantilla",
+    "referencedBy": "Referenciado por",
+    "ownersFailed": "No se pudieron leer las AAS que lo referencian.",
+    "scannedAll": "Encontrado leyendo las {count} AAS",
+    "scannedFirst": "Solo se comprobaron las primeras {count} AAS",
+    "addToShell": "Añadir a una AAS",
+    "addToShellTitle": "Añadir {name} a una AAS",
+    "addedToShell": "Añadido a {name}",
+    "pickShell": "AAS",
+    "noShells": "No se encontraron AAS",
+    "delete": "Eliminar submodelo",
+    "deleteTitle": "¿Eliminar {name}?",
+    "deleteText": "El submodelo y todos sus elementos se eliminan de la infraestructura.",
+    "deleted": "{name} eliminado",
+    "referencedWarning": "Una AAS referencia este submodelo. | {count} AAS referencian este submodelo.",
+    "referencingShells": "AAS que lo referencian",
+    "removeReferences": "Quitar la referencia de esta AAS | Quitar las referencias de estas {count} AAS",
+    "ownersIncomplete": "Studio solo comprobó las primeras {count} AAS; otras pueden seguir referenciando este submodelo.",
+    "jsonLabel": "AAS 3.1 · serialización JSON",
+    "tabs": {
+      "elements": "Elementos"
+    },
+    "identifier": "Identificador"
   }
 }

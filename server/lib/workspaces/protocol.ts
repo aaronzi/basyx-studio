@@ -1,8 +1,8 @@
-import type { ConceptDescriptionSummary, ConceptDescriptionUsages, ElementHit, ElementValueInput, Page, ShellSummary } from '#shared/contract'
+import type { ConceptDescriptionSummary, ConceptDescriptionUsages, ElementHit, ElementValueInput, Page, ShellSummary, SubmodelSummary } from '#shared/contract'
 import type { ConceptDescriptionSource } from '#shared/search/expression'
 import type { JsonObject } from '../aas/outline'
 import type { Violation } from '../problem'
-import type { BinaryContent, ElementSnapshot, StructureResult } from '../targets/aas-target'
+import type { BinaryContent, ElementSnapshot, StructureResult, SubmodelOwnership } from '../targets/aas-target'
 import type { InspectedEnvironment, UploadFormat } from './package'
 
 // IPC contract between the Studio Service and the Workspace Worker process.
@@ -24,6 +24,9 @@ export interface WorkspaceCalls {
   listShells: (limit: number, cursor: string | undefined) => Page<ShellSummary>
   shell: (id: string) => JsonObject
   submodelIds: (shellId: string) => string[]
+  listSubmodels: (limit: number, cursor: string | undefined) => Page<SubmodelSummary>
+  searchSubmodels: (expression: string, limit: number, cursor: string | undefined) => Page<SubmodelSummary>
+  submodelOwners: (submodelIds: string[]) => SubmodelOwnership
   submodelMetadata: (id: string) => JsonObject
   submodel: (id: string) => JsonObject
   element: (submodelId: string, idShortPath: string) => ElementSnapshot

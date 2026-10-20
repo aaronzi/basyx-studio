@@ -193,6 +193,47 @@ export async function addSubmodel (context: CreationContext, shellId: string, so
   return { submodelId, steps: runner.steps }
 }
 
+/**
+ * Creates a submodel on its own (the submodel view): empty, from a template
+ * or from JSON. No shell references it until one is given a reference.
+ */
+export async function createStandaloneSubmodel (context: CreationContext, source: SubmodelSource): Promise<{ submodelId: string, steps: SyncStep[] }> {
+  const { target, scheme, plan } = context
+  const submodel = await buildSubmodel(target, source, scheme)
+  if (!submodel) {
+    throw new StudioProblem('invalid_request', 'A new submodel is empty, from a template or from JSON.')
+  }
+  const submodelId = String(submodel.id)
+  await assertFree(target, 'submodel', submodelId)
+  const runner = new StepRunner()
+  await runner.run('submodel', submodelId, () => target.createSubmodel(submodel))
+  runner.steps.push(...await target.registerSubmodels([submodelId], plan))
+  return { submodelId, steps: runner.steps }
+}
+
+/**
+ * Deletes a submodel (the submodel view). With `removeReferences`, the
+ * shells that reference it lose their reference first, so none is left
+ * dangling; a scan that could not read every shell may miss some. Each
+ * step reports its outcome, and the first failure stops the later ones.
+ */
+export async function deleteSubmodelWithReferences (context: CreationContext, submodelId: string, removeReferences: boolean): Promise<SyncStep[]> {
+  const { target, plan } = context
+  await target.submodelMetadata(submodelId)
+  const owners = removeReferences ? (await target.submodelOwners([submodelId])).shells[submodelId] ?? [] : []
+  const runner = new StepRunner()
+  for (const shell of owners) {
+    // The step names the shell whose reference went.
+    await runner.run('submodelReference', shell.id, () => target.removeSubmodelRef(shell.id, submodelId))
+  }
+  await runner.run('submodel', submodelId, () => target.deleteSubmodel(submodelId))
+  runner.steps.push(...await target.unregisterSubmodels([submodelId], plan))
+  if (owners.length > 0) {
+    runner.steps.push(...await target.registerShells(owners.map(shell => shell.id), plan))
+  }
+  return runner.steps
+}
+
 /** Removes a submodel reference, and the submodel itself on request (U6). */
 export async function removeSubmodel (context: CreationContext, shellId: string, submodelId: string, deleteSubmodel: boolean): Promise<SyncStep[]> {
   const { target, plan } = context

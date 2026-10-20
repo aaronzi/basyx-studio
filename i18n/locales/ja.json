@@ -20,7 +20,9 @@
     "arcadeOn": "アーケードモード：残機 +30",
     "arcadeOff": "アーケードモードを終了しました。仕事に戻りましょう。",
     "legalNotice": "法的情報",
-    "privacyPolicy": "プライバシーポリシー"
+    "privacyPolicy": "プライバシーポリシー",
+    "mainNavigation": "メインナビゲーション",
+    "toggleSubmodelList": "サブモデル一覧の表示/非表示"
   },
   "qr": {
     "title": "アセットの QR コード",
@@ -527,7 +529,10 @@
     "shells": "管理シェル",
     "shellsShort": "シェル",
     "concepts": "コンセプト記述",
-    "conceptsShort": "コンセプト"
+    "conceptsShort": "コンセプト",
+    "more": "その他",
+    "submodels": "サブモデル",
+    "submodelsShort": "サブモデル"
   },
   "common": {
     "copy": "コピー",
@@ -573,7 +578,8 @@
       "dashboard": "ターゲットのホームページへ移動",
       "concepts": "コンセプト記述へ移動",
       "infrastructures": "インフラストラクチャを管理",
-      "import": "AASX、JSON、XML ファイルをインポート"
+      "import": "AASX、JSON、XML ファイルをインポート",
+      "submodels": "サブモデルへ移動"
     }
   },
   "capabilities": {
@@ -624,7 +630,8 @@
       "invalidJson": "有効な JSON ではありません: {message}",
       "notObject": "クエリは $condition を含む JSON オブジェクトです。",
       "edit": "詳細クエリを編集",
-      "conceptDescriptions": "コンセプト記述リポジトリで実行"
+      "conceptDescriptions": "コンセプト記述リポジトリで実行",
+      "submodels": "サブモデルリポジトリで実行"
     },
     "search": "管理シェルを検索",
     "filters": {
@@ -650,7 +657,8 @@
       "assetKind": "アセットの種別",
       "assetType": "アセットタイプ",
       "globalAssetId": "グローバルアセット ID",
-      "specificAssetId": "固有アセット ID"
+      "specificAssetId": "固有アセット ID",
+      "semanticId": "セマンティック ID"
     },
     "empty": "管理シェルはまだありません",
     "emptyText": "このターゲットにはまだ管理シェルがありません。",
@@ -828,7 +836,9 @@
     "unpin": "概要からピン留めを外す",
     "pinsFull": "概要にはこれ以上値をピン留めできません",
     "pinned": "値をピン留めしました",
-    "unpinned": "ピン留めを外しました"
+    "unpinned": "ピン留めを外しました",
+    "submodelNone": "このサブモデルのビューはありません",
+    "submodelNoneText": "このサブモデル向けのビューを提供するアプリはインストールされていません。構造を参照するには「要素」タブを使用してください。"
   },
   "changes": {
     "title": "変更履歴",
@@ -852,7 +862,8 @@
     },
     "times": "{count} 回",
     "since": "{time} 以降",
-    "feedLimits": "インフラストラクチャのイベントフィードには変更された管理シェルまたはサブモデルが示されますが、要素や変更者は示されません。"
+    "feedLimits": "インフラストラクチャのイベントフィードには変更された管理シェルまたはサブモデルが示されますが、要素や変更者は示されません。",
+    "submodelSubtitle": "このサブモデルの変更"
   },
   "landing": {
     "subtitle": "AAS インフラストラクチャ",
@@ -1048,5 +1059,60 @@
       "typ": "標準",
       "max": "最大"
     }
+  },
+  "edit": {
+    "openInSubmodels": "サブモデルビューで開く"
+  },
+  "submodels": {
+    "title": "一覧からサブモデルを選択してください",
+    "headline": "探索するサブモデルを選択",
+    "text": "どの管理シェルからも参照されていないものを含む、ターゲットのすべてのサブモデル。⌘K でターゲット全体を検索できます。",
+    "browse": "サブモデルを閲覧",
+    "search": "サブモデルを検索",
+    "localOnly": "読み込み済みのサブモデルのみを絞り込みます。このインフラはサブモデルのクエリエンドポイントを公開していません。",
+    "all": "すべて",
+    "instances": "インスタンス",
+    "templates": "テンプレート",
+    "template": "テンプレート",
+    "kindUnknown": "サブモデルレジストリには、サブモデルがインスタンスかテンプレートかが記録されていません。",
+    "orphan": "どの管理シェルからも参照されていません",
+    "noOwnerFound": "参照している管理シェルは見つかりませんでした",
+    "empty": "サブモデルはまだありません",
+    "emptyText": "このターゲットにはまだサブモデルがありません。",
+    "none": "サブモデルが見つかりません",
+    "noneText": "別の検索条件または種類をお試しください。",
+    "loadMore": "さらにサブモデルを読み込む",
+    "fromRegistry": "サブモデルレジストリのサブモデル",
+    "fromRepository": "サブモデルリポジトリのサブモデル",
+    "fromTemplateTitle": "テンプレートから新しいサブモデル",
+    "fromJsonTitle": "JSON から新しいサブモデル",
+    "idShortHint": "空欄の場合はテンプレートの idShort が使われます。",
+    "unsupported": "このターゲットにはサブモデルビューがありません",
+    "unsupportedText": "このターゲットはサブモデルを管理シェル経由でのみ提供します。管理シェルから開いてください。",
+    "edit": "編集",
+    "semanticId": "セマンティック ID",
+    "templateId": "テンプレート ID",
+    "referencedBy": "参照元",
+    "ownersFailed": "参照している管理シェルを読み込めませんでした。",
+    "scannedAll": "{count} 個すべての管理シェルを読み込んで特定",
+    "scannedFirst": "最初の {count} 個の管理シェルのみ確認しました",
+    "addToShell": "管理シェルに追加",
+    "addToShellTitle": "{name} を管理シェルに追加",
+    "addedToShell": "{name} に追加しました",
+    "pickShell": "管理シェル",
+    "noShells": "管理シェルが見つかりません",
+    "delete": "サブモデルを削除",
+    "deleteTitle": "{name} を削除しますか？",
+    "deleteText": "サブモデルとそのすべての要素がインフラから削除されます。",
+    "deleted": "{name} を削除しました",
+    "referencedWarning": "{count} 個の管理シェルがこのサブモデルを参照しています。",
+    "referencingShells": "参照している管理シェル",
+    "removeReferences": "これら {count} 個の管理シェルから参照を削除",
+    "ownersIncomplete": "Studio は最初の {count} 個の管理シェルのみ確認しました。他の管理シェルがこのサブモデルを参照している可能性があります。",
+    "jsonLabel": "AAS 3.1 · JSON シリアライズ",
+    "tabs": {
+      "elements": "要素"
+    },
+    "identifier": "識別子"
   }
 }

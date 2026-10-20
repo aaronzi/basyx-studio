@@ -28,7 +28,7 @@ interface OpenWorkspace {
 }
 
 const callable = new Set<string>([
-  'listShells', 'shell', 'submodelIds', 'submodelMetadata', 'submodel', 'element', 'setElementValue',
+  'listShells', 'shell', 'submodelIds', 'listSubmodels', 'searchSubmodels', 'submodelOwners', 'submodelMetadata', 'submodel', 'element', 'setElementValue',
   'addElement', 'replaceElement', 'deleteElement', 'moveElement', 'replaceSubmodelMetadata',
   'undo', 'redo', 'setThumbnail',
   'createSubmodel', 'deleteSubmodel', 'createShell', 'replaceShell', 'addSubmodelRef', 'removeSubmodelRef', 'replaceSubmodel',

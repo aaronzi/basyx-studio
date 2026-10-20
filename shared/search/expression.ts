@@ -7,11 +7,19 @@
 /** Where a shell query runs: the AAS repository (`/query/shells`) or the AAS registry (`/query/shell-descriptors`). */
 export type ShellQueryTarget = 'repository' | 'registry'
 
-/** Where a query runs: a shell target, or the concept description repository (`/query/concept-descriptions`). */
-export type QueryTarget = ShellQueryTarget | 'conceptDescriptions'
+/**
+ * Where a query runs: a shell target, the submodel repository
+ * (`/query/submodels`) or the concept description repository
+ * (`/query/concept-descriptions`).
+ */
+export type QueryTarget = ShellQueryTarget | 'submodels' | 'conceptDescriptions'
 
+/** The fields of the shell search. */
 export const searchFields = ['id', 'idShort', 'assetKind', 'assetType', 'globalAssetId', 'specificAssetId'] as const
-export type SearchField = (typeof searchFields)[number]
+export type SearchField = (typeof searchFields)[number] | 'semanticId'
+
+/** The fields of the submodel search (`$sm#id`, `$sm#idShort`, `$sm#semanticId`). */
+export const submodelSearchFields: readonly SearchField[] = ['id', 'idShort', 'semanticId']
 
 /**
  * The fields of the concept description search (MVP-6 plan, S1): the AAS
@@ -58,19 +66,28 @@ const fieldPaths: Record<QueryTarget, Partial<Record<SearchField, string>>> = {
     globalAssetId: '$aasdesc#globalAssetId',
     specificAssetId: '$aasdesc#specificAssetIds[].value',
   },
+  submodels: {
+    id: '$sm#id',
+    idShort: '$sm#idShort',
+    semanticId: '$sm#semanticId',
+  },
   conceptDescriptions: {
     id: '$cd#id',
     idShort: '$cd#idShort',
   },
 }
 
-/** Free text matches these fields, as in the Web UI (not the display name). */
-const textFields: readonly SearchField[] = ['id', 'idShort', 'globalAssetId', 'specificAssetId']
+/**
+ * Free text matches these fields, as in the Web UI (not the display name);
+ * each target uses those it has a path for.
+ */
+const textFields: readonly SearchField[] = ['id', 'idShort', 'globalAssetId', 'specificAssetId', 'semanticId']
 
 /** The roots a raw query may use on each target. */
 export const queryRoots: Record<QueryTarget, readonly string[]> = {
   repository: ['$aas'],
   registry: ['$aasdesc', '$smdesc'],
+  submodels: ['$sm', '$sme'],
   conceptDescriptions: ['$cd'],
 }
 
@@ -175,6 +192,7 @@ const shellValues: Record<SearchField, (shell: Json) => string[]> = {
     const ids = assetOf(shell).specificAssetIds
     return Array.isArray(ids) ? ids.flatMap(entry => strings((entry as Json | null)?.value)) : []
   },
+  semanticId: () => [],
 }
 
 /** Whether a shell (AAS JSON) matches a search with the semantics of the query built for it. */
@@ -201,6 +219,38 @@ export function matchesConceptDescription (cd: Json, parsed: ParsedSearch): bool
   const values = (field: SearchField) => (field === 'id' ? strings(cd.id) : (field === 'idShort' ? strings(cd.idShort) : []))
   const needle = parsed.text.toLowerCase()
   if (needle && !conceptDescriptionSearchFields.some(field => values(field).some(value => value.toLowerCase().includes(needle)))) {
+    return false
+  }
+  return parsed.filters.every(filter => {
+    const found = filter.operator === 'contains'
+      ? values(filter.field).some(value => value.includes(filter.value))
+      : values(filter.field).includes(filter.value)
+    return filter.operator === 'not-equals' ? !found : found
+  })
+}
+
+/** The first key value of a reference (AAS JSON), e.g. a semantic ID. */
+function firstKey (reference: unknown): string[] {
+  const keys = (reference as Json | null | undefined)?.keys
+  return Array.isArray(keys) ? strings((keys[0] as Json | undefined)?.value) : []
+}
+
+/** The values of each submodel search field on a submodel (AAS JSON). */
+const submodelValues: Partial<Record<SearchField, (submodel: Json) => string[]>> = {
+  id: submodel => strings(submodel.id),
+  idShort: submodel => strings(submodel.idShort),
+  semanticId: submodel => firstKey(submodel.semanticId),
+}
+
+/**
+ * Whether a submodel (AAS JSON) matches a search, as the query built for the
+ * submodel repository would: free text over the ID, idShort and semantic ID,
+ * filters on them. For AASX workspaces, which have no query endpoint.
+ */
+export function matchesSubmodel (submodel: Json, parsed: ParsedSearch): boolean {
+  const values = (field: SearchField) => submodelValues[field]?.(submodel) ?? []
+  const needle = parsed.text.toLowerCase()
+  if (needle && !submodelSearchFields.some(field => values(field).some(value => value.toLowerCase().includes(needle)))) {
     return false
   }
   return parsed.filters.every(filter => {

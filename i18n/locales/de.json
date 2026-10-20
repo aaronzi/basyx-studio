@@ -21,7 +21,9 @@
     "arcadeOff": "Arcade-Modus aus. Zurück an die Arbeit.",
     "drafts": "keine Entwürfe | {count} Entwurf | {count} Entwürfe",
     "legalNotice": "Impressum",
-    "privacyPolicy": "Datenschutz"
+    "privacyPolicy": "Datenschutz",
+    "mainNavigation": "Hauptnavigation",
+    "toggleSubmodelList": "Liste der Teilmodelle ein- oder ausblenden"
   },
   "qr": {
     "title": "QR-Code des Assets",
@@ -618,7 +620,10 @@
     "shells": "Verwaltungsschalen",
     "shellsShort": "Schalen",
     "concepts": "Konzeptbeschreibungen",
-    "conceptsShort": "Konzepte"
+    "conceptsShort": "Konzepte",
+    "more": "Mehr",
+    "submodels": "Teilmodelle",
+    "submodelsShort": "Teilmodelle"
   },
   "common": {
     "copy": "Kopieren",
@@ -664,7 +669,8 @@
       "dashboard": "Zur Startseite des Ziels",
       "concepts": "Zu den Konzeptbeschreibungen",
       "infrastructures": "Infrastrukturen verwalten",
-      "import": "AASX-, JSON- oder XML-Datei importieren"
+      "import": "AASX-, JSON- oder XML-Datei importieren",
+      "submodels": "Zu den Teilmodellen"
     },
     "structure": {
       "add": "Element zu {name} hinzufügen",
@@ -723,7 +729,8 @@
       "invalidJson": "Kein gültiges JSON: {message}",
       "notObject": "Eine Abfrage ist ein JSON-Objekt mit $condition.",
       "edit": "Erweiterte Abfrage bearbeiten",
-      "conceptDescriptions": "Läuft auf dem Concept-Description-Repository"
+      "conceptDescriptions": "Läuft auf dem Concept-Description-Repository",
+      "submodels": "Läuft auf dem Teilmodell-Repository"
     },
     "search": "Verwaltungsschalen suchen",
     "filters": {
@@ -749,7 +756,8 @@
       "assetKind": "Asset-Art",
       "assetType": "Asset-Typ",
       "globalAssetId": "Globale Asset-ID",
-      "specificAssetId": "Spezifische Asset-ID"
+      "specificAssetId": "Spezifische Asset-ID",
+      "semanticId": "Semantische ID"
     },
     "empty": "Noch keine Shells",
     "emptyText": "Dieses Ziel hat noch keine Shells.",
@@ -927,7 +935,9 @@
     "unpin": "Von Übersicht lösen",
     "pinsFull": "Die Übersicht fasst keine weiteren angehefteten Werte",
     "pinned": "Wert angeheftet",
-    "unpinned": "Wert gelöst"
+    "unpinned": "Wert gelöst",
+    "submodelNone": "Keine Ansichten für dieses Teilmodell",
+    "submodelNoneText": "Keine installierte App bietet eine Ansicht für dieses Teilmodell. Nutzen Sie den Tab „Elemente“, um die Struktur zu durchsuchen."
   },
   "changes": {
     "title": "Änderungen",
@@ -951,7 +961,8 @@
     },
     "times": "{count}-mal | {count}-mal",
     "since": "seit {time}",
-    "feedLimits": "Der Ereignis-Feed der Infrastruktur nennt die geänderte Verwaltungsschale oder das geänderte Teilmodell, nicht das Element oder wer es geändert hat."
+    "feedLimits": "Der Ereignis-Feed der Infrastruktur nennt die geänderte Verwaltungsschale oder das geänderte Teilmodell, nicht das Element oder wer es geändert hat.",
+    "submodelSubtitle": "Änderungen dieses Teilmodells"
   },
   "landing": {
     "subtitle": "AAS-Infrastruktur",
@@ -1098,7 +1109,8 @@
     "removeSubmodelTitle": "{name} entfernen?",
     "removeSubmodelText": "Das Submodell wird aus dieser Shell entfernt. Andere Shells, die es referenzieren, behalten es.",
     "alsoDelete": "Das Submodell auch selbst löschen",
-    "editSubmodel": "Submodell bearbeiten"
+    "editSubmodel": "Submodell bearbeiten",
+    "openInSubmodels": "In der Teilmodell-Ansicht öffnen"
   },
   "instance": {
     "create": "Instanz erstellen",
@@ -1259,5 +1271,57 @@
       "download": "Die Datei konnte nicht geladen werden: {message}",
       "parse": "Die Datei konnte nicht als 3D-Modell gelesen werden: {message}"
     }
+  },
+  "submodels": {
+    "title": "Wählen Sie ein Teilmodell aus der Liste",
+    "headline": "Wählen Sie ein Teilmodell",
+    "text": "Alle Teilmodelle des Ziels, auch solche, auf die keine Verwaltungsschale verweist. Mit ⌘K durchsuchen Sie das ganze Ziel.",
+    "browse": "Teilmodelle durchsuchen",
+    "search": "Teilmodelle suchen",
+    "localOnly": "Filtert nur die geladenen Teilmodelle: Diese Infrastruktur bietet keinen Abfrage-Endpunkt für Teilmodelle an.",
+    "all": "Alle",
+    "instances": "Instanzen",
+    "templates": "Templates",
+    "template": "Template",
+    "kindUnknown": "Die Teilmodell-Registry hält nicht fest, ob ein Teilmodell eine Instanz oder ein Template ist.",
+    "orphan": "Von keiner Verwaltungsschale referenziert",
+    "noOwnerFound": "Keine referenzierende Verwaltungsschale gefunden",
+    "empty": "Noch keine Teilmodelle",
+    "emptyText": "Dieses Ziel hat noch keine Teilmodelle.",
+    "none": "Keine Teilmodelle gefunden",
+    "noneText": "Versuchen Sie eine andere Suche oder Art.",
+    "loadMore": "Weitere Teilmodelle laden",
+    "fromRegistry": "Teilmodelle aus der Teilmodell-Registry",
+    "fromRepository": "Teilmodelle aus dem Teilmodell-Repository",
+    "fromTemplateTitle": "Neues Teilmodell aus einem Template",
+    "fromJsonTitle": "Neues Teilmodell aus JSON",
+    "idShortHint": "Leer gelassen wird der idShort des Templates verwendet.",
+    "unsupported": "Keine Teilmodell-Ansicht für dieses Ziel",
+    "unsupportedText": "Dieses Ziel stellt Teilmodelle nur über ihre Verwaltungsschalen bereit. Öffnen Sie sie dort.",
+    "edit": "Bearbeiten",
+    "semanticId": "Semantische ID",
+    "templateId": "Template-ID",
+    "referencedBy": "Referenziert von",
+    "ownersFailed": "Die referenzierenden Verwaltungsschalen konnten nicht gelesen werden.",
+    "scannedAll": "Gefunden durch Lesen aller {count} Verwaltungsschalen",
+    "scannedFirst": "Nur die ersten {count} Verwaltungsschalen wurden geprüft",
+    "addToShell": "Zu Verwaltungsschale hinzufügen",
+    "addToShellTitle": "{name} zu einer Verwaltungsschale hinzufügen",
+    "addedToShell": "Zu {name} hinzugefügt",
+    "pickShell": "Verwaltungsschale",
+    "noShells": "Keine Verwaltungsschalen gefunden",
+    "delete": "Teilmodell löschen",
+    "deleteTitle": "{name} löschen?",
+    "deleteText": "Das Teilmodell und alle seine Elemente werden aus der Infrastruktur entfernt.",
+    "deleted": "{name} gelöscht",
+    "referencedWarning": "Eine Verwaltungsschale referenziert dieses Teilmodell. | {count} Verwaltungsschalen referenzieren dieses Teilmodell.",
+    "referencingShells": "Referenzierende Verwaltungsschalen",
+    "removeReferences": "Die Referenz aus dieser Verwaltungsschale entfernen | Die Referenzen aus diesen {count} Verwaltungsschalen entfernen",
+    "ownersIncomplete": "Studio hat nur die ersten {count} Verwaltungsschalen geprüft; weitere können dieses Teilmodell noch referenzieren.",
+    "jsonLabel": "AAS 3.1 · JSON-Serialisierung",
+    "tabs": {
+      "elements": "Elemente"
+    },
+    "identifier": "Identifikator"
   }
 }

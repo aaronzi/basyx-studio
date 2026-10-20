@@ -11,6 +11,7 @@ const empty: ShellOverviewLayout = shellOverviewSchema.parse({})
  * Stored with the user's preferences, per target and shell.
  */
 export function useShellOverview (targetId: MaybeRefOrGetter<string>, shellKey: MaybeRefOrGetter<string>) {
+  // `shellKey` is the key of the Overview: a shell's, or `submodel:<key>` for a submodel (submodelOverviewKey).
   const preferences = usePreferences()
 
   const layout = computed<ShellOverviewLayout>(() => preferences.preferences.value.overviews[toValue(targetId)]?.[toValue(shellKey)] ?? empty)
@@ -71,6 +72,11 @@ export function useShellOverview (targetId: MaybeRefOrGetter<string>, shellKey: 
   const pinsFull = computed(() => layout.value.pins.length >= overviewPinLimit)
 
   return { layout, saveItems, setHidden, snapshot, restore, reset, isPinned, togglePin, pinsFull }
+}
+
+/** The key of a submodel's own Overview in the submodel view; shell keys never contain a colon. */
+export function submodelOverviewKey (submodelKey: string): string {
+  return `submodel:${submodelKey}`
 }
 
 /** The widget ID of a pinned value. */

@@ -32,8 +32,8 @@
       v-else-if="widgets.length === 0"
       icon="mdi-puzzle-outline"
       size="64"
-      :text="t('overview.noneText')"
-      :title="t('overview.none')"
+      :text="shellId ? t('overview.noneText') : t('overview.submodelNoneText')"
+      :title="shellId ? t('overview.none') : t('overview.submodelNone')"
     />
 
     <v-empty-state
@@ -196,8 +196,10 @@
   // frame; the arrangement is in useOverviewGrid.
   const props = defineProps<{
     target: Target
-    shellId: string
-    shellKey: string
+    /** The open shell, or `null` in the submodel view. */
+    shellId: string | null
+    /** Where the layout is stored: the shell key, or `submodel:` and the submodel key in the submodel view. */
+    overviewKey: string
     refs: SubmodelRef[]
     signals: LiveSignal[]
     /** Seconds between re-reads while auto-refresh is on, or `null`. */
@@ -214,7 +216,7 @@
   const { t } = useI18n()
   const { mdAndUp, thresholds } = useDisplay()
   const label = useLocalizedLabel()
-  const overview = useShellOverview(() => props.target.id, () => props.shellKey)
+  const overview = useShellOverview(() => props.target.id, () => props.overviewKey)
   const { preferences } = usePreferences()
 
   /** The grid needs room for its columns; narrower screens stack the widgets. */

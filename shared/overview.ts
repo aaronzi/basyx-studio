@@ -100,9 +100,10 @@ function withoutNull<T> (record: Record<string, T | null>): Record<string, T> {
 }
 
 /**
- * The Overviews of a user's preferences, per target and shell key. A shell's
- * stored value that no longer validates is dropped on its own, so the other
- * shells keep their layouts.
+ * The Overviews of a user's preferences, per target and shell key (or
+ * `submodel:` and a submodel key for a submodel of the submodel view). A
+ * shell's stored value that no longer validates is dropped on its own, so
+ * the other shells keep their layouts.
  */
 export const overviewsSchema = z.record(
   z.string().max(100),

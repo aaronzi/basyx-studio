@@ -15,6 +15,8 @@ import type {
   ShellSearch,
   ShellSearchPage,
   ShellSummary,
+  SubmodelSearchPage,
+  SubmodelSummary,
   TargetCapabilities,
 } from '#shared/contract'
 import type { ConceptDescriptionSource } from '#shared/search/expression'
@@ -51,7 +53,18 @@ export interface ChangesQuery {
   limit: number
 }
 
-/** Optional target features that Studio detects (they depend on the server's configuration). */
+/**
+ * The shells that reference submodels, by submodel ID (`SubmodelOwners` of
+ * the API): found by a query, or by reading up to `scanned` shells, which
+ * covers all of them only if `complete`.
+ */
+export interface SubmodelOwnership {
+  shells: Record<string, ShellSummary[]>
+  method: 'query' | 'scan'
+  complete: boolean
+  scanned: number | null
+}
+
 /**
  * The AAS operations the Studio API needs, independent of where the data
  * lives (ADR 0003). Implemented by live infrastructures and desktop AASX
@@ -66,6 +79,15 @@ export interface AasTarget {
   shell: (id: string) => Promise<JsonObject>
   /** Submodel identifiers referenced by a shell. */
   submodelIds: (shellId: string) => Promise<string[]>
+  /** Submodels on their own, cursor-paged, from `submodelListSource` (the submodel view). */
+  listSubmodels: (limit: number, cursor: string | undefined) => Promise<Page<SubmodelSummary>>
+  /**
+   * Submodels matching the search field's expression or a raw query. Needs
+   * `submodelSearch` other than `filter`; workspaces take expressions only.
+   */
+  searchSubmodels: (search: ShellSearch, limit: number, cursor: string | undefined) => Promise<SubmodelSearchPage>
+  /** The shells that reference each of the submodels, and how reliably they were found. */
+  submodelOwners: (submodelIds: string[]) => Promise<SubmodelOwnership>
   /** The submodel without its elements. */
   submodelMetadata: (id: string) => Promise<JsonObject>
   submodel: (id: string) => Promise<JsonObject>
@@ -160,6 +182,8 @@ export interface AasTarget {
   /** Descriptors and asset links after an upload or delete, where Studio writes them (MVP-4 plan, I5). */
   registerShells: (shellIds: string[], plan: SyncPlan) => Promise<SyncStep[]>
   unregisterShell: (shellId: string, plan: SyncPlan) => Promise<SyncStep[]>
+  /** Writes the descriptors of new submodels where Studio keeps the submodel registry in step. */
+  registerSubmodels: (submodelIds: string[], plan: SyncPlan) => Promise<SyncStep[]>
   /** Removes the descriptors of deleted submodels where Studio keeps the submodel registry in step. */
   unregisterSubmodels: (submodelIds: string[], plan: SyncPlan) => Promise<SyncStep[]>
   /** The submodel as it was at `date` (ISO 8601). */

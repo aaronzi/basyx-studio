@@ -16,13 +16,15 @@ import type {
   ShellSearch,
   ShellSearchPage,
   ShellSummary,
+  SubmodelSearchPage,
+  SubmodelSummary,
   TargetCapabilities,
 } from '#shared/contract'
 import type { ConceptDescriptionSource } from '#shared/search/expression'
 import type { JsonObject } from '../aas/outline'
 import type { SyncPlan, SyncStep } from '../aas/sync'
 import type { FailureRecorder } from '../network/guarded-fetch'
-import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot, StructureResult } from './aas-target'
+import type { AasTarget, BinaryContent, ChangesQuery, ElementSnapshot, StructureResult, SubmodelOwnership } from './aas-target'
 import type { CapabilityRestrictions } from './capabilities'
 import type { TargetBase, TargetHttpOptions } from './http'
 import type { types } from '@aas-core-works/aas-core3.1-typescript'
@@ -30,7 +32,7 @@ import type { Configuration, SubmodelRepositoryService } from 'basyx-typescript-
 import { types as aasTypes, jsonization } from '@aas-core-works/aas-core3.1-typescript'
 import { AasDiscoveryClient, AasRegistryClient, AasRepositoryClient, ConceptDescriptionRepositoryClient, Lib, SubmodelRegistryClient, SubmodelRepositoryClient } from 'basyx-typescript-sdk'
 import { serviceUrl } from '#shared/contract'
-import { buildConceptDescriptionQuery, buildShellQuery, escapeRegex, parseSearch } from '#shared/search/expression'
+import { buildConceptDescriptionQuery, buildShellQuery, escapeRegex, parseSearch, submodelSearchFields } from '#shared/search/expression'
 import {
   invocationBody,
   invocationOutputs,
@@ -45,6 +47,7 @@ import { containerChildren, countSemanticUses, insertChild, moveChild, removeChi
 import { formatLocator, parseLocator } from '../aas/keys'
 import { checkRawQuery, toSdkQuery } from '../aas/query'
 import { descriptorSummary, submodelIdOf, toShellSummary } from '../aas/shells'
+import { ownersOf, toSubmodelSummary } from '../aas/submodels'
 import { assetLinksOf, shellDescriptor, submodelDescriptor, submodelIdsOf } from '../aas/sync'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
@@ -64,6 +67,11 @@ type SdkResult<T>
 
 /** Attempts per write when the submodel revision changes between read and write. */
 const writeAttempts = 3
+
+/** Shells a scan for submodel references reads at most, where no query can find them (the submodel view). */
+export const ownerScanLimit = 1000
+/** Pages of shells a query for submodel references reads at most. */
+const ownerQueryPages = 10
 
 /** How long the target may take for an asynchronous operation before giving up. */
 const asyncInvocationTimeout = 'PT60S'
@@ -179,6 +187,98 @@ export class LiveAasTarget implements AasTarget {
       }
     }
     return ids
+  }
+
+  /**
+   * Submodels on their own: the submodel registry's descriptors or the
+   * submodel repository's metadata (without elements), whichever
+   * `submodelListSource` names.
+   */
+  async listSubmodels (limit: number, cursor: string | undefined): Promise<Page<SubmodelSummary>> {
+    const source = this.capabilities.submodelListSource
+    if (source === 'registry') {
+      const data = await this.#call('submodelRegistry', configuration =>
+        this.#submodelRegistryClient.getAllSubmodelDescriptors({ configuration, limit, cursor }))
+      const nextCursor = data.pagedResult?.cursor ?? null
+      return {
+        items: data.result.map(descriptor => toSubmodelSummary(Lib.toJsonableSubmodelDescriptor(descriptor) as JsonObject)),
+        page: { nextCursor, hasMore: nextCursor !== null },
+      }
+    }
+    if (source !== 'repository') {
+      throw new StudioProblem('unsupported_operation', 'This infrastructure serves submodels only through their shell.')
+    }
+    // The SDK's metadata models are not AAS JSON; the response itself is.
+    const data = await this.#http.json<{ result?: JsonObject[], paging_metadata?: { cursor?: string } }>('submodelRepository', '/submodels/$metadata', { query: { limit, cursor } })
+    const nextCursor = data.paging_metadata?.cursor || null
+    return {
+      items: (data.result ?? []).map(submodel => toSubmodelSummary(submodel)),
+      page: { nextCursor, hasMore: nextCursor !== null },
+    }
+  }
+
+  /**
+   * Submodels matching a search, through the submodel repository's query
+   * endpoint: an expression of the search field is turned into a query, a
+   * raw query is checked first. An empty expression lists the submodels.
+   */
+  async searchSubmodels (search: ShellSearch, limit: number, cursor: string | undefined): Promise<SubmodelSearchPage> {
+    if (this.capabilities.submodelSearch !== 'query') {
+      throw new StudioProblem('query_unsupported')
+    }
+    const json = 'query' in search ? checkRawQuery(search.query, 'submodels') : buildShellQuery('submodels', parseSearch(search.expression, submodelSearchFields))
+    if (!json) {
+      return { ...await this.listSubmodels(limit, cursor), endpoint: this.capabilities.submodelListSource ?? 'repository' }
+    }
+    const data = await this.#call('submodelRepository', configuration =>
+      this.#submodelClient.querySubmodels({ configuration, query: toSdkQuery(json), limit, cursor }))
+    const nextCursor = data.pagedResult?.cursor ?? null
+    return {
+      items: data.resultType === 'Identifier' ? [] : data.result.map(submodel => toSubmodelSummary(toJson(submodel))),
+      page: { nextCursor, hasMore: nextCursor !== null },
+      endpoint: 'repository',
+    }
+  }
+
+  /**
+   * The shells that reference the submodels: through the AAS repository's
+   * query endpoint where it announces one, else by reading the shells'
+   * references (the AAS repository's shells, or the AAS registry's
+   * descriptors), up to `ownerScanLimit` shells.
+   */
+  async submodelOwners (submodelIds: string[]): Promise<SubmodelOwnership> {
+    if (submodelIds.length === 0) {
+      return { shells: {}, method: 'query', complete: true, scanned: null }
+    }
+    if (announcedFeatures(this.#record).query.aasRepository) {
+      const { shells, complete } = await this.#queryOwners(submodelIds, ownerQueryPages)
+      return { shells: ownersOf(submodelIds, shells), method: 'query', complete, scanned: null }
+    }
+    const repository = serviceUrl(this.#record, 'aasRepository') !== undefined
+    if (!repository && serviceUrl(this.#record, 'aasRegistry') === undefined) {
+      return { shells: ownersOf(submodelIds, []), method: 'scan', complete: false, scanned: 0 }
+    }
+    const shells: Array<{ summary: ShellSummary, submodelIds: string[] }> = []
+    let cursor: string | undefined
+    do {
+      const limit = Math.min(100, ownerScanLimit - shells.length)
+      if (repository) {
+        const data = await this.#call('aasRepository', configuration =>
+          this.#aasClient.getAllAssetAdministrationShells({ configuration, limit, cursor }))
+        shells.push(...data.result.map(shell => toJson(shell)).map(shell => ({ summary: toShellSummary(shell), submodelIds: submodelIdsOf(shell) })))
+        cursor = data.pagedResult?.cursor ?? undefined
+      } else {
+        // Descriptors name their submodels' descriptors, not the shell's references.
+        const data = await this.#call('aasRegistry', configuration =>
+          this.#registryClient.getAllAssetAdministrationShellDescriptors({ configuration, limit, cursor }))
+        shells.push(...data.result.map(descriptor => Lib.toJsonableAssetAdministrationShellDescriptor(descriptor) as JsonObject).map(descriptor => ({
+          summary: descriptorSummary(descriptor),
+          submodelIds: (Array.isArray(descriptor.submodelDescriptors) ? descriptor.submodelDescriptors as JsonObject[] : []).map(entry => String(entry.id)),
+        })))
+        cursor = data.pagedResult?.cursor ?? undefined
+      }
+    } while (cursor && shells.length < ownerScanLimit)
+    return { shells: ownersOf(submodelIds, shells), method: 'scan', complete: !cursor, scanned: shells.length }
   }
 
   async submodelMetadata (id: string): Promise<JsonObject> {
@@ -410,6 +510,18 @@ export class LiveAasTarget implements AasTarget {
     }
   }
 
+  /** Descriptors of submodels created on their own, where Studio keeps the submodel registry in step. */
+  async registerSubmodels (submodelIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
+    if (!plan.registry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
+      return []
+    }
+    const steps: SyncStep[] = []
+    for (const id of submodelIds) {
+      steps.push(await this.#registerSubmodel(id))
+    }
+    return steps
+  }
+
   async unregisterSubmodels (submodelIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
     if (!plan.registry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
       return []
@@ -469,18 +581,7 @@ export class LiveAasTarget implements AasTarget {
           }
         }))
         for (const submodelId of submodelRegistry ? submodelIdsOf(shell) : []) {
-          steps.push(await this.#syncStep('submodelDescriptor', submodelId, 'written', async () => {
-            const submodel = await this.submodelMetadata(submodelId)
-            const descriptor = Lib.submodelDescriptorFromJsonable(submodelDescriptor(submodel, serviceUrl(this.#record, 'submodelRepository')!) as Jsonable).mustValue()
-            const created = await this.#send('submodelRegistry', configuration =>
-              this.#submodelRegistryClient.postSubmodelDescriptor({ configuration, submodelDescriptor: descriptor }))
-            if (!created.success && created.statusCode === 409) {
-              await this.#call('submodelRegistry', configuration =>
-                this.#submodelRegistryClient.putSubmodelDescriptorById({ configuration, submodelIdentifier: submodelId, submodelDescriptor: descriptor }))
-            } else if (!created.success) {
-              throw await this.#http.problem(created.statusCode, created.recorder)
-            }
-          }))
+          steps.push(await this.#registerSubmodel(submodelId))
         }
       }
       const links = assetLinksOf(shell)
@@ -913,28 +1014,41 @@ export class LiveAasTarget implements AasTarget {
     await response.body?.cancel()
   }
 
-  /** The shells that reference the submodels, if the AAS repository can query. */
+  /** The first shell that references each submodel, if the AAS repository can query (element hits). */
   async #owners (submodelIds: string[]): Promise<Map<string, { key: string, label: string }>> {
     const owners = new Map<string, { key: string, label: string }>()
     if (submodelIds.length === 0 || !announcedFeatures(this.#record).query.aasRepository) {
       return owners
     }
-    const references = submodelIds.map(id => ({ $eq: [{ $field: '$aas#submodels[].keys[].value' }, { $strVal: id }] }))
-    const data = await this.#call('aasRepository', configuration => this.#aasClient.queryAssetAdministrationShells({
-      configuration,
-      query: toSdkQuery({ $condition: references.length === 1 ? references[0]! : { $or: references } }),
-      limit: 100,
-    }))
-    for (const shell of data.resultType === 'Identifier' ? [] : data.result.map(item => toJson(item))) {
-      const summary = toShellSummary(shell)
-      for (const reference of Array.isArray(shell.submodels) ? shell.submodels as JsonObject[] : []) {
-        const id = submodelIdOf(reference)
-        if (id && !owners.has(id)) {
+    const { shells } = await this.#queryOwners(submodelIds, 1)
+    for (const { summary, submodelIds: references } of shells) {
+      for (const id of references) {
+        if (!owners.has(id)) {
           owners.set(id, { key: summary.key, label: summary.idShort ?? summary.id })
         }
       }
     }
     return owners
+  }
+
+  /** Shells whose references name one of the submodels, through the AAS repository's query endpoint, up to `pages` pages. */
+  async #queryOwners (submodelIds: string[], pages: number): Promise<{ shells: Array<{ summary: ShellSummary, submodelIds: string[] }>, complete: boolean }> {
+    const references = submodelIds.map(id => ({ $eq: [{ $field: '$aas#submodels[].keys[].value' }, { $strVal: id }] }))
+    const query = toSdkQuery({ $condition: references.length === 1 ? references[0]! : { $or: references } })
+    const shells: Array<{ summary: ShellSummary, submodelIds: string[] }> = []
+    let cursor: string | undefined
+    for (let page = 0; page < pages; page++) {
+      const data = await this.#call('aasRepository', configuration =>
+        this.#aasClient.queryAssetAdministrationShells({ configuration, query, limit: 100, cursor }))
+      for (const shell of data.resultType === 'Identifier' ? [] : data.result.map(item => toJson(item))) {
+        shells.push({ summary: toShellSummary(shell), submodelIds: submodelIdsOf(shell) })
+      }
+      cursor = data.pagedResult?.cursor ?? undefined
+      if (!cursor) {
+        break
+      }
+    }
+    return { shells, complete: !cursor }
   }
 
   #parentPath (idShortPath: string): string | null {
@@ -1113,6 +1227,22 @@ export class LiveAasTarget implements AasTarget {
 
   async #submodelBase (id: string): Promise<TargetBase> {
     return { url: await this.#resolver.submodelBase(id) }
+  }
+
+  /** Writes a submodel's descriptor, replacing one an earlier write registered. */
+  #registerSubmodel (submodelId: string): Promise<SyncStep> {
+    return this.#syncStep('submodelDescriptor', submodelId, 'written', async () => {
+      const submodel = await this.submodelMetadata(submodelId)
+      const descriptor = Lib.submodelDescriptorFromJsonable(submodelDescriptor(submodel, serviceUrl(this.#record, 'submodelRepository')!) as Jsonable).mustValue()
+      const created = await this.#send('submodelRegistry', configuration =>
+        this.#submodelRegistryClient.postSubmodelDescriptor({ configuration, submodelDescriptor: descriptor }))
+      if (!created.success && created.statusCode === 409) {
+        await this.#call('submodelRegistry', configuration =>
+          this.#submodelRegistryClient.putSubmodelDescriptorById({ configuration, submodelIdentifier: submodelId, submodelDescriptor: descriptor }))
+      } else if (!created.success) {
+        throw await this.#http.problem(created.statusCode, created.recorder)
+      }
+    })
   }
 
   async #syncStep (resource: SyncStep['resource'], id: string, outcome: 'written' | 'removed', run: () => Promise<unknown>): Promise<SyncStep> {

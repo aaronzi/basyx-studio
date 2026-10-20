@@ -615,7 +615,7 @@ paths:
     post:
       tags: [AAS]
       operationId: searchTarget
-      summary: Search shells by expression or AAS query, or submodel elements by text
+      summary: Search shells or submodels by expression or AAS query, or submodel elements by text
       description: |
         Shells (`scope: shells`) are searched with the search field's
         `expression` (free text plus `field:value`, `field=value`,
@@ -631,6 +631,11 @@ paths:
         themselves and refuse raw queries. Without query support the request
         fails with `query_unsupported` and the UI filters the loaded rows.
 
+        Submodels (`scope: submodels`, the submodel view) are searched the same
+        way over `id`, `idShort` and `semanticId`; queries run on the submodel
+        repository (the `submodelSearch` capability), raw queries use the roots
+        `$sm` and `$sme`. The AAS Query Language has no field for the kind.
+
         Elements (`scope: elements`, the palette) are searched by idShort text,
         case-insensitive, where the `elementSearch` capability is set; the
         result is not paged. A POST because queries are JSON; nothing is changed.
@@ -644,14 +649,44 @@ paths:
             schema: { $ref: '#/components/schemas/SearchRequest' }
       responses:
         '200':
-          description: Matching shells (cursor-paged) or elements
+          description: Matching shells or submodels (cursor-paged), or elements
           content:
             application/json:
               schema:
                 oneOf:
                   - { $ref: '#/components/schemas/ShellSearchPage' }
+                  - { $ref: '#/components/schemas/SubmodelSearchPage' }
                   - { $ref: '#/components/schemas/ElementSearchResult' }
         '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /targets/{targetId}/submodel-owners:
+    post:
+      tags: [AAS]
+      operationId: getSubmodelOwners
+      summary: Find the shells that reference listed submodels
+      description: |
+        The submodel list asks for its rows in view to mark orphans. Where the
+        AAS repository announces the AAS Query Language, one query on
+        `$aas#submodels[].keys[].value` answers (`method: query`); otherwise
+        Studio reads the shells' references, at most 1,000 shells
+        (`method: scan`, `scanned`). Without `complete`, shells beyond those
+        read may still reference a submodel, so an empty list does not prove
+        an orphan. A POST because the keys can be long; nothing is changed.
+      x-requirements: [PROD-001, DATA-001]
+      parameters:
+        - $ref: '#/components/parameters/TargetId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubmodelOwnersRequest' }
+      responses:
+        '200':
+          description: The referencing shells per requested key
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmodelOwners' }
         default: { $ref: '#/components/responses/Problem' }
 
   /targets/{targetId}/lookup:
@@ -905,40 +940,50 @@ paths:
     get:
       tags: [AAS]
       operationId: listSubmodels
-      summary: List submodel summaries on one target
+      summary: List submodels on their own, cursor-paged
+      description: |
+        The submodel view's list: the submodel registry's descriptors or the
+        submodel repository's metadata (`$metadata`, without elements), as the
+        `submodelListSource` capability names. Registry descriptors carry no
+        `kind`. Targets that serve submodels only through their shells
+        (`submodelListSource: null`) answer `unsupported_operation`.
       x-requirements: [PROD-001, PROD-002, DATA-001, DATA-003]
       parameters:
         - $ref: '#/components/parameters/TargetId'
         - $ref: '#/components/parameters/Cursor'
         - $ref: '#/components/parameters/Limit'
-        - $ref: '#/components/parameters/IdShortFilter'
-        - $ref: '#/components/parameters/SemanticIdFilter'
-        - name: shellKey
-          in: query
-          schema: { $ref: '#/components/schemas/ResourceKey' }
       responses:
         '200':
           description: Submodel page
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/AasResourcePage' }
+              schema: { $ref: '#/components/schemas/SubmodelSummaryPage' }
         default: { $ref: '#/components/responses/Problem' }
     post:
       tags: [AAS]
       operationId: createSubmodel
-      summary: Create and validate a submodel
+      summary: Create a submodel without a shell
+      description: |
+        Creates a submodel on its own: empty, from a template or from JSON
+        (not `existing`), checked with AAS Core. Needs `createResources`. Its
+        descriptor is written where Studio keeps the submodel registry in step;
+        `steps` reports each write. A shell references it once a reference is
+        added (`POST /targets/{targetId}/shells/{shellKey}/submodel-refs`).
       x-requirements: [PROD-001, PROD-004, DATA-001, DATA-007, DATA-009]
       parameters:
         - $ref: '#/components/parameters/TargetId'
         - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/AasResourceWrite' }
+            schema: { $ref: '#/components/schemas/SubmodelCreateRequest' }
       responses:
-        '201': { $ref: '#/components/responses/AasResourceCreated' }
+        '201':
+          description: The new submodel's key and the steps that created it
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmodelCreateResult' }
         '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Problem' }
@@ -956,7 +1001,8 @@ paths:
         elements; `content=full` the whole submodel. `format=xml` returns the
         whole submodel as AAS XML (aas-core `xmlization`) as an attachment.
         With `at` the submodel is read as it was at that point in time; this
-        needs the `history` capability.
+        needs the `history` capability. `download=true` with `content=full`
+        returns the JSON as an attachment (the submodel view's export).
       x-requirements: [PROD-001, DATA-001, DATA-018]
       parameters:
         - name: content
@@ -965,6 +1011,9 @@ paths:
         - name: format
           in: query
           schema: { type: string, enum: [json, xml], default: json }
+        - name: download
+          in: query
+          schema: { type: string, enum: ['true', 'false'], default: 'false' }
         - $ref: '#/components/parameters/PointInTime'
       responses:
         '200':
@@ -997,14 +1046,42 @@ paths:
       tags: [AAS]
       operationId: deleteSubmodel
       summary: Delete one submodel after explicit UI confirmation
+      description: |
+        Needs `createResources`. With `removeReferences=true`, the shells that
+        reference the submodel (as `GET …/shells` finds them) lose their
+        reference first, so none is left dangling; then the submodel and its
+        descriptor go. Each step is reported; the first failure stops the
+        later ones and becomes `partial_write` with `steps`.
       x-requirements: [PROD-001, DATA-009, UX-003]
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IfMatch'
+        - name: removeReferences
+          in: query
+          schema: { type: string, enum: ['true', 'false'], default: 'false' }
       responses:
-        '204': { description: Submodel deleted }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '412': { $ref: '#/components/responses/PreconditionFailed' }
+        '200':
+          description: Submodel deleted, with the references and descriptors removed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeleteResult' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /targets/{targetId}/submodels/{submodelKey}/shells:
+    get:
+      tags: [AAS]
+      operationId: getSubmodelShells
+      summary: Find the shells that reference one submodel
+      description: As `POST /targets/{targetId}/submodel-owners` for one submodel; the submodel view's header and delete confirmation.
+      x-requirements: [PROD-001, DATA-001]
+      parameters:
+        - $ref: '#/components/parameters/TargetId'
+        - $ref: '#/components/parameters/SubmodelKey'
+      responses:
+        '200':
+          description: The referencing shells
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SubmodelOwners' }
         default: { $ref: '#/components/responses/Problem' }
 
   /targets/{targetId}/submodels/{submodelKey}/elements:
@@ -3408,7 +3485,7 @@ components:
       type: object
       additionalProperties: false
       description: What a target supports. Feature code branches on capabilities, never on the target kind. Optional server features are `true` only where the server announces them in its service profiles (ADR 0021).
-      required: [write, writeStructure, persistence, deleteShells, files, operations, conceptDescriptions, search, queryTarget, elementSearch, discovery, export, upload, history, changeFeed, sharing, listSource]
+      required: [write, writeStructure, persistence, deleteShells, files, operations, conceptDescriptions, search, queryTarget, elementSearch, discovery, export, upload, history, changeFeed, sharing, listSource, submodelListSource, submodelSearch]
       properties:
         write: { type: boolean, description: Change values of elements. }
         writeStructure: { type: boolean, description: 'Add, delete, move and rename elements and edit submodel metadata (MVP-5).' }
@@ -3455,6 +3532,14 @@ components:
           type: string
           enum: [registry, repository]
           description: Where the shell list comes from; registry entries may point to shells that cannot be opened.
+        submodelListSource:
+          type: [string, 'null']
+          enum: [registry, repository, null]
+          description: Where the list of submodels on their own comes from (the infrastructure's list source where it has both services); `null` where submodels are served only through their shell, which hides the submodel view.
+        submodelSearch:
+          type: string
+          enum: [query, expression, filter]
+          description: How submodels are searched; `query` runs on the submodel repository.
     TargetWorkspaceState:
       type: object
       additionalProperties: false
@@ -4022,7 +4107,7 @@ components:
       additionalProperties: false
       description: Give either `expression` or `query`. Elements are searched by text only (`expression`).
       properties:
-        scope: { type: string, enum: [shells, elements], default: shells }
+        scope: { type: string, enum: [shells, submodels, elements], default: shells }
         expression:
           type: string
           maxLength: 2000
@@ -4049,6 +4134,114 @@ components:
           type: string
           enum: [registry, repository, workspace]
           description: Which service answered.
+    SubmodelSummary:
+      type: object
+      additionalProperties: false
+      required: [key, id, idShort, displayName, description, kind, semanticId, administration]
+      description: A submodel of the submodel list, from the repository's metadata or the registry's descriptor.
+      properties:
+        key: { $ref: '#/components/schemas/ResourceKey' }
+        id: { type: string }
+        idShort: { type: [string, 'null'] }
+        displayName:
+          type: array
+          items: { $ref: '#/components/schemas/LangString' }
+        description:
+          type: array
+          items: { $ref: '#/components/schemas/LangString' }
+        kind:
+          type: [string, 'null']
+          description: '`Template` or `Instance`; `null` for registry descriptors, which do not carry it.'
+        semanticId: { type: [string, 'null'] }
+        administration:
+          oneOf:
+            - type: 'null'
+            - type: object
+              additionalProperties: false
+              required: [version, revision, templateId]
+              properties:
+                version: { type: [string, 'null'] }
+                revision: { type: [string, 'null'] }
+                templateId: { type: [string, 'null'] }
+    SubmodelSummaryPage:
+      type: object
+      additionalProperties: false
+      required: [items, page]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SubmodelSummary' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    SubmodelSearchPage:
+      type: object
+      additionalProperties: false
+      required: [items, page, endpoint]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SubmodelSummary' }
+        page: { $ref: '#/components/schemas/PageInfo' }
+        endpoint:
+          type: string
+          enum: [registry, repository, workspace]
+          description: Which service answered.
+    SubmodelOwnersRequest:
+      type: object
+      additionalProperties: false
+      required: [keys]
+      properties:
+        keys:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items: { $ref: '#/components/schemas/ResourceKey' }
+    SubmodelOwners:
+      type: object
+      additionalProperties: false
+      required: [items, method, complete, scanned]
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [key, shells]
+            properties:
+              key: { $ref: '#/components/schemas/ResourceKey' }
+              shells:
+                type: array
+                items: { $ref: '#/components/schemas/ShellSummary' }
+        method:
+          type: string
+          enum: [query, scan]
+          description: '`query` asked the AAS repository with the AAS Query Language; `scan` read the shells'' references.'
+        complete:
+          type: boolean
+          description: Every shell was considered; otherwise an empty list does not prove an orphan.
+        scanned:
+          type: [integer, 'null']
+          description: The number of shells a scan read; `null` for a query.
+    SubmodelCreateRequest:
+      type: object
+      additionalProperties: false
+      required: [submodel]
+      properties:
+        submodel:
+          type: object
+          description: 'The new submodel: `{ source: empty, idShort, id?, metadata? }`, `{ source: template, templateId, id?, idShort?, metadata?, include?, values? }` or `{ source: json, submodel, id? }`.'
+          required: [source]
+          properties:
+            source: { type: string, enum: [empty, template, json] }
+          unevaluatedProperties: true
+    SubmodelCreateResult:
+      type: object
+      additionalProperties: false
+      required: [submodelKey, steps]
+      properties:
+        submodelKey: { $ref: '#/components/schemas/ResourceKey' }
+        steps:
+          type: array
+          items: { $ref: '#/components/schemas/SyncStep' }
     ElementHit:
       type: object
       additionalProperties: false
@@ -4203,9 +4396,9 @@ components:
       required: [resource, id, outcome]
       description: The outcome of one descriptor or asset-link write after an upload or delete (ADR 0020).
       properties:
-        resource: { type: string, enum: [shellDescriptor, submodelDescriptor, assetLinks] }
-        id: { type: string }
-        outcome: { type: string, enum: [written, removed, failed] }
+        resource: { type: string, enum: [submodel, shell, submodelReference, shellDescriptor, submodelDescriptor, assetLinks] }
+        id: { type: string, description: 'The resource''s identifier; for `submodelReference` steps of a submodel deletion, the shell whose reference was removed.' }
+        outcome: { type: string, enum: [written, removed, failed, skipped] }
         detail: { type: string }
     UploadResult:
       type: object

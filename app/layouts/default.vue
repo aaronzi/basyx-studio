@@ -2,8 +2,8 @@
   <v-app :theme="ui.arcade ? 'arcade' : undefined">
     <v-app-bar>
       <v-app-bar-nav-icon
-        v-if="inShellBrowser && !panel.current.value"
-        :aria-label="t('app.toggleShellList')"
+        v-if="(inShellBrowser || inSubmodelBrowser) && !panel.current.value"
+        :aria-label="inSubmodelBrowser ? t('app.toggleSubmodelList') : t('app.toggleShellList')"
         @click="ui.listDrawer = !(ui.listDrawer ?? mdAndUp)"
       />
 
@@ -233,6 +233,16 @@
       <ShellListDrawer :active-key="shellKey" :target-id="targetId" />
     </v-navigation-drawer>
 
+    <!-- The submodel list of the submodel view, the layout's for the same reason;
+         none for a target that reaches submodels only through shells. -->
+    <v-navigation-drawer
+      v-else-if="inSubmodelBrowser && targetId && !panel.current.value && !session.needsLogin && routeTarget.data.value?.capabilities.submodelListSource !== null"
+      v-model="listDrawerOpen"
+      width="340"
+    >
+      <SubmodelListDrawer :active-key="selectedSubmodelKey" :target-id="targetId" />
+    </v-navigation-drawer>
+
     <!-- Settings and administration open in place of the page, without
          leaving its route (usePanel), so the rail stays as it is. -->
     <v-main>
@@ -242,18 +252,99 @@
       <slot v-else />
     </v-main>
 
-    <v-bottom-navigation v-if="!mdAndUp && !session.needsLogin" color="primary" grow>
+    <!-- Phones: five equal slots. Shells, the heart of Studio, is the raised
+         button in the middle with two slots on either side; when more items
+         exist than fit, the last slot opens the rest. -->
+    <v-footer
+      v-if="!mdAndUp && !session.needsLogin"
+      app
+      :aria-label="t('app.mainNavigation')"
+      border="t"
+      class="pa-0 align-end"
+      tag="nav"
+    >
+      <template v-for="(item, index) in phoneNav.start" :key="item?.key ?? `start-${index}`">
+        <v-btn
+          v-if="item"
+          :active="pageActive"
+          active-color="primary"
+          class="flex-1-1-0 px-0"
+          :exact="item.exact"
+          height="56"
+          min-width="0"
+          :prepend-icon="item.icon"
+          rounded="0"
+          stacked
+          :text="item.short"
+          :to="item.to"
+        />
+
+        <!-- An empty slot keeps the grid, so no button grows. -->
+        <div v-else class="flex-1-1-0" />
+      </template>
+
+      <div v-if="phoneNav.centre" class="d-flex justify-center flex-1-1-0">
+        <v-sheet class="mt-n6 mb-2 pa-1" color="surface" rounded="circle">
+          <v-btn-primary
+            :aria-label="phoneNav.centre.title"
+            :icon="phoneNav.centre.icon"
+            rounded="circle"
+            :to="phoneNav.centre.to"
+          />
+        </v-sheet>
+      </div>
+
+      <template v-for="(item, index) in phoneNav.end" :key="item?.key ?? `end-${index}`">
+        <v-btn
+          v-if="item"
+          :active="pageActive"
+          active-color="primary"
+          class="flex-1-1-0 px-0"
+          :exact="item.exact"
+          height="56"
+          min-width="0"
+          :prepend-icon="item.icon"
+          rounded="0"
+          stacked
+          :text="item.short"
+          :to="item.to"
+        />
+
+        <!-- An empty slot keeps the grid, so no button grows. -->
+        <div v-else class="flex-1-1-0" />
+      </template>
+
       <v-btn
-        v-for="item in navItems.slice(0, 4)"
-        :key="item.key"
-        :active="pageActive"
-        :exact="item.exact"
-        :prepend-icon="item.icon"
+        v-if="phoneNav.more.length > 0"
+        :active="moreActive"
+        active-color="primary"
+        class="flex-1-1-0 px-0"
+        height="56"
+        min-width="0"
+        prepend-icon="mdi-dots-horizontal"
+        rounded="0"
         stacked
-        :text="item.short"
-        :to="item.to"
+        :text="t('nav.more')"
+        @click="moreOpen = true"
       />
-    </v-bottom-navigation>
+    </v-footer>
+
+    <v-bottom-sheet v-model="moreOpen">
+      <v-card>
+        <v-list nav>
+          <v-list-item
+            v-for="item in phoneNav.more"
+            :key="item.key"
+            :active="pageActive"
+            :exact="item.exact"
+            :prepend-icon="item.icon"
+            :title="item.title"
+            :to="item.to"
+            @click="moreOpen = false"
+          />
+        </v-list>
+      </v-card>
+    </v-bottom-sheet>
 
     <CommandPalette v-if="!session.needsLogin" :target-id="targetId" />
 
@@ -276,6 +367,7 @@
   import { useQuery } from '@pinia/colada'
   import { useDisplay, useHotkey, useTheme } from 'vuetify'
   import { sectionOf } from '~/stores/navigation'
+  import { phoneNavLayout } from '~/utils/navigation'
 
   const { t } = useI18n()
   const theme = useTheme()
@@ -297,6 +389,9 @@
   const rememberedTargetId = computed(() => targetId.value ?? navigation.currentTarget)
   const routeTarget = useTarget(() => targetId.value ?? '')
   const inShellBrowser = computed(() => targetId.value !== null && route.path.startsWith(`/targets/${targetId.value}/shells`))
+  const inSubmodelBrowser = computed(() => targetId.value !== null && route.path.startsWith(`/targets/${targetId.value}/submodels`))
+  /** The selected submodel of the submodel view, for the list's highlight. */
+  const selectedSubmodelKey = computed(() => typeof route.query.submodel === 'string' ? route.query.submodel : null)
   /** The shell list is open unless the user closed it; on phones it starts closed. */
   const listDrawerOpen = computed({
     get: () => ui.listDrawer ?? mdAndUp.value,
@@ -370,6 +465,9 @@
         { key: 'dashboard', title: t('nav.dashboard'), short: t('nav.dashboardShort'), icon: 'mdi-view-dashboard-outline', to: base, exact: true },
         { key: 'shells', title: t('nav.shells'), short: t('nav.shellsShort'), icon: '$aas', to: `${base}/shells` },
       )
+      if (target.value?.capabilities.submodelListSource) {
+        items.push({ key: 'submodels', title: t('nav.submodels'), short: t('nav.submodelsShort'), icon: 'mdi-file-tree-outline', to: `${base}/submodels` })
+      }
       if (target.value?.capabilities.conceptDescriptions) {
         items.push({ key: 'concepts', title: t('nav.concepts'), short: t('nav.conceptsShort'), icon: 'mdi-book-open-page-variant-outline', to: `${base}/concepts` })
       }
@@ -382,6 +480,15 @@
       ? { ...item, to: navigation.resume(item.to) }
       : item)
   })
+
+  /** The phones' bottom bar; Shells sits in the middle, raised. */
+  const phoneNav = computed(() => phoneNavLayout(navItems.value, item => item.key === 'shells'))
+  const moreOpen = ref(false)
+  /** The page is one of the items behind More. */
+  const moreActive = computed(() => !panel.current.value && phoneNav.value.more.some(item => {
+    const path = typeof item.to === 'string' ? item.to : item.to.path
+    return sectionOf(path) !== null && sectionOf(path) === sectionOf(route.path)
+  }))
 
   watch(() => route.fullPath, () => {
     const { panel: _, ...query } = route.query

@@ -16,6 +16,14 @@ export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints'
   const queryable = { registry: announced.query.aasRegistry, repository: announced.query.aasRepository }
   const other = listSource === 'registry' ? 'repository' : 'registry'
   const queryTarget = queryable[listSource] ? listSource : (queryable[other] ? other : null)
+  // Submodels on their own: from the list source where both services exist,
+  // else from the one there is. Without either they are reached only
+  // through a shell (EndpointResolver), and the submodel view is hidden.
+  const submodelRegistry = serviceUrl(record, 'submodelRegistry') !== undefined
+  const submodelRepository = serviceUrl(record, 'submodelRepository') !== undefined
+  const submodelListSource = submodelRegistry && (record.listSource === 'registry' || !submodelRepository)
+    ? 'registry'
+    : (submodelRepository ? 'repository' : null)
   return {
     write: true,
     writeStructure: true,
@@ -40,6 +48,9 @@ export function liveCapabilities (record: Pick<InfrastructureRecord, 'endpoints'
     // Grants and rights mean something only when the target sees the user (D15).
     sharing: announced.rebac && record.security.mode === 'delegated_user',
     listSource,
+    submodelListSource,
+    // The submodel registry announces no query profile Studio knows; queries run on the repository.
+    submodelSearch: submodelRepository && announced.query.submodelRepository ? 'query' : 'filter',
   }
 }
 
@@ -85,4 +96,6 @@ export const workspaceCapabilities: TargetCapabilities = {
   changeFeed: false,
   sharing: false,
   listSource: 'repository',
+  submodelListSource: 'repository',
+  submodelSearch: 'expression',
 }

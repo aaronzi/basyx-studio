@@ -20,7 +20,9 @@
     "arcadeOn": "街机模式：+30 条命",
     "arcadeOff": "街机模式已关闭。继续工作吧。",
     "legalNotice": "法律声明",
-    "privacyPolicy": "隐私政策"
+    "privacyPolicy": "隐私政策",
+    "mainNavigation": "主导航",
+    "toggleSubmodelList": "显示或隐藏子模型列表"
   },
   "qr": {
     "title": "资产二维码",
@@ -527,7 +529,10 @@
     "shells": "管理壳",
     "shellsShort": "管理壳",
     "concepts": "概念描述",
-    "conceptsShort": "概念"
+    "conceptsShort": "概念",
+    "more": "更多",
+    "submodels": "子模型",
+    "submodelsShort": "子模型"
   },
   "common": {
     "copy": "复制",
@@ -573,7 +578,8 @@
       "dashboard": "前往目标的首页",
       "concepts": "前往概念描述",
       "infrastructures": "管理基础设施",
-      "import": "导入 AASX、JSON 或 XML 文件"
+      "import": "导入 AASX、JSON 或 XML 文件",
+      "submodels": "转到子模型"
     }
   },
   "capabilities": {
@@ -624,7 +630,8 @@
       "invalidJson": "JSON 无效：{message}",
       "notObject": "查询是一个包含 $condition 的 JSON 对象。",
       "edit": "编辑高级查询",
-      "conceptDescriptions": "在概念描述存储库上运行"
+      "conceptDescriptions": "在概念描述存储库上运行",
+      "submodels": "在子模型存储库上执行"
     },
     "search": "搜索管理壳",
     "filters": {
@@ -650,7 +657,8 @@
       "assetKind": "资产类别",
       "assetType": "资产类型",
       "globalAssetId": "全局资产 ID",
-      "specificAssetId": "特定资产 ID"
+      "specificAssetId": "特定资产 ID",
+      "semanticId": "语义 ID"
     },
     "empty": "还没有管理壳",
     "emptyText": "此目标还没有管理壳。",
@@ -828,7 +836,9 @@
     "unpin": "从概览取消固定",
     "pinsFull": "概览无法再固定更多值",
     "pinned": "值已固定",
-    "unpinned": "已取消固定"
+    "unpinned": "已取消固定",
+    "submodelNone": "此子模型没有视图",
+    "submodelNoneText": "没有已安装的应用为此子模型提供视图。请使用“元素”选项卡浏览其结构。"
   },
   "changes": {
     "title": "变更",
@@ -852,7 +862,8 @@
     },
     "times": "{count} 次",
     "since": "自 {time} 起",
-    "feedLimits": "基础设施的事件推送只指明发生变更的管理壳或子模型，不指明具体元素或修改者。"
+    "feedLimits": "基础设施的事件推送只指明发生变更的管理壳或子模型，不指明具体元素或修改者。",
+    "submodelSubtitle": "此子模型的变更"
   },
   "landing": {
     "subtitle": "AAS 基础设施",
@@ -1048,5 +1059,60 @@
       "typ": "典型",
       "max": "最大"
     }
+  },
+  "edit": {
+    "openInSubmodels": "在子模型视图中打开"
+  },
+  "submodels": {
+    "title": "从列表中选择一个子模型",
+    "headline": "选择要浏览的子模型",
+    "text": "目标的所有子模型，包括没有任何管理壳引用的子模型。按 ⌘K 搜索整个目标。",
+    "browse": "浏览子模型",
+    "search": "搜索子模型",
+    "localOnly": "仅筛选已加载的子模型：此基础设施未提供子模型查询端点。",
+    "all": "全部",
+    "instances": "实例",
+    "templates": "模板",
+    "template": "模板",
+    "kindUnknown": "子模型注册表不记录子模型是实例还是模板。",
+    "orphan": "未被任何管理壳引用",
+    "noOwnerFound": "未找到引用它的管理壳",
+    "empty": "暂无子模型",
+    "emptyText": "此目标暂无子模型。",
+    "none": "未找到子模型",
+    "noneText": "请尝试其他搜索或类型。",
+    "loadMore": "加载更多子模型",
+    "fromRegistry": "来自子模型注册表的子模型",
+    "fromRepository": "来自子模型存储库的子模型",
+    "fromTemplateTitle": "基于模板新建子模型",
+    "fromJsonTitle": "基于 JSON 新建子模型",
+    "idShortHint": "留空则使用模板的 idShort。",
+    "unsupported": "此目标没有子模型视图",
+    "unsupportedText": "此目标仅通过管理壳提供子模型。请从管理壳中打开它们。",
+    "edit": "编辑",
+    "semanticId": "语义 ID",
+    "templateId": "模板 ID",
+    "referencedBy": "引用者",
+    "ownersFailed": "无法读取引用它的管理壳。",
+    "scannedAll": "通过读取全部 {count} 个管理壳找到",
+    "scannedFirst": "仅检查了前 {count} 个管理壳",
+    "addToShell": "添加到管理壳",
+    "addToShellTitle": "将 {name} 添加到管理壳",
+    "addedToShell": "已添加到 {name}",
+    "pickShell": "管理壳",
+    "noShells": "未找到管理壳",
+    "delete": "删除子模型",
+    "deleteTitle": "删除 {name}？",
+    "deleteText": "子模型及其所有元素将从基础设施中删除。",
+    "deleted": "已删除 {name}",
+    "referencedWarning": "{count} 个管理壳引用了此子模型。",
+    "referencingShells": "引用它的管理壳",
+    "removeReferences": "从这些 {count} 个管理壳中移除引用",
+    "ownersIncomplete": "Studio 仅检查了前 {count} 个管理壳；其他管理壳可能仍引用此子模型。",
+    "jsonLabel": "AAS 3.1 · JSON 序列化",
+    "tabs": {
+      "elements": "元素"
+    },
+    "identifier": "标识符"
   }
 }

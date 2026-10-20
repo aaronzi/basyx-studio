@@ -67,6 +67,14 @@ export const targetCapabilitiesSchema = z.object({
   sharing: z.boolean(),
   /** Where the shell list comes from; registry entries may point to shells that cannot be opened. */
   listSource: z.enum(['registry', 'repository']),
+  /**
+   * Where the list of submodels on their own comes from (the submodel
+   * registry or repository, the infrastructure's list source where it has
+   * both), or `null` where submodels can only be reached through a shell.
+   */
+  submodelListSource: z.enum(['registry', 'repository']).nullable(),
+  /** How submodels are searched; queries run on the submodel repository. */
+  submodelSearch: z.enum(searchModes),
 })
 export type TargetCapabilities = z.infer<typeof targetCapabilitiesSchema>
 
@@ -93,6 +101,8 @@ export const noCapabilities: TargetCapabilities = {
   changeFeed: false,
   sharing: false,
   listSource: 'repository',
+  submodelListSource: null,
+  submodelSearch: 'filter',
 }
 
 /** State of a desktop AASX workspace; `null` for live targets. */
@@ -180,6 +190,18 @@ export const shellAvailabilitySchema = z.object({
 })
 export type ShellAvailability = z.infer<typeof shellAvailabilitySchema>
 
+/**
+ * A submodel's administrative information, where it has any: its version
+ * and revision, and the template it was created from (AAS 3.0
+ * `templateId`). Labels the template version in the tree and the lists.
+ */
+export const submodelAdministrationSchema = z.object({
+  version: z.string().nullable(),
+  revision: z.string().nullable(),
+  templateId: z.string().nullable(),
+})
+export type SubmodelAdministration = z.infer<typeof submodelAdministrationSchema>
+
 export const submodelRefStatuses = ['available', 'forbidden', 'not_found', 'blocked', 'error'] as const
 export const submodelRefSchema = z.object({
   key: z.string(),
@@ -188,19 +210,44 @@ export const submodelRefSchema = z.object({
   submodelId: z.string(),
   idShort: z.string().nullable(),
   semanticId: z.string().nullable(),
-  /**
-   * The submodel's administrative information, where it could be read and
-   * has any: its version and revision, and the template it was created from
-   * (AAS 3.0 `templateId`). Labels the template version in the tree.
-   */
-  administration: z.object({
-    version: z.string().nullable(),
-    revision: z.string().nullable(),
-    templateId: z.string().nullable(),
-  }).nullable().optional(),
+  /** The submodel's administrative information, where it could be read and has any. */
+  administration: submodelAdministrationSchema.nullable().optional(),
   status: z.enum(submodelRefStatuses),
 })
 export type SubmodelRef = z.infer<typeof submodelRefSchema>
+
+/** A submodel of the submodel list, from the submodel repository's metadata or the registry's descriptor. */
+export const submodelSummarySchema = z.object({
+  key: z.string(),
+  id: z.string(),
+  idShort: z.string().nullable(),
+  displayName: z.array(langStringSchema),
+  description: z.array(langStringSchema),
+  /** `Template` or `Instance`; `null` for registry descriptors, which do not carry it. */
+  kind: z.string().nullable(),
+  semanticId: z.string().nullable(),
+  administration: submodelAdministrationSchema.nullable(),
+})
+export type SubmodelSummary = z.infer<typeof submodelSummarySchema>
+
+/** The submodels whose referencing shells the submodel list marks (orphans). */
+export const submodelOwnersRequestSchema = z.object({
+  keys: z.array(z.string().regex(/^[\w-]{1,4000}$/)).min(1).max(100),
+})
+
+/**
+ * The shells that reference submodels. `query` asked the AAS repository with
+ * the AAS Query Language; `scan` read the shells' references, up to `scanned`
+ * shells. Without `complete`, shells beyond that may reference a submodel
+ * too, so an empty list does not prove an orphan.
+ */
+export interface SubmodelOwners {
+  items: Array<{ key: string, shells: ShellSummary[] }>
+  method: 'query' | 'scan'
+  complete: boolean
+  /** The number of shells a scan read; `null` for a query. */
+  scanned: number | null
+}
 
 export const operationVariableGroups = ['input', 'output', 'inoutput'] as const
 export type OperationVariableGroup = (typeof operationVariableGroups)[number]
@@ -336,6 +383,8 @@ export const elementQuerySchema = pointInTimeQuerySchema.extend({
 export const submodelQuerySchema = pointInTimeQuerySchema.extend({
   content: z.enum(['metadata', 'full']).default('metadata'),
   format: z.enum(['json', 'xml']).default('json'),
+  /** The whole submodel as a JSON file to save (the submodel view's export); XML always is one. */
+  download: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
 })
 
 /**
@@ -403,7 +452,7 @@ export interface ElementHit {
 
 /** A shell search (MVP-4 plan, S2): the search field's expression, or a raw query from the advanced dialog. */
 export const searchRequestSchema = z.object({
-  scope: z.enum(['shells', 'elements', 'conceptDescriptions']).default('shells'),
+  scope: z.enum(['shells', 'submodels', 'elements', 'conceptDescriptions']).default('shells'),
   /** Concept descriptions only: the sources to narrow to (MVP-6 plan, S1). */
   sources: z.array(z.enum(conceptDescriptionSources)).max(4).optional(),
   expression: z.string().max(2000).optional(),
@@ -420,6 +469,11 @@ export type ShellSearch = { expression: string } | { query: Record<string, unkno
 
 export interface ShellSearchPage extends Page<ShellSummary> {
   /** Which service answered: the AAS registry, the AAS repository, or the workspace itself. */
+  endpoint: 'registry' | 'repository' | 'workspace'
+}
+
+export interface SubmodelSearchPage extends Page<SubmodelSummary> {
+  /** Which service answered: the submodel registry, the submodel repository, or the workspace itself. */
   endpoint: 'registry' | 'repository' | 'workspace'
 }
 
@@ -603,6 +657,17 @@ export const submodelRefCreateSchema = z.object({
   submodel: submodelSourceSchema,
 })
 export type SubmodelRefCreateInput = z.infer<typeof submodelRefCreateSchema>
+
+/** A submodel on its own (the submodel view): a new one, empty, from a template or from JSON. */
+export const submodelCreateSchema = z.object({
+  submodel: submodelSourceSchema.refine(source => source.source !== 'existing', 'a new submodel is empty, from a template or from JSON'),
+})
+export type SubmodelCreateInput = z.infer<typeof submodelCreateSchema>
+
+/** Deletes a submodel; `removeReferences=true` first removes the references of the shells that point to it. */
+export const submodelDeleteQuerySchema = z.object({
+  removeReferences: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
+})
 
 export const submodelRefDeleteQuerySchema = z.object({
   deleteSubmodel: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),

@@ -74,6 +74,21 @@ describe('target capabilities', () => {
       .toMatchObject({ search: 'filter', queryTarget: null })
   })
 
+  it('lists submodels on their own from the list source, or not at all through shells only', () => {
+    expect(liveCapabilities(environment)).toMatchObject({ submodelListSource: 'repository', submodelSearch: 'filter' })
+    const withRegistry = [...separate.endpoints, { type: 'submodelRegistry' as const, url: 'http://sm-registry' }]
+    expect(liveCapabilities(infrastructure('full', withRegistry, {}, unsecured, 'registry'))).toMatchObject({ submodelListSource: 'registry' })
+    expect(liveCapabilities(infrastructure('full', withRegistry, {}, unsecured, 'repository'))).toMatchObject({ submodelListSource: 'repository' })
+    // Only a registry: its descriptors are the list, whatever the shells' list source.
+    const registryOnly = infrastructure('full', [{ type: 'aasRepository', url: 'http://aas' }, { type: 'submodelRegistry', url: 'http://sm-registry' }])
+    expect(liveCapabilities(registryOnly)).toMatchObject({ submodelListSource: 'registry', submodelSearch: 'filter' })
+    // Submodels served only through their shells' superpath.
+    expect(liveCapabilities(infrastructure('identifiable', [{ type: 'aasRepository', url: 'http://aas' }]))).toMatchObject({ submodelListSource: null })
+    // Queries run on the submodel repository.
+    expect(liveCapabilities(infrastructure('full', separate.endpoints, { submodelRepository: [submodelQuery] }, unsecured, 'registry')).submodelSearch).toBe('query')
+    expect(workspaceCapabilities).toMatchObject({ submodelListSource: 'repository', submodelSearch: 'expression' })
+  })
+
   it('searches concept descriptions where their repository announces queries', () => {
     expect(liveCapabilities(environment).conceptDescriptionSearch).toBe('filter')
     const basyx = infrastructure('mono-all', environment.endpoints, { aasEnvironment: ['https://basyx.org/aas/API/3/2/ConceptDescriptionRepositoryService/1.0'] })

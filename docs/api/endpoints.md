@@ -40,7 +40,7 @@ functional level without duplicating the OpenAPI schemas.
 | Method and path | Purpose |
 | --- | --- |
 | `GET /targets` | Lists visible live infrastructures and local AASX workspaces with status, capabilities and permissions. |
-| `GET /targets/{targetId}` | Returns the detailed status of a target; credentials and unsafe internal details stay hidden. Capabilities (among others `search`, `queryTarget`, `elementSearch`, `listSource`) follow from the stored service profiles ([ADR 0021](../adr/0021-feature-detection-from-service-profiles.md)); `registrySync` names the sync default and the user override where Studio keeps registries and discovery up to date. |
+| `GET /targets/{targetId}` | Returns the detailed status of a target; credentials and unsafe internal details stay hidden. Capabilities (among others `search`, `queryTarget`, `elementSearch`, `listSource`, `submodelListSource`, `submodelSearch`) follow from the stored service profiles ([ADR 0021](../adr/0021-feature-detection-from-service-profiles.md)); `registrySync` names the sync default and the user override where Studio keeps registries and discovery up to date. |
 | `PUT /targets/{targetId}/activation` | Checks rights/health and sets the active target of the session. The decision about unsaved UI drafts comes from the frontend in the request. |
 | `POST /targets/{targetId}/authorization` | Starts or resumes authentication for exactly this target. Other target sessions stay unchanged. |
 | `DELETE /targets/{targetId}/authorization` | Disconnects only the credential context of this target. |
@@ -63,7 +63,7 @@ selects the BaSyx TypeScript SDK client or the Workspace Worker server-side.
 | --- | --- |
 | `GET/POST /targets/{targetId}/shells` | Lists shells from the list source (AAS registry or repository) with a cursor, or creates a validated shell. |
 | `POST /targets/{targetId}/shell-availability` | Reports for up to 50 shell keys whether the shell can be opened: `available`, `forbidden`, `not_found`, `blocked` (descriptor endpoint outside the infrastructure) or `unreachable`. |
-| `POST /targets/{targetId}/searches` | Searches shells by search expression (`expression`) or AAS query (`query`) with a cursor, or submodel elements by text (`scope: elements`). Invalid queries result in `query_invalid` with `violations`, missing query support in `query_unsupported`. |
+| `POST /targets/{targetId}/searches` | Searches shells or submodels (`scope: submodels`) by search expression (`expression`) or AAS query (`query`) with a cursor, or submodel elements by text (`scope: elements`). Invalid queries result in `query_invalid` with `violations`, missing query support in `query_unsupported`. |
 | `GET /targets/{targetId}/lookup` | Finds the shells of an asset by its global asset ID: through discovery, otherwise through a query on the AAS repository where it announces queries. |
 | `GET/PUT/DELETE /targets/{targetId}/shells/{shellKey}` | Reads a shell, replaces it with `If-Match` or deletes it. Deletion returns the registry and discovery steps that Studio ran afterwards (`sync`). |
 | `GET /targets/{targetId}/shells/{shellKey}/submodel-refs` | Referenced submodels with status (`available`, `forbidden`, `not_found`, `blocked`, `error`). |
@@ -73,8 +73,10 @@ selects the BaSyx TypeScript SDK client or the Workspace Worker server-side.
 | `GET/PUT /targets/{targetId}/shells/{shellKey}/access` | Reads a shell's ReBAC shares or replaces them with `If-Match`. |
 | `POST /targets/{targetId}/shells/{shellKey}/access/invitations` | Creates an invitation that grants a relation on the shell. |
 | `POST /targets/{targetId}/invitations` | Accepts an invitation for the signed-in user. |
-| `GET/POST /targets/{targetId}/submodels` | Lists or creates submodels. |
-| `GET/PUT/DELETE /targets/{targetId}/submodels/{submodelKey}` | Reads a submodel (`content=metadata\|full`, `format=json\|xml`, `at`), replaces or deletes it. |
+| `GET/POST /targets/{targetId}/submodels` | Lists submodels on their own from `submodelListSource`, cursor-paged, or creates one without a shell (empty, from a template or from JSON). |
+| `POST /targets/{targetId}/submodel-owners` | The shells that reference up to 100 submodels, found by AAS query or by reading the shells (`method`, `complete`, `scanned`). |
+| `GET/PUT/DELETE /targets/{targetId}/submodels/{submodelKey}` | Reads a submodel (`content=metadata\|full`, `format=json\|xml`, `at`, `download`), replaces or deletes it (`removeReferences` removes the references of the shells that point to it first). |
+| `GET /targets/{targetId}/submodels/{submodelKey}/shells` | The shells that reference the submodel, as `submodel-owners` reports them. |
 | `GET/POST /targets/{targetId}/submodels/{submodelKey}/elements` | Tree nodes below the submodel or `parentElementKey`, with as many complete levels as fit into `budget` nodes (default 2,000, at most 5,000), also historically with `at`; or creates an element. |
 | `GET/PUT/DELETE /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}` | Reads a single element as JSON with revision and `ancestors` or as AAS XML (`format`, `at`), replaces or deletes it. |
 | `POST /targets/{targetId}/submodels/{submodelKey}/elements/{elementKey}/moves` | Moves an element to a position among its siblings; `If-Match` with the structure revision of the parent node (`structure_conflict` on a concurrent structural change). |
@@ -252,6 +254,25 @@ resources. In addition to the routes above, the following are implemented:
 
 New problem codes: `idshort_conflict`, `structure_conflict`,
 `identifier_conflict`, `partial_write` (with `steps`), `template_invalid`.
+
+## Status: Submodel view
+
+Submodels can be browsed and edited without a shell. The capability
+`submodelListSource` names where the list comes from: the submodel registry or
+the submodel repository (the infrastructure's `listSource` where it has both),
+or `null` where submodels are served only through their shell. `submodelSearch`
+is `query` where the submodel repository announces the AAS Query Language,
+`expression` for AASX workspaces and `filter` otherwise. Registry descriptors
+carry no `kind`, so the Instance/Template filter needs the repository.
+
+| Route | Purpose |
+| --- | --- |
+| `GET /targets/{targetId}/submodels` | Submodel descriptors or the repository's `$metadata`, cursor-paged (`SubmodelSummary`). |
+| `POST /targets/{targetId}/searches` with `scope: submodels` | Expression over `id`, `idShort` and `semanticId`, or a raw query with the roots `$sm` and `$sme`; runs on the submodel repository. |
+| `POST /targets/{targetId}/submodels` | Creates a submodel without a shell (`empty`, `template`, `json`; not `existing`); its descriptor follows the sync plan. |
+| `DELETE /targets/{targetId}/submodels/{submodelKey}` | Deletes a submodel; with `removeReferences=true` the referencing shells lose their reference first. Each step is reported, a failure becomes `partial_write`. |
+| `GET /targets/{targetId}/submodels/{submodelKey}/shells`, `POST /targets/{targetId}/submodel-owners` | Referencing shells: an AAS query on `$aas#submodels[].keys[].value` where the AAS repository announces queries, else a scan of at most 1,000 shells (`method: scan`); without `complete`, an empty list does not prove an orphan. |
+| `GET /targets/{targetId}/submodels/{submodelKey}?content=full&download=true` | The whole submodel as a JSON file (export). |
 
 ## Local BaSyx instances (desktop, ADR 0033)
 

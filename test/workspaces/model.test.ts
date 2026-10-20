@@ -59,4 +59,19 @@ describe('workspace model operations', () => {
     const first = model.conceptDescriptions(1, undefined)
     expect(first.items.length).toBeLessThanOrEqual(1)
   })
+
+  it('lists and searches submodels on their own, with the shells that reference them', () => {
+    const model = new WorkspaceModel(fixture())
+    const page = model.listSubmodels(1, undefined)
+    expect(page.items).toMatchObject([{ id: edgeSubmodel, idShort: 'EdgeCases', kind: 'Instance', semanticId: 'urn:studio:test:semantic:edge-cases' }])
+    expect(model.listSubmodels(1, page.page.nextCursor!).items.map(item => item.idShort)).toEqual(['LargeSubmodel'])
+    expect(model.searchSubmodels('semanticId:edge-cases', 5, undefined).items.map(item => item.idShort)).toEqual(['EdgeCases'])
+    expect(model.searchSubmodels('large -idShort=EdgeCases', 5, undefined).items.map(item => item.idShort)).toEqual(['LargeSubmodel'])
+
+    model.createSubmodel({ modelType: 'Submodel', id: 'urn:test:sm:orphan', idShort: 'Orphan' })
+    const owners = model.submodelOwners([edgeSubmodel, 'urn:test:sm:orphan'])
+    expect(owners).toMatchObject({ method: 'scan', complete: true, scanned: 1 })
+    expect(owners.shells[edgeSubmodel]!.map(shell => shell.id)).toEqual([edgeShell])
+    expect(owners.shells['urn:test:sm:orphan']).toEqual([])
+  })
 })
