@@ -1,0 +1,10 @@
+# This app is a repository of its own (ADR 0043): it installs Studio's
+# packages from the registry, never from Studio's workspace. Packages must be
+# a day old before they are installed, as in Studio's repository.
+minimumReleaseAge: 1440
+
+allowBuilds:
+  # Reviewed and denied: a dependency of sass for `sass --watch`. Its install
+  # script only compiles the watcher when no prebuilt binary matches; Vite
+  # does not use it.
+  "@parcel/watcher": false

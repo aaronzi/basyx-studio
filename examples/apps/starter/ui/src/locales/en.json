@@ -1,0 +1,13 @@
+{
+  "shells": {
+    "title": "Shells of {target}",
+    "none": "The target has no shells.",
+    "all": "All shells"
+  },
+  "submodels": {
+    "none": "The shell has no submodels.",
+    "models": "{count} 3D models",
+    "noModels": "No 3D models",
+    "unavailable": "Not available: {status}"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "shells": {
+    "title": "Verwaltungsschalen in {target}",
+    "none": "Das Ziel hat keine Verwaltungsschalen.",
+    "all": "Alle Verwaltungsschalen"
+  },
+  "submodels": {
+    "none": "Die Verwaltungsschale hat keine Teilmodelle.",
+    "models": "{count} 3D-Modelle",
+    "noModels": "Keine 3D-Modelle",
+    "unavailable": "Nicht verfügbar: {status}"
+  }
+}
