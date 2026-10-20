@@ -114,6 +114,14 @@ Decided on 2026-10-19.
 
 ### AAS capabilities for products
 
+*A1 and A2 are implemented with
+[ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md) on
+2026-10-20, for the external apps plan's phase E. Added to the plan's form:
+`studio.aas.getSubmodelSnapshot` and `structureRevision` on element snapshots
+for the revisions writes are based on, and `revision` on `putAttachment`.
+The app API became 0.1.5, not 0.2.0 (D4): new optional methods are patch
+versions while it is 0.x.*
+
 | # | Topic | Proposal |
 | --- | --- | --- |
 | A1 | Structural writes | New methods `studio.aas.createShell`, `createSubmodel` (with the shell reference), `putSubmodel`, `addElement`, `putElement`, `deleteElement`, `deleteSubmodel` and `deleteShell`. They need permission `studio.aas.write`. The edit mode is checked on the server, not only by the app. They use the editor's code paths: conditional writes with revisions (ADR 0013, ADR 0027), AAS Core validation with findings in the result, and registry sync by the infrastructure's policy (DATA-020). Identifier generation comes from the infrastructure scheme (ADR 0028) when no ID is passed. On workspaces they become undo-log entries (ADR 0030). |
@@ -231,7 +239,9 @@ infrastructures:
   and body validation, URL building and multipart. It uses the connection
   registry from the time series plan.
 - **`server/utils/apps.ts`:** dispatches `studio.aas.*` structural methods,
-  attachments, query, lookup and access to the existing target operations.
+  attachments, query, lookup and access to the existing target operations
+  (structural methods and attachments in `server/lib/apps/calls.ts` and
+  `PUT /app-calls/attachment`, ADR 0049).
 - **`server/utils/connections.ts`:** the `studio.connections.call` dispatcher
   (K4–K8).
 - **`server/lib/config.ts`:** `STUDIO_APP`, `STUDIO_APP_MODULE`,
@@ -260,7 +270,7 @@ infrastructures:
 | A | Two ADRs: ADR 0046 (single-app mode, managed packages, app-requested edit mode) and ADR 0047 (HTTP connections, declared operations, token exchange). ADR 0042 to 0044 are taken (external files, and the [external apps plan](external-apps-plan.md)); ADR 0045 decides the image and media origins of S1–S3 together with frame and connect origins. Updates to `security.md`, `app-platform.md` and `deployment-variants.md`. | ADRs reviewed |
 | B | Managed packages, single-app mode (M1–M7), the `/_studio` prefix, branded sign-in, and the Compose example with Fleet Atlas | Fleet Atlas runs as its own product at the root URL; deep links, reload and back work; hidden Studio pages are unreachable; full Studio is unchanged when `STUDIO_APP` is unset |
 | C | SDK transport split, test transport, `studioApi` 0.2.0, `/app-calls` in the OpenAPI document | Existing apps work unchanged; one example app has unit tests on the test transport |
-| D | AAS capabilities A1–A5, with server-side edit-mode checks and audit | Contract tests per method, on a live target and on a workspace; registry sync and findings as in the editor |
+| D | AAS capabilities A1–A5, with server-side edit-mode checks and audit. A1 and A2 done with the external apps plan's phase E (ADR 0049); A3–A5 open | Contract tests per method, on a live target and on a workspace; registry sync and findings as in the editor |
 | E | HTTP connections (K1–K9); binding in YAML and in the infrastructure dialog | An app calls the mock service with `delegatedUser` and with a static token. Foreign URLs, undeclared operations, unbound apps, invalid bodies and redirects are refused and audited. The browser's network log shows no token. |
 | F | Image and media origins (S1–S3), implemented with ADR 0045; the example below is still open | An example loads map images from a declared origin; without the declaration, the CSP blocks them |
 | G | Pilot: port an existing multi-service AAS application's main workflows to an app, outside this repository. Report the missing capabilities. | A follow-up plan lists the gaps found |
