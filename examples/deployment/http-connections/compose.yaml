@@ -1,0 +1,156 @@
+# BaSyx Studio HTTP connections example (ADR 0047): the work-orders example
+# app keeps work orders for the shells of a BaSyx Go AAS environment in a
+# mock work-order service. Studio calls the service through http
+# connections, with a static token on one infrastructure and as the
+# signed-in user (token exchange at Keycloak) on the other. Neither the
+# token nor the service's URL reaches the browser.
+#
+#   pnpm apps:build                 # builds examples/apps/dist/work-orders.zip
+#   docker compose up -d
+#   open http://localhost:3000      → sign in as alice / alice → a target →
+#                                     Work orders in the navigation rail
+#
+# keycloak.localhost resolves to your machine in browsers, and to Keycloak on
+# the compose network, so the browser, Studio and the service use one issuer.
+
+name: basyx-studio-http-connections
+
+services:
+  studio:
+    image: ${STUDIO_IMAGE:-eclipsebasyx/basyx-studio:SNAPSHOT}
+    ports:
+      - "127.0.0.1:${STUDIO_PORT:-3000}:3000"
+    environment:
+      STUDIO_PUBLIC_URL: http://localhost:${STUDIO_PORT:-3000}
+      # One apps origin per installation (ADR 0045); *.localhost is loopback.
+      STUDIO_APPS_URL: http://{installation}.apps.localhost:${STUDIO_PORT:-3000}
+      # Example only: generate your own (see docs/deployment).
+      STUDIO_DATA_KEY: ${STUDIO_DATA_KEY:-aHR0cC1jb25uZWN0aW9ucy1leGFtcGxlLWRhdGEta3k}
+      STUDIO_OIDC_ISSUER: http://keycloak.localhost:8180/realms/work-orders-example
+      STUDIO_OIDC_CLIENT_ID: studio
+      STUDIO_OIDC_CLIENT_SECRET: studio-example-secret
+      STUDIO_OIDC_ROLES_CLAIM: roles
+      STUDIO_ADMIN_ROLE: studio-admin
+      # BaSyx, Keycloak and the service are on the compose network.
+      STUDIO_PRIVATE_NETWORK_TARGETS: allow
+      STUDIO_INFRASTRUCTURES_FILE: /etc/basyx-studio/infrastructures.yaml
+      # The work-orders app, installed at startup as a managed package (ADR 0044).
+      STUDIO_APP_PACKAGES: /opt/apps
+      # The static token of the "Plant (static token)" connection, as env:WORK_ORDERS_TOKEN.
+      WORK_ORDERS_TOKEN: ${WORK_ORDERS_TOKEN:-example-work-orders-token}
+    volumes:
+      - studio-data:/data
+      - ./infrastructures.yaml:/etc/basyx-studio/infrastructures.yaml:ro
+      - ../../apps/dist/work-orders.zip:/opt/apps/work-orders.zip:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+      work-orders:
+        condition: service_started
+      basyx:
+        condition: service_started
+    restart: unless-stopped
+
+  keycloak:
+    image: keycloak/keycloak:26.8.1
+    command: ["start-dev", "--import-realm", "--http-port", "8180"]
+    ports:
+      - "127.0.0.1:8180:8180"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: keycloak-admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-keycloak-admin}
+      KC_HOSTNAME: http://keycloak.localhost:8180
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro
+    networks:
+      default:
+        aliases:
+          - keycloak.localhost
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/9000 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '200 OK' <&3
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    restart: unless-stopped
+
+  # The mock work-order service of the example app. It accepts the static
+  # token and users' tokens issued for the audience work-orders, which only
+  # the token exchange gives Studio. It is not published on the host: only
+  # Studio calls it.
+  work-orders:
+    image: node:24-alpine
+    command: ["node", "/service/server.mjs"]
+    environment:
+      SERVICE_TOKEN: ${WORK_ORDERS_TOKEN:-example-work-orders-token}
+      OIDC_ISSUER: http://keycloak.localhost:8180/realms/work-orders-example
+      SERVICE_AUDIENCE: work-orders
+    volumes:
+      - ../../apps/work-orders/service:/service:ro
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    restart: unless-stopped
+
+  basyx-postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: basyx
+      POSTGRES_PASSWORD: basyx
+      POSTGRES_DB: basyx
+    volumes:
+      - ../quickstart/postgres-init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - basyx-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basyx"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  basyx-schema:
+    image: eclipsebasyx/basyxconfigurationservice-go:SNAPSHOT
+    environment: &basyx-db
+      POSTGRES_HOST: basyx-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: basyx
+      POSTGRES_PASSWORD: basyx
+      POSTGRES_DBNAME: basyx
+    depends_on:
+      basyx-postgres:
+        condition: service_healthy
+
+  basyx:
+    image: eclipsebasyx/aasenvironment-go:SNAPSHOT
+    command: ["/app/aasenvironmentservice"]
+    environment:
+      <<: *basyx-db
+      SERVER_PORT: "5004"
+      ABAC_ENABLED: "false"
+      GENERAL_AASREGISTRYINTEGRATION: "true"
+      GENERAL_SUBMODELREGISTRYINTEGRATION: "true"
+      GENERAL_EXTERNALURL: http://basyx:5004
+    depends_on:
+      basyx-schema:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Two pumps whose global asset IDs the work orders refer to.
+  seed:
+    image: curlimages/curl:8.17.0
+    entrypoint: ["sh", "/seed/seed.sh"]
+    environment:
+      BASYX_URL: http://basyx:5004
+    volumes:
+      - ./seed:/seed:ro
+    depends_on:
+      basyx:
+        condition: service_started
+
+volumes:
+  studio-data:
+  basyx-db:

@@ -43,6 +43,8 @@ export default defineConfig({
       // Apps (MVP-3): run `pnpm apps:build` first.
       STUDIO_APPS_URL: `http://apps.localhost:${port}`,
       STUDIO_APPS_ALLOW_UNSIGNED: 'true',
+      // The static token of the work-orders example's mock service (connections.spec.ts, ADR 0047).
+      STUDIO_E2E_WORK_ORDERS_TOKEN: 'e2e-work-orders-token',
     },
   },
 })
