@@ -38,6 +38,7 @@ export default defineStudioHandler(async (event): Promise<AppCallResult> => {
       installation: await getInstallation(studio, claims.installationId),
       digest: claims.digest,
       targetId: claims.targetId,
+      mode: claims.mode,
       method: input.method,
       params: input.params,
     }
@@ -56,10 +57,14 @@ export default defineStudioHandler(async (event): Promise<AppCallResult> => {
       digest: input.digest,
       targetId: input.targetId ?? null,
       shellId: input.shellId ?? null,
+      mode: input.mode ?? 'view',
       method: input.method,
       params: input.params,
     }
   }
 
+  if (call.method === 'studio.aas.putAttachment') {
+    throw new StudioProblem('invalid_request', 'Studio\'s page sends attachments to /app-calls/attachment.')
+  }
   return { result: await performAppCall(event, call) }
 }, { originCheck: false })

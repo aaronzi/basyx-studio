@@ -329,7 +329,8 @@
     "app_signer_not_allowed": "Der Signierende darf diese App nicht veröffentlichen oder aktualisieren.",
     "app_revoked": "Diese Bereitstellung vertraut dieser App nicht mehr.",
     "app_sandbox_not_granted": "Der Herausgeber darf keine Apps veröffentlichen, die Code von außerhalb ihres Pakets ausführen.",
-    "app_outdated": "Die App wurde aktualisiert. Laden Sie sie neu, um die neue Version zu verwenden."
+    "app_outdated": "Die App wurde aktualisiert. Laden Sie sie neu, um die neue Version zu verwenden.",
+    "app_edit_mode_required": "Wechseln Sie in den Bearbeitungsmodus, damit die App Inhalte ändern kann."
   },
   "admin": {
     "title": "Infrastrukturen",

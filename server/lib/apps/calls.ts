@@ -1,12 +1,18 @@
-import type { AppMethodName, AppPermission } from '#shared/contract'
-import type { AasTarget } from '../targets/aas-target'
+import type { IdScheme } from '#shared/aas/identifiers'
+import type { AppMethodName, AppPermission, TargetCapabilities } from '#shared/contract'
+import type { JsonObject } from '../aas/outline'
+import type { SyncPlan } from '../aas/sync'
+import type { AasTarget, ElementSnapshot, StructureResult } from '../targets/aas-target'
 import type { AppInstallationRecord } from './store'
 import type { TrustStore } from './trust'
 import type { Methods } from '@basyx/studio-sdk/protocol'
-import { methodPermissions } from '#shared/contract'
+import { editModeMethods, methodPermissions } from '#shared/contract'
+import { addSubmodel, createShell, createStandaloneSubmodel, deleteShellWithSubmodels, deleteSubmodelWithReferences } from '../aas/creation'
+import { childProperty, containerChildren, verifySubmodel } from '../aas/edits'
 import { parseLocator, splitAddressable } from '../aas/keys'
 import { resolveSubmodelRefs } from '../aas/submodel-refs'
 import { StudioProblem } from '../problem'
+import { revisionOf, structureRevisionOf } from '../targets/revision'
 import { installationTrust, revocationReason } from './trust'
 
 export type AasMethodName = Extract<AppMethodName, `studio.aas.${string}`>
@@ -16,11 +22,19 @@ export function isAasMethod (method: AppMethodName): method is AasMethodName {
 }
 
 export function isWriteMethod (method: AppMethodName): boolean {
-  return method === 'studio.aas.setElementValue'
+  return method === 'studio.aas.setElementValue' || requiresEditMode(method)
+}
+
+/** Structural writes and attachment uploads, which Studio runs only in its edit mode (MVP-7 A1). */
+export function requiresEditMode (method: AppMethodName): boolean {
+  return editModeMethods.includes(method)
 }
 
 /** Who makes a call: the host bridge for a frame, or a backend with a capability token. */
 export type AppCaller = 'host' | 'backend'
+
+/** Studio's mode when the call was made: what the host page showed, or what a backend's token was issued in. */
+export type AppCallMode = 'view' | 'edit'
 
 /**
  * Refuses a call the installed manifest does not permit (ADR 0018), and every
@@ -30,12 +44,13 @@ export type AppCaller = 'host' | 'backend'
  * store grants it. The user's own rights are checked separately, by the
  * target.
  */
-export function authorizeAppCall (installation: AppInstallationRecord, method: AppMethodName, caller: AppCaller, trustStore: TrustStore): void {
+export function authorizeAppCall (installation: AppInstallationRecord, method: AppMethodName, caller: AppCaller, trustStore: TrustStore, mode: AppCallMode = 'view'): void {
   const trust = installationTrust(installation, trustStore)
   if (trust.revoked) {
     throw new StudioProblem('app_revoked', `${installation.appId} is no longer trusted: ${revocationReason(trust.revoked, installation)}.`)
   }
-  if (caller === 'backend' && !isAasMethod(method)) {
+  // Studio's page carries the bytes of an attachment; a backend has none to send.
+  if (caller === 'backend' && (!isAasMethod(method) || method === 'studio.aas.putAttachment')) {
     throw new StudioProblem('unsupported_operation', `${method} is not available to backend apps.`)
   }
   const permission: AppPermission | null = methodPermissions[method]
@@ -47,6 +62,10 @@ export function authorizeAppCall (installation: AppInstallationRecord, method: A
   }
   if (method === 'studio.timeseries.read' && !trust.granted.includes('studio.timeseries.read')) {
     throw new StudioProblem('app_permission_not_declared', `${method} is reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it.`)
+  }
+  // The app's own controls follow `context.mode`; Studio does not rely on them.
+  if (requiresEditMode(method) && mode !== 'edit') {
+    throw new StudioProblem('app_edit_mode_required', `${method} needs Studio's edit mode.`)
   }
 }
 
@@ -91,9 +110,65 @@ export async function checkShellToOpen (target: AasTarget, params: Methods['stud
   }
 }
 
-/** Runs an AAS capability method on the caller's target. Parameters are already validated. */
-export async function executeAasMethod<M extends AasMethodName> (target: AasTarget, method: M, params: Methods[M]['params']): Promise<Methods[M]['result']>
-export async function executeAasMethod (target: AasTarget, method: AasMethodName, params: Record<string, any>): Promise<unknown> {
+/** The target of an AAS call, with what writes over several resources need (MVP-5 plan, W4, W5). */
+export interface AasCallContext {
+  target: AasTarget
+  /** How new shells and submodels get their identifiers (ADR 0028). */
+  idScheme: IdScheme
+  /** What Studio writes to registries and discovery for this user (DATA-020). */
+  syncPlan: () => Promise<SyncPlan>
+}
+
+/** The capability each structural method needs of the target, checked before any downstream request. */
+const structuralCapabilities: Partial<Record<AasMethodName, keyof TargetCapabilities>> = {
+  'studio.aas.createShell': 'createResources',
+  'studio.aas.createSubmodel': 'createResources',
+  'studio.aas.deleteSubmodel': 'createResources',
+  'studio.aas.deleteShell': 'deleteShells',
+  'studio.aas.putSubmodel': 'writeStructure',
+  'studio.aas.addElement': 'writeStructure',
+  'studio.aas.putElement': 'writeStructure',
+  'studio.aas.deleteElement': 'writeStructure',
+  'studio.aas.putAttachment': 'files',
+}
+
+/** The SDK's element snapshot (studio-sdk/0), with the structure revision of a container. */
+function toSnapshot (snapshot: ElementSnapshot): Methods['studio.aas.getElement']['result'] {
+  const { value, revision, concurrency } = snapshot
+  return { value, revision, concurrency, structureRevision: childProperty(value.modelType) ? structureRevisionOf(containerChildren(value)) : null }
+}
+
+function toWriteResult (result: StructureResult): Methods['studio.aas.addElement']['result'] {
+  if (!result.path || !result.snapshot) {
+    throw new StudioProblem('internal_error')
+  }
+  return { ...toSnapshot(result.snapshot), idShortPath: result.path }
+}
+
+function toSubmodelSnapshot (submodel: JsonObject): Methods['studio.aas.getSubmodelSnapshot']['result'] {
+  const elements = Array.isArray(submodel.submodelElements) ? submodel.submodelElements as unknown[] : []
+  return { submodel, revision: revisionOf(submodel), structureRevision: structureRevisionOf(elements) }
+}
+
+/** A submodel as an app passes it; `modelType` may be left out. */
+function submodelJson (submodel: JsonObject): JsonObject {
+  return { modelType: 'Submodel', ...submodel }
+}
+
+/**
+ * Runs an AAS capability method on the caller's target. Parameters are
+ * already validated; structural writes use the editor's code paths, so
+ * revisions, AAS Core findings, registry sync and a workspace's undo log
+ * apply as in the editor.
+ */
+export async function executeAasMethod<M extends AasMethodName> (context: AasCallContext, method: M, params: Methods[M]['params']): Promise<Methods[M]['result']>
+export async function executeAasMethod (context: AasCallContext, method: AasMethodName, params: Record<string, any>): Promise<unknown> {
+  const { target } = context
+  const capability = structuralCapabilities[method]
+  if (capability && !target.capabilities[capability]) {
+    throw new StudioProblem('unsupported_operation', 'This target does not support this operation.')
+  }
+  const creation = async () => ({ target, scheme: context.idScheme, plan: await context.syncPlan() })
   switch (method) {
     case 'studio.aas.listShells': {
       const page = await target.listShells(params.limit ?? 50, params.cursor)
@@ -113,13 +188,54 @@ export async function executeAasMethod (target: AasTarget, method: AasMethodName
     case 'studio.aas.getSubmodel': {
       return target.submodel(params.submodelId)
     }
+    case 'studio.aas.getSubmodelSnapshot': {
+      return toSubmodelSnapshot(await target.submodel(params.submodelId))
+    }
     case 'studio.aas.getElement': {
-      const snapshot = await target.element(params.submodelId, addressable(params.idShortPath))
-      return { value: snapshot.value, revision: snapshot.revision, concurrency: snapshot.concurrency }
+      return toSnapshot(await target.element(params.submodelId, addressable(params.idShortPath)))
     }
     case 'studio.aas.setElementValue': {
-      const snapshot = await target.setElementValue(params.submodelId, addressable(params.idShortPath), params.value, params.revision)
-      return { value: snapshot.value, revision: snapshot.revision, concurrency: snapshot.concurrency }
+      return toSnapshot(await target.setElementValue(params.submodelId, addressable(params.idShortPath), params.value, params.revision))
+    }
+    case 'studio.aas.createShell': {
+      const submodels = (params.submodels as JsonObject[]).map(submodel => ({ source: 'json' as const, submodel: submodelJson(submodel) }))
+      const { shell, steps } = await createShell(await creation(), { shell: params.shell, submodels })
+      return { shell, steps }
+    }
+    case 'studio.aas.createSubmodel': {
+      const source = { source: 'json' as const, submodel: submodelJson(params.submodel) }
+      const { submodelId, steps } = params.shellId
+        ? await addSubmodel(await creation(), params.shellId, source)
+        : await createStandaloneSubmodel(await creation(), source)
+      return { submodelId, steps }
+    }
+    case 'studio.aas.putSubmodel': {
+      const submodel = verifySubmodel(submodelJson(params.submodel))
+      if (submodel.id !== params.submodelId) {
+        throw new StudioProblem('validation_failed', 'The identifier of a submodel cannot change.', { violations: [{ path: 'id', message: 'Must be the submodel\'s identifier.' }] })
+      }
+      return toSubmodelSnapshot(await target.replaceSubmodel(params.submodelId, submodel, params.revision))
+    }
+    case 'studio.aas.addElement': {
+      const parent = params.parentPath === undefined ? null : addressable(params.parentPath)
+      return toWriteResult(await target.addElement(params.submodelId, parent, params.element, params.index ?? null, params.structureRevision))
+    }
+    case 'studio.aas.putElement': {
+      return toWriteResult(await target.replaceElement(params.submodelId, addressable(params.idShortPath), params.element, params.revision))
+    }
+    case 'studio.aas.deleteElement': {
+      await target.deleteElement(params.submodelId, addressable(params.idShortPath), params.revision)
+      return null
+    }
+    case 'studio.aas.deleteSubmodel': {
+      return { steps: await deleteSubmodelWithReferences(await creation(), params.submodelId, params.removeReferences) }
+    }
+    case 'studio.aas.deleteShell': {
+      return { steps: await deleteShellWithSubmodels(await creation(), params.shellId, params.deleteSubmodels) }
+    }
+    case 'studio.aas.putAttachment': {
+      const file = { bytes: params.data as Uint8Array, contentType: params.contentType, fileName: params.fileName }
+      return toSnapshot(await target.replaceAttachment(params.submodelId, addressable(params.idShortPath), file, params.revision))
     }
   }
 }

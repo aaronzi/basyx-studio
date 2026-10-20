@@ -12,6 +12,11 @@ export interface CapabilityClaims {
   digest: string
   sessionId: string
   targetId: string | null
+  /**
+   * Studio's mode when the frame called the backend; the backend's
+   * structural writes need `edit` as the frame's do (MVP-7 A1).
+   */
+  mode: 'view' | 'edit'
   /** Expiry, milliseconds since the epoch. */
   expiresAt: number
 }
@@ -33,6 +38,7 @@ export function issueCapabilityToken (key: Buffer, claims: Omit<CapabilityClaims
     d: claims.digest,
     s: claims.sessionId,
     t: claims.targetId,
+    m: claims.mode,
     e: now + capabilityTokenTtlMs,
     n: randomBytes(8).toString('base64url'),
   })).toString('base64url')
@@ -53,7 +59,7 @@ export function verifyCapabilityToken (key: Buffer, token: string, now = Date.no
   if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
     return null
   }
-  let claims: { i?: unknown, d?: unknown, s?: unknown, t?: unknown, e?: unknown }
+  let claims: { i?: unknown, d?: unknown, s?: unknown, t?: unknown, m?: unknown, e?: unknown }
   try {
     claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
   } catch {
@@ -63,5 +69,5 @@ export function verifyCapabilityToken (key: Buffer, token: string, now = Date.no
     || typeof claims.e !== 'number' || claims.e <= now) {
     return null
   }
-  return { installationId: claims.i, digest: claims.d, sessionId: claims.s, targetId: claims.t, expiresAt: claims.e }
+  return { installationId: claims.i, digest: claims.d, sessionId: claims.s, targetId: claims.t, mode: claims.m === 'edit' ? 'edit' : 'view', expiresAt: claims.e }
 }

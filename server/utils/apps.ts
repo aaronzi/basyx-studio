@@ -1,12 +1,12 @@
 import type { AppMethodName } from '#shared/contract'
-import type { AppCaller } from '../lib/apps/calls'
+import type { AppCaller, AppCallMode } from '../lib/apps/calls'
 import type { AppInstallationRecord } from '../lib/apps/store'
 import type { Actor } from '../lib/deps'
 import type { StudioRuntime } from './studio'
 import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
+import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision, requiresEditMode } from '../lib/apps/calls'
 import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
@@ -14,7 +14,7 @@ import { StudioProblem } from '../lib/problem'
 import { performContainerMethod } from './containers'
 import { requestIdOf } from './handler'
 import { useStudio } from './studio'
-import { openTargetFor } from './target'
+import { openTargetFor, requireFileUploads } from './target'
 import { performTimeSeriesRead } from './timeseries'
 
 export function requireAppsBaseUrl (studio: StudioRuntime): string {
@@ -34,6 +34,8 @@ export interface AppCall {
   shellId?: string | null
   /** The package digest the caller runs; see `requireInstalledRevision`. */
   digest?: string
+  /** Studio's mode for the call; structural writes need `edit` (MVP-7 A1). */
+  mode: AppCallMode
   method: AppMethodName
   params: unknown
 }
@@ -62,7 +64,11 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
 
   try {
     requireInstalledRevision(installation, call.digest)
-    authorizeAppCall(installation, method, call.caller, studio.config.apps.trustStore)
+    authorizeAppCall(installation, method, call.caller, studio.config.apps.trustStore, call.mode)
+    if (method === 'studio.aas.putAttachment') {
+      // The upload route's switch (STUDIO_ALLOW_UPLOADS); its size limit applies with the parameters.
+      await requireFileUploads()
+    }
   } catch (error) {
     await auditFailure(error)
     throw error
@@ -75,6 +81,9 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
     })
   }
   const params = parsed.data as Record<string, unknown>
+  if (params.data instanceof Uint8Array && params.data.byteLength > studio.config.uploadMaxBytes) {
+    throw new StudioProblem('invalid_request', `The file is larger than ${Math.round(studio.config.uploadMaxBytes / 1024 / 1024)} MiB.`)
+  }
 
   if (method === 'studio.backend.call') {
     return callBackend(studio, call, params as { method: string, params?: unknown })
@@ -112,18 +121,45 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
     appInstallationId: installation.id,
     shellId: call.shellId ?? undefined,
   })
+  const context = { target: opened.target, idScheme: opened.idScheme, syncPlan: opened.syncPlan }
   if (!isWriteMethod(method)) {
-    return executeAasMethod(opened.target, method, params as never)
+    return executeAasMethod(context, method, params as never)
   }
-  const details = { appId: installation.appId, method, submodelId: params.submodelId, path: params.idShortPath }
+  const details = writeDetails(installation.appId, method, params)
+  let result: unknown
   try {
-    const result = await executeAasMethod(opened.target, method, params as never)
+    result = await executeAasMethod(context, method, params as never)
     await opened.auditWrite('success', details)
-    return result
   } catch (error) {
     await opened.auditWrite('failure', { ...details, code: error instanceof StudioProblem ? error.code : 'internal_error' })
     throw error
   }
+  // Registries and discovery that Studio keeps in step: a failed step is reported, not thrown (I5).
+  const steps = (result as { steps?: Array<{ outcome: string }> } | null)?.steps ?? []
+  if (steps.some(step => step.outcome === 'failed')) {
+    await opened.auditWrite('failure', { ...details, operation: 'sync', failed: steps.filter(step => step.outcome === 'failed').length })
+  }
+  return result
+}
+
+/** What the audit log records of an app's write: what it changed, never the content. */
+function writeDetails (appId: string, method: AppMethodName, params: Record<string, unknown>): Record<string, unknown> {
+  const details: Record<string, unknown> = { appId, method }
+  for (const key of ['shellId', 'submodelId', 'idShortPath', 'parentPath', 'fileName', 'contentType', 'removeReferences', 'deleteSubmodels'] as const) {
+    if (params[key] !== undefined) {
+      details[key === 'idShortPath' ? 'path' : key] = params[key]
+    }
+  }
+  if (params.data instanceof Uint8Array) {
+    details.size = params.data.byteLength
+  }
+  if (requiresEditMode(method) && method.startsWith('studio.aas.create')) {
+    const json = (method === 'studio.aas.createShell' ? params.shell : params.submodel) as { id?: unknown } | undefined
+    if (typeof json?.id === 'string') {
+      details.id = json.id
+    }
+  }
+  return details
 }
 
 async function callBackend (studio: StudioRuntime, call: AppCall, params: { method: string, params?: unknown }): Promise<unknown> {
@@ -137,6 +173,7 @@ async function callBackend (studio: StudioRuntime, call: AppCall, params: { meth
     digest: installation.digest,
     sessionId: call.actor.sessionId,
     targetId: call.targetId,
+    mode: call.mode,
   })
   return studio.backends.call(installation.id, async () => {
     const paths = (await listAppFilePaths(studio, installation.id)).filter(path => backendModule.test(path))

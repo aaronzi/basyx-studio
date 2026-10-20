@@ -205,6 +205,7 @@ service URLs and file system paths are excluded.
 | `GET /app-installations/{installationId}/compatibility` | Assesses technical compatibility and semantic applicability separately. |
 | `GET /app-contributions` | Modules of the installed apps and, for one or more semantic IDs (repeated parameter, MVP-4), matching submodel views with a reason (MVP-3). |
 | `POST /app-calls` | Capability call for an app: from the host bridge by session or from the backend by a short-lived capability token; checked against the manifest and user rights (MVP-3, ADR 0018). MVP-4 adds `shellId`, `studio.ui.setHeight` and `studio.ui.openFile`; the app context names the mode (`view` or `edit`). `studio.ui.openFullscreen` opens the view again in a fullscreen dialog (without permission, only in the host bridge); there, `fullscreen` is set in the context. |
+| `PUT /app-calls/attachment` | `studio.aas.putAttachment` from the host bridge: the file as the body, the call in the query; authorized and audited like `/app-calls`, with the attachment route's checks (ADR 0049). Since then `/app-calls` also takes Studio's `mode`, which structural writes need as `edit`. |
 | `POST/DELETE /app-installations/{installationId}/activations` | Activates or deactivates for a target/context. |
 | `POST /app-installations/{installationId}/updates` | Checks a signed immutable version from the marketplace and provides it as an update. Uploaded updates use `POST /app-installations` (ADR 0044). |
 | `POST /app-installations/{installationId}/rollbacks` | Rolls back to a verified previous version. |
