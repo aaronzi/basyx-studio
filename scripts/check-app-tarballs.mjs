@@ -114,17 +114,16 @@ async function checkDevServer () {
   const { chromium } = await import('@playwright/test')
   const browser = await chromium.launch()
   try {
-    await new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('The dev server did not start.')), 60_000)
-      server.on('exit', code => reject(new Error(`The dev server exited with ${code}.`)))
-      server.stdout.on('data', chunk => {
-        process.stdout.write(chunk)
-        if (String(chunk).includes(`localhost:${port}`)) {
-          clearTimeout(timeout)
-          resolve()
-        }
-      })
-    })
+    // Ready once it answers: its log is coloured in CI, so it is not matched.
+    let exited = null
+    server.on('exit', code => (exited = code))
+    server.stdout.pipe(process.stdout)
+    const deadline = Date.now() + 60_000
+    while (!(await fetch(`http://localhost:${port}/`).then(response => response.ok, () => false))) {
+      check(exited === null, `The dev server exited with ${exited}.`)
+      check(Date.now() < deadline, 'The dev server did not start.')
+      await new Promise(resolve => setTimeout(resolve, 250))
+    }
     const page = await browser.newPage()
     const errors = []
     page.on('pageerror', error => errors.push(error.message))
