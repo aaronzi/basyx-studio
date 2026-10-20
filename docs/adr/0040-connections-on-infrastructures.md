@@ -128,6 +128,18 @@ submodel (CON-004):
   selected record, whose idShort must be a `Metadata.Record` of the
   submodel. `v.timeRangeStart`, `v.timeRangeStop` and `v.windowPeriod` are
   set from the range.
+- `range.anchor: 'latest'` moves the range, keeping its length, to end at the
+  latest point of the data. For a LinkedSegment (added with T1 of the
+  [external apps plan](../development/external-apps-plan.md)), Studio finds
+  the latest point before the range's end with the segment's own query, sent
+  for earlier ranges: the range as given, then eight times as far back at
+  each step, up to five years. A query that aggregates by `v.windowPeriod`
+  reports windows, so the search narrows down to the window it found until
+  that window is no longer than the read's own. Only the range variables
+  differ from the read, and every query sent passes the same check, so no
+  query of Studio's own reaches the database. The search needs a query that
+  takes its range from `v.timeRangeStart` and `v.timeRangeStop`. The
+  result's range is the one read; without any point it stays as given.
 - ExternalSegment: a `File` with a relative path is read as an attachment,
   an absolute URL only from the infrastructure's own endpoints, a `Blob`
   from its value. Other URLs are refused.

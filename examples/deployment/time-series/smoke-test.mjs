@@ -6,6 +6,8 @@
 // - Test connection passes;
 // - the bundled Time Series Data app reads the linked, internal and external
 //   segments, with units;
+// - a relative range of the LinkedSegment that ends after the sensor's last
+//   point moves to that point (`anchor: 'latest'`);
 // - a record outside the submodel's metadata is refused;
 // - the database token is in no answer and in no log line of Studio.
 //
@@ -130,6 +132,16 @@ async function run () {
   check(temperature.unit === '°C' && humidity.unit === '%', `units are missing: ${temperature.unit}, ${humidity.unit}`)
   check(temperature.points.length > 100 && humidity.points.length > 100, `too few points: ${temperature.points.length}, ${humidity.points.length}`)
   console.log(`LinkedSegment: ${temperature.points.length} temperature and ${humidity.points.length} humidity points`)
+
+  // An hour ending tomorrow: the range moves back to the sensor's latest point.
+  const tomorrow = Date.now() + 24 * 3_600_000
+  const moved = await read(app.id, infrastructure.id, { segment: 'LinkedSegment', range: { start: new Date(tomorrow - 3_600_000).toISOString(), stop: new Date(tomorrow).toISOString(), anchor: 'latest' } })
+  check(moved.status === 200, `the LinkedSegment read with anchor latest failed: ${JSON.stringify(moved.problem)}`)
+  const movedStop = Date.parse(moved.result.range.stop)
+  check(Math.abs(movedStop - Date.now()) < 60_000, `the relative range did not move to the latest point: ${JSON.stringify(moved.result.range)}`)
+  check(Date.parse(moved.result.range.stop) - Date.parse(moved.result.range.start) === 3_600_000, `the moved range is not an hour long: ${JSON.stringify(moved.result.range)}`)
+  check(moved.result.series.every(series => series.points.length > 100), `too few points after moving the range: ${moved.result.series.map(series => series.points.length)}`)
+  console.log(`LinkedSegment, latest: the range ends at ${moved.result.range.stop}`)
 
   const internal = await read(app.id, infrastructure.id, { segment: 'InternalSegment', range: { ...hours(1), anchor: 'latest' } })
   check(internal.status === 200 && internal.result.series.every(series => series.points.length === 12), `the InternalSegment read failed: ${JSON.stringify(internal.problem ?? internal.result)}`)

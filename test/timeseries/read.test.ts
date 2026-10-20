@@ -9,7 +9,7 @@ import { parseCsv } from '~~/server/lib/timeseries/csv'
 import { checkFluxQuery, interpolateFlux } from '~~/server/lib/timeseries/flux'
 import { readTimeSeries, reducePoints } from '~~/server/lib/timeseries/read'
 import { parseTime } from '~~/server/lib/timeseries/segments'
-import { timeSeriesReadParamsSchema } from '#shared/contract'
+import { maxTimeSeriesRangeMs, timeSeriesReadParamsSchema } from '#shared/contract'
 import { airQualityConceptDescription, influxAirQualityMultiTable, influxHeader, timeSeriesSubmodel } from './fixtures'
 
 const connection: Connection = {
@@ -248,6 +248,109 @@ describe('LinkedSegment', () => {
     const { client } = fakeClient(() => '')
     const deletion = timeSeriesSubmodel({ endpoint: 'http://localhost:8086/api/v2/delete?org=basyx' })
     await expect(readTimeSeries(params({ segment: 'LinkedSegment' }), sources({ submodel: deletion, linked: async () => client }))).rejects.toMatchObject({ code: 'connection_request_refused' })
+  })
+})
+
+/**
+ * A fake InfluxDB over `points` (epoch ms) of the field `AirQuality`: it
+ * honours the query's range (stop left out, as Flux does) and, for
+ * `aggregateWindow`, reports the mean of each window at its stop, clamped
+ * to the range, as InfluxDB does by default.
+ */
+function fakeInflux (points: number[]) {
+  return fakeClient(query => {
+    const range = /range\(start: (\S+), stop: (\S+)\)/.exec(query)!
+    const [startMs, stopMs] = [Date.parse(range[1]!), Date.parse(range[2]!)]
+    const inRange = points.filter(time => time >= startMs && time < stopMs)
+    const every = /aggregateWindow\(every: (\d+)ms/.exec(query)
+    const rows = every
+      ? [...new Set(inRange.map(time => Math.min((Math.floor(time / Number(every[1])) + 1) * Number(every[1]), stopMs)))].map(time => [time, 1])
+      : inRange.map(time => [time, 1])
+    return [influxHeader, ...rows.map(([time, value]) => `,_result,0,${range[1]},${range[2]},${new Date(time!).toISOString()},${value},AirQuality,m,h,`)].join('\n')
+  })
+}
+
+describe('LinkedSegment with anchor: latest', () => {
+  const hour = 60 * 60 * 1000
+  const stop = Date.parse('2026-05-20T12:00:00Z')
+  const lastHour = { start: new Date(stop - hour).toISOString(), stop: new Date(stop).toISOString(), anchor: 'latest' }
+  const rawQuery = 'from(bucket: "basyx") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> filter(fn: (r) => r["_field"] == "{{y-value}}")'
+  const read = (client: ConnectionClient, query?: string) => readTimeSeries(
+    params({ segment: 'LinkedSegment', range: lastHour }),
+    sources({ submodel: timeSeriesSubmodel(query ? { query } : {}), linked: async () => client }),
+  )
+
+  it('looks further back with the segment\'s own query and moves the range to the latest point', async () => {
+    // Points every minute, the last three days before the range ends.
+    const last = stop - 3 * 24 * hour - 17_123
+    const points = Array.from({ length: 120 }, (_, index) => last - index * 60_000)
+    const { client, sent } = fakeInflux(points)
+    const { result, queryDigests } = await read(client, rawQuery)
+    expect(result.range).toEqual({ start: new Date(last - hour).toISOString(), stop: new Date(last).toISOString() })
+    expect(result.series[0]!.points).toHaveLength(61)
+    expect(result.series[0]!.points.at(-1)![0]).toBe(last)
+    // 1 h, then 8 h, 64 h and 512 h back, each beyond the last; then the read.
+    expect(sent.map(({ body }) => /range\(start: (\S+), stop: (\S+)\)/.exec(body!)!.slice(1).map(time => (stop - Date.parse(time)) / hour))).toEqual([
+      [1, 0],
+      [8, 1],
+      [64, 8],
+      [512, 64],
+      [(stop - last) / hour + 1, (stop - last - 1) / hour],
+    ])
+    expect(sent.every(({ body }) => body!.includes('r["_field"] == "AirQuality"'))).toBe(true)
+    expect(queryDigests).toHaveLength(sent.length)
+  })
+
+  it('narrows a windowed query down to a window no longer than the read\'s own', async () => {
+    const last = stop - 40 * 24 * hour - 1234
+    const points = Array.from({ length: 500 }, (_, index) => last - index * 5000)
+    const { client } = fakeInflux(points)
+    const { result } = await read(client)
+    const window = hour / 360
+    const rangeStop = Date.parse(result.range.stop)
+    expect(rangeStop).toBeGreaterThanOrEqual(last)
+    expect(rangeStop - last).toBeLessThanOrEqual(window)
+    expect(Date.parse(result.range.stop) - Date.parse(result.range.start)).toBe(hour)
+    // The window that holds the last point is shown, at its stop; 10 s windows over 2,500 s of points.
+    expect(result.series[0]!.points.at(-1)![0]).toBe(rangeStop)
+    expect(result.series[0]!.points.length).toBeGreaterThanOrEqual(250)
+  })
+
+  it('reads current data with one query', async () => {
+    const points = Array.from({ length: 100 }, (_, index) => stop - 1000 - index * 5000)
+    const { client, sent } = fakeInflux(points)
+    const { result } = await read(client)
+    expect(result.range).toEqual({ start: lastHour.start, stop: lastHour.stop })
+    expect(sent).toHaveLength(1)
+  })
+
+  it('keeps the range as given when no series has a point, after looking back five years', async () => {
+    const { client, sent } = fakeInflux([])
+    const { result } = await read(client)
+    expect(result.range).toEqual({ start: new Date(stop - hour).toISOString(), stop: new Date(stop).toISOString() })
+    expect(result.warnings).toEqual([{ code: 'value_missing', params: { value: 'AirQuality' } }])
+    const starts = sent.map(({ body }) => Date.parse(/range\(start: (\S+),/.exec(body!)![1]!))
+    expect(stop - Math.min(...starts)).toBe(maxTimeSeriesRangeMs)
+    expect(sent.length).toBeLessThanOrEqual(8)
+  })
+
+  it('moves the range to the latest point of any selected series', async () => {
+    const csv = (query: string) => query.includes('"rpm"')
+      ? `${influxHeader}\n,_result,0,,,2026-05-20T11:10:00Z,1200,rpm,m,h,`
+      : `${influxHeader}\n,_result,0,,,2026-05-20T11:20:00Z,400,AirQuality,m,h,`
+    const { client } = fakeClient(csv)
+    const { result } = await readTimeSeries(
+      params({ segment: 'LinkedSegment', values: ['AirQuality', 'rpm'], range: lastHour }),
+      sources({ submodel: timeSeriesSubmodel({ query: rawQuery }), linked: async () => client }),
+    )
+    expect(result.range.stop).toBe('2026-05-20T11:20:00.000Z')
+  })
+
+  it('refuses a query the Flux check refuses, before looking for the latest point', async () => {
+    const linkedSource = vi.fn()
+    const query = 'from(bucket: "a") |> range(start: v.timeRangeStart, stop: v.timeRangeStop) |> to(bucket: "b")'
+    await expect(readTimeSeries(params({ segment: 'LinkedSegment', range: lastHour }), sources({ submodel: timeSeriesSubmodel({ query }), linked: linkedSource }))).rejects.toMatchObject({ code: 'connection_request_refused' })
+    expect(linkedSource).not.toHaveBeenCalled()
   })
 })
 

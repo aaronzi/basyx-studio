@@ -3,12 +3,14 @@ import type { JsonObject } from '../aas/outline'
 import type { ConnectionClient } from '../connections/client'
 import type { RawPoint } from '../connections/influxdb2'
 import type { BinaryContent } from '../targets/aas-target'
+import type { FluxRange } from './flux'
 import type { TimeSeriesSelection } from './segments'
+import { maxTimeSeriesRangeMs } from '#shared/contract'
 import { influxQueryParameters, parseFluxCsv, runFluxQuery } from '../connections/influxdb2'
 import { sha256 } from '../crypto/cipher'
 import { StudioProblem } from '../problem'
 import { parseCsv } from './csv'
-import { checkFluxQuery, interpolateFlux, isValueTemplate } from './flux'
+import { checkFluxQuery, fluxWindowPeriodMs, interpolateFlux, isValueTemplate, usesWindowPeriod } from './flux'
 import { childNamed, children, parseTime, selectTimeSeries, semanticIdsOf, unitOf } from './segments'
 
 // `studio.timeseries.read` (ADR 0040, time series plan K2 to K7): one shape
@@ -135,13 +137,70 @@ function seriesFor (tables: Map<string, RawPoint[]>, value: string, perValue: bo
   return perValue && tables.size === 1 ? [...tables.values()][0] : undefined
 }
 
+/** How much further back each search for the latest point of a LinkedSegment looks than the one before. */
+const latestSearchFactor = 8
+
+/** The latest time with a numeric value among a query's tables, or `null`. */
+function latestTime (tables: Map<string, RawPoint[]>[]): number | null {
+  let latest: number | null = null
+  for (const points of tables.flatMap(table => [...table.values()])) {
+    for (const point of points) {
+      const time = parseTime(point.time)
+      if (time !== null && Number.isFinite(point.value) && (latest === null || time > latest)) {
+        latest = time
+      }
+    }
+  }
+  return latest
+}
+
+/**
+ * The latest point of a LinkedSegment before `stopMs` (T1 of the external
+ * apps plan), found with the segment's own query for earlier ranges: first
+ * the range as given, then ranges reaching further back, up to the longest
+ * range a read may span. A query that aggregates by `v.windowPeriod` reports
+ * a window, so the search narrows down to the window it found until the
+ * window is no longer than the read's own (`windowMs`).
+ */
+async function latestBefore (stopMs: number, spanMs: number, windowed: boolean, run: (range: Range) => Promise<Map<string, RawPoint[]>[]>): Promise<number | null> {
+  const windowMs = windowPeriodMs({ startMs: stopMs - spanMs, stopMs })
+  let searched = 0
+  let found: { latest: number, precisionMs: number } | null = null
+  for (let lookback = spanMs; !found && searched < maxTimeSeriesRangeMs; lookback *= latestSearchFactor) {
+    const range = { startMs: stopMs - Math.min(lookback, maxTimeSeriesRangeMs), stopMs: stopMs - searched }
+    const latest = latestTime(await run(range))
+    if (latest !== null) {
+      found = { latest, precisionMs: windowed ? windowPeriodMs(range) : 0 }
+    }
+    searched = stopMs - range.startMs
+  }
+  while (found && found.precisionMs > windowMs) {
+    // The window the point lies in, whether the query reports its start or its stop.
+    const range = { startMs: found.latest - found.precisionMs, stopMs: Math.min(found.latest + found.precisionMs, stopMs) }
+    const latest = latestTime(await run(range))
+    if (latest === null) {
+      break
+    }
+    found = { latest, precisionMs: windowed ? windowPeriodMs(range) : 0 }
+  }
+  return found?.latest ?? null
+}
+
+function isoRange (range: Range): FluxRange {
+  return { start: new Date(range.startMs).toISOString(), stop: new Date(range.stopMs).toISOString() }
+}
+
+function windowPeriodMs (range: Range): number {
+  return fluxWindowPeriodMs(isoRange(range))
+}
+
 async function linkedSeries (
   selection: TimeSeriesSelection,
   sources: TimeSeriesSources,
   values: string[],
-  range: { start: string, stop: string },
+  requested: TimeSeriesReadParams['range'],
   warnings: Warning[],
-): Promise<{ series: RawSeries, connection: TimeSeriesReadOutcome['connection'], queryDigests: string[] }> {
+): Promise<{ series: RawSeries, range: Range, connection: TimeSeriesReadOutcome['connection'], queryDigests: string[] }> {
   const endpointText = stringValue(childNamed(selection.segment, 'Endpoint'))?.trim()
   const query = stringValue(childNamed(selection.segment, 'Query'))
   if (!endpointText || !query?.trim()) {
@@ -152,12 +211,18 @@ async function linkedSeries (
     throw new StudioProblem('timeseries_invalid', `The Endpoint of the LinkedSegment ${selection.segmentIdShort} is not an http(s) URL.`)
   }
   // The queries as sent: record idShorts take the place of `{{y-value}}`,
-  // so the check reads each query after interpolation.
+  // so the check reads each query after interpolation. Every query sent,
+  // also those that look for the latest point, is checked.
   const perValue = isValueTemplate(query)
-  const queries = perValue ? values.map(value => interpolateFlux(query, value, range)) : [interpolateFlux(query, null, range)]
-  for (const text of queries) {
-    checkFluxQuery(text)
+  const queriesFor = (range: Range): string[] => {
+    const texts = perValue ? values.map(value => interpolateFlux(query, value, isoRange(range))) : [interpolateFlux(query, null, isoRange(range))]
+    for (const text of texts) {
+      checkFluxQuery(text)
+    }
+    return texts
   }
+  let range: Range = { startMs: Date.parse(requested.start), stopMs: Date.parse(requested.stop) }
+  queriesFor(range)
 
   const client = await sources.linked(endpoint)
   const { connection } = client
@@ -165,8 +230,32 @@ async function linkedSeries (
     throw new StudioProblem('connection_request_refused', `The connection ${(connection as Connection).key} cannot read time series.`)
   }
   const parameters = influxQueryParameters(connection, endpoint)
-  const answers = await Promise.all(queries.map(text => runFluxQuery(client, text, parameters)))
-  const tables = answers.map(answer => parseFluxCsv(answer))
+  const sent: string[] = []
+  // A range is read once: for current data, the search often ends at the range as given.
+  const answered = new Map<string, Promise<Map<string, RawPoint[]>[]>>()
+  const run = (queryRange: Range) => {
+    const key = `${queryRange.startMs}/${queryRange.stopMs}`
+    if (!answered.has(key)) {
+      const texts = queriesFor(queryRange)
+      sent.push(...texts)
+      answered.set(key, Promise.all(texts.map(async text => parseFluxCsv(await runFluxQuery(client, text, parameters)))))
+    }
+    return answered.get(key)!
+  }
+
+  let queryRange = range
+  if (requested.anchor === 'latest') {
+    const spanMs = range.stopMs - range.startMs
+    const windowed = usesWindowPeriod(query)
+    const latest = await latestBefore(range.stopMs, spanMs, windowed, run)
+    if (latest !== null) {
+      range = { startMs: latest - spanMs, stopMs: latest }
+      // Flux's range leaves out its stop: a query of points reads up to just
+      // after the latest one; a query of windows found the stop of the last window.
+      queryRange = windowed ? range : { ...range, stopMs: latest + 1 }
+    }
+  }
+  const tables = await run(queryRange)
 
   const series: RawSeries = new Map()
   for (const [index, value] of values.entries()) {
@@ -178,8 +267,9 @@ async function linkedSeries (
   }
   return {
     series,
+    range,
     connection: { key: connection.key, type: connection.type, downstreamIdentity: client.downstreamIdentity, ...(client.delegation ? { delegation: client.delegation } : {}) },
-    queryDigests: queries.map(text => sha256(text)),
+    queryDigests: sent.map(text => sha256(text)),
   }
 }
 
@@ -228,6 +318,8 @@ export async function readTimeSeries (params: TimeSeriesReadParams, sources: Tim
   let raw: RawSeries
   let connection: TimeSeriesReadOutcome['connection'] = null
   let queryDigests: string[] = []
+  // A LinkedSegment's query is sent for the range to show, so the reader moves it before reading (T1).
+  let linkedRange: Range | null = null
   switch (selection.kind) {
     case 'internal': {
       raw = internalSeries(selection, timeIdShort, values, warnings)
@@ -238,7 +330,7 @@ export async function readTimeSeries (params: TimeSeriesReadParams, sources: Tim
       break
     }
     case 'linked': {
-      ;({ series: raw, connection, queryDigests } = await linkedSeries(selection, sources, values, params.range, warnings))
+      ;({ series: raw, range: linkedRange, connection, queryDigests } = await linkedSeries(selection, sources, values, params.range, warnings))
       break
     }
   }
@@ -252,8 +344,8 @@ export async function readTimeSeries (params: TimeSeriesReadParams, sources: Tim
     return points
   })
 
-  const range: Range = { startMs: Date.parse(params.range.start), stopMs: Date.parse(params.range.stop) }
-  if (params.range.anchor === 'latest' && selection.kind !== 'linked') {
+  const range: Range = linkedRange ?? { startMs: Date.parse(params.range.start), stopMs: Date.parse(params.range.stop) }
+  if (params.range.anchor === 'latest' && !linkedRange) {
     const latest = Math.max(...cleaned.flatMap(points => points.length > 0 ? [points.at(-1)![0]] : []))
     if (Number.isFinite(latest)) {
       range.startMs = latest - (range.stopMs - range.startMs)

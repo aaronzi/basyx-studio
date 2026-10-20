@@ -335,7 +335,8 @@ Deviations from the decisions above:
 - **K2:** `range` also takes `anchor` (`fixed` or `latest`). With `latest`,
   internal and external segments move the range to end at their latest
   point, as the Web UI does for relative ranges; the result's `range` says
-  which range the series cover.
+  which range the series cover. LinkedSegments followed with T1 of the
+  [external apps plan](external-apps-plan.md).
 - **K4:** a query without `{{y-value}}` is sent once and its tables are
   matched to the values by key, ignoring case. A query per value may also
   name its only table differently (for example after an MQTT topic).

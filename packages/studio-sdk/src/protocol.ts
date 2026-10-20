@@ -205,9 +205,14 @@ export interface TimeSeriesReadParams {
   /** The idShorts of the records to read, one series each (up to 20). */
   values: string[]
   /**
-   * RFC 3339 times. `anchor: 'latest'` moves the range to end at the latest
-   * point of an InternalSegment's or ExternalSegment's data; LinkedSegments
-   * are always read for the range as given.
+   * RFC 3339 times. `anchor: 'latest'` moves the range, keeping its length,
+   * to end at the latest point of the segment's data: for an InternalSegment
+   * or ExternalSegment its latest point; for a LinkedSegment (app API 0.1.4)
+   * its latest point before `stop`, which Studio finds with the segment's own
+   * query (it must take its range from `v.timeRangeStart` and
+   * `v.timeRangeStop`), or the end of the query's last window when it
+   * aggregates by `v.windowPeriod`. Without any point, the range stays as
+   * given. The result's `range` is the range read.
    */
   range: { start: string, stop: string, anchor?: 'fixed' | 'latest' }
   /** Points per series (10 to 20,000, default 5,000); more are thinned out evenly. */
