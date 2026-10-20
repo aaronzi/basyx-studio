@@ -1,19 +1,57 @@
 {
   "name": "@basyx/studio-sdk",
   "version": "0.1.0",
-  "description": "Client SDK for BaSyx Studio apps: capability calls, context and theme over the studio-sdk/0 bridge",
+  "description": "Client SDK for BaSyx Studio apps: capability calls, context and theme over the studio-sdk/0 bridge, and an in-memory Studio for tests",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eclipse-basyx/basyx-studio.git",
+    "directory": "packages/studio-sdk"
+  },
+  "homepage": "https://github.com/eclipse-basyx/basyx-studio/tree/main/packages/studio-sdk#readme",
   "type": "module",
   "sideEffects": false,
   "exports": {
     ".": "./src/index.ts",
     "./protocol": "./src/protocol.ts",
     "./backend": "./src/backend.ts",
+    "./testing": "./src/testing.ts",
     "./app-manifest.schema.json": "./app-manifest.schema.json"
   },
   "files": [
+    "dist",
     "src",
     "app-manifest.schema.json",
     "README.md"
-  ]
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./protocol": {
+        "types": "./dist/protocol.d.ts",
+        "default": "./dist/protocol.js"
+      },
+      "./backend": {
+        "types": "./dist/backend.d.ts",
+        "default": "./dist/backend.js"
+      },
+      "./testing": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
+      },
+      "./app-manifest.schema.json": "./app-manifest.schema.json"
+    }
+  }
 }

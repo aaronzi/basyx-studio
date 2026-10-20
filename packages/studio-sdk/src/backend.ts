@@ -10,7 +10,7 @@
 // The process can reach nothing but Studio's capability endpoint. Each call
 // carries a short-lived capability token for the calling user and target.
 
-import type { Methods } from './protocol'
+import type { Methods } from './protocol.ts'
 
 /** Capability methods a backend may call (AAS access on the caller's target). */
 export type BackendMethodName = Extract<keyof Methods, `studio.aas.${string}`>
