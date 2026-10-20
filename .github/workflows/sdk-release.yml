@@ -4,9 +4,9 @@ name: SDK Release
 # @basyx/model-viewer at that version to npm (ADR 0043). The packages are
 # versioned together, independently of Studio; the SDK's README maps each
 # version to its app API. Publishing uses npm trusted publishing: each
-# package's trusted publisher on npmjs.com names this repository, this
-# workflow file and the environment "npm", so no token is stored. Every
-# version carries a provenance statement.
+# package's trusted publisher on npmjs.com names this repository and this
+# workflow file, so no token is stored. Every version carries a provenance
+# statement.
 
 on:
   push:
@@ -85,7 +85,6 @@ jobs:
     needs: check
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    environment: npm
     permissions:
       contents: read
       # npm trusted publishing and the provenance statement.
