@@ -524,6 +524,9 @@
   "nav": {
     "targets": "AAS ターゲット",
     "targetsShort": "ターゲット",
+    "docker": "BaSyx Docker",
+    "dockerShort": "Docker",
+    "dockerDesktopOnly": "ローカル BaSyx インスタンスは BaSyx Studio デスクトップアプリでのみ利用できます。",
     "dashboard": "ホーム",
     "dashboardShort": "ホーム",
     "shells": "管理シェル",
