@@ -1,7 +1,7 @@
-import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ElementDetail, Problem } from '#shared/contract'
+import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, Problem } from '#shared/contract'
 import type { Ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
-import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, externalFileUrl, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
+import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, encodeConnectionCall, externalFileUrl, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
 import { StudioApiError } from '~/composables/useStudioApi'
 import { resourceKey } from '~/utils/aas'
 
@@ -118,13 +118,20 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         throw hostProblem('forbidden', 'Call this from a click or key press in the app.', 403)
       }
       const context = options.context()
+      // Connection calls carry bytes, which travel as base64 over HTTP (ADR 0047).
+      const connectionCall = method.data === 'studio.connections.call'
       const { result } = method.data === 'studio.aas.putAttachment'
         ? await putAttachment(params, contribution)
         : await api<AppCallResult>('/app-calls', {
             method: 'POST',
             // Studio's mode goes with every call: its server refuses structural writes outside edit mode (MVP-7 A1).
-            body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: context.shell?.id ?? null, mode: context.mode, method: method.data, params },
+            body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: context.shell?.id ?? null, mode: context.mode, method: method.data, params: connectionCall ? encodeConnectionCall(params) : params },
           })
+      if (connectionCall) {
+        const decoded = decodeConnectionResult(result as ConnectionCallWireResult)
+        respond({ type: 'response', id, result: decoded.result }, decoded.transfer)
+        return
+      }
       const replaced = await carryOut(method.data, params, contribution)
       respond({ type: 'response', id, result: replaced ? replaced.result : result }, replaced?.transfer)
     } catch (error) {

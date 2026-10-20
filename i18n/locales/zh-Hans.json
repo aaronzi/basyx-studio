@@ -242,6 +242,9 @@
     "connection_unavailable": "无法访问该服务。",
     "connection_error": "服务报告了错误。",
     "connection_request_refused": "Studio 不会发送此请求。",
+    "connection_not_bound": "此基础设施没有与该应用绑定的连接。",
+    "connection_operation_not_declared": "该应用未声明此操作。",
+    "connection_busy": "对此服务的调用过多，请稍后重试。",
     "timeseries_invalid": "无法读取时序数据。",
     "external_file_unavailable": "无法获取外部文件。",
     "external_file_refused": "Studio 不会从此地址获取文件。",
@@ -406,7 +409,7 @@
     "probedAt": "检查于 {time}",
     "connections": {
       "title": "连接",
-      "help": "此基础设施的内容所引用的非 AAS 服务，例如时序数据库。Studio 保管其凭据，并仅将其用于从此基础设施读取的内容。",
+      "help": "此基础设施的内容所引用的非 AAS 服务（例如时序数据库），以及应用调用的 HTTP 服务。Studio 保管其凭据，仅将其用于从此基础设施读取的内容和与之绑定的应用。",
       "unnamed": "新连接",
       "add": "添加连接",
       "remove": "移除",
@@ -416,10 +419,12 @@
       "keyTaken": "另一个连接已使用此键。",
       "type": "类型",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "供应用使用的 HTTP 服务"
       },
       "typeHints": {
-        "influxdb2": "Time Series Data 子模型中 LinkedSegment 的时序数据（Flux）。"
+        "influxdb2": "Time Series Data 子模型中 LinkedSegment 的时序数据（Flux）。",
+        "http": "应用调用其清单中声明的操作，前提是您在下方绑定它们。Studio 使用这些凭据发送请求。"
       },
       "url": "URL",
       "urlHint": "Studio 访问该服务的地址，例如其容器网络中的地址。",
@@ -427,6 +432,14 @@
       "aliasesHint": "子模型用来指代该服务的其他地址。Studio 从不访问这些地址。",
       "organization": "组织",
       "organizationHint": "替换子模型中端点的组织。留空则使用端点自身的组织。",
+      "apps": "应用",
+      "appsHint": "可调用此服务的应用连接。每个连接列出其声明的操作；应用无法访问其他内容。",
+      "app": "应用 ID",
+      "appConnection": "应用的连接",
+      "addApp": "绑定应用",
+      "removeApp": "移除绑定",
+      "appNotInstalled": "该应用未安装，或未声明此连接。安装后将显示其操作。",
+      "appInvalid": "请输入应用 ID，例如 org.example.app。",
       "scheme": "身份验证",
       "schemes": {
         "none": "无",
@@ -518,7 +531,8 @@
       "studio_ui_clipboard": "点击时将文本复制到剪贴板",
       "studio_containers": "在 Docker 或 Podman 上启动、停止、导出和删除本地 BaSyx 实例（仅限 Studio 自带的应用）",
       "studio_timeseries_read": "读取时间序列，也包括来自基础设施连接数据库的数据（仅限 Studio 附带的应用以及部署授予此权限的已签名应用）",
-      "studio_ui_externalFiles": "在浏览器中获取管理壳在其他主机上指定的文件（这些主机可以看到您的地址）"
+      "studio_ui_externalFiles": "在浏览器中获取管理壳在其他主机上指定的文件（这些主机可以看到您的地址）",
+      "studio_connections": "通过 Studio 调用其服务（需管理员绑定其连接）"
     },
     "bundled": "内置",
     "bundledHint": "随 Studio 一同提供并随其更新。",
@@ -552,6 +566,11 @@
     "notGrantedHint": "此部署未向该应用的发布者授予此权限，因此需要该权限的调用会被拒绝。",
     "permissionsRemoved": "不再请求：{list}",
     "originsRemoved": "不再访问：{list}",
+    "connections": "调用：{list}",
+    "operations": "{count} 个操作",
+    "connectionHint": "连接 {id}，包含以下操作：",
+    "connectionsNote": "仅当管理员将其连接绑定到基础设施的连接时，应用才会通过 Studio 调用这些操作。凭据保留在 Studio 中。",
+    "operationsRemoved": "不再调用：{list}",
     "update": "更新",
     "confirmInstall": "安装",
     "updated": "已将 {name} 更新到 {version}。",

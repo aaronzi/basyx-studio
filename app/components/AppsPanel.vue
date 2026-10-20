@@ -182,6 +182,11 @@
                 {{ t('apps.sandbox', { list: [item.sandbox.webAssembly && t('apps.sandboxWebAssembly'), item.sandbox.workers && t('apps.sandboxWorkers')].filter(Boolean).join(', ') }) }}
               </v-list-item-subtitle>
 
+              <!-- Services it calls through Studio where an administrator binds them (ADR 0047). -->
+              <v-list-item-subtitle v-if="item.connections.length > 0" v-tooltip="t('apps.connectionsNote')">
+                {{ t('apps.connections', { list: item.connections.map(connection => `${label(connection.title)} (${t('apps.operations', connection.operations.length)})`).join(', ') }) }}
+              </v-list-item-subtitle>
+
               <!-- Third-party origins with the data-egress note (ADR 0045). -->
               <v-list-item-subtitle v-if="originsOf(item).length > 0" v-tooltip="t('apps.egressNote')">
                 {{ originKinds.filter(kind => item.sandbox[kind].length > 0).map(kind => `${t(`apps.originKind.${kind}`)} ${item.sandbox[kind].join(', ')}`).join(' · ') }}
@@ -289,6 +294,22 @@
             </template>
           </v-list-item>
 
+          <template v-for="connection in inspection.connections" :key="`connection:${connection.id}`">
+            <v-list-item prepend-icon="mdi-api" :subtitle="t('apps.connectionHint', { id: connection.id })" :title="label(connection.title)" />
+
+            <v-list-item
+              v-for="operation in connection.operations"
+              :key="`${connection.id}:${operation.operationId}`"
+              class="ps-14"
+              :subtitle="operation.summary ?? operation.operationId"
+              :title="`${operation.method} ${operation.path}`"
+            >
+              <template v-if="inspection.update?.operationsAdded.some(added => added.connection === connection.id && added.operationId === operation.operationId)" #append>
+                <v-chip color="warning" size="x-small" :text="t('apps.new')" />
+              </template>
+            </v-list-item>
+          </template>
+
           <v-list-item v-if="inspection.remoteCode" prepend-icon="mdi-code-braces" :title="t('apps.remoteCode')" />
 
           <v-list-item v-if="inspection.backend" prepend-icon="mdi-server" :title="t('apps.backendHint')">
@@ -298,7 +319,7 @@
           </v-list-item>
 
           <v-list-item
-            v-if="inspection.permissions.length === 0 && !inspection.backend && sandboxFlags(inspection).length === 0 && originsOf(inspection).length === 0"
+            v-if="inspection.permissions.length === 0 && !inspection.backend && sandboxFlags(inspection).length === 0 && originsOf(inspection).length === 0 && inspection.connections.length === 0"
             prepend-icon="mdi-check"
             :title="t('apps.requestsNothing')"
           />
@@ -311,6 +332,17 @@
         <p v-if="inspection.update && inspection.update.originsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
           {{ t('apps.originsRemoved', { list: inspection.update.originsRemoved.map(entry => entry.origin).join(', ') }) }}
         </p>
+
+        <p v-if="inspection.update && inspection.update.operationsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
+          {{ t('apps.operationsRemoved', { list: inspection.update.operationsRemoved.map(entry => entry.operationId).join(', ') }) }}
+        </p>
+
+        <v-alert
+          v-if="inspection.connections.length > 0"
+          class="mt-4"
+          :text="t('apps.connectionsNote')"
+          type="info"
+        />
 
         <v-alert
           v-if="originsOf(inspection).length > 0"

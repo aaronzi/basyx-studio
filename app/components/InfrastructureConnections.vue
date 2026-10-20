@@ -39,6 +39,7 @@
             />
 
             <v-combobox
+              v-if="connection.type !== 'http'"
               v-model="connection.aliases"
               chips
               closable-chips
@@ -57,6 +58,57 @@
               :label="t('admin.connections.organization')"
               persistent-hint
             />
+
+            <!-- The app connections that may call an http connection, with the operations they declare (ADR 0047). -->
+            <template v-if="connection.type === 'http'">
+              <div>
+                <div class="text-body-medium">{{ t('admin.connections.apps') }}</div>
+                <div class="text-body-small text-medium-emphasis">{{ t('admin.connections.appsHint') }}</div>
+              </div>
+
+              <div v-for="(binding, index) in connection.apps" :key="index" class="d-flex flex-column ga-2">
+                <div class="d-flex flex-wrap align-start ga-2">
+                  <v-combobox
+                    v-model="binding.app"
+                    class="flex-grow-1"
+                    :items="appIds"
+                    :label="t('admin.connections.app')"
+                    :rules="[required, validAppId]"
+                  />
+
+                  <v-combobox
+                    v-model="binding.connection"
+                    class="flex-grow-1"
+                    :items="appConnectionIds(binding.app)"
+                    :label="t('admin.connections.appConnection')"
+                    :rules="[required, validKey]"
+                  />
+
+                  <v-btn
+                    v-if="!readonly"
+                    :aria-label="t('admin.connections.removeApp')"
+                    icon="mdi-close"
+                    @click="connection.apps = connection.apps.filter(other => other !== binding)"
+                  />
+                </div>
+
+                <v-list v-if="operationsOf(binding).length > 0">
+                  <v-list-item
+                    v-for="operation in operationsOf(binding)"
+                    :key="operation.operationId"
+                    prepend-icon="mdi-api"
+                    :subtitle="operation.summary ?? operation.operationId"
+                    :title="`${operation.method} ${operation.path}`"
+                  />
+                </v-list>
+
+                <div v-else class="text-body-small text-medium-emphasis">{{ t('admin.connections.appNotInstalled') }}</div>
+              </div>
+
+              <div v-if="!readonly">
+                <v-btn prepend-icon="mdi-plus" :text="t('admin.connections.addApp')" @click="connection.apps = [...connection.apps, { app: '', connection: '' }]" />
+              </div>
+            </template>
 
             <v-select
               v-model="connection.scheme"
@@ -182,9 +234,10 @@
 </template>
 
 <script lang="ts" setup>
-  import type { ConnectionAuthScheme, ConnectionTestResult, SecurityMode } from '#shared/contract'
+  import type { AppConnectionOperation, AppInstallationList, ConnectionAuthScheme, ConnectionBinding, ConnectionTestResult, SecurityMode } from '#shared/contract'
   import type { ConnectionForm } from '~/utils/connections'
-  import { connectionKeySchema, connectionSecretFields, connectionTypeNames, connectionTypes } from '#shared/contract'
+  import { useQuery } from '@pinia/colada'
+  import { connectionBindingSchema, connectionKeySchema, connectionSecretFields, connectionTypeNames, connectionTypes } from '#shared/contract'
 
   const props = defineProps<{
     readonly?: boolean
@@ -205,6 +258,24 @@
 
   const typeItems = computed(() => connectionTypeNames.map(type => ({ value: type, title: t(`admin.connections.types.${type}`) })))
 
+  // The installed apps' connections, so a binding shows what it allows (ADR 0047).
+  const installations = useQuery({
+    key: ['admin', 'apps'],
+    query: ({ signal }) => api<AppInstallationList>('/app-installations', { signal }),
+    enabled: () => connections.value.some(connection => connection.type === 'http'),
+  })
+  const appsWithConnections = computed(() => (installations.data.value?.items ?? []).filter(app => app.connections.length > 0))
+  const appIds = computed(() => appsWithConnections.value.map(app => app.appId))
+
+  function appConnectionIds (appId: string): string[] {
+    return appsWithConnections.value.find(app => app.appId === appId.trim())?.connections.map(connection => connection.id) ?? []
+  }
+
+  function operationsOf (binding: ConnectionBinding): AppConnectionOperation[] {
+    const app = appsWithConnections.value.find(candidate => candidate.appId === binding.app.trim())
+    return app?.connections.find(connection => connection.id === binding.connection.trim())?.operations ?? []
+  }
+
   /** The schemes the type's adapter accepts; the user's identity only where users sign in. */
   function schemeItems (connection: ConnectionForm) {
     const schemes: readonly ConnectionAuthScheme[] = connectionTypes[connection.type].authSchemes
@@ -222,6 +293,7 @@
   const httpUrl = (value: string) => /^https?:\/\/\S+$/.test(value.trim()) || t('admin.connections.httpUrl')
   const httpUrls = (values: string[]) => values.every(value => /^https?:\/\/\S+$/.test(value.trim())) || t('admin.connections.httpUrl')
   const validKey = (value: string) => connectionKeySchema.safeParse(value.trim()).success || t('admin.connections.keyInvalid')
+  const validAppId = (value: string) => connectionBindingSchema.shape.app.safeParse(value.trim()).success || t('admin.connections.appInvalid')
   const uniqueKey = (value: string) => connections.value.filter(connection => connection.key.trim() === value.trim()).length < 2 || t('admin.connections.keyTaken')
   const secretRef = (value: string) => !value.trim() || /^(?:env:[A-Z_][A-Z0-9_]*|file:\/\S+)$/.test(value.trim()) || t('admin.connections.secretRefInvalid')
   const timeout = (value: string) => !value.trim() || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 120) || t('admin.connections.timeoutInvalid')
