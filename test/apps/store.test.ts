@@ -141,7 +141,7 @@ describe('app installations', () => {
     expect(await removeBundledApp(deps, 'org.example.retired')).toBe(true)
     expect((await listInstallations(deps)).some(record => record.appId === 'org.example.retired')).toBe(false)
 
-    const own = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.keep-own' })), 'r-own-retired')
+    const { record: own } = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.keep-own' })), null, 'r-own-retired')
     expect(await removeBundledApp(deps, own.appId)).toBe(false)
     expect(await getInstallation(deps, own.id)).toBeDefined()
   })
