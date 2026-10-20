@@ -16,10 +16,19 @@ export function administrationOf (value: unknown): SubmodelAdministration | null
 }
 
 /**
- * The list entry of a submodel (AAS JSON, with or without its elements) or
- * of its registry descriptor, which carries the same fields but no kind.
+ * The list entry of a submodel (AAS JSON, with or without its elements). An
+ * omitted kind is `Instance`, as the metamodel defines it.
  */
 export function toSubmodelSummary (submodel: JsonObject): SubmodelSummary {
+  return { ...summaryOf(submodel), kind: typeof submodel.kind === 'string' ? submodel.kind : 'Instance' }
+}
+
+/** The list entry of a submodel's registry descriptor, which does not carry the kind. */
+export function descriptorSubmodelSummary (descriptor: JsonObject): SubmodelSummary {
+  return { ...summaryOf(descriptor), kind: null }
+}
+
+function summaryOf (submodel: JsonObject): SubmodelSummary {
   return {
     key: encodeKey(String(submodel.id)),
     id: String(submodel.id),

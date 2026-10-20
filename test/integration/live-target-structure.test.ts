@@ -8,7 +8,7 @@ import { policy, record } from '../support/live'
 import { openTargetUrl, testenvAvailable } from '../support/testenv'
 
 const scheme = { type: 'iri', prefix: 'https://studio.test/ids/' } as const
-const noSync = { registry: false, discovery: false }
+const noSync = { registry: false, submodelRegistry: false, discovery: false }
 
 function open () {
   return new LiveAasTarget({

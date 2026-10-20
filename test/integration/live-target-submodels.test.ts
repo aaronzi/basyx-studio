@@ -1,7 +1,10 @@
 import type { InfrastructureRecord } from '~~/server/lib/infrastructures'
 import { beforeAll, describe, expect, it } from 'vitest'
+import { createStandaloneSubmodel, deleteSubmodelWithReferences } from '~~/server/lib/aas/creation'
+import { syncPlan } from '~~/server/lib/aas/sync'
 import { StudioProblem } from '~~/server/lib/problem'
 import { LiveAasTarget } from '~~/server/lib/targets/live-target'
+import { defaultSyncSettings } from '#shared/contract'
 import { policy, record } from '../support/live'
 import { openTargetUrl, testenvAvailable } from '../support/testenv'
 
@@ -88,5 +91,29 @@ describe.runIf(testenvAvailable)('LiveAasTarget submodels on their own', () => {
       expect(byScan.scanned).toBeGreaterThan(0)
       expect(byScan.shells[motorNameplate]!.map(shell => shell.id)).toEqual([motorShell])
     }
+  })
+
+  it('keeps a submodel registry in step without an AAS registry (mono-repo)', async () => {
+    const monoRepo = {
+      ...record(openTargetUrl, { mode: 'unsecured' }),
+      template: 'mono-repo' as const,
+      endpoints: [{ type: 'aasEnvironment' as const, url: openTargetUrl }, { type: 'submodelRegistry' as const, url: openTargetUrl }],
+      sync: { ...defaultSyncSettings, serverSyncsRegistry: false },
+    }
+    const live = new LiveAasTarget({ record: monoRepo, access: { accessToken: undefined, downstreamIdentity: null }, policy: policy(openTargetUrl), requestId: 'test-request', onUnauthorized: async () => {} })
+    const plan = syncPlan(monoRepo, null)
+    expect(plan).toMatchObject({ registry: false, submodelRegistry: true })
+    const context = { target: live, scheme: { type: 'iri', prefix: 'https://studio.test/ids/' } as const, plan }
+    const descriptor = (id: string) => fetch(`${openTargetUrl}/submodel-descriptors/${Buffer.from(id).toString('base64url')}`)
+
+    const { submodelId, steps } = await createStandaloneSubmodel(context, { source: 'empty', idShort: 'MonoRepoStandalone' })
+    try {
+      expect(steps).toContainEqual({ resource: 'submodelDescriptor', id: submodelId, outcome: 'written' })
+      expect((await descriptor(submodelId)).status).toBe(200)
+    } finally {
+      const removed = await deleteSubmodelWithReferences(context, submodelId, true)
+      expect(removed).toContainEqual({ resource: 'submodelDescriptor', id: submodelId, outcome: 'removed' })
+    }
+    expect((await descriptor(submodelId)).status).toBe(404)
   })
 })

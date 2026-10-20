@@ -23,10 +23,14 @@ describe('registry and discovery sync', () => {
   it('writes only what the server does not keep in step, and only where a registry or discovery exists', () => {
     const serverSyncs = { ...defaultSyncSettings }
     const studioSyncs = { ...defaultSyncSettings, serverSyncsRegistry: false, serverSyncsDiscovery: false }
-    expect(syncPlan({ ...environment, sync: serverSyncs }, null)).toEqual({ registry: false, discovery: false })
-    expect(syncPlan({ ...environment, sync: studioSyncs }, null)).toEqual({ registry: true, discovery: true })
-    expect(syncPlan({ ...repositoryOnly, sync: studioSyncs }, null)).toEqual({ registry: false, discovery: false })
-    expect(syncPlan({ ...environment, sync: { ...studioSyncs, studioDefault: 'dontCreate' } }, null)).toEqual({ registry: false, discovery: false })
+    const none = { registry: false, submodelRegistry: false, discovery: false }
+    expect(syncPlan({ ...environment, sync: serverSyncs }, null)).toEqual(none)
+    expect(syncPlan({ ...environment, sync: studioSyncs }, null)).toEqual({ registry: true, submodelRegistry: true, discovery: true })
+    expect(syncPlan({ ...repositoryOnly, sync: studioSyncs }, null)).toEqual(none)
+    expect(syncPlan({ ...environment, sync: { ...studioSyncs, studioDefault: 'dontCreate' } }, null)).toEqual(none)
+    // A submodel registry is kept in step without an AAS registry too (mono-repo).
+    const monoRepo = { template: 'mono-repo' as const, endpoints: [{ type: 'aasEnvironment' as const, url: 'http://env' }, { type: 'submodelRegistry' as const, url: 'http://sm-registry' }] }
+    expect(syncPlan({ ...monoRepo, sync: studioSyncs }, null)).toEqual({ registry: false, submodelRegistry: true, discovery: false })
   })
 
   it('lets the user choose only where the infrastructure allows it', () => {

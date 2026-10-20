@@ -1,6 +1,6 @@
 import type { ShellSummary } from '#shared/contract'
 import { describe, expect, it } from 'vitest'
-import { administrationOf, ownersOf, toSubmodelSummary } from '~~/server/lib/aas/submodels'
+import { administrationOf, descriptorSubmodelSummary, ownersOf, toSubmodelSummary } from '~~/server/lib/aas/submodels'
 
 const shell = (id: string): ShellSummary => ({ key: id, id, idShort: id, displayName: [], description: [], assetKind: null, globalAssetId: null, thumbnail: false, thumbnailUrl: null })
 
@@ -24,8 +24,10 @@ describe('submodel summaries', () => {
       semanticId: 'https://admin-shell.io/idta/nameplate/3/0/Nameplate',
       administration: { version: '3', revision: '0', templateId: null },
     })
-    const { kind: _, ...descriptor } = submodel
-    expect(toSubmodelSummary({ ...descriptor, endpoints: [] })).toMatchObject({ kind: null, idShort: 'Nameplate' })
+    const { kind: _, ...withoutKind } = submodel
+    // An omitted kind is Instance (the Instances filter keeps it); a descriptor does not know it.
+    expect(toSubmodelSummary(withoutKind)).toMatchObject({ kind: 'Instance' })
+    expect(descriptorSubmodelSummary({ ...withoutKind, endpoints: [] })).toMatchObject({ kind: null, idShort: 'Nameplate' })
   })
 
   it('keeps administration only where it names something', () => {

@@ -4151,7 +4151,7 @@ components:
           items: { $ref: '#/components/schemas/LangString' }
         kind:
           type: [string, 'null']
-          description: '`Template` or `Instance`; `null` for registry descriptors, which do not carry it.'
+          description: '`Template` or `Instance` (an omitted kind is `Instance`); `null` for registry descriptors, which do not carry it.'
         semanticId: { type: [string, 'null'] }
         administration:
           oneOf:

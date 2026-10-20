@@ -223,7 +223,7 @@ export const submodelSummarySchema = z.object({
   idShort: z.string().nullable(),
   displayName: z.array(langStringSchema),
   description: z.array(langStringSchema),
-  /** `Template` or `Instance`; `null` for registry descriptors, which do not carry it. */
+  /** `Template` or `Instance` (an omitted kind is `Instance`); `null` for registry descriptors, which do not carry it. */
   kind: z.string().nullable(),
   semanticId: z.string().nullable(),
   administration: submodelAdministrationSchema.nullable(),

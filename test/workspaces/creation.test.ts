@@ -30,7 +30,7 @@ function targetOf (model: WorkspaceModel): AasTarget {
 }
 
 const emptyModel = () => new WorkspaceModel({ assetAdministrationShells: [], submodels: [] })
-const context = (model: WorkspaceModel) => ({ target: targetOf(model), scheme, plan: { registry: false, discovery: false } })
+const context = (model: WorkspaceModel) => ({ target: targetOf(model), scheme, plan: { registry: false, submodelRegistry: false, discovery: false } })
 
 describe('identifiers', () => {
   it('generates IRIs or URNs per scheme', () => {
@@ -132,7 +132,7 @@ describe('creating resources in a workspace', () => {
         }
         : (base as unknown as Record<string, unknown>)[name],
     })
-    await expect(createShell({ target: failing, scheme, plan: { registry: false, discovery: false } }, {
+    await expect(createShell({ target: failing, scheme, plan: { registry: false, submodelRegistry: false, discovery: false } }, {
       shell: { id: 'urn:test:aas:partial', idShort: 'Partial' },
       submodels: [{ source: 'empty', idShort: 'Alpha', id: 'urn:test:sm:partial' }],
     })).rejects.toMatchObject({

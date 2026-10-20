@@ -575,7 +575,8 @@
     try {
       const result = await api<DeleteResult>(`/targets/${targetId.value}/submodels/${submodelKey.value}`, {
         method: 'DELETE',
-        query: { removeReferences: String(removeReferences.value && owningShells.value.length > 0) },
+        // The server finds the references itself, also when the preview is loading or failed.
+        query: { removeReferences: String(removeReferences.value) },
       })
       confirmDelete.value = false
       const failed = result.sync.filter(step => step.outcome === 'failed').length

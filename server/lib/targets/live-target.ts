@@ -47,7 +47,7 @@ import { containerChildren, countSemanticUses, insertChild, moveChild, removeChi
 import { formatLocator, parseLocator } from '../aas/keys'
 import { checkRawQuery, toSdkQuery } from '../aas/query'
 import { descriptorSummary, submodelIdOf, toShellSummary } from '../aas/shells'
-import { ownersOf, toSubmodelSummary } from '../aas/submodels'
+import { descriptorSubmodelSummary, ownersOf, toSubmodelSummary } from '../aas/submodels'
 import { assetLinksOf, shellDescriptor, submodelDescriptor, submodelIdsOf } from '../aas/sync'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
@@ -201,7 +201,7 @@ export class LiveAasTarget implements AasTarget {
         this.#submodelRegistryClient.getAllSubmodelDescriptors({ configuration, limit, cursor }))
       const nextCursor = data.pagedResult?.cursor ?? null
       return {
-        items: data.result.map(descriptor => toSubmodelSummary(Lib.toJsonableSubmodelDescriptor(descriptor) as JsonObject)),
+        items: data.result.map(descriptor => descriptorSubmodelSummary(Lib.toJsonableSubmodelDescriptor(descriptor) as JsonObject)),
         page: { nextCursor, hasMore: nextCursor !== null },
       }
     }
@@ -512,7 +512,7 @@ export class LiveAasTarget implements AasTarget {
 
   /** Descriptors of submodels created on their own, where Studio keeps the submodel registry in step. */
   async registerSubmodels (submodelIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
-    if (!plan.registry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
+    if (!plan.submodelRegistry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
       return []
     }
     const steps: SyncStep[] = []
@@ -523,7 +523,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async unregisterSubmodels (submodelIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
-    if (!plan.registry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
+    if (!plan.submodelRegistry || serviceUrl(this.#record, 'submodelRegistry') === undefined) {
       return []
     }
     const steps: SyncStep[] = []
@@ -557,10 +557,10 @@ export class LiveAasTarget implements AasTarget {
    */
   async registerShells (shellIds: string[], plan: SyncPlan): Promise<SyncStep[]> {
     const steps: SyncStep[] = []
-    if (!plan.registry && !plan.discovery) {
+    if (!plan.registry && !plan.submodelRegistry && !plan.discovery) {
       return steps
     }
-    const submodelRegistry = serviceUrl(this.#record, 'submodelRegistry') !== undefined
+    const submodelRegistry = plan.submodelRegistry && serviceUrl(this.#record, 'submodelRegistry') !== undefined
     for (const id of shellIds) {
       const shell = await this.shell(id).catch(() => null)
       if (!shell) {
@@ -580,9 +580,10 @@ export class LiveAasTarget implements AasTarget {
             throw await this.#http.problem(created.statusCode, created.recorder)
           }
         }))
-        for (const submodelId of submodelRegistry ? submodelIdsOf(shell) : []) {
-          steps.push(await this.#registerSubmodel(submodelId))
-        }
+      }
+      // The submodel registry is kept in step on its own, also without an AAS registry.
+      for (const submodelId of submodelRegistry ? submodelIdsOf(shell) : []) {
+        steps.push(await this.#registerSubmodel(submodelId))
       }
       const links = assetLinksOf(shell)
       if (plan.discovery && links.length > 0) {
