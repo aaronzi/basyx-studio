@@ -1,6 +1,6 @@
+import { buttonGroupDefaults, fieldDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
-import { buttonGroupDefaults, fieldDefaults } from './shared/vuetify-defaults.ts'
 
 // The single place for Studio's look and feel. Components rely on these
 // defaults instead of repeating props, and on Vuetify utility classes instead

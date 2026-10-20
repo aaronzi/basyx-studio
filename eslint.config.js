@@ -1,7 +1,7 @@
 import vuetify from 'eslint-config-vuetify'
 import withNuxt from './.nuxt/eslint.config.mjs'
-import { appDefaults } from './apps/shared/defaults.ts'
-import { buttonGroupStyleProps } from './shared/vuetify-defaults.ts'
+import { appDefaults } from './packages/studio-app-kit/src/defaults.ts'
+import { buttonGroupStyleProps } from './packages/studio-app-kit/src/vuetify-defaults.ts'
 import vuetifyConfig from './vuetify.config.ts'
 
 // VAppBar -> v-app-bar, maxWidth -> max-width
@@ -28,13 +28,13 @@ function restatedDefaults (defaults, source = 'vuetify.config.ts') {
 }
 
 /**
- * Grouped buttons look the same everywhere (shared/vuetify-defaults.ts): a
+ * Grouped buttons look the same everywhere (the app kit's vuetify-defaults.ts): a
  * bare <v-btn-toggle> or <v-btn-group>, never styled in a template.
  */
 const styledButtonGroups = ['v-btn-toggle', 'v-btn-group'].flatMap(element => buttonGroupStyleProps.map(key => ({
   element,
   key,
-  message: `\`${key}\` on <${element}>: grouped buttons get their look from shared/vuetify-defaults.ts; remove it (see AGENTS.md).`,
+  message: `\`${key}\` on <${element}>: grouped buttons get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
 })))
 
 export default withNuxt(
@@ -63,7 +63,7 @@ export default withNuxt(
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only
   // Studio's own components are checked against vuetify.config.ts; the apps
-  // shipped with Studio are checked against apps/shared/defaults.ts below.
+  // shipped with Studio are checked against the app kit's defaults below.
   files: ['app/**/*.vue'],
   rules: {
     'vue/no-restricted-static-attribute': ['error',
@@ -81,7 +81,7 @@ export default withNuxt(
   files: ['apps/**/*.vue'],
   rules: {
     'vue/no-restricted-static-attribute': ['error',
-      ...restatedDefaults(appDefaults, 'apps/shared/defaults.ts'),
+      ...restatedDefaults(appDefaults, '@basyx/studio-app-kit/defaults'),
       ...styledButtonGroups,
     ],
   },

@@ -39,11 +39,11 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Node } from '../../../shared/app'
+  import type { Node } from '@basyx/studio-app-kit'
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
+  import { child, childrenOf, loadSubmodel, textOf } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, ref } from 'vue'
-  import { child, childrenOf, loadSubmodel, textOf } from '../../../shared/app'
 
   const props = defineProps<{ client: StudioClient }>()
 

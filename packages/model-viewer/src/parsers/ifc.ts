@@ -1,4 +1,4 @@
-import type { IfcElementInfo, IfcProperty, IfcPropertyGroup, MeshBatch, ProgressCallback } from '../types'
+import type { IfcElementInfo, IfcProperty, IfcPropertyGroup, MeshBatch, ProgressCallback } from '../types.ts'
 import { IfcAPI } from 'web-ifc'
 
 // Reads IFC with web-ifc (MPL-2.0) in a worker: the triangles of every

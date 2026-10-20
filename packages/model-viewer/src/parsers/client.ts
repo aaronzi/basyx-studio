@@ -1,5 +1,5 @@
-import type { IfcElementInfo, MeshBatch, ProgressCallback } from '../types'
-import type { ParserRequest, ParserResponse, WorkerMessage } from './protocol'
+import type { IfcElementInfo, MeshBatch, ProgressCallback } from '../types.ts'
+import type { ParserRequest, ParserResponse, WorkerMessage } from './protocol.ts'
 import occtWasm from 'occt-import-js/dist/occt-import-js.wasm?url'
 import ifcWasm from 'web-ifc/web-ifc.wasm?url'
 import workerUrl from './parser.worker?worker&url'
@@ -108,7 +108,7 @@ export class ParserClient {
 
   async #startLocal (): Promise<(request: ParserRequest) => void> {
     this.#worker = null
-    const { createParserHandler } = await import('./handler')
+    const { createParserHandler } = await import('./handler.ts')
     const handle = createParserHandler(response => this.#receive(response))
     return request => void handle(request)
   }

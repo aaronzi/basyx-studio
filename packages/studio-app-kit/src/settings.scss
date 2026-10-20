@@ -1,6 +1,9 @@
 /**
  * Vuetify Sass settings: the few look-and-feel values that Vuetify exposes
- * only as Sass variables. Everything else is in vuetify.config.ts.
+ * only as Sass variables. Studio compiles Vuetify with them (nuxt.config.ts),
+ * and so do its apps (studioApp() in ./vite.ts), so both look the same
+ * (ADR 0043). Everything else is in Studio's vuetify.config.ts and in
+ * ./vuetify-defaults.ts.
  */
 
 @use 'vuetify/settings' with (

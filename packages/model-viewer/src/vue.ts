@@ -1,6 +1,6 @@
-import type { ModelFormat } from './formats'
-import type { IfcElementInfo } from './types'
-import type { LoadResult, ModelViewer, ModelViewerErrorCode, ViewerTheme } from './viewer'
+import type { ModelFormat } from './formats.ts'
+import type { IfcElementInfo } from './types.ts'
+import type { LoadResult, ModelViewer, ModelViewerErrorCode, ViewerTheme } from './viewer.ts'
 import type { Ref } from 'vue'
 import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
@@ -33,7 +33,7 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
   let unmounted = false
 
   async function create (): Promise<ModelViewer> {
-    const { ModelViewer } = await import('./viewer')
+    const { ModelViewer } = await import('./viewer.ts')
     if (unmounted || !container.value) {
       throw new Error('The viewer is not mounted.')
     }

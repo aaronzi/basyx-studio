@@ -159,7 +159,9 @@ The current repository should remain simple while boundaries are still small. Wh
 app/                         Nuxt/Vue UI
 server/                      Studio Service / Nitro BFF
 electron/                    Electron main and preload
-packages/studio-sdk/         public app SDK
+packages/studio-sdk/         public app SDK (published, ADR 0043)
+packages/studio-app-kit/     published app kit: Studio's look, Vite preset, studio-app command
+packages/model-viewer/       published 3D viewer
 packages/studio-protocol/    shared validated DTOs
 services/app-runner/         hosted app runner control plane
 docs/                        central product and architecture documentation

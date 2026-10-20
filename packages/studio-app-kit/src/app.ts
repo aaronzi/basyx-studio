@@ -8,18 +8,28 @@ import { VBtnGroup } from 'vuetify/components/VBtnGroup'
 import { VBtnToggle } from 'vuetify/components/VBtnToggle'
 import { VCard } from 'vuetify/components/VCard'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
-import { appDefaults } from './defaults'
+import { appDefaults } from './defaults.ts'
 import '@mdi/font/css/materialdesignicons.css'
 import 'vuetify/styles'
 
-// Shared setup of the apps shipped with Studio (ADR 0023). They follow
-// Studio's theme and look; the defaults are in ./defaults.ts.
+// The setup of Studio's apps (ADR 0023, ADR 0043). They follow Studio's
+// theme and look; the defaults are in ./defaults.ts.
 
-export * from './aas'
+export interface MountOptions {
+  /**
+   * The client to use instead of `connect()`, e.g. the one of
+   * `createTestStudio()` (`@basyx/studio-sdk/testing`) in a dev server.
+   */
+  client?: StudioClient | Promise<StudioClient>
+}
 
-/** Connects to Studio, follows its theme, mounts the app and sizes the frame to it. */
-export async function mountApp (app: Component, components: Record<string, Component>): Promise<void> {
-  const client = await connect()
+/**
+ * Connects to Studio, follows its theme, mounts the app into `#app` and
+ * sizes the frame to it. The app's root component gets the client as its
+ * `client` prop.
+ */
+export async function mountApp (app: Component, components: Record<string, Component>, options: MountOptions = {}): Promise<StudioClient> {
+  const client = await (options.client ?? connect())
   const vuetify = createVuetify({
     components: { ...components, VBtn, VBtnGroup, VBtnToggle, VCard },
     aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VViewCard: VCard },
@@ -38,6 +48,7 @@ export async function mountApp (app: Component, components: Record<string, Compo
   // The content, not the root: v-app is at least as tall as the frame, so a
   // frame sized to it could grow but never shrink to shorter content.
   fitHeight(client, root.querySelector<HTMLElement>('.v-application__wrap > *') ?? root)
+  return client
 }
 
 /** Loads the context's submodel; the view is only shown for a submodel. */

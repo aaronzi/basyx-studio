@@ -123,9 +123,9 @@
 
 <script lang="ts" setup>
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
+  import { loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, ref } from 'vue'
-  import { loadSubmodel } from '../../../shared/app'
   import BomGraph from './BomGraph.vue'
   import { archetypes, buildTree, entityIcon, findArchetype } from './hierarchy'
   import { provideI18n } from './i18n'

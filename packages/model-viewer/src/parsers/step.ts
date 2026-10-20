@@ -1,4 +1,4 @@
-import type { MeshBatch } from '../types'
+import type { MeshBatch } from '../types.ts'
 // @ts-expect-error occt-import-js ships no types; `Occt` below describes what is used.
 import occtimportjs from 'occt-import-js'
 

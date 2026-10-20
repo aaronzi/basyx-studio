@@ -68,6 +68,47 @@ jobs:
       - name: Build
         run: pnpm build
 
+  app-packages:
+    name: An app built from the packed packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "24"
+
+      - name: Enable and verify pnpm
+        id: pnpm
+        run: bash .github/scripts/setup-pnpm.sh
+
+      - name: Restore pnpm store
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.pnpm.outputs.store-path }}
+          key: ${{ runner.os }}-${{ runner.arch }}-pnpm-store-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browser
+        run: pnpm exec playwright install --with-deps chromium
+
+      # examples/apps/starter as a repository of its own (ADR 0043): the
+      # @basyx/* packages are packed and installed from the tarballs outside
+      # the checkout, so anything that still reaches into this repository
+      # fails. The example's other dependencies come from the registry,
+      # without a lockfile, as in a new repository.
+      - name: Build, pack and run the starter from the packed packages
+        run: node scripts/check-app-tarballs.mjs
+
   image:
     name: Container image build and smoke test
     runs-on: ubuntu-latest

@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/@basyx/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.example.studio.starter",
+  "version": "0.1.0",
+  "publisher": { "name": "Example" },
+  "title": { "en": "Starter", "de": "Starter" },
+  "description": {
+    "en": "Lists the shells of the active target with their submodels and the 3D models they hold.",
+    "de": "Listet die Verwaltungsschalen des aktiven Ziels mit ihren Teilmodellen und den 3D-Modellen darin."
+  },
+  "studioApi": "^0.1.0",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.ui.navigation"],
+  "contributes": {
+    "modules": [
+      {
+        "id": "shells",
+        "title": { "en": "Starter", "de": "Starter" },
+        "icon": "mdi-rocket-launch-outline",
+        "entry": "ui/index.html",
+        "route": "starter",
+        "context": "target"
+      }
+    ]
+  }
+}

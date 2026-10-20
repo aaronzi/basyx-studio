@@ -1,0 +1,28 @@
+{
+  "name": "studio-app-starter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "package": "studio-app pack"
+  },
+  "dependencies": {
+    "@basyx/model-viewer": "^0.1.0",
+    "@basyx/studio-app-kit": "^0.1.0",
+    "@basyx/studio-sdk": "^0.1.0",
+    "vue": "^3.5.44",
+    "vuetify": "^4.2.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.10",
+    "sass": "^1.105.2",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5",
+    "vue-tsc": "^3.3.12"
+  }
+}

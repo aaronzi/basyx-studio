@@ -165,9 +165,9 @@
   import type { ChartType, Interpolation } from './chartOptions'
   import type { ResolvedTimeRange, TimeRangeSelection } from './timeRange'
   import type { AppContext, JsonObject, StudioClient, TimeSeriesReadParams, TimeSeriesResult } from '@basyx/studio-sdk'
+  import { langText, loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-  import { langText, loadSubmodel } from '../../../shared/app'
   import {
     autoRefreshIntervalMs,
     cloneAutoRefreshSelection,

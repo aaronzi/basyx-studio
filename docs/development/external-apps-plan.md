@@ -174,7 +174,7 @@ Decided on 2026-10-20.
 
 | Phase | Content | Done when |
 | --- | --- | --- |
-| A | ADRs: published SDK and app kit; signatures, trust store and updates (amends ADR 0004 and ADR 0016, takes MVP-7 M2). Requirement changes. MVP-7's planned ADR numbers start at 0043, because 0042 is taken. | ADRs reviewed |
+| A | ADRs: published SDK and app kit; signatures, trust store and updates (amends ADR 0004 and ADR 0016, takes MVP-7 M2). Requirement changes. This plan's ADRs are 0043 (published SDK and app kit) and 0044 (signatures, trust store and updates), so MVP-7's planned ADRs start at 0045. | ADRs reviewed |
 | B | Packages P1–P6: build, app kit, `studio-app` command, test transport, release workflow, the tarball example. Bundled apps move to the kit. | The packages are on npm with provenance. An app in an empty repository builds, packs and runs in a plain dev server against the test transport. All bundled apps work unchanged. |
 | C | Signatures, trust and updates U1–U9, with the migration and the consent dialog | A signed package installs without developer mode and updates in place with the same installation ID. A package signed by an unknown key, or by a key outside its app ID pattern, is refused. Removing the key revokes the app. |
 | D | Pilot, read-only: the pilot's repository builds against the published packages; its pages that only read AAS run in the test transport and in Studio; its CI packs and signs. Runs in parallel with C as soon as B is done. | The read-only pages run in a Studio started from the Compose example, from a signed package built outside this repository |

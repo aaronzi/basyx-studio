@@ -2,30 +2,20 @@ import type {
   AppContext,
   ConnectMessage,
   HelloMessage,
-  HostMessage,
   MethodName,
   Methods,
-  Problem,
   StackComponentId,
   StackFileKind,
   StackSpec,
   ThemeTokens,
-} from './protocol'
-import { protocolVersion } from './protocol'
+} from './protocol.ts'
+import type { Transport } from './transport.ts'
+import { protocolVersion } from './protocol.ts'
+import { portTransport } from './transport.ts'
 
-export * from './protocol'
-
-/** A capability call that Studio refused or that failed. */
-export class StudioError extends Error {
-  constructor (readonly problem: Problem) {
-    super(problem.detail ?? problem.title)
-    this.name = 'StudioError'
-  }
-
-  get code (): string {
-    return this.problem.code
-  }
-}
+export * from './protocol.ts'
+export { portTransport, StudioError } from './transport.ts'
+export type { Transport } from './transport.ts'
 
 export interface ConnectOptions {
   /** How long to wait for Studio to answer. Default 10 s. */
@@ -121,17 +111,23 @@ export class StudioClient {
     call: <T = unknown>(method: string, params?: unknown) => this.call('studio.backend.call', { method, params }) as Promise<T>,
   }
 
-  #port: MessagePort
+  #transport: Transport
   #context: AppContext
-  #nextId = 1
-  #pending = new Map<number, { resolve: (value: unknown) => void, reject: (error: Error) => void }>()
   #listeners = new Set<(context: AppContext) => void>()
 
-  constructor (port: MessagePort, context: AppContext) {
-    this.#port = port
+  /**
+   * Apps get a client from `connect()` or, without Studio, from
+   * `createTestStudio()` of `@basyx/studio-sdk/testing`.
+   */
+  constructor (transport: Transport, context: AppContext) {
+    this.#transport = transport
     this.#context = context
-    port.addEventListener('message', event => this.#receive(event.data as HostMessage))
-    port.start()
+    transport.onContext(next => {
+      this.#context = next
+      for (const listener of this.#listeners) {
+        listener(next)
+      }
+    })
   }
 
   /** The current context: target, shell, submodel, sub-path, locale and theme. */
@@ -146,37 +142,18 @@ export class StudioClient {
   }
 
   call<M extends MethodName> (method: M, params: Methods[M]['params']): Promise<Methods[M]['result']> {
-    const id = this.#nextId++
-    return new Promise((resolve, reject) => {
-      this.#pending.set(id, { resolve: resolve as (value: unknown) => void, reject })
-      this.#port.postMessage({ type: 'request', id, method, params })
-    })
+    return this.#transport.call(method, params) as Promise<Methods[M]['result']>
+  }
+
+  /** Ends the connection; pending calls are rejected. */
+  close (): void {
+    this.#transport.close()
   }
 
   /** The handle of the one file the user chose, or `null` when cancelled. */
   async #pickOne (kind: StackFileKind, suggestedName?: string): Promise<string | null> {
     const { files } = await this.containers.pickFiles(kind, suggestedName)
     return files[0]?.handle ?? null
-  }
-
-  #receive (message: HostMessage) {
-    if (message.type === 'context') {
-      this.#context = message.context
-      for (const listener of this.#listeners) {
-        listener(message.context)
-      }
-      return
-    }
-    const pending = this.#pending.get(message.id)
-    if (!pending) {
-      return
-    }
-    this.#pending.delete(message.id)
-    if (message.type === 'response') {
-      pending.resolve(message.result)
-    } else {
-      pending.reject(new StudioError(message.problem))
-    }
   }
 }
 
@@ -186,7 +163,7 @@ export class StudioClient {
  */
 export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
   if (window.parent === window) {
-    return Promise.reject(new Error('A Studio app must run inside BaSyx Studio.'))
+    return Promise.reject(new Error('A Studio app must run inside BaSyx Studio. Outside it, use createTestStudio() of @basyx/studio-sdk/testing.'))
   }
   return new Promise((resolve, reject) => {
     const hello: HelloMessage = { protocol: protocolVersion, type: 'hello' }
@@ -204,7 +181,7 @@ export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
         return
       }
       cleanup()
-      resolve(new StudioClient(event.ports[0], message.context))
+      resolve(new StudioClient(portTransport(event.ports[0]), message.context))
     }
     function cleanup () {
       clearInterval(retry)

@@ -1,16 +1,17 @@
-import type { Plugin } from 'vite'
+import type { Plugin, PluginOption } from 'vite'
 import { existsSync } from 'node:fs'
-import { dirname, resolve } from 'node:path'
+import { createRequire } from 'node:module'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-// Studio compiles Vuetify's Sass with app/assets/styles/settings.scss
-// (14 px fields, 16 px card titles, denser lists, button weight). Vuetify's
-// precompiled CSS uses the stock settings, so apps built with it look
-// different inside Studio. This plugin swaps each Vuetify stylesheet for
-// its Sass source compiled with Studio's settings, as vite-plugin-vuetify's
-// `styles.configFile` does, so the apps shipped with Studio match it.
+// Studio compiles Vuetify's Sass with ./settings.scss (14 px fields, 16 px
+// card titles, denser lists, button weight). Vuetify's precompiled CSS uses
+// the stock settings, so apps built with it look different inside Studio.
+// This plugin swaps each Vuetify stylesheet for its Sass source compiled
+// with Studio's settings, as vite-plugin-vuetify's `styles.configFile` does,
+// so Studio's apps match it.
 
-const settings = fileURLToPath(new URL('../../app/assets/styles/settings.scss', import.meta.url))
+const settings = fileURLToPath(new URL('settings.scss', import.meta.url))
 const prefix = 'virtual:studio-vuetify:'
 
 // occt-import-js (the STEP parser, ADR 0039) is built with Emscripten's
@@ -75,12 +76,12 @@ export function withoutEval (code: string): string {
     const start = result.indexOf(replacement.start)
     const end = result.indexOf(replacement.end, start)
     if (start === -1 || end === -1) {
-      throw new Error(`occt-import-js changed: ${replacement.start} was not found. Check apps/shared/vite.ts against the new version.`)
+      throw new Error(`occt-import-js changed: ${replacement.start} was not found. Check @basyx/studio-app-kit/vite against the new version.`)
     }
     result = `${result.slice(0, start)}${replacement.code}${result.slice(end)}`
   }
   if (/newFunc\(\s*Function/.test(result)) {
-    throw new Error('occt-import-js changed: it still builds functions from strings. Check apps/shared/vite.ts against the new version.')
+    throw new Error('occt-import-js changed: it still builds functions from strings. Check @basyx/studio-app-kit/vite against the new version.')
   }
   return result
 }
@@ -124,4 +125,54 @@ export function vuetifySettings (): Plugin {
       return `@use '${settings}'\n@use '${layers}'\n@use '${file}'\n`
     },
   }
+}
+
+/** Whether the project (the working directory) can import a package. */
+function hasPackage (name: string): boolean {
+  try {
+    createRequire(join(process.cwd(), 'package.json')).resolve(name)
+    return true
+  } catch {
+    return false
+  }
+}
+
+export interface StudioAppOptions {
+  /** The folder of the UI's `index.html`, relative to the project. Default `ui`. */
+  root?: string
+}
+
+/**
+ * The Vite preset of a Studio app (ADR 0043): the UI in `ui/` is built to
+ * `dist/ui/` with relative URLs, as Studio serves it under
+ * `/app/<installation>/ui/` (`studio-app pack` packages `dist/`); Vuetify
+ * is compiled with Studio's Sass settings; workers are ES modules, and
+ * occt-import-js runs without `new Function` in them too. In the dev
+ * server, Vuetify and the kit are not pre-bundled, so their stylesheets
+ * get Studio's settings as well.
+ *
+ *   export default defineConfig({ plugins: [vue(), studioApp()] })
+ */
+export function studioApp (options: StudioAppOptions = {}): PluginOption[] {
+  const root = options.root ?? 'ui'
+  const depth = root.split('/').filter(Boolean).map(() => '..').join('/')
+  return [
+    {
+      name: 'studio-app',
+      config: () => ({
+        root,
+        base: './',
+        build: { outDir: `${depth}/dist/${root}`, emptyOutDir: true },
+        worker: { format: 'es', plugins: () => [occtWithoutEval()] },
+        optimizeDeps: {
+          exclude: ['vuetify', '@basyx/studio-app-kit', '@basyx/model-viewer'],
+          // The viewer is served as it is (its WebAssembly and worker URLs are
+          // Vite imports); its one CommonJS dependency is pre-bundled.
+          include: hasPackage('@basyx/model-viewer') ? ['@basyx/model-viewer > occt-import-js'] : [],
+        },
+      }),
+    },
+    vuetifySettings(),
+    occtWithoutEval(),
+  ]
 }

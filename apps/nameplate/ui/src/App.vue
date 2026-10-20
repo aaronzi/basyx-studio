@@ -93,11 +93,11 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Node } from '../../../shared/app'
+  import type { Node } from '@basyx/studio-app-kit'
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
+  import { child, childrenOf, humanize, loadSubmodel, textOf } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, ref } from 'vue'
-  import { child, childrenOf, humanize, loadSubmodel, textOf } from '../../../shared/app'
 
   // The Digital Nameplate (IDTA 02006) of an asset. In Studio's edit mode, its
   // properties can be changed where the target and the user's rights allow it

@@ -1,5 +1,5 @@
-import type { IfcModel } from './ifc'
-import type { ParserRequest, ParserResponse } from './protocol'
+import type { IfcModel } from './ifc.ts'
+import type { ParserRequest, ParserResponse } from './protocol.ts'
 
 // Answers parser requests, in the worker or, where workers are not
 // available, on the main thread. The parsers load only for their format.
@@ -19,11 +19,11 @@ export function createParserHandler (send: (response: ParserResponse) => void) {
       ifc?.close()
       ifc = null
       if (request.format === 'ifc') {
-        const { IfcModel } = await import('./ifc')
+        const { IfcModel } = await import('./ifc.ts')
         ifc = await IfcModel.open(request.bytes, request.wasmUrl)
         send({ type: 'meshes', id: request.id, meshes: ifc.meshes(progress => send({ type: 'progress', id: request.id, progress })) })
       } else {
-        const { readStep } = await import('./step')
+        const { readStep } = await import('./step.ts')
         send({ type: 'meshes', id: request.id, meshes: await readStep(request.bytes, request.wasmUrl) })
       }
     } catch (error) {

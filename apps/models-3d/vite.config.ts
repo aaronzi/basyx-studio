@@ -1,19 +1,16 @@
+import { studioApp } from '@basyx/studio-app-kit/vite'
 import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vite'
-import { occtWithoutEval, vuetifySettings } from '../shared/vite.ts'
 
-// The UI is served under /app/<installation>/ui/, so every URL is relative.
+// The UI in ui/ is built to dist/ui/ with relative URLs, as Studio serves
+// it under /app/<installation>/ui/, and Vuetify gets Studio's Sass settings
+// (studioApp(), ADR 0043).
 // The 3D viewer's parser worker is a module (ADR 0038); its WebAssembly
-// files are assets of the package. The worker reads STEP without
-// `new Function`, which the app's CSP forbids (apps/shared/vite.ts).
+// files are assets of the package. The preset builds occt-import-js
+// without `new Function`, which the app's CSP forbids, in the worker too.
 export default defineConfig({
-  root: 'ui',
-  base: './',
-  plugins: [vue(), vuetifySettings(), occtWithoutEval()],
-  worker: { format: 'es', plugins: () => [occtWithoutEval()] },
+  plugins: [vue(), studioApp()],
   build: {
-    outDir: '../dist/ui',
-    emptyOutDir: true,
     chunkSizeWarningLimit: 8000,
   },
 })

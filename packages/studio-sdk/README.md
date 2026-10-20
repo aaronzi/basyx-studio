@@ -10,6 +10,32 @@ the UI in a sandboxed frame on a separate origin. The app reaches AAS data and
 Studio functions only through this SDK, and only with the permissions it
 declares, limited by the signed-in user's own rights.
 
+```bash
+pnpm add @basyx/studio-sdk
+# Studio's look for Vue and Vuetify, a Vite preset, and `studio-app pack`:
+pnpm add @basyx/studio-app-kit
+```
+
+[`@basyx/studio-app-kit`](../studio-app-kit/README.md) builds on this SDK
+for Vue and Vuetify apps; [`examples/apps/starter`](../../examples/apps/starter)
+is an app in its own repository that uses both
+([ADR 0043](../../docs/adr/0043-published-sdk-and-app-kit.md)).
+
+## Versions
+
+The SDK, `@basyx/studio-app-kit` and `@basyx/model-viewer` are released
+together, independently of Studio, and stay `0.x` until the app API is
+stable. A package version provides one app API version
+(`studioAppApiVersion`); a manifest's `studioApi` range says which Studio
+runs the app, whatever the package version.
+
+| Packages | App API (`studioAppApiVersion`) | First Studio release |
+| --- | --- | --- |
+| 0.1.0 | 0.1.2 | 0.1.0 |
+
+A new app API minor version (new methods) is a new minor version of the
+packages; fixes are patch versions.
+
 ## Manifest
 
 ```json
@@ -129,6 +155,57 @@ without any the view starts full width, half wide from `lg`. Widgets in a
 row share its width and height, so the widths are a starting point; users
 arrange each breakpoint themselves.
 
+## Without Studio: the test transport
+
+`connect()` needs Studio's frame. In a plain dev server and in unit tests,
+`@basyx/studio-sdk/testing` provides a Studio in memory, with your fixtures
+as its data:
+
+```ts
+import { createTestStudio, studioError, testTheme } from '@basyx/studio-sdk/testing'
+
+const studio = createTestStudio({
+  context: { locale: 'de', submodel: { id: 'urn:example:sm:1', semanticId: null } },
+  permissions: ['studio.aas.read'], // optional: refuse what the manifest does not declare
+  handlers: {
+    'studio.aas.getSubmodel': ({ submodelId }) => {
+      const submodel = submodels[submodelId]
+      if (!submodel) {
+        throw studioError('target_resource_not_found', 'No such submodel.', 404)
+      }
+      return submodel
+    },
+  },
+})
+
+const submodel = await studio.client.aas.getSubmodel('urn:example:sm:1')
+studio.setContext({ theme: testTheme(true) }) // as when the user switches to dark mode
+studio.calls // every call the app made
+```
+
+- `context` replaces parts of `testContext()`: a module on a writable target
+  named "Test target", in view mode, English and Studio's light theme.
+- Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
+  (moves `context.subPath` and sends the new context) and `notify`
+  (recorded in `studio.notifications`). Handlers replace them.
+- Parameters and results are copied as a MessagePort copies them, a method
+  without a handler is refused (`unsupported_operation`), and an error a
+  handler throws reaches the app as a `StudioError`.
+
+`StudioClient` sits on a `Transport` (`call`, `onContext`, `close`):
+`connect()` creates the MessagePort transport of `studio-sdk/0`
+(`portTransport`), the test Studio an in-memory one. Neither changes the
+protocol.
+
+To run an app's UI in a dev server, hand the test client to it when the
+page is not in a frame:
+
+```ts
+const client = import.meta.env.DEV && window.parent === window
+  ? (await import('./dev-studio')).createDevStudio().client
+  : await connect()
+```
+
 ## Backend
 
 Declare `"backend": { "runtime": "deno", "entry": "backend/main.js" }` and the
@@ -149,7 +226,8 @@ call.
 
 ## Examples
 
-See [`examples/apps`](../../examples/apps).
+See [`examples/apps`](../../examples/apps); [`starter`](../../examples/apps/starter)
+is built from the published packages.
 
 ## Desktop container capability
 

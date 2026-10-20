@@ -1,5 +1,6 @@
 import type { ElectronOptions } from 'nuxt-electron'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import { locales } from './shared/i18n/locales'
 
 // Shown in Settings; container builds pass the snapshot or release version
@@ -129,7 +130,8 @@ export default defineNuxtConfig({
   vuetify: {
     moduleOptions: {
       prefixComposables: ['useLayout'],
-      styles: { configFile: 'assets/styles/settings.scss' },
+      // Studio's Vuetify Sass settings, shared with its apps (ADR 0043).
+      styles: { configFile: createRequire(import.meta.url).resolve('@basyx/studio-app-kit/settings.scss') },
 
       ssrClientHints: {
         reloadOnFirstRequest: false,
