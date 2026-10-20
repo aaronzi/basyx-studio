@@ -1,12 +1,12 @@
 import type { AppPermission, AppRevocation } from '#shared/contract'
-import type { SigningKey } from './signature'
+import type { SigningKey } from '@basyx/studio-app-kit/signature'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parsePublicKey, parseSignature, SignatureFormatError, verifySignature } from '@basyx/studio-app-kit/signature'
 import { parseDocument } from 'yaml'
 import { z } from 'zod'
 import { StudioProblem } from '../problem'
-import { parsePublicKey, parseSignature, SignatureFormatError, verifySignature } from './signature'
 
 // The trust store (ADR 0044): publishers whose keys may sign app packages,
 // each limited to app ID patterns, read from STUDIO_APPS_TRUSTED_PUBLISHERS.

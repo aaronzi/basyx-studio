@@ -1,11 +1,11 @@
 import type { TrustStore } from '~~/server/lib/apps/trust'
 import type { StudioProblem } from '~~/server/lib/problem'
-import { generateKeyPairSync, randomBytes } from 'node:crypto'
+import { randomBytes } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { parsePublicKey, signPackage } from '@basyx/studio-app-kit/signature'
 import { describe, expect, it } from 'vitest'
-import { parsePublicKey, parseSignature, SignatureFormatError, signPackage, verifySignature } from '~~/server/lib/apps/signature'
 import { installationTrust, matchesAppId, parseTrustStore, TrustStoreError, verifyPackageSignature } from '~~/server/lib/apps/trust'
 import { ConfigurationError, loadStudioConfig } from '~~/server/lib/config'
 import { fixturesDirectory, keyPair, manifestOf, zipApp } from './support'
@@ -26,49 +26,6 @@ function problemOf (action: () => unknown): string {
   }
   return 'accepted'
 }
-
-describe('package signatures', () => {
-  it('verifies the signatures cosign sign-blob writes, plain and as a Sigstore bundle', () => {
-    const key = parsePublicKey(cosignPublicKey)
-    for (const file of ['org.example.signed-1.0.0.zip.sig', 'org.example.signed-1.0.0.zip.bundle']) {
-      const parsed = parseSignature(readFileSync(join(cosign, file), 'utf8'))
-      expect(verifySignature(signedZip, parsed.signature, key.key)).toBe(true)
-    }
-    const bundle = parseSignature(readFileSync(join(cosign, 'org.example.signed-1.0.0.zip.bundle'), 'utf8'))
-    // The key hint of the bundle is the fingerprint Studio records.
-    expect(bundle.keyFingerprint).toBe(key.fingerprint)
-    expect(bundle.digest).toMatch(/^sha256:[0-9a-f]{64}$/)
-  })
-
-  it('writes the same format as cosign', () => {
-    const { privateKey, pem } = keyPair()
-    const signature = signPackage(signedZip, privateKey)
-    expect(signature).toMatch(/^[A-Z0-9+/]+=*$/i)
-    expect(verifySignature(signedZip, parseSignature(`${signature}\n`).signature, parsePublicKey(pem).key)).toBe(true)
-  })
-
-  it('accepts ECDSA P-256 keys only', () => {
-    expect(parsePublicKey(cosignPublicKey).fingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
-    const others = [
-      generateKeyPairSync('ec', { namedCurve: 'P-384' }).publicKey,
-      generateKeyPairSync('ed25519').publicKey,
-      generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey,
-    ]
-    for (const key of others) {
-      expect(() => parsePublicKey(key.export({ type: 'spki', format: 'pem' }).toString())).toThrow(SignatureFormatError)
-    }
-    expect(() => parsePublicKey('not a key')).toThrow(SignatureFormatError)
-  })
-
-  it('refuses malformed signatures', () => {
-    expect(() => parseSignature('')).toThrow('empty')
-    expect(() => parseSignature('not base64!')).toThrow('base64')
-    expect(() => parseSignature('{"mediaType":"application/json"}')).toThrow('message signature')
-    expect(() => parseSignature('{')).toThrow('neither')
-    expect(() => parseSignature('A'.repeat(17 * 1024))).toThrow('16 KiB')
-    expect(verifySignature(signedZip, Buffer.from('garbage'), parsePublicKey(cosignPublicKey).key)).toBe(false)
-  })
-})
 
 describe('the trust store', () => {
   it('reads keys inline and from files next to it, with patterns and grants', () => {

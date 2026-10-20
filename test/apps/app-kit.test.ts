@@ -1,18 +1,18 @@
 import type { Finding } from '@basyx/studio-app-kit/manifest'
 import { execFileSync } from 'node:child_process'
 import { createHash, generateKeyPairSync, randomBytes, verify } from 'node:crypto'
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { checkPackage, packApp } from '@basyx/studio-app-kit/package'
-import { keyFingerprint, signPackage, verifyPackageSignature } from '@basyx/studio-app-kit/signature'
+import { keyFingerprint, parsePublicKey, parseSignature, SignatureFormatError, signPackage, verifyPackageSignature, verifySignature } from '@basyx/studio-app-kit/signature'
 import { strToU8, zipSync } from 'fflate'
 import { afterAll, describe, expect, it } from 'vitest'
 import { readAppPackage } from '~~/server/lib/apps/package'
 import { StudioProblem } from '~~/server/lib/problem'
-import { manifestOf, zipApp } from './support'
+import { fixturesDirectory, keyPair, manifestOf, zipApp } from './support'
 
 // The app kit's package checks, packing and signatures (ADR 0043): the same
 // findings as Studio's upload, and the signature format of the plan's U1.
@@ -206,5 +206,53 @@ describe('the studio-app command from source', () => {
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
+  })
+})
+
+describe('the signatures cosign writes, as Studio reads them', () => {
+  const cosign = join(fixturesDirectory, 'cosign')
+  const signedZip = new Uint8Array(readFileSync(join(cosign, 'org.example.signed-1.0.0.zip')))
+  const cosignPublicKey = readFileSync(join(cosign, 'cosign.pub'), 'utf8')
+
+  it('verifies the signatures cosign sign-blob writes, plain and as a Sigstore bundle', () => {
+    const key = parsePublicKey(cosignPublicKey)
+    for (const file of ['org.example.signed-1.0.0.zip.sig', 'org.example.signed-1.0.0.zip.bundle']) {
+      const text = readFileSync(join(cosign, file), 'utf8')
+      expect(verifySignature(signedZip, parseSignature(text).signature, key.key)).toBe(true)
+      expect(verifyPackageSignature(signedZip, text, cosignPublicKey)).toBe(true)
+    }
+    const bundle = parseSignature(readFileSync(join(cosign, 'org.example.signed-1.0.0.zip.bundle'), 'utf8'))
+    // The key hint of the bundle is the fingerprint Studio records.
+    expect(bundle.keyFingerprint).toBe(key.fingerprint)
+    expect(bundle.digest).toMatch(/^sha256:[0-9a-f]{64}$/)
+  })
+
+  it('writes the same format as cosign', () => {
+    const { privateKey, pem } = keyPair()
+    const signature = signPackage(signedZip, privateKey)
+    expect(signature).toMatch(/^[A-Z0-9+/]+=*$/i)
+    expect(verifySignature(signedZip, parseSignature(`${signature}\n`).signature, parsePublicKey(pem).key)).toBe(true)
+  })
+
+  it('accepts ECDSA P-256 keys only', () => {
+    expect(parsePublicKey(cosignPublicKey).fingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
+    const others = [
+      generateKeyPairSync('ec', { namedCurve: 'P-384' }).publicKey,
+      generateKeyPairSync('ed25519').publicKey,
+      generateKeyPairSync('rsa', { modulusLength: 2048 }).publicKey,
+    ]
+    for (const key of others) {
+      expect(() => parsePublicKey(key.export({ type: 'spki', format: 'pem' }).toString())).toThrow(SignatureFormatError)
+    }
+    expect(() => parsePublicKey('not a key')).toThrow(SignatureFormatError)
+  })
+
+  it('refuses malformed signatures', () => {
+    expect(() => parseSignature('')).toThrow('empty')
+    expect(() => parseSignature('not base64!')).toThrow('base64')
+    expect(() => parseSignature('{"mediaType":"application/json"}')).toThrow('message signature')
+    expect(() => parseSignature('{')).toThrow('neither')
+    expect(() => parseSignature('A'.repeat(17 * 1024))).toThrow('16 KiB')
+    expect(verifySignature(signedZip, Buffer.from('garbage'), parsePublicKey(cosignPublicKey).key)).toBe(false)
   })
 })
