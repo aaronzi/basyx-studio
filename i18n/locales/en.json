@@ -328,6 +328,7 @@
     "app_signature_invalid": "The signature does not match the package with any key of a trusted publisher.",
     "app_signer_not_allowed": "The signer may not publish or update this app.",
     "app_revoked": "This app is no longer trusted by this deployment.",
+    "app_sandbox_not_granted": "The publisher may not publish apps that run code from outside their package.",
     "app_outdated": "The app was updated. Reload it to use the new version."
   },
   "admin": {
@@ -615,6 +616,15 @@
     "sandbox": "Also runs: {list}",
     "sandboxWebAssembly": "WebAssembly (e.g. file parsers)",
     "sandboxWorkers": "background workers",
+    "originKind": {
+      "frameOrigins": "Embeds pages from",
+      "connectOrigins": "Sends requests to",
+      "imageOrigins": "Loads images from",
+      "mediaOrigins": "Loads audio and video from"
+    },
+    "remoteCode": "May run code it loads from these origins (WebAssembly or workers)",
+    "egressNote": "Your browser contacts these origins directly. They learn your address and what you look at, and the app can send them data it reads, in requests and in URLs.",
+    "framesOpaque": "This Studio serves all apps from one origin. Embedded pages run there without cookies or storage, and many of them stay blank.",
     "installHintSigned": "A signed app package (.zip) and its signature (.sig or Sigstore bundle). Trusted publishers: {publishers}.",
     "installHintSignedOrUnsigned": "An app package (.zip) and its signature (.sig or Sigstore bundle). Trusted publishers: {publishers}. Unsigned packages install in developer mode.",
     "signature": "Signature (optional)",
@@ -626,7 +636,8 @@
     "revoked": "Revoked",
     "revokedHint": {
       "keyRemoved": "The key that signed it is no longer trusted. Its views and modules are off until a package signed with a trusted key is installed.",
-      "appIdNotAllowed": "Its publisher may no longer sign this app ID. Its views and modules are off until a package signed with a trusted key is installed."
+      "appIdNotAllowed": "Its publisher may no longer sign this app ID. Its views and modules are off until a package signed with a trusted key is installed.",
+      "remoteCodeNotGranted": "It loads code from other origins, and its publisher is no longer allowed to publish such apps. Its views and modules are off until the trust store grants it again."
     },
     "installTitle": "Install {name} {version}?",
     "updateTitle": "Update {name} to {version}?",
@@ -639,6 +650,7 @@
     "notGranted": "Not granted",
     "notGrantedHint": "This deployment does not grant the permission to the app's publisher, so calls that need it are refused.",
     "permissionsRemoved": "No longer requested: {list}",
+    "originsRemoved": "No longer reaches: {list}",
     "update": "Update",
     "confirmInstall": "Install",
     "updated": "Updated {name} to {version}."

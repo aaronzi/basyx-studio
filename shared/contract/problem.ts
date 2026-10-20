@@ -60,6 +60,8 @@ export const problemCodes = [
   'app_signer_not_allowed',
   /** The key that signed the installed app was removed from the trust store, or no longer covers its app ID. */
   'app_revoked',
+  /** The package combines connect origins with WebAssembly or workers, and its publisher has no `remoteCode` grant (ADR 0045). */
+  'app_sandbox_not_granted',
   /** The calling frame or backend runs an older version of the app than the installed one; reload it. */
   'app_outdated',
   'app_not_found',

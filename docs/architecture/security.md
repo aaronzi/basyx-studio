@@ -110,7 +110,8 @@ AAS content may name a file by its address at another host. Studio's viewers and
 
 App signatures establish artifact integrity and publisher identity; they do not prove that an app is safe. Runtime permissions and isolation remain mandatory.
 
-- UI apps use sandboxed isolated origins and strict content security policy.
+- UI apps use sandboxed isolated origins and strict content security policy. With one origin per installation, frames keep their own origin (`allow-same-origin`); with a shared apps origin, they stay opaque ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)).
+- Third-party origins an app reaches from the browser (embedded pages, keyless public APIs, images, media) are declared in its manifest, shown with a data-egress note, and part of the update's consent. They may not cover Studio's own origins. Connect origins together with WebAssembly or workers need the publisher's `remoteCode` grant in the trust store, because the app could run code that is not in its package.
 - Backend apps use separate constrained runtimes/processes.
 - Capability requests are validated, authorized, and audited.
 - Network plus AAS-read permission receives an explicit data-egress warning.

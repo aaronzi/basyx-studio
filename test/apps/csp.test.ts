@@ -47,11 +47,12 @@ describe('the manifest sandbox', () => {
     const pkg = readAppPackage(zipApp(manifestOf({ sandbox: { webAssembly: true, workers: true } })), 'hosted')
     expect(pkg.manifest.sandbox).toEqual({ webAssembly: true, workers: true })
     const record = { id: 'app-0123456789abcdef', appId: pkg.manifest.id, version: '1.0.0', manifest: pkg.manifest, digest: 'sha256:x', trust: 'unsigned', publisher: null, keyFingerprint: null, bundled: false, managed: false, installedAt: new Date(0), installedBy: 'admin' }
-    expect(toAppInstallation(record as never, emptyTrustStore).sandbox).toEqual({ webAssembly: true, workers: true })
-    expect(toAppInstallation({ ...record, manifest: manifestOf() } as never, emptyTrustStore).sandbox).toEqual({ webAssembly: false, workers: false })
+    const noOrigins = { frameOrigins: [], connectOrigins: [], imageOrigins: [], mediaOrigins: [] }
+    expect(toAppInstallation(record as never, emptyTrustStore).sandbox).toEqual({ webAssembly: true, workers: true, ...noOrigins })
+    expect(toAppInstallation({ ...record, manifest: manifestOf() } as never, emptyTrustStore).sandbox).toEqual({ webAssembly: false, workers: false, ...noOrigins })
   })
 
-  it('accepts nothing but its two switches', () => {
+  it('accepts nothing but its switches and origin lists', () => {
     expect(() => readAppPackage(zipApp(manifestOf({ sandbox: { network: true } as never })), 'hosted'))
       .toThrow(expect.objectContaining({ violations: [{ path: 'studio-app.json#sandbox', message: 'has the unknown property "network"' }] }))
   })

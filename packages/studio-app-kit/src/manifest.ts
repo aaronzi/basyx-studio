@@ -1,7 +1,7 @@
-import type { AppManifest } from '@basyx/studio-sdk/protocol'
+import type { AppManifest, SandboxOriginKind } from '@basyx/studio-sdk/protocol'
 import type { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js'
 import manifestSchema from '@basyx/studio-sdk/app-manifest.schema.json' with { type: 'json' }
-import { studioAppApiVersion } from '@basyx/studio-sdk/protocol'
+import { sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/protocol'
 import addFormats from 'ajv-formats'
 import Ajv2020 from 'ajv/dist/2020.js'
 import semver from 'semver'
@@ -101,6 +101,8 @@ function describe (error: ErrorObject): Finding {
   let message = error.message ?? 'is invalid'
   if (error.keyword === 'additionalProperties') {
     message = `has the unknown property ${JSON.stringify(error.params.additionalProperty)}`
+  } else if (error.keyword === 'pattern' && /^\/sandbox\/\w+Origins\/\d+$/.test(error.instancePath)) {
+    message = 'must be an origin in lower case without a path: https://host[:port], optionally https://*.example.org, or http:// for localhost, names below .localhost or 127.0.0.1. IPv6 literals such as [::1] cannot be used in a Content Security Policy; use localhost'
   } else if (error.keyword === 'enum') {
     message = `must be one of ${(error.params.allowedValues as unknown[]).map(value => JSON.stringify(value)).join(', ')}`
   }
@@ -160,7 +162,101 @@ export function checkManifestConsistency (manifest: AppManifest, files: Readonly
   } else if (hasBackendPermission) {
     findings.push({ path: `${manifestFileName}#permissions`, message: 'requests studio.backend, but the app has no backend' })
   }
+  for (const kind of sandboxOriginKinds) {
+    for (const [index, origin] of (manifest.sandbox?.[kind] ?? []).entries()) {
+      const port = Number(/:(\d+)$/.exec(origin)?.[1] ?? 0)
+      if (port > 65_535) {
+        findings.push({ path: `${manifestFileName}#sandbox.${kind}[${index}]`, message: `has the port ${port}, which does not exist` })
+      }
+    }
+  }
+  findings.push(...checkFeatureVersions(manifest))
   return findings
+}
+
+/** Manifest fields that older Studios do not know, with the app API version that brought them. */
+function usedFeatures (manifest: AppManifest): { path: string, since: string }[] {
+  const features: { path: string, since: string }[] = []
+  for (const kind of sandboxOriginKinds) {
+    if (manifest.sandbox?.[kind] !== undefined) {
+      features.push({ path: `sandbox.${kind}`, since: '0.1.3' })
+    }
+  }
+  for (const [index, module] of (manifest.contributes.modules ?? []).entries()) {
+    if (module.layout !== undefined) {
+      features.push({ path: `contributes.modules[${index}].layout`, since: '0.1.3' })
+    }
+  }
+  return features
+}
+
+/**
+ * A manifest that uses a newer field must not claim to run on an app API
+ * without it: an older Studio would refuse the unknown property with a less
+ * helpful message (ADR 0045).
+ */
+function checkFeatureVersions (manifest: AppManifest): Finding[] {
+  const lowest = semver.validRange(manifest.studioApi) ? semver.minVersion(manifest.studioApi) : null
+  if (!lowest) {
+    return []
+  }
+  return usedFeatures(manifest)
+    .filter(feature => semver.lt(lowest, feature.since))
+    .map(feature => ({ path: `${manifestFileName}#studioApi`, message: `allows Studio app API ${lowest.version}, but ${feature.path} needs ${feature.since}; declare ^${feature.since}` }))
+}
+
+/**
+ * Loopback origins (`http://localhost`, …) are for development; hosted Studio
+ * accepts them in developer mode only. IPv6 literals such as `[::1]` are not
+ * origins a manifest may name: CSP ignores them as invalid sources.
+ */
+export function isLoopbackOrigin (origin: string): boolean {
+  return /^http:\/\/(?:localhost|(?:[a-z0-9-]+\.)+localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)
+}
+
+/**
+ * Whether a manifest origin entry (`https://*.example.org`, ADR 0045) covers
+ * an origin, as a CSP host source does. The wildcard matches subdomains at
+ * any depth, not the domain itself. An entry without a port means the
+ * scheme's default port. An `http:` entry also covers `https:` on port 443,
+ * if it has no port or port 80 (CSP's scheme and port upgrade; Chromium does
+ * not upgrade other ports).
+ */
+export function originCovers (entry: string, origin: string): boolean {
+  const match = /^(https?):\/\/(\*\.)?([^:]+)(?::(\d+))?$/.exec(entry)
+  const target = URL.parse(origin)
+  if (!match || !target) {
+    return false
+  }
+  const [, scheme, wildcard, host, port] = match
+  const defaultPort = (protocol: string) => protocol === 'https' ? '443' : '80'
+  const targetScheme = target.protocol.slice(0, -1)
+  const targetPort = target.port || defaultPort(targetScheme)
+  let portMatches: boolean
+  if (targetScheme === scheme) {
+    portMatches = targetPort === (port ?? defaultPort(scheme))
+  } else if (scheme === 'http' && targetScheme === 'https') {
+    portMatches = targetPort === '443' && (port === undefined || port === '80')
+  } else {
+    return false
+  }
+  return portMatches && (wildcard ? target.hostname.endsWith(`.${host}`) : target.hostname === host)
+}
+
+/** The origins a manifest declares, per kind (ADR 0045). */
+export function sandboxOrigins (manifest: AppManifest): Record<SandboxOriginKind, string[]> {
+  return Object.fromEntries(sandboxOriginKinds.map(kind => [kind, [...(manifest.sandbox?.[kind] ?? [])]])) as Record<SandboxOriginKind, string[]>
+}
+
+/**
+ * Whether the app could run code that is not in its package (ADR 0045):
+ * WebAssembly compiled from, or a `blob:` worker started with, what it
+ * fetched from a connect origin. Studio installs such apps only when they are
+ * bundled or their publisher is granted `remoteCode` in the trust store.
+ */
+export function needsRemoteCodeGrant (manifest: AppManifest): boolean {
+  const sandbox = manifest.sandbox ?? {}
+  return (sandbox.connectOrigins?.length ?? 0) > 0 && Boolean(sandbox.webAssembly || sandbox.workers)
 }
 
 export interface CompatibilityOptions {

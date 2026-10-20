@@ -1,7 +1,8 @@
 # BaSyx Studio as a hosted deployment would run it (ADR 0035 to 0037):
 #
 # - Caddy serves Studio under http://studio.localhost:8080/studio/, Keycloak
-#   under /auth, and the apps origin http://apps.studio.localhost:8080.
+#   under /auth, and one apps origin per installation below
+#   http://*.apps.studio.localhost:8080 (ADR 0045).
 # - Studio keeps its metadata in PostgreSQL, logs in with Keycloak, reads its
 #   data key from a file (a Docker secret) and declares one infrastructure.
 # - A BaSyx Go AAS environment serves as that infrastructure.
@@ -30,7 +31,6 @@ services:
       default:
         aliases:
           - studio.localhost
-          - apps.studio.localhost
     restart: unless-stopped
 
   studio:
@@ -38,8 +38,10 @@ services:
     environment:
       STUDIO_BASE_PATH: /studio
       STUDIO_PUBLIC_URL: http://studio.localhost:8080/studio
-      # The apps origin is routed to this same service by the proxy (ADR 0017).
-      STUDIO_APPS_URL: http://apps.studio.localhost:8080
+      # One apps origin per installation (ADR 0045), routed to this same
+      # service by the proxy's wildcard site. http://apps.studio.localhost:8080
+      # would serve every app from one shared, opaque origin (ADR 0017).
+      STUDIO_APPS_URL: http://{installation}.apps.studio.localhost:8080
       STUDIO_DATABASE_URL: postgres://studio:${STUDIO_DB_PASSWORD:?set STUDIO_DB_PASSWORD in .env}@postgres:5432/studio
       STUDIO_DATA_KEY_FILE: /run/secrets/studio_data_key
       STUDIO_OIDC_ISSUER: http://studio.localhost:8080/auth/realms/basyx-studio

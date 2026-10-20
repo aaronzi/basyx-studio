@@ -19,8 +19,10 @@ services:
       - "127.0.0.1:${STUDIO_PORT:-3000}:3000"
     environment:
       STUDIO_PUBLIC_URL: http://localhost:${STUDIO_PORT:-3000}
-      # Apps run on a separate origin (ADR 0017); *.localhost is loopback.
-      STUDIO_APPS_URL: http://apps.localhost:${STUDIO_PORT:-3000}
+      # Each installation runs on an origin of its own (ADR 0045), e.g.
+      # http://app-0123456789abcdef.apps.localhost:3000. The browser resolves
+      # every name below .localhost to loopback, so no DNS entry is needed.
+      STUDIO_APPS_URL: http://{installation}.apps.localhost:${STUDIO_PORT:-3000}
       # Example only: generate your own (see docs/deployment).
       STUDIO_DATA_KEY: ${STUDIO_DATA_KEY:-c2lnbmVkLWFwcC1leGFtcGxlLWRhdGEta2V5LTAwMDA}
       STUDIO_AUTH_MODE: none

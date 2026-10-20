@@ -1,0 +1,19 @@
+{
+  "manifestVersion": 0,
+  "id": "org.example.origin-probe",
+  "version": "1.0.0",
+  "publisher": { "name": "Studio tests" },
+  "title": { "en": "Origin probe" },
+  "studioApi": "^0.1.3",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": [],
+  "sandbox": {
+    "frameOrigins": ["http://embed.localhost:3402"],
+    "connectOrigins": ["http://embed.localhost:3402"]
+  },
+  "contributes": {
+    "modules": [
+      { "id": "probe", "title": { "en": "Origin probe" }, "entry": "ui/index.html", "route": "probe", "context": "global", "layout": "fullPage" }
+    ]
+  }
+}

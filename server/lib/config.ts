@@ -3,6 +3,7 @@ import type { TrustStore } from './apps/trust'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { z } from 'zod'
+import { appsHostOf, installationPlaceholder } from './apps/origins'
 import { emptyTrustStore, parseTrustStore, TrustStoreError } from './apps/trust'
 
 const csv = z
@@ -75,8 +76,10 @@ export interface StudioOidcConfig {
 export interface StudioAppsConfig {
   /**
    * Base URL that app files are served under, ending in `/`: the separate
-   * apps origin when hosted, the `studio-app:` protocol on desktop. `null`
-   * when no apps origin is configured, which disables apps.
+   * apps origin when hosted, the `studio-app:` protocol on desktop. Its host
+   * may start with `{installation}.` for one origin per installation
+   * (ADR 0045; see `apps/origins.ts`). `null` when no apps origin is
+   * configured, which disables apps.
    */
   baseUrl: string | null
   /** Whether unsigned (developer-mode) packages may be installed. */
@@ -323,12 +326,8 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
   if (deploymentMode === 'desktop') {
     appsBaseUrl = 'studio-app://'
   } else if (values.STUDIO_APPS_URL) {
-    const appsOrigin = new URL(values.STUDIO_APPS_URL).origin
-    if (appsOrigin === publicUrl) {
-      throw new ConfigurationError('STUDIO_APPS_URL must be a different origin than STUDIO_PUBLIC_URL (ADR 0017).')
-    }
     // The apps origin is routed to this same service, so it shares the base path.
-    appsBaseUrl = `${appsOrigin}${base}app/`
+    appsBaseUrl = `${appsOriginOf(values.STUDIO_APPS_URL, publicUrl)}${base}app/`
   }
 
   return {
@@ -365,6 +364,29 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
     uploadMaxBytes: values.STUDIO_UPLOAD_MAX_BYTES,
     containers: deploymentMode === 'desktop' ? { dataDir: resolve(values.STUDIO_DATA_DIR, 'containers') } : null,
   }
+}
+
+/**
+ * The apps origin of STUDIO_APPS_URL: one shared origin (ADR 0017), or one
+ * per installation when the host starts with `{installation}.` (ADR 0045).
+ */
+function appsOriginOf (value: string, publicUrl: string): string {
+  const url = new URL(value)
+  const placeholders = value.split(installationPlaceholder).length - 1
+  if (placeholders === 0) {
+    if (url.origin === publicUrl) {
+      throw new ConfigurationError('STUDIO_APPS_URL must be a different origin than STUDIO_PUBLIC_URL (ADR 0017).')
+    }
+    return url.origin
+  }
+  if (placeholders > 1 || !url.host.startsWith(`${installationPlaceholder}.`) || url.host.split('.').length < 2) {
+    throw new ConfigurationError('STUDIO_APPS_URL may name {installation} only as the first label of its host, e.g. https://{installation}.apps.example.org (ADR 0045).')
+  }
+  const origin = `${url.protocol}//${url.host}`
+  if (appsHostOf(`${origin}/`, new URL(publicUrl).host)) {
+    throw new ConfigurationError('STUDIO_APPS_URL must not match the host of STUDIO_PUBLIC_URL (ADR 0045).')
+  }
+  return origin
 }
 
 /** The listed origins; by default any on desktop, where the user's own machine fetches, and none when hosted. */

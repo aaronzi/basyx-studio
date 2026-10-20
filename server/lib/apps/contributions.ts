@@ -1,10 +1,6 @@
 import type { AppContributions } from '#shared/contract'
 import type { AppInstallationRecord } from './store'
-
-/** The URL of a file of an installation on the app origin. */
-export function appFileUrl (baseUrl: string, installationId: string, path: string): string {
-  return `${baseUrl}${installationId}/${path}`
-}
+import { appFileUrl, appFrameOrigin } from './origins'
 
 /**
  * The contributions of the installed apps. Modules are returned always; the
@@ -24,6 +20,7 @@ export function contributionsFor (installations: AppInstallationRecord[], baseUr
       digest: installation.digest,
       unsigned: installation.trust === 'unsigned',
       bundled: installation.bundled,
+      frameOrigin: appFrameOrigin(baseUrl, installation.id),
     }
     for (const semanticId of semanticIds) {
       for (const view of manifest.contributes.submodelViews ?? []) {
@@ -49,6 +46,7 @@ export function contributionsFor (installations: AppInstallationRecord[], baseUr
         icon: module.icon ?? null,
         route: module.route,
         context: module.context,
+        layout: module.layout ?? 'standard',
         entryUrl: appFileUrl(baseUrl, installation.id, module.entry),
       })
     }

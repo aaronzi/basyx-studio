@@ -213,9 +213,15 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
 
   function onMessage (event: MessageEvent) {
     const window = frame.value?.contentWindow
+    // The frame's own origin, when the installation has one (ADR 0045);
+    // otherwise its origin is opaque and cannot be named.
+    const frameOrigin = options.contribution().frameOrigin
     // A queued hello from the previous document has the same WindowProxy.
     // Do not give it the next document's port during a forced entry reload.
     if (!window || event.source !== window || handedOut || reloading || !appHelloSchema.safeParse(event.data).success) {
+      return
+    }
+    if (frameOrigin && event.origin !== frameOrigin) {
       return
     }
     handedOut = true
@@ -224,11 +230,12 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     port = channel.port1
     port.addEventListener('message', event => void onRequest(event))
     port.start()
-    // The frame's origin is opaque, so it cannot be named as target origin;
-    // the message goes to this frame's window only.
+    // An opaque origin cannot be named as target origin; the message goes to
+    // this frame's window only. A frame with its own origin gets the port
+    // only while it still shows a document of that origin.
     const context = options.context()
     lastContext = JSON.stringify(context)
-    window.postMessage({ protocol: appProtocol, type: 'connect', context }, '*', [channel.port2])
+    window.postMessage({ protocol: appProtocol, type: 'connect', context }, frameOrigin ?? '*', [channel.port2])
     connected.value = true
   }
 

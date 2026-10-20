@@ -128,7 +128,7 @@ Studio Service serves both roles ([ADR 0017](../adr/0017-app-origin-and-content-
 
 | Setting | Purpose |
 | --- | --- |
-| `STUDIO_APPS_URL` | Origin app files are served from, e.g. `https://apps.studio.example`. Route it to the same Studio Service; it must differ from `STUDIO_PUBLIC_URL`. Without it, apps are disabled. |
+| `STUDIO_APPS_URL` | Origin app files are served from: one per installation, e.g. `https://{installation}.apps.studio.example` ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md)), or one shared, e.g. `https://apps.studio.example`. Route it to the same Studio Service; it must differ from `STUDIO_PUBLIC_URL`. Without it, apps are disabled. |
 | `STUDIO_APPS_ALLOW_UNSIGNED` | `true` allows developer-mode installs of unsigned packages. Defaults to `false` when hosted. |
 | `STUDIO_APPS_TRUSTED_PUBLISHERS` | Trust store of publisher keys per app ID; signed packages install without developer mode ([ADR 0044](../adr/0044-app-package-signatures-trust-store-and-updates.md)). |
 | `STUDIO_APP_PACKAGES` | Packages the deployment installs and updates at startup, each with an optional `.sig`. |
@@ -146,8 +146,11 @@ are on the apps origin:
   apps; the service's own policy must not be removed or replaced either, or an
   app file opened in a tab is no longer sandboxed;
 - `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy:
-  cross-origin` kept, since the frames' opaque origin loads module scripts as
-  CORS requests;
+  cross-origin` kept, since with a shared apps origin the frames' opaque
+  origin loads module scripts as CORS requests;
+- with one origin per installation, a wildcard host (`*.apps.studio.example`)
+  and a wildcard certificate, all routed to the service, which serves each
+  installation only on its own host;
 - no `Domain` attribute on the session cookie, so it never reaches the apps
   origin.
 

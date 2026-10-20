@@ -38,7 +38,7 @@ function overviewUrl (targetId: string, shell: string) {
 
 /** The frame of an app view or module, by its contribution title (bundled nameplate view: "Digital Nameplate"). */
 function appFrame (page: Page, title?: string): FrameLocator {
-  return page.frameLocator(title ? `iframe[title="App: ${title}"]` : 'iframe[sandbox="allow-scripts"]')
+  return page.frameLocator(title ? `iframe[title="App: ${title}"]` : 'iframe[sandbox^="allow-scripts"]')
 }
 
 /** The bundled nameplate app's view on the shell overview, in edit mode: it edits only there. */

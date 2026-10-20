@@ -25,7 +25,7 @@
       :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1', connected ? undefined : 'opacity-0']"
       :height="fit ? (height ?? 480) : undefined"
       referrerpolicy="no-referrer"
-      sandbox="allow-scripts"
+      :sandbox="contribution.frameOrigin ? 'allow-scripts allow-same-origin' : 'allow-scripts'"
       :src="contribution.entryUrl"
       :title="t('apps.frameTitle', { name: label(contribution.title) })"
       @load="onLoad"
@@ -63,9 +63,11 @@
   import { useTheme } from 'vuetify'
   import { appProtocol } from '#shared/contract'
 
-  // A sandboxed app frame (ADR 0017): no same-origin access, popups, forms or
-  // top navigation. Key it by target (and submodel), so a new target always
-  // gets a new frame and never sees the previous target's data.
+  // A sandboxed app frame (ADR 0017): no popups, forms or top navigation, and
+  // an opaque origin, unless the installation has an origin of its own
+  // (ADR 0045), which it then keeps, so pages it embeds keep theirs. Key it by
+  // target (and submodel), so a new target always gets a new frame and never
+  // sees the previous target's data.
   const props = defineProps<{
     contribution: AppContributionInfo
     target: Target | null

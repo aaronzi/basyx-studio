@@ -248,6 +248,7 @@
     "app_signature_invalid": "La signature ne correspond au paquet avec aucune clé d’un éditeur de confiance.",
     "app_signer_not_allowed": "Le signataire ne peut pas publier ni mettre à jour cette app.",
     "app_revoked": "Ce déploiement ne fait plus confiance à cette app.",
+    "app_sandbox_not_granted": "L’éditeur ne peut pas publier d’apps qui exécutent du code venant d’ailleurs que leur paquet.",
     "app_outdated": "L’app a été mise à jour. Rechargez-la pour utiliser la nouvelle version."
   },
   "admin": {
@@ -535,7 +536,8 @@
     "revoked": "Révoquée",
     "revokedHint": {
       "keyRemoved": "La clé qui l’a signée n’est plus de confiance. Ses vues et modules sont désactivés jusqu’à l’installation d’un paquet signé avec une clé de confiance.",
-      "appIdNotAllowed": "Son éditeur ne peut plus signer cet ID d’app. Ses vues et modules sont désactivés jusqu’à l’installation d’un paquet signé avec une clé de confiance."
+      "appIdNotAllowed": "Son éditeur ne peut plus signer cet ID d’app. Ses vues et modules sont désactivés jusqu’à l’installation d’un paquet signé avec une clé de confiance.",
+      "remoteCodeNotGranted": "Elle charge du code depuis d’autres origines, et son éditeur n’a plus le droit de publier de telles apps. Ses vues et modules sont désactivés jusqu’à ce que le magasin de confiance l’autorise de nouveau."
     },
     "installTitle": "Installer {name} {version} ?",
     "updateTitle": "Mettre à jour {name} vers {version} ?",
@@ -548,9 +550,19 @@
     "notGranted": "Non accordée",
     "notGrantedHint": "Ce déploiement n’accorde pas cette autorisation à l’éditeur de l’app ; les appels qui en ont besoin sont refusés.",
     "permissionsRemoved": "Plus demandé : {list}",
+    "originsRemoved": "N’accède plus à : {list}",
     "update": "Mettre à jour",
     "confirmInstall": "Installer",
-    "updated": "{name} mise à jour vers {version}."
+    "updated": "{name} mise à jour vers {version}.",
+    "originKind": {
+      "frameOrigins": "Intègre des pages de",
+      "connectOrigins": "Envoie des requêtes à",
+      "imageOrigins": "Charge des images de",
+      "mediaOrigins": "Charge de l’audio et de la vidéo de"
+    },
+    "remoteCode": "Peut exécuter du code qu’elle charge depuis ces origines (WebAssembly ou workers)",
+    "egressNote": "Votre navigateur contacte directement ces origines. Elles apprennent votre adresse et ce que vous consultez, et l’app peut leur envoyer des données qu’elle lit, dans des requêtes et dans des URL.",
+    "framesOpaque": "Ce Studio sert toutes les apps depuis une seule origine. Les pages intégrées y fonctionnent sans cookies ni stockage, et beaucoup restent vides."
   },
   "nav": {
     "targets": "Cibles AAS",

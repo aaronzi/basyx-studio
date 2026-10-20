@@ -219,7 +219,22 @@ function isolateApps (rendererSession: Electron.Session, url: string, launchSecr
   rendererSession.setPermissionCheckHandler((_contents, _permission, requestingOrigin) => requestingOrigin === rendererOrigin)
 }
 
-/** Subframes may load app entries and stay within their installation; nothing else. */
+/** Whether a frame is nested in an app frame, at any depth. */
+function insideAppFrame (frame: Electron.WebFrameMain | null | undefined): boolean {
+  for (let parent = frame?.parent; parent; parent = parent.parent) {
+    if (parent.url.startsWith(`${appScheme}:`)) {
+      return true
+    }
+  }
+  return false
+}
+
+/**
+ * Subframes may load app entries and stay within their installation. Pages
+ * an app embeds (ADR 0045) may load http(s) URLs: the app's `frame-src`
+ * decides which, and Chromium checks it before the request is sent.
+ * Nothing else.
+ */
 function guardFrameNavigation (win: BrowserWindow, url: string): void {
   const rendererOrigin = new URL(url).origin
   win.webContents.on('will-frame-navigate', event => {
@@ -230,6 +245,7 @@ function guardFrameNavigation (win: BrowserWindow, url: string): void {
     const current = event.frame?.url ? new URL(event.frame.url) : null
     const allowed = next.origin === rendererOrigin
       || (next.protocol === `${appScheme}:` && (current?.protocol !== `${appScheme}:` || current.hostname === next.hostname))
+      || ((next.protocol === 'https:' || next.protocol === 'http:') && current?.protocol !== `${appScheme}:` && insideAppFrame(event.frame))
     if (!allowed) {
       event.preventDefault()
     }

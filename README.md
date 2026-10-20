@@ -89,8 +89,11 @@ test realm only) and register the test targets under *Infrastructures*; see
 [test-setup/README.md](test-setup/README.md#targets-for-studio).
 
 Apps (MVP-3) are served from a separate origin, `http://apps.localhost:3000`
-in development (`STUDIO_APPS_URL` in `.env.example`). Build the example apps
-and install the packages from `examples/apps/dist/` under *Apps*:
+in development (`STUDIO_APPS_URL` in `.env.example`), or from one origin per
+installation with `http://{installation}.apps.localhost:3000`, which apps that
+embed pages need ([ADR 0045](docs/adr/0045-app-origins-embeds-and-full-page-modules.md)).
+Build the example apps and install the packages from `examples/apps/dist/`
+under *Apps*:
 
 ```sh
 pnpm apps:build

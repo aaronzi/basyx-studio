@@ -201,10 +201,13 @@ async function installations () {
   return body.items
 }
 
-/** A file from the apps origin, which is routed to the same service. */
-function appFile (installationId) {
+/**
+ * A file from the installation's own apps origin (ADR 0045), which is routed
+ * to the same service; `host` names another installation's origin instead.
+ */
+function appFile (installationId, host = installationId) {
   return new Promise((resolve, reject) => {
-    const req = request({ host: '127.0.0.1', port, path: `/app/${installationId}/ui/index.html`, headers: { Host: `apps.localhost:${port}` } }, response => {
+    const req = request({ host: '127.0.0.1', port, path: `/app/${installationId}/ui/index.html`, headers: { Host: `${host}.apps.localhost:${port}` } }, response => {
       let text = ''
       response.on('data', chunk => (text += chunk))
       response.on('end', () => resolve({ status: response.statusCode, text }))
@@ -264,6 +267,7 @@ async function run () {
   check(installed.status === 201 && installed.body.trust === 'signed', `the signed install answered ${installed.status}: ${JSON.stringify(installed.body)}`)
   const { id } = installed.body
   check((await appFile(id)).text.includes('version 1.0.0'), 'the app origin does not serve version 1.0.0')
+  check((await appFile(id, 'app-0000000000000000')).status === 404, 'another installation\'s origin serves the app')
   console.log(`Signed install without developer mode: ${id}, ${installed.body.keyFingerprint}`)
 
   const update = await upload(v11, v11Signature, true)

@@ -25,7 +25,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0014](0014-workspace-worker-and-package-engine.md) | Accepted | Supervised Workspace Worker process; aas-package3-typescript with archive checks |
 | [0015](0015-desktop-native-bridge-and-file-grants.md) | Accepted | Two-call preload bridge; single-use file grants from the Electron main process |
 | [0016](0016-app-manifest-and-packages.md) | Accepted, amended by 0044 | Versioned JSON Schema manifest; packages checked completely and stored content-addressed |
-| [0017](0017-app-origin-and-content-security-policy.md) | Accepted | Sandboxed frames on a separate apps origin or `studio-app:` protocol, strict CSP |
+| [0017](0017-app-origin-and-content-security-policy.md) | Accepted, amended by 0045 | Sandboxed frames on a separate apps origin or `studio-app:` protocol, strict CSP |
 | [0018](0018-capability-bridge-and-authorization.md) | Accepted | `studio-sdk/0` MessagePort bridge; manifest permissions plus the user's own rights |
 | [0019](0019-backend-app-runner.md) | Accepted | Deno process per backend, deny-by-default, short-lived capability tokens |
 | [0020](0020-infrastructure-templates-registries-and-sync.md) | Accepted | Infrastructure templates, registry resolution under the base-URL rule, sync after writes |
@@ -46,13 +46,14 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0035](0035-container-image-and-base-path.md) | Accepted | One multi-arch container image, configured by environment, served under a runtime base path |
 | [0036](0036-anonymous-mode.md) | Accepted | Hosted Studio without login: per-browser sessions as the shared `anonymous` user |
 | [0037](0037-declared-infrastructures-export-and-import.md) | Accepted | Infrastructures declared in a YAML file, applied at startup and read-only; export and import in the same format |
-| [0038](0038-webassembly-workers-and-file-reads-for-apps.md) | Proposed | `studio.ui.readFile`, and WebAssembly and `blob:` workers for app frames that declare them |
+| [0038](0038-webassembly-workers-and-file-reads-for-apps.md) | Proposed, amended by 0045 | `studio.ui.readFile`, and WebAssembly and `blob:` workers for app frames that declare them |
 | [0039](0039-3d-viewer-libraries.md) | Proposed | three.js, web-ifc and OpenCascade (occt-import-js) for the 3D view of File elements |
 | [0040](0040-connections-on-infrastructures.md) | Proposed | Connections to third-party services on infrastructures, used only by Studio-side adapters; `studio.timeseries.read` |
 | [0041](0041-apexcharts-for-time-series.md) | Proposed | ApexCharts in the bundled Time Series Data app, not in Studio |
 | [0042](0042-external-files-through-studio.md) | Proposed | Files that AAS content names at other hosts, fetched by Studio's server for origins the deployment lists |
 | [0043](0043-published-sdk-and-app-kit.md) | Proposed | `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer` on npm with provenance; a test transport; the `studio-app` command |
 | [0044](0044-app-package-signatures-trust-store-and-updates.md) | Proposed | cosign-compatible package signatures, a trust store of publisher keys per app ID, in-place updates with consent, managed packages |
+| [0045](0045-app-origins-embeds-and-full-page-modules.md) | Proposed | One origin per app installation; declared frame, connect, image and media origins; full-page modules |
 
 ## Template
 

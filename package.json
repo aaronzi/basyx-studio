@@ -36,6 +36,7 @@
     "test:integration": "STUDIO_TESTENV=1 vitest run",
     "test:e2e:web": "playwright test -c test/e2e/web.config.ts",
     "test:e2e:desktop": "playwright test -c test/e2e/desktop.config.ts",
+    "test:e2e:origins": "playwright test -c test/e2e/origins.config.ts",
     "build:electron:dir": "pnpm build:electron:app && electron-builder --dir --publish never"
   },
   "dependencies": {

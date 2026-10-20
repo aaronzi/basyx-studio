@@ -7,6 +7,7 @@ import { appInstallations } from '../../database/schema'
 import { recordAudit } from '../audit'
 import { StudioProblem } from '../problem'
 import { appArchiveLimits, readAppPackage } from './package'
+import { checkSandbox } from './sandbox'
 import { bundledOnlyPermissions, listInstallations, lockAppId, managedInstaller, newInstallationId, removeInstallation, sourceOf, writeInstallation } from './store'
 import { verifyPackageSignature } from './trust'
 
@@ -76,6 +77,8 @@ export async function installManagedApp (deps: StudioDeps, item: ManagedPackage,
     throw new StudioProblem('app_package_rejected', `${reserved.join(', ')} is reserved for the apps shipped with Studio (ADR 0033).`)
   }
   const signer = item.signature === null ? null : verifyPackageSignature(deps.config.apps.trustStore, item.bytes, item.signature, pkg.manifest.id)
+  // The operator vouches for the package, but not for the deployment's own origins or code from elsewhere.
+  checkSandbox(deps.config, pkg.manifest, { publisher: signer?.publisher ?? null, developerMode: false })
   const source = sourceOf(signer, 'managed', { bundled: false, managed: true, installedBy: managedInstaller })
 
   const result = await deps.db.transaction(async tx => {

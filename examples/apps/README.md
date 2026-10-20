@@ -7,6 +7,7 @@ Studio apps that prove the app platform (MVP-3, [ADR 0004](../../docs/adr/0004-r
 | `shell-explorer` | Target module with nested routes; shell module | read, navigation |
 | `backend-demo` | Target module with a Deno backend | read, backend |
 | `fleet-atlas` | Target module with a Deno backend: a zoomable map of the fleet with lenses, questions in plain language and fleet-wide fixes ([README](fleet-atlas/README.md)) | read, write, notifications, backend |
+| `public-embeds` | Full-page global module (`layout: fullPage`) that embeds a public map and reads the weather from a keyless public API (`sandbox.frameOrigins`, `connectOrigins`, [ADR 0045](../../docs/adr/0045-app-origins-embeds-and-full-page-modules.md)). The map needs one apps origin per installation (`STUDIO_APPS_URL=http://{installation}.apps.localhost:3000`) to work reliably | navigation |
 | `starter` | Target module with nested routes, built as an app in its own repository: from the published packages, with a dev server and tests on the test Studio ([README](starter/README.md)) | read, navigation |
 
 The Digital Nameplate example became Studio's bundled `apps/nameplate` in

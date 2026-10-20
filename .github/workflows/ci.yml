@@ -242,6 +242,11 @@ jobs:
       - name: End-to-end tests (hosted web)
         run: pnpm test:e2e:web
 
+      # One origin per installation and a shared apps origin (ADR 0045), on
+      # two Studios without login; no test environment needed.
+      - name: End-to-end tests (app origins)
+        run: pnpm test:e2e:origins
+
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -250,6 +255,8 @@ jobs:
           path: |
             playwright-report/web
             test-results/web
+            playwright-report/origins
+            test-results/origins
           retention-days: 7
 
       - name: Dump test environment logs on failure

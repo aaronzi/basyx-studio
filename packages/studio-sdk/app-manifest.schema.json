@@ -61,12 +61,16 @@
       }
     },
     "sandbox": {
-      "description": "What the app's pages may run beyond scripts. An administrator sees both at install.",
+      "description": "What the app's pages may run and reach beyond their own files. An administrator sees all of it at install. The origin lists need Studio app API 0.1.3.",
       "type": "object",
       "additionalProperties": false,
       "properties": {
         "webAssembly": { "description": "Compile and run WebAssembly modules, e.g. file parsers.", "type": "boolean" },
-        "workers": { "description": "Start dedicated workers from blob: URLs, e.g. to parse large files off the page.", "type": "boolean" }
+        "workers": { "description": "Start dedicated workers from blob: URLs, e.g. to parse large files off the page.", "type": "boolean" },
+        "frameOrigins": { "description": "Origins of pages the app embeds in frames (CSP frame-src).", "$ref": "#/$defs/origins" },
+        "connectOrigins": { "description": "Origins of keyless public APIs the app reads with fetch (CSP connect-src). Together with webAssembly or workers, only for publishers the trust store grants remoteCode.", "$ref": "#/$defs/origins" },
+        "imageOrigins": { "description": "Origins of images the app shows, e.g. map tiles (CSP img-src).", "$ref": "#/$defs/origins" },
+        "mediaOrigins": { "description": "Origins of audio and video the app plays (CSP media-src).", "$ref": "#/$defs/origins" }
       }
     },
     "contributes": {
@@ -147,6 +151,17 @@
       }
     },
     "columns": { "type": "integer", "minimum": 3, "maximum": 12 },
+    "origins": {
+      "type": "array",
+      "maxItems": 16,
+      "uniqueItems": true,
+      "items": {
+        "description": "An origin in lower case: https://host[:port], where the host may start with one *. label followed by at least two labels (https://*.example.org), or http:// for loopback hosts (localhost, names below .localhost, 127.0.0.1) during development. IPv6 literals are not accepted: a Content Security Policy cannot name them.",
+        "type": "string",
+        "maxLength": 300,
+        "pattern": "^(https://(\\*\\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?|http://(localhost|([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+localhost|127\\.0\\.0\\.1))(:[1-9][0-9]{0,4})?$"
+      }
+    },
     "module": {
       "description": "A page with its own route and navigation entry. context: global (always), target (a target is open), shell (a shell is selected).",
       "type": "object",
@@ -158,7 +173,11 @@
         "icon": { "type": "string", "pattern": "^mdi-[a-z0-9-]{1,64}$" },
         "entry": { "$ref": "#/$defs/htmlPath" },
         "route": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
-        "context": { "enum": ["global", "target", "shell"] }
+        "context": { "enum": ["global", "target", "shell"] },
+        "layout": {
+          "description": "standard (default): in a card below a header with breadcrumbs. fullPage: the frame fills the page from the navigation rail to the window's edges, without header, card or padding. Needs Studio app API 0.1.3.",
+          "enum": ["standard", "fullPage"]
+        }
       }
     }
   }

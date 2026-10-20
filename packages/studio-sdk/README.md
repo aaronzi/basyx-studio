@@ -32,9 +32,15 @@ runs the app, whatever the package version.
 | Packages | App API (`studioAppApiVersion`) | First Studio release |
 | --- | --- | --- |
 | 0.1.0 | 0.1.2 | 0.1.0 |
+| 0.1.1 | 0.1.3: `sandbox.frameOrigins`, `connectOrigins`, `imageOrigins`, `mediaOrigins`; module `layout` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
-packages; fixes are patch versions.
+packages; fixes are patch versions. While the app API is `0.x`, additions
+that existing apps do not need (new optional methods or manifest fields) are
+app API patch versions, so that a manifest's `^0.1.0` still matches a newer
+Studio, and patch versions of the packages. A manifest that uses a newer
+field declares the version that brought it, e.g. `^0.1.3`; `studio-app pack`
+reports it otherwise.
 
 ## Manifest
 
@@ -70,6 +76,12 @@ The schema is [`app-manifest.schema.json`](app-manifest.schema.json).
 | `modules` with `context: target` | While a target is open, at `/targets/<target>/apps/<installation>/<route>` | target |
 | `modules` with `context: shell` | While a shell is open | target, shell |
 
+A module is shown in a card below a header with breadcrumbs. With
+`"layout": "fullPage"` (Studio app API 0.1.3) it fills the page instead, from
+the navigation rail to the window's edges, below Studio's app bar: no header,
+card or padding. Studio's app bar keeps the target, the edit switch and the
+user menu; show the target's name yourself if the page needs it.
+
 | Permission | Allows |
 | --- | --- |
 | `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
@@ -102,9 +114,11 @@ try {
 ```
 
 Build the UI with relative URLs (Vite: `base: './'`); it is served under
-`/app/<installation>/`. The frame cannot use cookies, storage, popups, forms or
-network requests outside its own package. Without forms, handle buttons with
-click handlers instead of `submit` events.
+`/app/<installation>/`, on an origin of the installation's own or on one that
+all apps share. The frame cannot use popups, forms or network requests
+outside its own package and the origins it declares; with a shared apps
+origin, it has no cookies or storage either. Without forms, handle buttons
+with click handlers instead of `submit` events.
 
 `studio.context.mode` is Studio's mode, `view` or `edit`. Show edit controls
 only in `edit`, as Studio does; `onContext` reports when the user switches.
@@ -144,9 +158,64 @@ declares it in the manifest ([ADR 0038](../../docs/adr/0038-webassembly-workers-
 
 `webAssembly` allows compiling WebAssembly (`'wasm-unsafe-eval'`, not
 JavaScript `eval`); `workers` allows dedicated workers started from `blob:`
-URLs, since the frame's origin is opaque: create a `blob:` module that
+URLs, since the frame's origin may be opaque: create a `blob:` module that
 imports the bundled worker script by its absolute URL. Both still load and
 fetch only the app's own files, and the Apps page shows them.
+
+### Third-party origins
+
+An app that embeds public pages, reads a keyless public API, or shows images
+or media from elsewhere declares their origins (Studio app API 0.1.3,
+[ADR 0045](../../docs/adr/0045-app-origins-embeds-and-full-page-modules.md)):
+
+```json
+"sandbox": {
+  "frameOrigins": ["https://viewer.example.com"],
+  "connectOrigins": ["https://api.weather.example"],
+  "imageOrigins": ["https://*.tiles.example.com"],
+  "mediaOrigins": []
+}
+```
+
+| Field | Allows |
+| --- | --- |
+| `frameOrigins` | `<iframe>` of pages at these origins (`frame-src`) |
+| `connectOrigins` | `fetch` and XHR to these origins (`connect-src`), for APIs that need no credentials |
+| `imageOrigins` | images from these origins (`img-src`) |
+| `mediaOrigins` | audio and video from these origins (`media-src`) |
+
+- An entry is an origin in lower case, `https://host[:port]`, without a path.
+  The host may start with one `*.` label followed by at least two labels
+  (`https://*.example.com`), which matches subdomains at any depth. `http://`
+  works for loopback hosts only (`localhost`, `*.localhost`, `127.0.0.1`),
+  and hosted Studio accepts those in developer mode only. IPv6 literals such
+  as `[::1]` are refused, because a Content Security Policy cannot name them;
+  use `localhost`. Up to 16 per list.
+- The Apps page lists the origins with a note: the user's browser contacts
+  them directly, so they learn the user's address and what the user looks at,
+  and the app can send them what it reads. Origins an update adds need the
+  administrator's confirmation.
+- Embedded pages get their own origin, cookies and storage where Studio gives
+  each installation an origin of its own
+  (`STUDIO_APPS_URL=https://{installation}.apps.example.org`). Where all apps
+  share one apps origin, the app's frame is opaque, and so are the pages it
+  embeds: many of them stay blank. Check `self.origin === 'null'` and offer
+  a link with `ui.openExternal` instead. Pages that need the third party's
+  sign-in, forms or popups do not work in either case.
+- `connectOrigins` is for public data. The app has no secrets to send, and
+  must not ship any: APIs with keys, endpoints that differ per deployment,
+  and calls that must be audited go through connections.
+- `connectOrigins` together with `webAssembly` or `workers` would let the
+  app run code that is not in its package, e.g. WebAssembly a library fetches
+  from a CDN. Studio installs such a package only if its publisher's trust
+  store entry has `remoteCode: true`. Ship the binaries in the package
+  instead.
+- Studio refuses origins that cover its own origin or the apps origin.
+
+With an origin of its own, the app's frame also has `localStorage`, IndexedDB
+and cookies. They belong to the installation and the browser profile, not to
+the user or the target, and Studio does not clear them on sign-out. Keep
+preferences there if you like, never AAS content.
 
 `columns` gives the view's default width as a widget on a shell's Overview,
 in columns of 12, per breakpoint of the Overview's width (Vuetify's names, as

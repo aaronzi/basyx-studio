@@ -17,9 +17,11 @@ http://studio.localhost:8080 {
 	}
 }
 
-# The apps origin (STUDIO_APPS_URL), routed to the same Studio service. Do not
-# add X-Frame-Options or a Content-Security-Policy here: Studio sets the
-# headers the app sandbox needs (docs/architecture/deployment-variants.md).
-http://apps.studio.localhost:8080 {
+# The apps origins (STUDIO_APPS_URL), one per installation (ADR 0045), routed
+# to the same Studio service. With TLS, this needs a wildcard certificate,
+# which ACME issues with the DNS-01 challenge only. Do not add X-Frame-Options
+# or a Content-Security-Policy here: Studio sets the headers the app sandbox
+# needs (docs/architecture/deployment-variants.md).
+http://*.apps.studio.localhost:8080 {
 	reverse_proxy studio:3000
 }

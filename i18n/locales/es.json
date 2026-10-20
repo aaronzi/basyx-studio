@@ -248,6 +248,7 @@
     "app_signature_invalid": "La firma no coincide con el paquete con ninguna clave de un editor de confianza.",
     "app_signer_not_allowed": "El firmante no puede publicar ni actualizar esta app.",
     "app_revoked": "Esta implementación ya no confía en esta app.",
+    "app_sandbox_not_granted": "El editor no puede publicar apps que ejecutan código de fuera de su paquete.",
     "app_outdated": "La app se ha actualizado. Recárguela para usar la nueva versión."
   },
   "admin": {
@@ -535,7 +536,8 @@
     "revoked": "Revocada",
     "revokedHint": {
       "keyRemoved": "La clave que la firmó ya no es de confianza. Sus vistas y módulos están desactivados hasta que se instale un paquete firmado con una clave de confianza.",
-      "appIdNotAllowed": "Su editor ya no puede firmar este ID de app. Sus vistas y módulos están desactivados hasta que se instale un paquete firmado con una clave de confianza."
+      "appIdNotAllowed": "Su editor ya no puede firmar este ID de app. Sus vistas y módulos están desactivados hasta que se instale un paquete firmado con una clave de confianza.",
+      "remoteCodeNotGranted": "Carga código de otros orígenes y su editor ya no puede publicar apps así. Sus vistas y módulos están desactivados hasta que el almacén de confianza lo vuelva a permitir."
     },
     "installTitle": "¿Instalar {name} {version}?",
     "updateTitle": "¿Actualizar {name} a {version}?",
@@ -548,9 +550,19 @@
     "notGranted": "No concedido",
     "notGrantedHint": "Esta implementación no concede el permiso al editor de la app, por lo que se rechazan las llamadas que lo necesitan.",
     "permissionsRemoved": "Ya no solicita: {list}",
+    "originsRemoved": "Ya no accede a: {list}",
     "update": "Actualizar",
     "confirmInstall": "Instalar",
-    "updated": "{name} actualizada a {version}."
+    "updated": "{name} actualizada a {version}.",
+    "originKind": {
+      "frameOrigins": "Inserta páginas de",
+      "connectOrigins": "Envía solicitudes a",
+      "imageOrigins": "Carga imágenes de",
+      "mediaOrigins": "Carga audio y vídeo de"
+    },
+    "remoteCode": "Puede ejecutar código que carga desde estos orígenes (WebAssembly o workers)",
+    "egressNote": "Tu navegador contacta directamente con estos orígenes. Conocen tu dirección y lo que consultas, y la app puede enviarles datos que lee, en solicitudes y en URL.",
+    "framesOpaque": "Este Studio sirve todas las apps desde un mismo origen. Allí, las páginas insertadas se ejecutan sin cookies ni almacenamiento, y muchas quedan en blanco."
   },
   "nav": {
     "targets": "Destinos AAS",

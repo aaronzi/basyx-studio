@@ -1,5 +1,6 @@
 import type { ElectronApplication, FrameLocator, Page } from '@playwright/test'
 import { copyFile } from 'node:fs/promises'
+import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
 import { fixturesDirectory, zipDirectory } from '../../apps/support'
@@ -23,7 +24,7 @@ test.afterEach(async () => {
 })
 
 function appFrame (): FrameLocator {
-  return window.frameLocator('iframe[sandbox="allow-scripts"]')
+  return window.frameLocator('iframe[sandbox^="allow-scripts"]')
 }
 
 async function install (file: string | { name: string, mimeType: string, buffer: Buffer }, title: string) {
@@ -40,7 +41,7 @@ async function openModule (title: string) {
   await window.getByRole('link', { name: title }).click()
   // The overview's frames are gone once the module's route is shown.
   await expect(window).toHaveURL(/\/apps\//)
-  await expect(window.locator('iframe[sandbox="allow-scripts"]')).toHaveCount(1)
+  await expect(window.locator('iframe[sandbox^="allow-scripts"]')).toHaveCount(1)
 }
 
 test('runs installed apps on a local package', async () => {
@@ -82,13 +83,14 @@ test('runs installed apps on a local package', async () => {
     await expect(appFrame().locator('[data-test="isolation"]')).toContainText(`${capability}: denied`)
   }
 
-  // The same isolation as hosted, on the studio-app: origin.
+  // The same isolation as hosted, on the installation's own studio-app:
+  // origin, which keeps its storage to itself (ADR 0045).
   await openModule('Isolation probe')
   await expect(appFrame().locator('body[data-done="true"]')).toBeAttached({ timeout: 30_000 })
   const results = JSON.parse(await appFrame().locator('#results').textContent() ?? '{}') as Record<string, unknown>
   expect(results).toMatchObject({
-    cookies: expect.stringMatching(/^blocked/),
-    localStorage: expect.stringMatching(/^blocked/),
+    cookies: 'empty',
+    localStorage: 0,
     parentDocument: expect.stringMatching(/^blocked/),
     topNavigation: expect.stringMatching(/^blocked/),
     popup: expect.stringMatching(/^blocked/),
@@ -100,4 +102,46 @@ test('runs installed apps on a local package', async () => {
     declaredRead: 'allowed',
     undeclaredWrite: 'app_permission_not_declared',
   })
+})
+
+test('runs each installation in its own studio-app: origin, with the pages it embeds in theirs (ADR 0045)', async () => {
+  // The "third party" the probe declares: embed.localhost, served here.
+  const thirdParty = createServer((request, response) => {
+    if (request.url === '/embed.html') {
+      response.setHeader('Content-Type', 'text/html')
+      response.end(`<script>
+        let cookies
+        try { document.cookie = 'embed=1'; cookies = 'allowed' } catch (error) { cookies = 'blocked (' + error.name + ')' }
+        parent.postMessage({ type: 'embed', origin: self.origin, cookies }, '*')
+      </script>`)
+      return
+    }
+    response.setHeader('Access-Control-Allow-Origin', '*')
+    response.statusCode = request.url === '/data.json' ? 200 : 404
+    response.end('{}')
+  })
+  await new Promise<void>(resolve => thirdParty.listen(3402, resolve))
+  try {
+    await window.getByRole('listitem', { name: 'Apps', exact: true }).click()
+    await install({ name: 'origin-probe.zip', mimeType: 'application/zip', buffer: Buffer.from(await zipDirectory(join(fixturesDirectory, 'origin-probe'))) }, 'Origin probe')
+    // Leave the Apps panel, which covers the page.
+    await window.getByRole('link', { name: 'AAS targets' }).click()
+    await openModule('Origin probe')
+    await expect(window.locator('iframe[sandbox="allow-scripts allow-same-origin"]')).toHaveCount(1)
+    await expect(appFrame().locator('body[data-done="true"]')).toBeAttached({ timeout: 30_000 })
+    const results = JSON.parse(await appFrame().locator('#results').textContent() ?? '{}') as Record<string, unknown>
+    expect(results).toMatchObject({
+      bridge: 'connected',
+      origin: expect.stringMatching(/^studio-app:\/\/app-[\da-f]{16}$/),
+      parentDocument: expect.stringMatching(/^blocked/),
+      declaredFetch: 200,
+      undeclaredFetch: expect.stringMatching(/^blocked/),
+      foreignAppScript: expect.stringMatching(/^blocked/),
+      embeds: 1,
+      embedOrigin: 'http://embed.localhost:3402',
+      embedCookies: 'allowed',
+    })
+  } finally {
+    await new Promise(resolve => thirdParty.close(resolve))
+  }
 })

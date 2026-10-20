@@ -1,8 +1,10 @@
 import type { AppPermission, AppRevocation } from '#shared/contract'
 import type { SigningKey } from '@basyx/studio-app-kit/signature'
+import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { needsRemoteCodeGrant } from '@basyx/studio-app-kit/manifest'
 import { parsePublicKey, parseSignature, SignatureFormatError, verifySignature } from '@basyx/studio-app-kit/signature'
 import { parseDocument } from 'yaml'
 import { z } from 'zod'
@@ -17,6 +19,7 @@ import { StudioProblem } from '../problem'
 //       keys: [keys/example.pub]          # PEM text, or a path relative to this file
 //       appIds: [org.example.*]
 //       permissions: [studio.timeseries.read]
+//       remoteCode: true                  # connect origins with WebAssembly or workers (ADR 0045)
 
 /** Reserved permissions a trust store entry may grant; `studio.containers` stays with bundled apps (ADR 0033). */
 export const grantablePermissions = ['studio.timeseries.read'] as const satisfies readonly AppPermission[]
@@ -28,6 +31,11 @@ export interface TrustedPublisher {
   /** App IDs, prefixes ending in `.*`, or `*`. */
   appIds: string[]
   permissions: GrantablePermission[]
+  /**
+   * Its apps may combine connect origins with WebAssembly or workers, and so
+   * run code that is not in their package (ADR 0045).
+   */
+  remoteCode: boolean
 }
 
 export interface TrustStore {
@@ -52,6 +60,7 @@ const fileSchema = z.object({
     keys: z.array(z.string().min(1)).min(1),
     appIds: z.array(z.string().regex(appIdPattern, 'use app IDs such as org.example.app, prefixes such as org.example.*, or *')).min(1),
     permissions: z.array(z.string()).default([]),
+    remoteCode: z.boolean().default(false),
   }).strict()).nullish(),
 }).strict()
 
@@ -118,7 +127,7 @@ export function parseTrustStore (text: string, baseDirectory: string, readKeyFil
         problems.push(`${at}.permissions[${permissionIndex}]: ${permission} cannot be granted; only ${grantablePermissions.join(', ')} can`)
       }
     }
-    publishers.push({ name: entry.name, keys, appIds: entry.appIds, permissions })
+    publishers.push({ name: entry.name, keys, appIds: entry.appIds, permissions, remoteCode: entry.remoteCode })
   }
   if (problems.length > 0) {
     throw new TrustStoreError(problems)
@@ -167,6 +176,21 @@ export function verifyPackageSignature (store: TrustStore, bytes: Uint8Array, si
   throw new StudioProblem('app_signature_invalid', 'The signature does not match the package with any key of a trusted publisher (STUDIO_APPS_TRUSTED_PUBLISHERS).')
 }
 
+/** Why an installation is revoked, for the log and for refused calls. */
+export function revocationReason (revoked: AppRevocation, installation: Pick<TrustFields, 'appId' | 'keyFingerprint'>): string {
+  switch (revoked) {
+    case 'keyRemoved': {
+      return `the key ${installation.keyFingerprint} that signed it is not in the trust store`
+    }
+    case 'appIdNotAllowed': {
+      return `its publisher may no longer sign ${installation.appId}`
+    }
+    case 'remoteCodeNotGranted': {
+      return 'it combines connect origins with WebAssembly or workers, and its publisher is no longer granted remoteCode'
+    }
+  }
+}
+
 export interface InstallationTrust {
   /** The trust store's name of the publisher, for signed installations whose key is trusted. */
   verifiedPublisher: string | null
@@ -181,18 +205,30 @@ export interface TrustFields {
   trust: string
   bundled: boolean
   keyFingerprint: string | null
+  manifest: Pick<AppManifest, 'sandbox'>
+}
+
+/**
+ * Whether a package that could run code from outside itself may be
+ * installed (ADR 0045): bundled, or signed by a publisher granted
+ * `remoteCode`. Packages that cannot are refused, also in developer mode.
+ */
+export function remoteCodeAllowed (manifest: Pick<AppManifest, 'sandbox'>, bundled: boolean, publisher: TrustedPublisher | null): boolean {
+  return !needsRemoteCodeGrant(manifest as AppManifest) || bundled || publisher?.remoteCode === true
 }
 
 /**
  * The current trust of an installation (ADR 0044). The trust store is read at
- * startup, so a removed key revokes its installations at the next start.
+ * startup, so a removed key revokes its installations at the next start, and
+ * so does a removed `remoteCode` grant (ADR 0045).
  */
 export function installationTrust (installation: TrustFields, store: TrustStore): InstallationTrust {
   if (installation.bundled) {
     return { verifiedPublisher: null, revoked: null, granted: [...grantablePermissions, 'studio.containers'] }
   }
   if (installation.trust !== 'signed') {
-    return { verifiedPublisher: null, revoked: null, granted: [] }
+    const revoked = remoteCodeAllowed(installation.manifest, false, null) ? null : 'remoteCodeNotGranted'
+    return { verifiedPublisher: null, revoked, granted: [] }
   }
   const publisher = store.publishers.find(entry => entry.keys.some(key => key.fingerprint === installation.keyFingerprint))
   if (!publisher) {
@@ -200,6 +236,9 @@ export function installationTrust (installation: TrustFields, store: TrustStore)
   }
   if (!matchesAppId(publisher.appIds, installation.appId)) {
     return { verifiedPublisher: publisher.name, revoked: 'appIdNotAllowed', granted: [] }
+  }
+  if (!remoteCodeAllowed(installation.manifest, false, publisher)) {
+    return { verifiedPublisher: publisher.name, revoked: 'remoteCodeNotGranted', granted: [] }
   }
   return { verifiedPublisher: publisher.name, revoked: null, granted: publisher.permissions }
 }

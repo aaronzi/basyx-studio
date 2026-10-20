@@ -25,3 +25,15 @@ export function callbackUri (config: StudioConfig, loopbackHost?: '127.0.0.1' | 
   }
   return new URL(studioPath(config, callbackPath), base).href
 }
+
+/** Studio's own origins, which may send state-changing requests; on desktop the loopback service under both names. */
+export function allowedOrigins (publicUrl: string, desktop: boolean): Set<string> {
+  const origins = new Set([new URL(publicUrl).origin])
+  if (desktop) {
+    // The desktop renderer may address the loopback service by either name.
+    const url = new URL(publicUrl)
+    origins.add(`${url.protocol}//localhost:${url.port}`)
+    origins.add(`${url.protocol}//127.0.0.1:${url.port}`)
+  }
+  return origins
+}

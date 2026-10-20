@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.2'
+export const studioAppApiVersion = '0.1.3'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -46,9 +46,10 @@ export interface AppManifest {
   permissions: Permission[]
   backend?: { runtime: 'deno', entry: string }
   /**
-   * What the app's pages may run beyond scripts (ADR 0038): WebAssembly
-   * modules, and workers started from `blob:` URLs. An administrator sees
-   * both at install.
+   * What the app's pages may run and reach beyond their own files: WebAssembly
+   * modules and workers started from `blob:` URLs (ADR 0038), and declared
+   * third-party origins (ADR 0045). An administrator sees all of it at
+   * install.
    */
   sandbox?: AppSandbox
   contributes: {
@@ -62,7 +63,24 @@ export interface AppSandbox {
   webAssembly?: boolean
   /** Start dedicated workers from `blob:` URLs, e.g. to parse large files off the page. */
   workers?: boolean
+  /**
+   * Pages the app embeds in frames (CSP `frame-src`, Studio app API 0.1.3).
+   * Embedded pages work where Studio gives each installation its own origin;
+   * with a shared apps origin they run without cookies or storage
+   * (`self.origin === 'null'` in the app's frame).
+   */
+  frameOrigins?: string[]
+  /** Keyless public APIs the app reads with `fetch` (CSP `connect-src`, Studio app API 0.1.3). */
+  connectOrigins?: string[]
+  /** Images from other origins, e.g. map tiles (CSP `img-src`, Studio app API 0.1.3). */
+  imageOrigins?: string[]
+  /** Audio and video from other origins (CSP `media-src`, Studio app API 0.1.3). */
+  mediaOrigins?: string[]
 }
+
+/** The lists of third-party origins in a manifest's `sandbox` (ADR 0045). */
+export const sandboxOriginKinds = ['frameOrigins', 'connectOrigins', 'imageOrigins', 'mediaOrigins'] as const
+export type SandboxOriginKind = (typeof sandboxOriginKinds)[number]
 
 /** Vuetify's breakpoint names, smallest first. */
 export type Breakpoint = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl'
@@ -84,6 +102,13 @@ export interface SubmodelViewContribution {
 
 export type ModuleContext = 'global' | 'target' | 'shell'
 
+/**
+ * How Studio shows a module: `standard` in a card below a header with
+ * breadcrumbs, `fullPage` filling the page from the navigation rail to the
+ * window's edges, without header, card or padding (Studio app API 0.1.3).
+ */
+export type ModuleLayout = 'standard' | 'fullPage'
+
 export interface ModuleContribution {
   id: string
   title: LocalizedText
@@ -91,6 +116,8 @@ export interface ModuleContribution {
   entry: string
   route: string
   context: ModuleContext
+  /** Default `standard`. */
+  layout?: ModuleLayout
 }
 
 export type JsonObject = Record<string, unknown>

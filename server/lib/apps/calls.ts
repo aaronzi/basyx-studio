@@ -7,7 +7,7 @@ import { methodPermissions } from '#shared/contract'
 import { parseLocator, splitAddressable } from '../aas/keys'
 import { resolveSubmodelRefs } from '../aas/submodel-refs'
 import { StudioProblem } from '../problem'
-import { installationTrust } from './trust'
+import { installationTrust, revocationReason } from './trust'
 
 export type AasMethodName = Extract<AppMethodName, `studio.aas.${string}`>
 
@@ -33,7 +33,7 @@ export type AppCaller = 'host' | 'backend'
 export function authorizeAppCall (installation: AppInstallationRecord, method: AppMethodName, caller: AppCaller, trustStore: TrustStore): void {
   const trust = installationTrust(installation, trustStore)
   if (trust.revoked) {
-    throw new StudioProblem('app_revoked', `${installation.appId} is no longer trusted: ${trust.revoked === 'keyRemoved' ? 'the key that signed it was removed from the trust store' : 'its publisher may no longer sign this app ID'}.`)
+    throw new StudioProblem('app_revoked', `${installation.appId} is no longer trusted: ${revocationReason(trust.revoked, installation)}.`)
   }
   if (caller === 'backend' && !isAasMethod(method)) {
     throw new StudioProblem('unsupported_operation', `${method} is not available to backend apps.`)
