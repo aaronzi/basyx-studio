@@ -92,13 +92,35 @@ const write = message => (queue = queue.then(async () => {
   }
 }))
 for (const level of ['log', 'info', 'debug', 'warn']) console[level] = (...args) => console.error(...args)
+// studio.connections.call carries bytes as base64 over HTTP (ADR 0047); backends see Uint8Arrays.
+const toBase64 = bytes => {
+  let text = ''
+  for (let index = 0; index < bytes.length; index += 0x8000) text += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+  return btoa(text)
+}
+const fromBase64 = base64 => Uint8Array.from(atob(base64), char => char.charCodeAt(0))
+function encodeCall (params) {
+  const body = params?.body
+  if (body instanceof Uint8Array) return { ...params, body: toBase64(body), encoding: 'base64' }
+  if (body && typeof body === 'object' && body.files && typeof body.files === 'object') {
+    const files = Object.fromEntries(Object.entries(body.files).map(([name, { bytes, ...part }]) => [name, bytes instanceof Uint8Array ? { ...part, base64: toBase64(bytes) } : part]))
+    return { ...params, body: { ...body, files } }
+  }
+  return params
+}
+function decodeResult (result) {
+  if (result?.encoding !== 'base64') return result
+  const { encoding, ...rest } = result
+  return { ...rest, body: fromBase64(rest.body) }
+}
 function studioFor (token) {
   return {
     async call (method, params) {
+      const connections = method === 'studio.connections.call'
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
-        body: JSON.stringify({ method, params: params ?? {} }),
+        body: JSON.stringify({ method, params: (connections ? encodeCall(params) : params) ?? {} }),
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -106,7 +128,7 @@ function studioFor (token) {
         error.problem = body
         throw error
       }
-      return body.result
+      return connections ? decodeResult(body.result) : body.result
     },
   }
 }

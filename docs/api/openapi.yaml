@@ -2903,7 +2903,18 @@ paths:
         `mode: edit`, which the host bridge sends from Studio's own state and a
         backend's capability token carries; otherwise `app_edit_mode_required`.
         studio.aas.putAttachment is sent to `/app-calls/attachment` instead.
-      x-requirements: [APP-006, APP-009, APP-010, APP-017, SEC-005, CON-002, CON-003, CON-004, CON-006]
+
+        Apps with `studio.connections` call studio.connections.call
+        (ADR 0047), from frames and backends: an operation their manifest
+        declares for one of its `connections`, through the `http` connection
+        of the target's infrastructure that binds it (`apps`). Studio
+        validates the parameters and the body against the operation's OpenAPI
+        schemas, sends the request to the connection's URL with its
+        credentials, refuses redirects, and returns every status as a result
+        (`ConnectionCallResult`). Bytes travel as base64 in this binding
+        (`ConnectionCallParams`); Studio's page and the backend harness give
+        apps `Uint8Array`s. Every call and every refusal is audited.
+      x-requirements: [APP-006, APP-008, APP-009, APP-010, APP-017, SEC-005, CON-002, CON-003, CON-004, CON-006]
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
       requestBody:
@@ -3865,12 +3876,12 @@ components:
           type: array
           maxItems: 20
           default: []
-          description: Third-party services that content of this infrastructure refers to (ADR 0040). Keys are unique; `delegatedUser` needs `delegated_user` security.
+          description: Third-party services that content of this infrastructure refers to (ADR 0040), or that bound apps call (`http`, ADR 0047). Keys are unique; `delegatedUser` needs `delegated_user` security; an app connection is bound at most once per infrastructure.
           items: { $ref: '#/components/schemas/ConnectionInput' }
     ConnectionAuthInput:
       description: |
         How Studio authenticates at the service (CON-007). Each connection
-        type accepts some schemes (`influxdb2`: `token`). Secrets are
+        type accepts some schemes (`influxdb2`: `token`; `http`: all). Secrets are
         `SecretInput`s; omit one on update to keep the stored secret of the
         same key and scheme.
       oneOf:
@@ -3932,37 +3943,54 @@ components:
       required: [key, type, url, auth]
       properties:
         key: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$' }
-        type: { type: string, enum: [influxdb2], description: The API the service speaks; selects the adapter and the schema of `settings`. }
+        type: { type: string, enum: [influxdb2, http], description: 'The API the service speaks; selects the adapter and the schema of `settings`. `http`: a service that bound apps call through the operations they declare (ADR 0047).' }
         url: { type: string, format: uri, maxLength: 2000, description: 'How the Studio Service reaches the service; without credentials, query or fragment. Requests go here only.' }
         aliases:
           type: array
           maxItems: 10
           default: []
-          description: Other origins under which AAS content refers to the service; never contacted.
+          description: Other origins under which AAS content refers to the service; never contacted. Empty for `http`.
           items: { type: string, format: uri, maxLength: 2000 }
         allowPrivateNetwork: { type: boolean, default: false }
-        timeoutSeconds: { type: integer, minimum: 1, maximum: 120, description: Overrides the adapter's default (`influxdb2` 15 s). }
+        timeoutSeconds: { type: integer, minimum: 1, maximum: 120, description: "Overrides the adapter's default (`influxdb2` 15 s, `http` 30 s)." }
         auth: { $ref: '#/components/schemas/ConnectionAuthInput' }
         settings:
           type: object
           additionalProperties: false
           default: {}
-          description: 'Per type. `influxdb2`: `organization` replaces the `org`/`orgID` of endpoints in AAS content.'
+          description: 'Per type. `influxdb2`: `organization` replaces the `org`/`orgID` of endpoints in AAS content. `http`: none.'
           properties:
             organization: { type: string, minLength: 1, maxLength: 200 }
+        apps:
+          type: array
+          maxItems: 50
+          default: []
+          description: '`http` only: the app connections that may call this service (ADR 0047), by app ID and the `id` of a connection in its manifest.'
+          items: { $ref: '#/components/schemas/ConnectionBinding' }
+    ConnectionBinding:
+      type: object
+      additionalProperties: false
+      required: [app, connection]
+      properties:
+        app: { $ref: '#/components/schemas/AppId' }
+        connection: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$' }
     Connection:
       type: object
       additionalProperties: false
       required: [key, type, url, aliases, allowPrivateNetwork, auth, settings]
       properties:
         key: { type: string }
-        type: { type: string, enum: [influxdb2] }
+        type: { type: string, enum: [influxdb2, http] }
         url: { type: string }
         aliases: { type: array, items: { type: string } }
         allowPrivateNetwork: { type: boolean }
         timeoutSeconds: { type: integer }
         auth: { $ref: '#/components/schemas/ConnectionAuthSummary' }
         settings: { type: object }
+        apps:
+          type: array
+          description: '`http` only.'
+          items: { $ref: '#/components/schemas/ConnectionBinding' }
     ConnectionTestResult:
       type: object
       additionalProperties: false
@@ -5604,6 +5632,7 @@ components:
         - studio.backend
         - studio.containers
         - studio.timeseries.read
+        - studio.connections
     AppCapabilityRequest:
       type: object
       additionalProperties: false
@@ -5932,14 +5961,61 @@ components:
             - studio.containers.exportStack
             - studio.containers.importStack
             - studio.timeseries.read
+            - studio.connections.call
         params:
-          description: Method parameters as defined by `@basyx/studio-sdk` (`studio-sdk/0`). The context returned by `studio.ui.getContext` includes Studio's `mode` (`view` or `edit`); apps show edit controls only in `edit` (MVP-4, UX-006).
+          description: Method parameters as defined by `@basyx/studio-sdk` (`studio-sdk/0`); for studio.connections.call, `ConnectionCallParams`. The context returned by `studio.ui.getContext` includes Studio's `mode` (`view` or `edit`); apps show edit controls only in `edit` (MVP-4, UX-006).
     AppCallResult:
       type: object
       additionalProperties: false
       required: [result]
       properties:
-        result: {}
+        result:
+          description: The method's result; for studio.connections.call, `ConnectionCallResult`.
+    ConnectionCallParams:
+      description: |
+        Parameters of studio.connections.call in this binding (ADR 0047).
+        `body` is what the chosen request media type takes: a JSON value for
+        JSON, a string for text, `{ fields }` for
+        `application/x-www-form-urlencoded`, `{ fields, files }` for
+        `multipart/form-data`, and base64 with `encoding: base64` for any
+        other media type. Up to 8 MiB.
+      type: object
+      additionalProperties: false
+      required: [connection, operation]
+      properties:
+        connection: { type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$', description: The `id` of a connection in the app's manifest. }
+        operation: { type: string, maxLength: 200, description: An `operationId` the manifest lists for the connection. }
+        path:
+          type: object
+          description: Values of the path template's parameters; each fills one segment, `.` and `..` are refused.
+          additionalProperties: { type: [string, number, boolean] }
+        query:
+          type: object
+          description: Values of declared query parameters; arrays for repeated ones.
+          additionalProperties:
+            oneOf:
+              - { type: [string, number, boolean] }
+              - { type: array, maxItems: 1000, items: { type: [string, number, boolean] } }
+        headers:
+          type: object
+          description: Values of declared header parameters, e.g. `If-Match`.
+          additionalProperties: { type: [string, number, boolean] }
+        contentType: { type: string, maxLength: 200, description: One of the request media types the operation declares; default its first. }
+        body: {}
+        encoding: { const: base64, description: '`body` is a base64 string of bytes.' }
+    ConnectionCallResult:
+      description: The service's answer; every status is a result. Redirects (`3xx` other than `304`) are refused as `connection_request_refused`.
+      type: object
+      additionalProperties: false
+      required: [status, contentType, etag, location, body]
+      properties:
+        status: { type: integer }
+        contentType: { type: [string, 'null'] }
+        etag: { type: [string, 'null'] }
+        location: { type: [string, 'null'] }
+        body:
+          description: A JSON value for JSON media types, a string for text, base64 with `encoding` for other media types, `null` when empty.
+        encoding: { const: base64 }
     AppInstallationPage:
       type: object
       additionalProperties: false
@@ -6147,6 +6223,12 @@ components:
         502, and `timeseries_invalid` 422 (not a Time Series Data submodel, or
         its segment or records are missing).
 
+        HTTP connections for apps (ADR 0047) added `connection_not_bound` and
+        `connection_operation_not_declared` 403 (no `http` connection of the
+        infrastructure binds the app's connection; the manifest does not
+        declare the connection or operation) and `connection_busy` 429 (four
+        calls of this session to the connection are in progress).
+
         MVP-4 added `descriptor_endpoint_blocked` (a registry descriptor points
         to an endpoint outside the infrastructure, which Studio never contacts),
         `query_invalid` (a raw query failed its checks; findings in
@@ -6212,6 +6294,9 @@ components:
         - connection_unavailable
         - connection_error
         - connection_request_refused
+        - connection_not_bound
+        - connection_operation_not_declared
+        - connection_busy
         - timeseries_invalid
     Problem:
       type: object

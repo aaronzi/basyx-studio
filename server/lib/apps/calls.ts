@@ -38,7 +38,8 @@ export type AppCallMode = 'view' | 'edit'
 
 /**
  * Refuses a call the installed manifest does not permit (ADR 0018), and every
- * call of a revoked app (ADR 0044). Reserved permissions need more than the
+ * call of a revoked app (ADR 0044). Backends may call AAS methods and their
+ * app's HTTP connections (ADR 0047). Reserved permissions need more than the
  * manifest: `studio.containers` is held by bundled apps only (ADR 0033),
  * `studio.timeseries.read` also by signed apps whose publisher the trust
  * store grants it. The user's own rights are checked separately, by the
@@ -50,7 +51,8 @@ export function authorizeAppCall (installation: AppInstallationRecord, method: A
     throw new StudioProblem('app_revoked', `${installation.appId} is no longer trusted: ${revocationReason(trust.revoked, installation)}.`)
   }
   // Studio's page carries the bytes of an attachment; a backend has none to send.
-  if (caller === 'backend' && (!isAasMethod(method) || method === 'studio.aas.putAttachment')) {
+  // Backends may call their app's HTTP connections (ADR 0047).
+  if (caller === 'backend' && (!isAasMethod(method) || method === 'studio.aas.putAttachment') && method !== 'studio.connections.call') {
     throw new StudioProblem('unsupported_operation', `${method} is not available to backend apps.`)
   }
   const permission: AppPermission | null = methodPermissions[method]

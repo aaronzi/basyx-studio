@@ -246,7 +246,7 @@ describe('connections in use', () => {
     expect(Object.fromEntries(new URLSearchParams(tokenRequests[0]!.body))).toMatchObject({ grant_type: 'client_credentials', scope: 'read', audience: 'tsdb', client_id: 'svc' })
 
     process.env.AUTH_TEST_CLIENT_SECRET = 'wrong'
-    await expect(openConnection(deps, broker, record, connection, sessionId, true)).rejects.toMatchObject({ code: 'connection_rejected' })
+    await expect(openConnection(deps, broker, record, connection, sessionId, { fresh: true })).rejects.toMatchObject({ code: 'connection_rejected' })
     delete process.env.AUTH_TEST_CLIENT_SECRET
   })
 

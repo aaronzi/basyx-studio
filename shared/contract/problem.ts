@@ -102,6 +102,13 @@ export const problemCodes = [
   'connection_error',
   /** The content asks for something the adapter does not send, e.g. a Flux query that writes. */
   'connection_request_refused',
+  // HTTP connections for apps (ADR 0047)
+  /** No `http` connection of the target's infrastructure binds the app's connection, or the frame has no infrastructure. */
+  'connection_not_bound',
+  /** The app's manifest does not declare the connection, or does not list the operation for it. */
+  'connection_operation_not_declared',
+  /** Four calls of this session to the connection are in progress. */
+  'connection_busy',
   // Time series (ADR 0040)
   /** The submodel is not an IDTA Time Series Data submodel, or the segment or records are not in it. */
   'timeseries_invalid',

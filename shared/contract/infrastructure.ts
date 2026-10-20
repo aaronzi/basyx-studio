@@ -212,15 +212,24 @@ export const infrastructureInputSchema = z.object({
   clientCertificate: clientCertificateInputSchema.nullish(),
   /** Permit loopback and private-network addresses; subject to the deployment policy. */
   allowPrivateNetwork: z.boolean().default(false),
-  /** Third-party services that content of this infrastructure refers to (ADR 0040). */
+  /** Third-party services that content of this infrastructure refers to (ADR 0040), or that bound apps call (ADR 0047). */
   connections: z.array(connectionInputSchema).max(20).default([]),
 }).superRefine((input, context) => {
   const keys = new Set<string>()
+  const bindings = new Set<string>()
   for (const [index, connection] of input.connections.entries()) {
     if (keys.has(connection.key)) {
       context.addIssue({ code: 'custom', path: ['connections', index, 'key'], message: 'each connection key may occur only once' })
     }
     keys.add(connection.key)
+    // One app connection reaches one service of an infrastructure, so a call is never ambiguous.
+    for (const [bindingIndex, binding] of (connection.type === 'http' ? connection.apps : []).entries()) {
+      const pair = `${binding.app} ${binding.connection}`
+      if (bindings.has(pair)) {
+        context.addIssue({ code: 'custom', path: ['connections', index, 'apps', bindingIndex], message: `${binding.app} ${binding.connection} is bound to another connection of this infrastructure already` })
+      }
+      bindings.add(pair)
+    }
     if (connection.auth.scheme === 'delegatedUser' && input.security.mode !== 'delegated_user') {
       context.addIssue({ code: 'custom', path: ['connections', index, 'auth', 'scheme'], message: 'the user\'s identity needs an infrastructure whose users sign in (delegated_user)' })
     }

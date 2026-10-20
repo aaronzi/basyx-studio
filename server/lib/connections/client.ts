@@ -12,10 +12,11 @@ import { connectionCredentials } from './auth'
 export const connectionMaxResponseBytes = 20 * 1024 * 1024
 
 export interface ConnectionRequest {
-  method?: 'GET' | 'POST'
-  query?: Record<string, string>
+  method?: string
+  /** Query parameters; as pairs, a name may repeat. */
+  query?: Record<string, string> | [string, string][]
   headers?: Record<string, string>
-  body?: string
+  body?: string | Uint8Array<ArrayBuffer>
 }
 
 /**
@@ -32,6 +33,15 @@ export interface ConnectionClient {
   request: (path: string, request?: ConnectionRequest) => Promise<Response>
   /** Reads an answer's text; an answer over the size cap becomes a problem. */
   text: (response: Response) => Promise<string>
+  /** Reads an answer's bytes; an answer over the size cap becomes a problem. */
+  bytes: (response: Response) => Promise<Uint8Array>
+}
+
+export interface OpenConnectionOptions {
+  /** Get a new token from an issuer instead of a cached one, e.g. for *Test connection*. */
+  fresh?: boolean
+  /** Hand `3xx` answers to the caller instead of failing; they are never followed (ADR 0047). */
+  returnRedirects?: boolean
 }
 
 /** The policy of a connection's requests: its origin only, no redirects, its timeout, 20 MiB. */
@@ -61,21 +71,18 @@ function transportProblem (error: unknown, connection: Connection): StudioProble
   return new StudioProblem('connection_unavailable', `The connection ${connection.key} could not be reached${failure ? ` (${failure.message})` : ''}.`, { cause: error })
 }
 
-/**
- * Opens a connection of an infrastructure for one use by a user's session.
- * `fresh` gets a new token from an issuer instead of a cached one.
- */
+/** Opens a connection of an infrastructure for one use by a user's session. */
 export async function openConnection (
   deps: StudioDeps,
   tokens: ConnectionTokenSource,
   record: InfrastructureRecord,
   connection: Connection,
   sessionId: string,
-  fresh = false,
+  options: OpenConnectionOptions = {},
 ): Promise<ConnectionClient> {
-  const credentials = await connectionCredentials(deps, tokens, record, connection, sessionId, fresh)
+  const credentials = await connectionCredentials(deps, tokens, record, connection, sessionId, options.fresh)
   const policy = connectionPolicy(deps, connection)
-  const guardedFetch = createGuardedFetch(policy, { headers: credentials.headers })
+  const guardedFetch = createGuardedFetch(policy, { headers: credentials.headers, returnRedirects: options.returnRedirects })
   const base = connection.url.replace(/\/+$/, '')
   return {
     connection,
@@ -84,8 +91,9 @@ export async function openConnection (
     delegation: credentials.delegation,
     async request (path, request = {}) {
       const url = new URL(`${base}${path}`)
-      for (const [name, value] of Object.entries(request.query ?? {})) {
-        url.searchParams.set(name, value)
+      const query = Array.isArray(request.query) ? request.query : Object.entries(request.query ?? {})
+      for (const [name, value] of query) {
+        url.searchParams.append(name, value)
       }
       try {
         return await guardedFetch(url, { method: request.method ?? 'GET', headers: request.headers, body: request.body })
@@ -96,6 +104,13 @@ export async function openConnection (
     async text (response) {
       try {
         return await response.text()
+      } catch (error) {
+        throw transportProblem(error, connection)
+      }
+    },
+    async bytes (response) {
+      try {
+        return new Uint8Array(await response.arrayBuffer())
       } catch (error) {
         throw transportProblem(error, connection)
       }
