@@ -8,6 +8,10 @@ import { createHash, createPublicKey, sign, verify } from 'node:crypto'
 //
 // cosign 3 writes a Sigstore bundle by default (`--bundle`); its message
 // signature is the same value.
+//
+// @basyx/studio-app-kit (`studio-app sign` and `verify`) has the same code.
+// Import it from the kit once the kit is published, and delete this file:
+// https://github.com/eclipse-basyx/basyx-studio/issues/65
 
 /** Longer than any signature or key-based bundle; bundles with certificate chains stay below it. */
 export const maxSignatureLength = 16 * 1024
