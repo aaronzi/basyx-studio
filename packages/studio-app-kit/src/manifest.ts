@@ -101,6 +101,8 @@ function describe (error: ErrorObject): Finding {
   let message = error.message ?? 'is invalid'
   if (error.keyword === 'additionalProperties') {
     message = `has the unknown property ${JSON.stringify(error.params.additionalProperty)}`
+  } else if (error.keyword === 'pattern' && /^\/sandbox\/\w+Origins\/\d+$/.test(error.instancePath)) {
+    message = 'must be an origin in lower case without a path: https://host[:port], optionally https://*.example.org, or http:// for localhost, names below .localhost or 127.0.0.1. IPv6 literals such as [::1] cannot be used in a Content Security Policy; use localhost'
   } else if (error.keyword === 'enum') {
     message = `must be one of ${(error.params.allowedValues as unknown[]).map(value => JSON.stringify(value)).join(', ')}`
   }
@@ -203,15 +205,22 @@ function checkFeatureVersions (manifest: AppManifest): Finding[] {
     .map(feature => ({ path: `${manifestFileName}#studioApi`, message: `allows Studio app API ${lowest.version}, but ${feature.path} needs ${feature.since}; declare ^${feature.since}` }))
 }
 
-/** Loopback origins (`http://localhost`, …) are for development; hosted Studio accepts them in developer mode only. */
+/**
+ * Loopback origins (`http://localhost`, …) are for development; hosted Studio
+ * accepts them in developer mode only. IPv6 literals such as `[::1]` are not
+ * origins a manifest may name: CSP ignores them as invalid sources.
+ */
 export function isLoopbackOrigin (origin: string): boolean {
-  return /^http:\/\/(?:localhost|(?:[a-z0-9-]+\.)+localhost|127\.0\.0\.1|\[::1\])(?::\d+)?$/.test(origin)
+  return /^http:\/\/(?:localhost|(?:[a-z0-9-]+\.)+localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)
 }
 
 /**
  * Whether a manifest origin entry (`https://*.example.org`, ADR 0045) covers
- * an origin, as a CSP host source does: the wildcard matches subdomains at
- * any depth, and an entry without a port matches the scheme's default port.
+ * an origin, as a CSP host source does. The wildcard matches subdomains at
+ * any depth, not the domain itself. An entry without a port means the
+ * scheme's default port. An `http:` entry also covers `https:` on port 443,
+ * if it has no port or port 80 (CSP's scheme and port upgrade; Chromium does
+ * not upgrade other ports).
  */
 export function originCovers (entry: string, origin: string): boolean {
   const match = /^(https?):\/\/(\*\.)?([^:]+)(?::(\d+))?$/.exec(entry)
@@ -220,11 +229,18 @@ export function originCovers (entry: string, origin: string): boolean {
     return false
   }
   const [, scheme, wildcard, host, port] = match
-  const defaultPort = scheme === 'https' ? '443' : '80'
-  if (target.protocol !== `${scheme}:` || (target.port || defaultPort) !== (port ?? defaultPort)) {
+  const defaultPort = (protocol: string) => protocol === 'https' ? '443' : '80'
+  const targetScheme = target.protocol.slice(0, -1)
+  const targetPort = target.port || defaultPort(targetScheme)
+  let portMatches: boolean
+  if (targetScheme === scheme) {
+    portMatches = targetPort === (port ?? defaultPort(scheme))
+  } else if (scheme === 'http' && targetScheme === 'https') {
+    portMatches = targetPort === '443' && (port === undefined || port === '80')
+  } else {
     return false
   }
-  return wildcard ? target.hostname.endsWith(`.${host}`) : target.hostname === host
+  return portMatches && (wildcard ? target.hostname.endsWith(`.${host}`) : target.hostname === host)
 }
 
 /** The origins a manifest declares, per kind (ADR 0045). */

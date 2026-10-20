@@ -156,10 +156,10 @@
       "maxItems": 16,
       "uniqueItems": true,
       "items": {
-        "description": "An origin in lower case: https://host[:port], where the host may start with one *. label followed by at least two labels (https://*.example.org), or http:// for loopback hosts (localhost, names below .localhost, 127.0.0.1, [::1]) during development.",
+        "description": "An origin in lower case: https://host[:port], where the host may start with one *. label followed by at least two labels (https://*.example.org), or http:// for loopback hosts (localhost, names below .localhost, 127.0.0.1) during development. IPv6 literals are not accepted: a Content Security Policy cannot name them.",
         "type": "string",
         "maxLength": 300,
-        "pattern": "^(https://(\\*\\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?|http://(localhost|([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+localhost|127\\.0\\.0\\.1|\\[::1\\]))(:[1-9][0-9]{0,4})?$"
+        "pattern": "^(https://(\\*\\.)?([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?|http://(localhost|([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\\.)+localhost|127\\.0\\.0\\.1))(:[1-9][0-9]{0,4})?$"
       }
     },
     "module": {

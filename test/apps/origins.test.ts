@@ -171,7 +171,7 @@ describe('origins in the manifest', () => {
   it('accepts https origins with one leading wildcard label, and http for loopback', () => {
     expect(findings(app({
       frameOrigins: ['https://viewer.example.com', 'https://*.example.com:8443'],
-      connectOrigins: ['http://localhost:8080', 'http://api.localhost', 'http://127.0.0.1:9000', 'http://[::1]:3000'],
+      connectOrigins: ['http://localhost:8080', 'http://api.localhost', 'http://127.0.0.1:9000'],
       imageOrigins: ['https://tiles.example.com'],
       mediaOrigins: [],
     }))).toEqual([])
@@ -183,6 +183,16 @@ describe('origins in the manifest', () => {
     }
     expect(findings(app({ connectOrigins: ['https://example.com:70000'] }))).toEqual([{ path: 'studio-app.json#sandbox.connectOrigins[0]', message: 'has the port 70000, which does not exist' }])
     expect(findings(app({ imageOrigins: Array.from({ length: 17 }, (_, index) => `https://h${index}.example.com`) }))).toHaveLength(1)
+  })
+
+  it('refuses IPv6 literals, which CSP ignores as invalid sources, and says to use localhost', () => {
+    for (const origin of ['http://[::1]:3000', 'http://[::1]', 'https://[2001:db8::1]']) {
+      expect(findings(app({ connectOrigins: [origin] })), origin).toEqual([{
+        path: 'studio-app.json#sandbox.connectOrigins.0',
+        message: expect.stringContaining('IPv6 literals such as [::1] cannot be used in a Content Security Policy; use localhost'),
+      }])
+    }
+    expect(isLoopbackOrigin('http://[::1]:3000')).toBe(false)
   })
 
   it('needs Studio app API 0.1.3 for origins and the module layout', () => {
@@ -198,12 +208,20 @@ describe('origins in the manifest', () => {
     ])
   })
 
-  it('matches origins as a CSP host source does', () => {
+  it('matches origins as a CSP host source does in Chromium, including the upgrade to https', () => {
     expect(originCovers('https://*.example.org', 'https://a.b.example.org')).toBe(true)
     expect(originCovers('https://*.example.org', 'https://example.org')).toBe(false)
     expect(originCovers('https://example.org', 'https://example.org:443')).toBe(true)
     expect(originCovers('https://example.org', 'http://example.org')).toBe(false)
     expect(originCovers('https://example.org:8443', 'https://example.org')).toBe(false)
+    // An http: source allows https: on port 443, if it names no port or port 80.
+    expect(originCovers('http://localhost', 'https://localhost')).toBe(true)
+    expect(originCovers('http://localhost:80', 'https://localhost')).toBe(true)
+    expect(originCovers('http://*.example.org', 'https://a.example.org')).toBe(true)
+    expect(originCovers('http://localhost', 'http://localhost:80')).toBe(true)
+    expect(originCovers('http://localhost', 'https://localhost:8443')).toBe(false)
+    expect(originCovers('http://localhost:8080', 'https://localhost:8080')).toBe(false)
+    expect(originCovers('http://localhost:8080', 'https://localhost')).toBe(false)
     expect(isLoopbackOrigin('http://studio.localhost:3000')).toBe(true)
     expect(isLoopbackOrigin('https://localhost')).toBe(false)
   })
@@ -230,6 +248,13 @@ describe('the deployment\'s sandbox checks', () => {
     expect(problem.code).toBe('app_package_rejected')
     expect(problem.violations).toEqual([{ path: 'studio-app.json#sandbox.frameOrigins[1]', message: 'covers an origin of this Studio or of its apps, which apps may not reach' }])
     expect(problemOf(() => checkSandbox(config('desktop'), manifest({ connectOrigins: ['http://localhost:3000'] }), { publisher: null, developerMode: true })).code).toBe('app_package_rejected')
+    // A hosted Studio at https://localhost: http://localhost allows it through the upgrade to https.
+    const local = { ...config(), publicUrl: 'https://localhost' } as StudioConfig
+    expect(problemOf(() => checkSandbox(local, manifest({ connectOrigins: ['http://localhost'] }), { publisher: null, developerMode: true })).violations).toEqual([
+      { path: 'studio-app.json#sandbox.connectOrigins[0]', message: 'covers an origin of this Studio or of its apps, which apps may not reach' },
+    ])
+    expect(coversStudioOrigin('http://*.apps.example.org', [], pattern)).toBe(true)
+    expect(coversStudioOrigin('http://apps.example.org:80', [], shared)).toBe(true)
   })
 
   it('accepts loopback origins in developer mode and on desktop only', () => {

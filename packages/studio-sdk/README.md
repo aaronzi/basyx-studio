@@ -187,9 +187,10 @@ or media from elsewhere declares their origins (Studio app API 0.1.3,
 - An entry is an origin in lower case, `https://host[:port]`, without a path.
   The host may start with one `*.` label followed by at least two labels
   (`https://*.example.com`), which matches subdomains at any depth. `http://`
-  works for loopback hosts only (`localhost`, `*.localhost`, `127.0.0.1`,
-  `[::1]`), and hosted Studio accepts those in developer mode only. Up to 16
-  per list.
+  works for loopback hosts only (`localhost`, `*.localhost`, `127.0.0.1`),
+  and hosted Studio accepts those in developer mode only. IPv6 literals such
+  as `[::1]` are refused, because a Content Security Policy cannot name them;
+  use `localhost`. Up to 16 per list.
 - The Apps page lists the origins with a note: the user's browser contacts
   them directly, so they learn the user's address and what the user looks at,
   and the app can send them what it reads. Origins an update adds need the

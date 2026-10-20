@@ -123,15 +123,17 @@ where one app can read another's storage and script its frames.
   trailing slash. The host may start with one `*.` label followed by at least
   two labels (`https://*.example.org`); like CSP, the wildcard matches
   subdomains at any depth. `http://` is accepted for loopback hosts only
-  (`localhost`, names below `.localhost`, `127.0.0.1`, `[::1]`), for
-  development. Hosted Studio accepts loopback entries only in developer mode
+  (`localhost`, names below `.localhost`, `127.0.0.1`), for development.
+  IPv6 literals such as `[::1]` are refused: CSP ignores them as invalid
+  sources, so the app's requests would be blocked. Hosted Studio accepts loopback entries only in developer mode
   (`STUDIO_APPS_ALLOW_UNSIGNED=true`) for unsigned packages; desktop always.
   These checks are part of the shared manifest checks of
   `@basyx/studio-app-kit/manifest`, except the developer-mode rule, which
   depends on the deployment.
-- Studio refuses an entry that covers Studio's own origin or an apps origin.
-  Studio's API would answer such requests as same-site, with the user's
-  cookies. If Studio's URLs change after installation, such entries are left
+- Studio refuses an entry that covers Studio's own origin or an apps origin,
+  matched as Chromium matches CSP sources: an `http:` entry also covers
+  `https:` on port 443 if it names no port or port 80. Studio's API would
+  answer such requests as same-site, with the user's cookies. If Studio's URLs change after installation, such entries are left
   out of the policy.
 - **Frames with the shared origin:** the package installs, and the consent
   dialog and the *Apps* page say that embedded pages run without cookies or
