@@ -101,7 +101,16 @@
 
               <template #subtitle>{{ shell.id }}</template>
 
+              <!-- The marker sits at the edge, so it lines up from row to row. -->
               <template #append>
+                <v-chip
+                  v-if="shell.assetKind === 'Type'"
+                  class="me-1"
+                  color="warning"
+                  size="x-small"
+                  :text="t('shells.type')"
+                />
+
                 <v-icon
                   v-if="availability[shell.key] && availability[shell.key] !== 'available'"
                   v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
@@ -110,14 +119,6 @@
                   color="error"
                   :icon="availabilityIcons[availability[shell.key]!]"
                   size="small"
-                />
-
-                <v-chip
-                  v-if="shell.assetKind === 'Type'"
-                  class="me-1"
-                  color="warning"
-                  size="x-small"
-                  :text="t('shells.type')"
                 />
               </template>
             </v-list-item>
@@ -187,7 +188,7 @@
   import { useInfiniteQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { parseSearch } from '#shared/search/expression'
-  import { decodeResourceKey, langText, resourceKey, targetIcon } from '~/utils/aas'
+  import { langText, targetIcon } from '~/utils/aas'
 
   const props = defineProps<{ targetId: string, activeKey: string | null }>()
 
@@ -211,56 +212,13 @@
     await router.push(`/targets/${props.targetId}/shells/${result.shell.key}`)
   }
 
-  const route = useRoute()
   const router = useRouter()
 
   const filter = ref<'all' | 'Instance' | 'Type'>('all')
 
-  // The search (MVP-4 plan, S2): the Web UI's expression syntax, or a raw
-  // query from the advanced dialog, kept in the URL as `?search=` and
-  // `?query=` (base64url JSON) so that links and reloads keep the list.
-  function queryFromRoute (): Record<string, unknown> | null {
-    const encoded = route.query.query
-    const json = typeof encoded === 'string' ? decodeResourceKey(encoded) : null
-    try {
-      const value: unknown = json ? JSON.parse(json) : null
-      return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null
-    } catch {
-      return null
-    }
-  }
-  const searchFromRoute = () => (typeof route.query.search === 'string' ? route.query.search : '')
-
-  const search = ref(searchFromRoute())
-  const rawQuery = ref<Record<string, unknown> | null>(queryFromRoute())
-  const applied = ref(searchFromRoute().trim())
+  // The search, kept in the URL (MVP-4 plan, S2).
+  const { search, applied, rawQuery, searchState, clear: clearSearch } = useListSearch()
   const queryDialog = ref(false)
-
-  let searchTimer: ReturnType<typeof setTimeout> | undefined
-  watch(search, value => {
-    clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => (applied.value = value.trim()), 300)
-  })
-
-  const searchState = computed(() => ({
-    search: applied.value || undefined,
-    query: rawQuery.value ? resourceKey(JSON.stringify(rawQuery.value)) : undefined,
-  }))
-  watch(searchState, state => {
-    if (state.search !== route.query.search || state.query !== route.query.query) {
-      void router.replace({ query: { ...route.query, ...state } })
-    }
-  })
-  // Back and forward restore the search of the URL.
-  watch(() => [route.query.search, route.query.query], () => {
-    if (searchFromRoute().trim() !== applied.value) {
-      search.value = searchFromRoute()
-      applied.value = searchFromRoute().trim()
-    }
-    if (route.query.query !== searchState.value.query) {
-      rawQuery.value = queryFromRoute()
-    }
-  })
 
   const queryTarget = computed(() => target.value?.capabilities.queryTarget ?? null)
   // AASX workspaces evaluate expressions themselves; other targets need a query endpoint.
@@ -441,11 +399,7 @@
   }
 
   function reset () {
-    search.value = ''
-    applied.value = ''
-    rawQuery.value = null
+    clearSearch()
     filter.value = 'all'
   }
-
-  onScopeDispose(() => clearTimeout(searchTimer))
 </script>

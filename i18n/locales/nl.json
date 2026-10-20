@@ -20,7 +20,9 @@
     "arcadeOn": "Arcademodus: +30 levens",
     "arcadeOff": "Arcademodus uit. Weer aan het werk.",
     "legalNotice": "Colofon",
-    "privacyPolicy": "Privacybeleid"
+    "privacyPolicy": "Privacybeleid",
+    "mainNavigation": "Hoofdnavigatie",
+    "toggleSubmodelList": "Submodellenlijst tonen of verbergen"
   },
   "qr": {
     "title": "QR-code van het asset",
@@ -527,7 +529,10 @@
     "shells": "AAS'en",
     "shellsShort": "AAS'en",
     "concepts": "Conceptbeschrijvingen",
-    "conceptsShort": "Concepten"
+    "conceptsShort": "Concepten",
+    "more": "Meer",
+    "submodels": "Submodellen",
+    "submodelsShort": "Submodellen"
   },
   "common": {
     "copy": "Kopiëren",
@@ -573,7 +578,8 @@
       "dashboard": "Naar de startpagina van het doel",
       "concepts": "Naar conceptbeschrijvingen",
       "infrastructures": "Infrastructuren beheren",
-      "import": "AASX-, JSON- of XML-bestand importeren"
+      "import": "AASX-, JSON- of XML-bestand importeren",
+      "submodels": "Naar submodellen"
     }
   },
   "capabilities": {
@@ -624,7 +630,8 @@
       "invalidJson": "Geen geldige JSON: {message}",
       "notObject": "Een query is een JSON-object met $condition.",
       "edit": "Geavanceerde query bewerken",
-      "conceptDescriptions": "Draait op de repository voor conceptbeschrijvingen"
+      "conceptDescriptions": "Draait op de repository voor conceptbeschrijvingen",
+      "submodels": "Draait op de submodelrepository"
     },
     "search": "AAS'en zoeken",
     "filters": {
@@ -650,7 +657,8 @@
       "assetKind": "Assetsoort",
       "assetType": "Assettype",
       "globalAssetId": "Globale asset-ID",
-      "specificAssetId": "Specifieke asset-ID"
+      "specificAssetId": "Specifieke asset-ID",
+      "semanticId": "Semantische ID"
     },
     "empty": "Nog geen AAS'en",
     "emptyText": "Dit doel heeft nog geen AAS'en.",
@@ -828,7 +836,9 @@
     "unpin": "Losmaken van overzicht",
     "pinsFull": "Het overzicht kan geen vastgezette waarden meer bevatten",
     "pinned": "Waarde vastgezet",
-    "unpinned": "Waarde losgemaakt"
+    "unpinned": "Waarde losgemaakt",
+    "submodelNone": "Geen weergaven voor dit submodel",
+    "submodelNoneText": "Geen geïnstalleerde app biedt een weergave voor dit submodel. Gebruik het tabblad Elementen om de structuur te doorzoeken."
   },
   "changes": {
     "title": "Wijzigingen",
@@ -852,7 +862,8 @@
     },
     "times": "{count} keer | {count} keer",
     "since": "sinds {time}",
-    "feedLimits": "De gebeurtenisfeed van de infrastructuur noemt de gewijzigde AAS of het gewijzigde submodel, niet het element of wie het heeft gewijzigd."
+    "feedLimits": "De gebeurtenisfeed van de infrastructuur noemt de gewijzigde AAS of het gewijzigde submodel, niet het element of wie het heeft gewijzigd.",
+    "submodelSubtitle": "Wijzigingen van dit submodel"
   },
   "landing": {
     "subtitle": "AAS-infrastructuur",
@@ -1048,5 +1059,60 @@
       "typ": "Typisch",
       "max": "Maximum"
     }
+  },
+  "edit": {
+    "openInSubmodels": "Openen in submodelweergave"
+  },
+  "submodels": {
+    "title": "Selecteer een submodel in de lijst",
+    "headline": "Kies een submodel om te verkennen",
+    "text": "Alle submodellen van het doel, ook die waarnaar geen AAS verwijst. Druk op ⌘K om het hele doel te doorzoeken.",
+    "browse": "Submodellen bekijken",
+    "search": "Submodellen zoeken",
+    "localOnly": "Filtert alleen de geladen submodellen: deze infrastructuur biedt geen query-endpoint voor submodellen.",
+    "all": "Alle",
+    "instances": "Instanties",
+    "templates": "Sjablonen",
+    "template": "Sjabloon",
+    "kindUnknown": "Het submodelregister legt niet vast of een submodel een instantie of een sjabloon is.",
+    "orphan": "Door geen enkele AAS gerefereerd",
+    "noOwnerFound": "Geen verwijzende AAS gevonden",
+    "empty": "Nog geen submodellen",
+    "emptyText": "Dit doel heeft nog geen submodellen.",
+    "none": "Geen submodellen gevonden",
+    "noneText": "Probeer een andere zoekopdracht of soort.",
+    "loadMore": "Meer submodellen laden",
+    "fromRegistry": "Submodellen uit het submodelregister",
+    "fromRepository": "Submodellen uit de submodelrepository",
+    "fromTemplateTitle": "Nieuw submodel uit een sjabloon",
+    "fromJsonTitle": "Nieuw submodel uit JSON",
+    "idShortHint": "Leeg gelaten wordt de idShort van het sjabloon gebruikt.",
+    "unsupported": "Geen submodelweergave voor dit doel",
+    "unsupportedText": "Dit doel biedt submodellen alleen via hun AAS aan. Open ze vanuit de AAS.",
+    "edit": "Bewerken",
+    "semanticId": "Semantische ID",
+    "templateId": "Sjabloon-ID",
+    "referencedBy": "Gerefereerd door",
+    "ownersFailed": "De verwijzende AAS'en konden niet worden gelezen.",
+    "scannedAll": "Gevonden door alle {count} AAS'en te lezen",
+    "scannedFirst": "Alleen de eerste {count} AAS'en zijn gecontroleerd",
+    "addToShell": "Aan AAS toevoegen",
+    "addToShellTitle": "{name} aan een AAS toevoegen",
+    "addedToShell": "Toegevoegd aan {name}",
+    "pickShell": "AAS",
+    "noShells": "Geen AAS'en gevonden",
+    "delete": "Submodel verwijderen",
+    "deleteTitle": "{name} verwijderen?",
+    "deleteText": "Het submodel en al zijn elementen worden uit de infrastructuur verwijderd.",
+    "deleted": "{name} verwijderd",
+    "referencedWarning": "Eén AAS verwijst naar dit submodel. | {count} AAS'en verwijzen naar dit submodel.",
+    "referencingShells": "Verwijzende AAS'en",
+    "removeReferences": "De verwijzing uit deze AAS verwijderen | De verwijzingen uit deze {count} AAS'en verwijderen",
+    "ownersIncomplete": "Studio heeft alleen de eerste {count} AAS'en gecontroleerd; andere kunnen nog naar dit submodel verwijzen.",
+    "jsonLabel": "AAS 3.1 · JSON-serialisatie",
+    "tabs": {
+      "elements": "Elementen"
+    },
+    "identifier": "Identifier"
   }
 }

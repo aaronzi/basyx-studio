@@ -56,7 +56,8 @@
   // The chosen view is in the URL as `view` (as in MVP-3).
   const props = defineProps<{
     target: Target
-    shellId: string
+    /** The open shell, or `null` in the submodel view. */
+    shellId: string | null
     submodel: { id: string, semanticId: string | null }
     submodelLabel: string
     views: SubmodelViewContributionInfo[]

@@ -21,7 +21,7 @@ const target = new LiveAasTarget({
   requestId: 'test-request',
   onUnauthorized: async () => {},
 })
-const context = { target, scheme: { type: 'iri', prefix: 'https://studio.test/ids/' } as const, plan: { registry: true, discovery: true } }
+const context = { target, scheme: { type: 'iri', prefix: 'https://studio.test/ids/' } as const, plan: { registry: true, submodelRegistry: true, discovery: true } }
 
 describe.runIf(testenvAvailable)('creating shells with registry and discovery sync', () => {
   const shells: string[] = []

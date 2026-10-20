@@ -50,7 +50,7 @@
 
 <script lang="ts" setup>
   import type { QueryTarget } from '#shared/search/expression'
-  import { buildShellQuery, conceptDescriptionSearchFields, parseSearch, queryRoots, searchFields } from '#shared/search/expression'
+  import { buildShellQuery, conceptDescriptionSearchFields, parseSearch, queryRoots, searchFields, submodelSearchFields } from '#shared/search/expression'
   import querySchema from '#shared/search/query-schema.json'
   import { StudioApiError } from '~/composables/useStudioApi'
 
@@ -59,7 +59,7 @@
 
   const props = defineProps<{
     targetId: string
-    /** Shells (`repository`, `registry`) or concept descriptions (`conceptDescriptions`, MVP-6 plan, S1). */
+    /** Shells (`repository`, `registry`), submodels (`submodels`) or concept descriptions (`conceptDescriptions`, MVP-6 plan, S1). */
     queryTarget: QueryTarget
     /** The search field's expression, the starting point of a new query. */
     expression: string
@@ -87,7 +87,7 @@
   }
 
   function reset () {
-    const fields = props.queryTarget === 'conceptDescriptions' ? conceptDescriptionSearchFields : searchFields
+    const fields = props.queryTarget === 'conceptDescriptions' ? conceptDescriptionSearchFields : (props.queryTarget === 'submodels' ? submodelSearchFields : searchFields)
     text.value = format(buildShellQuery(props.queryTarget, parseSearch(props.expression, fields)))
     findings.value = []
     error.value = null
@@ -119,7 +119,7 @@
     checking.value = true
     try {
       // One row is enough to know that the server accepts the query.
-      await api(`/targets/${props.targetId}/searches`, { method: 'POST', body: { scope: props.queryTarget === 'conceptDescriptions' ? 'conceptDescriptions' : 'shells', query, limit: 1 } })
+      await api(`/targets/${props.targetId}/searches`, { method: 'POST', body: { scope: props.queryTarget === 'conceptDescriptions' || props.queryTarget === 'submodels' ? props.queryTarget : 'shells', query, limit: 1 } })
       emit('apply', query as Record<string, unknown>)
       open.value = false
     } catch (error_) {

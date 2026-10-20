@@ -1,6 +1,6 @@
 <template>
   <v-dialog v-model="open" persistent scrollable width="960">
-    <DialogCard flush :title="t('wizard.addSubmodels')">
+    <DialogCard flush :title="shellKey ? t('wizard.addSubmodels') : t('wizard.newSubmodel')">
       <SubmodelSourcesForm v-model="sources" :target-id="targetId" />
 
       <v-alert v-if="steps.length > 0" class="ma-4" :title="t('wizard.partial')" type="warning">
@@ -15,7 +15,7 @@
 
       <template #actions>
         <v-btn :disabled="busy" :text="t('common.cancel')" @click="close" />
-        <v-btn-primary :disabled="sources.length === 0" :loading="busy" :text="t('wizard.add')" @click="add" />
+        <v-btn-primary :disabled="sources.length === 0" :loading="busy" :text="shellKey ? t('wizard.add') : t('wizard.create')" @click="add" />
       </template>
     </DialogCard>
   </v-dialog>
@@ -25,10 +25,15 @@
   import type { SubmodelSource, SyncStep } from '#shared/contract'
   import { StudioApiError } from '~/composables/useStudioApi'
 
-  // Adds submodels to an open shell: from templates, empty or from JSON
-  // (MVP-5 plan, U3, T1). One request per submodel, each reporting its steps.
-  const props = defineProps<{ targetId: string, shellKey: string }>()
-  const emit = defineEmits<{ added: [] }>()
+  // Adds empty submodels to an open shell (MVP-5 plan, U3, T1), or creates
+  // them on their own in the submodel view (without `shellKey`). One request
+  // per submodel, each reporting its steps.
+  const props = defineProps<{ targetId: string, shellKey?: string }>()
+  const emit = defineEmits<{
+    added: []
+    /** On their own: the key of the first submodel created. */
+    created: [submodelKey: string]
+  }>()
   const open = defineModel<boolean>({ required: true })
 
   const { t } = useI18n()
@@ -40,7 +45,16 @@
   // What earlier attempts wrote, so a retry adds only the rest (see pendingAdditions).
   const written = new Map<string, SubmodelSource | null>()
 
+  // The first submodel created on its own, which the submodel view opens.
+  let firstCreated: string | null = null
+
   async function addOne (key: string, source: SubmodelSource) {
+    if (!props.shellKey) {
+      const result = await api<{ submodelKey: string }>(`/targets/${props.targetId}/submodels`, { method: 'POST', body: { submodel: source } })
+      written.set(key, null)
+      firstCreated ??= result.submodelKey
+      return
+    }
     try {
       await api(`/targets/${props.targetId}/shells/${props.shellKey}/submodel-refs`, { method: 'POST', body: { submodel: source } })
       written.set(key, null)
@@ -65,6 +79,9 @@
         await addOne(key, source)
       }
       emit('added')
+      if (firstCreated) {
+        emit('created', firstCreated)
+      }
       close()
     } catch (error_) {
       error.value = error_
@@ -84,5 +101,6 @@
     steps.value = []
     error.value = null
     written.clear()
+    firstCreated = null
   }
 </script>

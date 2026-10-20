@@ -56,6 +56,7 @@ class WorkspaceAasTarget implements AasTarget {
   // A workspace has no registries or discovery.
   registerShells = noSync
   unregisterShell = noSync
+  registerSubmodels = noSync
   unregisterSubmodels = noSync
   submodelAt = unsupported
   changes = unsupported
@@ -71,6 +72,16 @@ class WorkspaceAasTarget implements AasTarget {
   listShells = (limit: number, cursor: string | undefined) => this.#call('listShells', limit, cursor)
   shell = (id: string): Promise<JsonObject> => this.#call('shell', id)
   submodelIds = (shellId: string) => this.#call('submodelIds', shellId)
+  listSubmodels = (limit: number, cursor: string | undefined) => this.#call('listSubmodels', limit, cursor)
+  /** Workspaces have no query endpoint; raw queries are not offered (`submodelSearch: expression`). */
+  searchSubmodels: AasTarget['searchSubmodels'] = async (search, limit, cursor) => {
+    if (!('expression' in search)) {
+      throw new StudioProblem('query_unsupported', 'AASX packages are searched with the search field only.')
+    }
+    return { ...await this.#call('searchSubmodels', search.expression, limit, cursor), endpoint: 'workspace' }
+  }
+
+  submodelOwners = (submodelIds: string[]) => this.#call('submodelOwners', submodelIds)
   submodelMetadata = (id: string): Promise<JsonObject> => this.#call('submodelMetadata', id)
   submodel = (id: string): Promise<JsonObject> => this.#call('submodel', id)
   element = (submodelId: string, idShortPath: string): Promise<ElementSnapshot> => this.#call('element', submodelId, idShortPath)

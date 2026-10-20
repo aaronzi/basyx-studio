@@ -13,7 +13,7 @@ const shellId = 'urn:studio:test:aas:sync-by-studio'
 const assetId = 'urn:studio:test:asset:sync-by-studio'
 const edgeSubmodel = 'urn:studio:test:sm:edge-cases'
 const encode = (id: string) => Buffer.from(id).toString('base64url')
-const plan = { registry: true, discovery: true }
+const plan = { registry: true, submodelRegistry: true, discovery: true }
 
 const target = new LiveAasTarget({
   record: {
@@ -98,6 +98,6 @@ describe.runIf(testenvAvailable)('LiveAasTarget registry and discovery sync', ()
   })
 
   it('reports nothing where Studio does not sync', async () => {
-    expect(await target.registerShells([shellId], { registry: false, discovery: false })).toEqual([])
+    expect(await target.registerShells([shellId], { registry: false, submodelRegistry: false, discovery: false })).toEqual([])
   })
 })

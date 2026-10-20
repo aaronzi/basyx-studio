@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { searchRequestSchema } from '#shared/contract'
-import { buildConceptDescriptionQuery, buildShellQuery, conceptDescriptionSearchFields, conceptDescriptionSource, formatFilter, matchesConceptDescription, matchesShell, parseSearch, withoutFilter } from '#shared/search/expression'
+import { buildConceptDescriptionQuery, buildShellQuery, conceptDescriptionSearchFields, conceptDescriptionSource, formatFilter, matchesConceptDescription, matchesShell, matchesSubmodel, parseSearch, submodelSearchFields, withoutFilter } from '#shared/search/expression'
 
 describe('search expressions', () => {
   it('splits text and filters as the Web UI does', () => {
@@ -102,5 +102,41 @@ describe('concept description search', () => {
     expect(matchesConceptDescription(cd, parseSearch('id:AAB713', conceptDescriptionSearchFields))).toBe(true)
     expect(matchesConceptDescription(cd, parseSearch('-idShort:Max', conceptDescriptionSearchFields))).toBe(true)
     expect(matchesConceptDescription(cd, parseSearch('idShort=Max', conceptDescriptionSearchFields))).toBe(false)
+  })
+})
+
+describe('submodel search', () => {
+  it('knows the ID, idShort and semantic ID as fields', () => {
+    expect(parseSearch('motor semanticId:nameplate assetKind=Type', submodelSearchFields)).toEqual({
+      // A shell field is text here.
+      text: 'motor assetKind=Type',
+      filters: [{ field: 'semanticId', operator: 'contains', value: 'nameplate' }],
+    })
+  })
+
+  it('builds a query on $sm fields, the text over ID, idShort and semantic ID', () => {
+    expect(buildShellQuery('submodels', parseSearch('motor -idShort=Old', submodelSearchFields))).toEqual({
+      $condition: {
+        $and: [
+          { $or: ['$sm#id', '$sm#idShort', '$sm#semanticId'].map(field => ({ $regex: [{ $field: field }, { $strVal: '(?i)motor' }] })) },
+          { $not: { $match: [{ $eq: [{ $field: '$sm#idShort' }, { $strVal: 'Old' }] }] } },
+        ],
+      },
+    })
+    // Shell queries do not gain the semantic ID.
+    expect(JSON.stringify(buildShellQuery('repository', parseSearch('motor')))).not.toContain('semanticId')
+  })
+
+  it('evaluates a search on submodels without a query endpoint', () => {
+    const submodel = { id: 'urn:sm:1', idShort: 'Nameplate', semanticId: { type: 'ExternalReference', keys: [{ type: 'GlobalReference', value: 'https://admin-shell.io/idta/nameplate/3/0/Nameplate' }] } }
+    expect(matchesSubmodel(submodel, parseSearch('NAMEPLATE', submodelSearchFields))).toBe(true)
+    expect(matchesSubmodel(submodel, parseSearch('semanticId:idta/nameplate', submodelSearchFields))).toBe(true)
+    expect(matchesSubmodel(submodel, parseSearch('-idShort=Nameplate', submodelSearchFields))).toBe(false)
+    expect(matchesSubmodel({ id: 'urn:sm:2' }, parseSearch('semanticId:x', submodelSearchFields))).toBe(false)
+  })
+
+  it('accepts submodels as a search scope', () => {
+    expect(searchRequestSchema.safeParse({ scope: 'submodels', expression: 'motor' }).success).toBe(true)
+    expect(searchRequestSchema.safeParse({ scope: 'submodels', query: { $condition: { $boolean: true } } }).success).toBe(true)
   })
 })

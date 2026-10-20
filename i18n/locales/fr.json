@@ -20,7 +20,9 @@
     "arcadeOn": "Mode arcade : +30 vies",
     "arcadeOff": "Mode arcade désactivé. Au travail !",
     "legalNotice": "Mentions légales",
-    "privacyPolicy": "Politique de confidentialité"
+    "privacyPolicy": "Politique de confidentialité",
+    "mainNavigation": "Navigation principale",
+    "toggleSubmodelList": "Afficher ou masquer la liste des sous-modèles"
   },
   "qr": {
     "title": "Code QR de l'actif",
@@ -527,7 +529,10 @@
     "shells": "AAS",
     "shellsShort": "AAS",
     "concepts": "Descriptions de concepts",
-    "conceptsShort": "Concepts"
+    "conceptsShort": "Concepts",
+    "more": "Plus",
+    "submodels": "Sous-modèles",
+    "submodelsShort": "Sous-mod."
   },
   "common": {
     "copy": "Copier",
@@ -573,7 +578,8 @@
       "dashboard": "Aller à la page d'accueil de la cible",
       "concepts": "Aller aux descriptions de concepts",
       "infrastructures": "Gérer les infrastructures",
-      "import": "Importer un fichier AASX, JSON ou XML"
+      "import": "Importer un fichier AASX, JSON ou XML",
+      "submodels": "Aller aux sous-modèles"
     }
   },
   "capabilities": {
@@ -624,7 +630,8 @@
       "invalidJson": "JSON non valide : {message}",
       "notObject": "Une requête est un objet JSON avec $condition.",
       "edit": "Modifier la requête avancée",
-      "conceptDescriptions": "S'exécute sur le dépôt des descriptions de concept"
+      "conceptDescriptions": "S'exécute sur le dépôt des descriptions de concept",
+      "submodels": "S'exécute sur le dépôt de sous-modèles"
     },
     "search": "Rechercher des AAS",
     "filters": {
@@ -650,7 +657,8 @@
       "assetKind": "Nature de l'actif",
       "assetType": "Type d'actif",
       "globalAssetId": "ID global de l'actif",
-      "specificAssetId": "ID spécifique de l'actif"
+      "specificAssetId": "ID spécifique de l'actif",
+      "semanticId": "ID sémantique"
     },
     "empty": "Pas encore d'AAS",
     "emptyText": "Cette cible n'a pas encore d'AAS.",
@@ -828,7 +836,9 @@
     "unpin": "Détacher de la vue d'ensemble",
     "pinsFull": "La vue d'ensemble ne peut plus contenir de valeurs épinglées",
     "pinned": "Valeur épinglée",
-    "unpinned": "Valeur détachée"
+    "unpinned": "Valeur détachée",
+    "submodelNone": "Aucune vue pour ce sous-modèle",
+    "submodelNoneText": "Aucune application installée ne propose de vue pour ce sous-modèle. Utilisez l'onglet Éléments pour parcourir sa structure."
   },
   "changes": {
     "title": "Modifications",
@@ -852,7 +862,8 @@
     },
     "times": "{count} fois | {count} fois",
     "since": "depuis {time}",
-    "feedLimits": "Le flux d'événements de l'infrastructure indique l'AAS ou le sous-modèle modifié, pas l'élément ni qui l'a modifié."
+    "feedLimits": "Le flux d'événements de l'infrastructure indique l'AAS ou le sous-modèle modifié, pas l'élément ni qui l'a modifié.",
+    "submodelSubtitle": "Modifications de ce sous-modèle"
   },
   "landing": {
     "subtitle": "Infrastructure AAS",
@@ -1048,5 +1059,60 @@
       "typ": "Typique",
       "max": "Maximum"
     }
+  },
+  "edit": {
+    "openInSubmodels": "Ouvrir dans la vue des sous-modèles"
+  },
+  "submodels": {
+    "title": "Sélectionnez un sous-modèle dans la liste",
+    "headline": "Choisissez un sous-modèle à explorer",
+    "text": "Tous les sous-modèles de la cible, y compris ceux qu’aucune AAS ne référence. Appuyez sur ⌘K pour rechercher dans toute la cible.",
+    "browse": "Parcourir les sous-modèles",
+    "search": "Rechercher des sous-modèles",
+    "localOnly": "Filtre uniquement les sous-modèles chargés : cette infrastructure n’annonce aucun point de requête pour les sous-modèles.",
+    "all": "Tous",
+    "instances": "Instances",
+    "templates": "Modèles",
+    "template": "Modèle",
+    "kindUnknown": "Le registre de sous-modèles n’indique pas si un sous-modèle est une instance ou un modèle.",
+    "orphan": "Référencé par aucune AAS",
+    "noOwnerFound": "Aucune AAS référente trouvée",
+    "empty": "Aucun sous-modèle pour l’instant",
+    "emptyText": "Cette cible n’a encore aucun sous-modèle.",
+    "none": "Aucun sous-modèle trouvé",
+    "noneText": "Essayez une autre recherche ou un autre type.",
+    "loadMore": "Charger plus de sous-modèles",
+    "fromRegistry": "Sous-modèles du registre de sous-modèles",
+    "fromRepository": "Sous-modèles du dépôt de sous-modèles",
+    "fromTemplateTitle": "Nouveau sous-modèle à partir d’un modèle",
+    "fromJsonTitle": "Nouveau sous-modèle à partir de JSON",
+    "idShortHint": "Laissé vide, l’idShort du modèle est utilisé.",
+    "unsupported": "Pas de vue des sous-modèles pour cette cible",
+    "unsupportedText": "Cette cible ne fournit les sous-modèles qu’à travers leurs AAS. Ouvrez-les depuis leur AAS.",
+    "edit": "Modifier",
+    "semanticId": "ID sémantique",
+    "templateId": "ID du modèle",
+    "referencedBy": "Référencé par",
+    "ownersFailed": "Les AAS référentes n’ont pas pu être lues.",
+    "scannedAll": "Trouvé en lisant les {count} AAS",
+    "scannedFirst": "Seules les {count} premières AAS ont été vérifiées",
+    "addToShell": "Ajouter à une AAS",
+    "addToShellTitle": "Ajouter {name} à une AAS",
+    "addedToShell": "Ajouté à {name}",
+    "pickShell": "AAS",
+    "noShells": "Aucune AAS trouvée",
+    "delete": "Supprimer le sous-modèle",
+    "deleteTitle": "Supprimer {name} ?",
+    "deleteText": "Le sous-modèle et tous ses éléments sont supprimés de l’infrastructure.",
+    "deleted": "{name} supprimé",
+    "referencedWarning": "Une AAS référence ce sous-modèle. | {count} AAS référencent ce sous-modèle.",
+    "referencingShells": "AAS référentes",
+    "removeReferences": "Retirer la référence de cette AAS | Retirer les références de ces {count} AAS",
+    "ownersIncomplete": "Studio n’a vérifié que les {count} premières AAS ; d’autres peuvent encore référencer ce sous-modèle.",
+    "jsonLabel": "AAS 3.1 · sérialisation JSON",
+    "tabs": {
+      "elements": "Éléments"
+    },
+    "identifier": "Identifiant"
   }
 }

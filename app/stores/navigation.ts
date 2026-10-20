@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 /**
  * The navigation section a path belongs to: the targets list, a target's
- * dashboard, shells or concepts, or an app module. Section keys include the
+ * dashboard, shells, submodels or concepts, or an app module. Section keys include the
  * target, so another target never resumes this target's location (UX-001).
  */
 export function sectionOf (path: string): string | null {
@@ -13,7 +13,7 @@ export function sectionOf (path: string): string | null {
   if (app) {
     return `app:${app[1] ?? ''}:${app[2]}:${app[3]}`
   }
-  const target = /^\/targets\/([^/]+)(?:\/(shells|concepts)(?:\/|$))?/.exec(path)
+  const target = /^\/targets\/([^/]+)(?:\/(shells|submodels|concepts)(?:\/|$))?/.exec(path)
   if (target && !path.startsWith(`/targets/${target[1]}/invite`)) {
     return `${target[2] ?? 'dashboard'}:${target[1]}`
   }

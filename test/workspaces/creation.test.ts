@@ -5,7 +5,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { addSubmodel, convertSubmodelToInstance, createInstance, createShell, removeSubmodel } from '~~/server/lib/aas/creation'
+import { addSubmodel, convertSubmodelToInstance, createInstance, createShell, createStandaloneSubmodel, deleteSubmodelWithReferences, removeSubmodel } from '~~/server/lib/aas/creation'
 import { findings } from '~~/server/lib/aas/edits'
 import { bundledTemplate, bundledTemplates } from '~~/server/lib/templates'
 import { WorkspaceModel } from '~~/server/lib/workspaces/model'
@@ -21,7 +21,7 @@ function targetOf (model: WorkspaceModel): AasTarget {
   const noSync = async () => []
   return new Proxy({}, {
     get: (_, name: string) => {
-      if (['registerShells', 'unregisterSubmodels', 'unregisterShell'].includes(name)) {
+      if (['registerShells', 'registerSubmodels', 'unregisterSubmodels', 'unregisterShell'].includes(name)) {
         return noSync
       }
       return async (...args: unknown[]) => (model as unknown as Record<string, (...a: unknown[]) => unknown>)[name]!(...args)
@@ -30,7 +30,7 @@ function targetOf (model: WorkspaceModel): AasTarget {
 }
 
 const emptyModel = () => new WorkspaceModel({ assetAdministrationShells: [], submodels: [] })
-const context = (model: WorkspaceModel) => ({ target: targetOf(model), scheme, plan: { registry: false, discovery: false } })
+const context = (model: WorkspaceModel) => ({ target: targetOf(model), scheme, plan: { registry: false, submodelRegistry: false, discovery: false } })
 
 describe('identifiers', () => {
   it('generates IRIs or URNs per scheme', () => {
@@ -132,7 +132,7 @@ describe('creating resources in a workspace', () => {
         }
         : (base as unknown as Record<string, unknown>)[name],
     })
-    await expect(createShell({ target: failing, scheme, plan: { registry: false, discovery: false } }, {
+    await expect(createShell({ target: failing, scheme, plan: { registry: false, submodelRegistry: false, discovery: false } }, {
       shell: { id: 'urn:test:aas:partial', idShort: 'Partial' },
       submodels: [{ source: 'empty', idShort: 'Alpha', id: 'urn:test:sm:partial' }],
     })).rejects.toMatchObject({
@@ -190,6 +190,52 @@ describe('creating resources in a workspace', () => {
     expect(changed).toMatchObject({ idShort: 'Renamed' })
     expect(model.submodelIds(id)).toHaveLength(1)
     expect(() => model.replaceShell(id, { ...shell, idShort: 'Late' }, revision)).toThrowError(expect.objectContaining({ code: 'revision_conflict' }))
+  })
+})
+
+describe('submodels on their own', () => {
+  it('creates a submodel that no shell references, from a template, JSON or empty', async () => {
+    const model = emptyModel()
+    const fromTemplate = await createStandaloneSubmodel(context(model), { source: 'template', templateId: 'bundled:digital-nameplate', idShort: 'Nameplate' })
+    const fromJson = await createStandaloneSubmodel(context(model), { source: 'json', submodel: { modelType: 'Submodel', id: 'urn:test:sm:json', idShort: 'FromJson' } })
+    const empty = await createStandaloneSubmodel(context(model), { source: 'empty', idShort: 'Empty' })
+    expect(fromTemplate.steps).toEqual([{ resource: 'submodel', id: fromTemplate.submodelId, outcome: 'written' }])
+    expect(fromJson.submodelId).toBe('urn:test:sm:json')
+    expect(model.listSubmodels(10, undefined).items.map(item => item.idShort)).toEqual(['Nameplate', 'FromJson', 'Empty'])
+    expect(model.submodelOwners([empty.submodelId]).shells[empty.submodelId]).toEqual([])
+  })
+
+  it('refuses a reference to an existing submodel and an identifier that exists', async () => {
+    const model = emptyModel()
+    await createStandaloneSubmodel(context(model), { source: 'empty', idShort: 'First', id: 'urn:test:sm:first' })
+    await expect(createStandaloneSubmodel(context(model), { source: 'existing', id: 'urn:test:sm:first' })).rejects.toMatchObject({ code: 'invalid_request' })
+    await expect(createStandaloneSubmodel(context(model), { source: 'empty', idShort: 'Again', id: 'urn:test:sm:first' })).rejects.toMatchObject({ code: 'identifier_conflict' })
+  })
+
+  it('deletes a submodel, removing the references of the shells that point to it on request', async () => {
+    const model = emptyModel()
+    const { submodelId } = await createStandaloneSubmodel(context(model), { source: 'empty', idShort: 'Shared' })
+    const first = await createShell(context(model), { shell: { idShort: 'First' }, submodels: [{ source: 'existing', id: submodelId }] })
+    const second = await createShell(context(model), { shell: { idShort: 'Second' }, submodels: [{ source: 'existing', id: submodelId }] })
+    expect(model.submodelOwners([submodelId]).shells[submodelId]!.map(shell => shell.idShort)).toEqual(['First', 'Second'])
+
+    const steps = await deleteSubmodelWithReferences(context(model), submodelId, true)
+    expect(steps).toEqual([
+      { resource: 'submodelReference', id: first.shell.id, outcome: 'written' },
+      { resource: 'submodelReference', id: second.shell.id, outcome: 'written' },
+      { resource: 'submodel', id: submodelId, outcome: 'written' },
+    ])
+    expect(model.submodelIds(String(first.shell.id))).toEqual([])
+    expect(() => model.submodel(submodelId)).toThrow()
+  })
+
+  it('leaves references dangling unless they are removed', async () => {
+    const model = emptyModel()
+    const { submodelId } = await createStandaloneSubmodel(context(model), { source: 'empty', idShort: 'Shared' })
+    const { shell } = await createShell(context(model), { shell: { idShort: 'Owner' }, submodels: [{ source: 'existing', id: submodelId }] })
+    await deleteSubmodelWithReferences(context(model), submodelId, false)
+    expect(model.submodelIds(String(shell.id))).toEqual([submodelId])
+    await expect(deleteSubmodelWithReferences(context(model), submodelId, false)).rejects.toMatchObject({ code: 'target_resource_not_found' })
   })
 })
 

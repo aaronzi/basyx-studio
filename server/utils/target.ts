@@ -63,7 +63,7 @@ export async function openTargetFor (access: TargetAccess): Promise<OpenedTarget
     return {
       actor,
       target: requireWorkspaces(studio).target(targetId),
-      syncPlan: async () => ({ registry: false, discovery: false }),
+      syncPlan: async () => ({ registry: false, submodelRegistry: false, discovery: false }),
       idScheme: workspaceIdScheme,
       auditWrite: (outcome, details) => recordAudit(studio, {
         action: 'workspace.write',
@@ -126,7 +126,7 @@ function shellOf (event: RequestEvent): string | undefined {
 
 /** Opens the target of the `targetId` route parameter for the signed-in user. */
 /** POST routes that only read: searches, availability checks and validations. */
-const readingPosts = /\/api\/studio\/v1\/targets\/[^/]+\/(?:searches|shell-availability|validations)$/
+const readingPosts = /\/api\/studio\/v1\/targets\/[^/]+\/(?:searches|shell-availability|submodel-owners|validations)$/
 
 export async function openTarget (event: RequestEvent): Promise<OpenedTarget> {
   return openTargetFor({

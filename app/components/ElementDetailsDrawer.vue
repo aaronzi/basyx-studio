@@ -334,8 +334,10 @@
   // URL (`mode`, `view`).
   const props = defineProps<{
     target: Target
-    shellId: string
-    shellKey: string
+    /** The open shell, or `null` in the submodel view. */
+    shellId: string | null
+    /** The Overview whose pinned values the pin button changes: a shell's, or a submodel's in the submodel view. */
+    overviewKey: string
     submodelLabel: string | null
     submodelRef: SubmodelRef | null
     item: ShellTreeItem | null
@@ -349,9 +351,9 @@
     refreshing: boolean
     /** A new element being created below a parent (U4); takes the drawer. */
     creating: CreatingElement | null
-    /** The shell's form takes the drawer (U5). */
-    editingShell: boolean
-    shellDetail: ShellDetail | null | undefined
+    /** The shell's form takes the drawer (U5); never in the submodel view. */
+    editingShell?: boolean
+    shellDetail?: ShellDetail | null
   }>()
 
   const session = useSessionStore()
@@ -375,7 +377,7 @@
   const api = useStudioApi()
   const copy = useClipboard()
   const queryCache = useQueryCache()
-  const overview = useShellOverview(() => props.target.id, () => props.shellKey)
+  const overview = useShellOverview(() => props.target.id, () => props.overviewKey)
 
   // Values that read well as a tile on the Overview.
   const pinnableTypes = new Set(['Property', 'Range', 'MultiLanguageProperty'])
@@ -419,7 +421,7 @@
     : (smAndUp.value ? 440 : 360)))
 
   // Same key prefix as before (MVP-2/3): app writes invalidate `['targets', id, 'details']`.
-  const detailsKey = () => ['targets', targetId.value, 'details', props.shellId, props.item?.submodelKey ?? '', props.item?.elementKey ?? '', props.at ?? '']
+  const detailsKey = () => ['targets', targetId.value, 'details', props.shellId ?? '', props.item?.submodelKey ?? '', props.item?.elementKey ?? '', props.at ?? '']
   const details = useQuery({
     key: detailsKey,
     query: async ({ signal }) => {
@@ -437,7 +439,7 @@
   // JSON and UML of a submodel need its elements, which its details leave out.
   const usesFullSubmodel = computed(() => props.item?.elementKey === null && (mode.value === 'json' || mode.value === 'uml'))
   const fullSubmodel = useQuery({
-    key: () => ['targets', targetId.value, 'details', props.shellId, props.item?.submodelKey ?? '', 'full', props.at ?? ''],
+    key: () => ['targets', targetId.value, 'details', props.shellId ?? '', props.item?.submodelKey ?? '', 'full', props.at ?? ''],
     query: ({ signal }) => api<SubmodelDetail>(`/targets/${targetId.value}/submodels/${props.item!.submodelKey}`, { query: { content: 'full', at: props.at ?? undefined }, signal }),
     enabled: () => props.item !== null && !props.item.unavailable && usesFullSubmodel.value,
   })

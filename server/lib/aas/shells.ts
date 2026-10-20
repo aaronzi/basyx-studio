@@ -2,7 +2,7 @@ import type { ShellSummary } from '#shared/contract'
 import type { JsonObject } from './outline'
 import { encodeKey } from './keys'
 
-function langStrings (value: unknown): Array<{ language: string, text: string }> {
+export function langStrings (value: unknown): Array<{ language: string, text: string }> {
   return Array.isArray(value)
     ? value.filter((entry): entry is { language: string, text: string } => typeof entry?.language === 'string' && typeof entry?.text === 'string')
     : []

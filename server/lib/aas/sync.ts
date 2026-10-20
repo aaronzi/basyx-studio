@@ -10,9 +10,11 @@ import { firstKeyValue } from './outline'
 // its repositories, Studio writes descriptors and asset links itself, if the
 // infrastructure (or, where allowed, the user) chose `autoCreate`.
 
-/** What Studio writes for an infrastructure: AAS and submodel descriptors, and asset links. */
+/** What Studio writes for an infrastructure: AAS descriptors, submodel descriptors, and asset links. */
 export interface SyncPlan {
   registry: boolean
+  /** Submodel descriptors, with or without an AAS registry (e.g. `mono-repo` with a submodel registry). */
+  submodelRegistry: boolean
   discovery: boolean
 }
 
@@ -25,6 +27,7 @@ export function syncPlan (record: Pick<InfrastructureRecord, 'sync' | 'template'
   const create = effectiveSyncMode(record.sync, userChoice) === 'autoCreate'
   return {
     registry: create && !record.sync.serverSyncsRegistry && serviceUrl(record, 'aasRegistry') !== undefined,
+    submodelRegistry: create && !record.sync.serverSyncsRegistry && serviceUrl(record, 'submodelRegistry') !== undefined,
     discovery: create && !record.sync.serverSyncsDiscovery && serviceUrl(record, 'aasDiscovery') !== undefined,
   }
 }

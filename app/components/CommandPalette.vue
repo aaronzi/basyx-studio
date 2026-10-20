@@ -160,6 +160,9 @@
       if (target.canImport.value) {
         items.push({ key: 'import', group: '', title: t('palette.actions.import'), icon: 'mdi-tray-arrow-up', run: () => ui.openUpload() })
       }
+      if (target.data.value?.capabilities.submodelListSource) {
+        items.push({ key: 'submodels', group: '', title: t('palette.actions.submodels'), icon: 'mdi-file-tree-outline', run: () => router.push(`${base}/submodels`) })
+      }
       if (target.data.value?.capabilities.conceptDescriptions) {
         items.push({ key: 'concepts', group: '', title: t('palette.actions.concepts'), icon: 'mdi-book-open-page-variant-outline', run: () => router.push(`${base}/concepts`) })
       }
@@ -220,14 +223,17 @@
       icon: shell.assetKind === 'Type' ? 'mdi-shape-outline' : '$aas',
       run: () => openShell(shell.key),
     }))
-    // Elements of submodels that no shell references cannot be opened in the viewer.
-    const elements = found.value.elements.filter(hit => hit.shellKey).map(hit => ({
+    // Elements of submodels that no shell references open in the submodel view, where the target has one.
+    const submodelView = Boolean(target.data.value?.capabilities.submodelListSource)
+    const elements = found.value.elements.filter(hit => hit.shellKey || submodelView).map(hit => ({
       key: `element:${hit.submodelKey}:${hit.elementKey}`,
       group: t('palette.groups.elements'),
       title: hit.label,
       subtitle: [hit.shellLabel, hit.submodelLabel, hit.path].filter(Boolean).join(' › '),
       icon: modelTypeIcon(hit.modelType),
-      run: () => openShell(hit.shellKey!, { submodel: hit.submodelKey, element: hit.elementKey }),
+      run: () => hit.shellKey
+        ? openShell(hit.shellKey, { submodel: hit.submodelKey, element: hit.elementKey })
+        : router.push({ path: `/targets/${props.targetId}/submodels`, query: { submodel: hit.submodelKey, element: hit.elementKey } }),
     }))
     // Targets by name or description; without a search, all of them outside a
     // target, so the palette switches targets. Enter opens a target's shells,

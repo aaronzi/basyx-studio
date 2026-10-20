@@ -1,13 +1,14 @@
-import type { ConceptDescriptionSummary, ConceptDescriptionUsages, ElementHit, ElementValueInput, Page, ShellSummary } from '#shared/contract'
+import type { ConceptDescriptionSummary, ConceptDescriptionUsages, ElementHit, ElementValueInput, Page, ShellSummary, SubmodelSummary } from '#shared/contract'
 import type { ConceptDescriptionSource } from '#shared/search/expression'
 import type { LocatorStep } from '../aas/keys'
 import type { JsonObject } from '../aas/outline'
-import type { BinaryContent, ElementSnapshot, StructureResult } from '../targets/aas-target'
-import { conceptDescriptionSearchFields, conceptDescriptionSource, matchesConceptDescription, matchesShell, parseSearch } from '#shared/search/expression'
+import type { BinaryContent, ElementSnapshot, StructureResult, SubmodelOwnership } from '../targets/aas-target'
+import { conceptDescriptionSearchFields, conceptDescriptionSource, matchesConceptDescription, matchesShell, matchesSubmodel, parseSearch, submodelSearchFields } from '#shared/search/expression'
 import { toConceptDescriptionSummary } from '../aas/basyx-go'
 import { containerChildren, countSemanticUses, insertChild, moveChild, removeChild, replaceChild, semanticKey, shellMetadata, submodelReference, verifyConceptDescription, verifyShell, verifySubmodelMetadata, withChildren } from '../aas/edits'
 import { formatLocator, parseLocator } from '../aas/keys'
 import { submodelIdOf, toShellSummary } from '../aas/shells'
+import { ownersOf, toSubmodelSummary } from '../aas/submodels'
 import { elementHits } from '../aas/tree'
 import { withValue } from '../aas/values'
 import { StudioProblem } from '../problem'
@@ -157,6 +158,24 @@ export class WorkspaceModel {
     return objects(this.shell(shellId).submodels)
       .map(reference => submodelIdOf(reference))
       .filter((id): id is string => id !== null)
+  }
+
+  listSubmodels (limit: number, cursor: string | undefined): Page<SubmodelSummary> {
+    const page = paged(objects(this.environment.submodels), limit, cursor)
+    return { items: page.items.map(submodel => toSubmodelSummary(submodel)), page: page.page }
+  }
+
+  /** Submodels matching a search field expression, with the semantics of the query Studio builds for live targets. */
+  searchSubmodels (expression: string, limit: number, cursor: string | undefined): Page<SubmodelSummary> {
+    const parsed = parseSearch(expression, submodelSearchFields)
+    const page = paged(objects(this.environment.submodels).filter(submodel => matchesSubmodel(submodel, parsed)), limit, cursor)
+    return { items: page.items.map(submodel => toSubmodelSummary(submodel)), page: page.page }
+  }
+
+  /** Every shell of the package is at hand, so the answer is complete. */
+  submodelOwners (submodelIds: string[]): SubmodelOwnership {
+    const shells = objects(this.environment.assetAdministrationShells).map(shell => ({ summary: toShellSummary(shell), submodelIds: this.submodelIds(String(shell.id)) }))
+    return { shells: ownersOf(submodelIds, shells), method: 'scan', complete: true, scanned: shells.length }
   }
 
   submodel (id: string): JsonObject {

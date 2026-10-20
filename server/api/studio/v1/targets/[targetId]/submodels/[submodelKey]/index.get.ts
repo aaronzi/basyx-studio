@@ -9,12 +9,13 @@ import { submodelQuerySchema } from '#shared/contract'
 
 /**
  * A submodel's metadata, or the whole submodel as JSON or AAS XML, now or
- * (with `at`) as it was at a point in time.
+ * (with `at`) as it was at a point in time; with `download`, the JSON as a
+ * file.
  */
 export default defineStudioHandler(async (event): Promise<SubmodelDetail | Uint8Array> => {
   const key = routeParam(event, 'submodelKey')
   const submodelId = decodeKey(key, 'submodel key')
-  const { at, content, format } = queryValidated(event, submodelQuerySchema)
+  const { at, content, format, download } = queryValidated(event, submodelQuerySchema)
   const opened = await openTarget(event)
   if (at) {
     await requireCapability(opened, 'history')
@@ -27,9 +28,12 @@ export default defineStudioHandler(async (event): Promise<SubmodelDetail | Uint8
   const submodel = at
     ? await opened.target.submodelAt(submodelId, new Date(at).toISOString())
     : await opened.target.submodel(submodelId)
+  const name = String(submodel.idShort ?? 'submodel').replaceAll(/[^\w-]/g, '_')
   if (format === 'xml') {
-    const name = String(submodel.idShort ?? 'submodel').replaceAll(/[^\w-]/g, '_')
     return sendBinary(event, { bytes: new TextEncoder().encode(toAasXml(submodel, 'submodel')), contentType: 'application/xml', fileName: `${name}.xml` })
+  }
+  if (download) {
+    return sendBinary(event, { bytes: new TextEncoder().encode(JSON.stringify(submodel, null, 2)), contentType: 'application/json', fileName: `${name}.json` })
   }
   return { key, submodel }
 })

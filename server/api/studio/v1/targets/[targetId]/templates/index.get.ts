@@ -6,12 +6,32 @@ import { bundledTemplates } from '~~/server/lib/templates'
 import { defineStudioHandler } from '~~/server/utils/handler'
 import { openTarget } from '~~/server/utils/target'
 
+/** Pages of the submodel list read for templates. */
+const templatePages = 5
+
 /** Submodel templates for a target: the bundled IDTA templates, and Template-kind submodels on the target (T1). */
 export default defineStudioHandler(async (event): Promise<{ items: SubmodelTemplate[] }> => {
   const opened = await openTarget(event)
   const items = bundledTemplates()
   // Template-kind submodels the target lists; a target that cannot list them offers the bundled ones only.
-  if (opened.target.capabilities.createResources) {
+  if (opened.target.capabilities.createResources && opened.target.capabilities.submodelListSource === 'repository') {
+    // The repository's metadata names the kind, so templates no shell references are found too.
+    try {
+      let cursor: string | undefined
+      for (let page = 0; page < templatePages; page++) {
+        const submodels = await opened.target.listSubmodels(100, cursor)
+        for (const submodel of submodels.items.filter(item => item.kind === 'Template')) {
+          items.push({ id: `target:${submodel.key}`, title: submodel.idShort ?? submodel.id, semanticId: submodel.semanticId, source: 'target', version: submodel.administration?.version ?? null })
+        }
+        cursor = submodels.page.nextCursor ?? undefined
+        if (!cursor) {
+          break
+        }
+      }
+    } catch {
+      // The bundled templates remain.
+    }
+  } else if (opened.target.capabilities.createResources) {
     try {
       const shells = await opened.target.listShells(50, undefined)
       const seen = new Set<string>()

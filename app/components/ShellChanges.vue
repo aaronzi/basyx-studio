@@ -8,7 +8,7 @@
       </template>
 
       <v-card-title>{{ t('changes.title') }}</v-card-title>
-      <v-card-subtitle class="text-wrap">{{ t('changes.subtitle') }}</v-card-subtitle>
+      <v-card-subtitle class="text-wrap">{{ shellId ? t('changes.subtitle') : t('changes.submodelSubtitle') }}</v-card-subtitle>
     </v-card-item>
 
     <v-divider />
@@ -68,16 +68,17 @@
   import { useQuery } from '@pinia/colada'
   import { changeMeta } from '~/utils/aas'
 
-  const props = defineProps<{ targetId: string, shellId: string, shellLabel: string, refs: SubmodelRef[] }>()
+  // The changes of a shell and its submodels, or of one submodel in the submodel view (`shellId` null).
+  const props = defineProps<{ targetId: string, shellId: string | null, shellLabel?: string, refs: SubmodelRef[] }>()
 
   const { t, locale } = useI18n()
   const route = useRoute()
   const api = useStudioApi()
   const timeAgo = useTimeAgo()
 
-  const subjects = computed(() => [props.shellId, ...props.refs.map(ref => ref.submodelId)])
+  const subjects = computed(() => [...(props.shellId ? [props.shellId] : []), ...props.refs.map(ref => ref.submodelId)])
   const labels = computed<Record<string, string>>(() => ({
-    [props.shellId]: props.shellLabel,
+    ...(props.shellId ? { [props.shellId]: props.shellLabel ?? props.shellId } : {}),
     ...Object.fromEntries(props.refs.map(ref => [ref.submodelId, ref.idShort ?? ref.submodelId])),
   }))
   const refKeys = computed<Record<string, string>>(() => Object.fromEntries(props.refs.filter(ref => ref.status === 'available').map(ref => [ref.submodelId, ref.key])))
