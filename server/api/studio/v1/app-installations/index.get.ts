@@ -1,4 +1,5 @@
 import type { AppInstallationList } from '#shared/contract'
+import { hasInstallationOrigins } from '~~/server/lib/apps/origins'
 import { listInstallations, toAppInstallation } from '~~/server/lib/apps/store'
 import { requireActor } from '~~/server/utils/auth'
 import { defineStudioHandler } from '~~/server/utils/handler'
@@ -13,5 +14,6 @@ export default defineStudioHandler(async (event): Promise<AppInstallationList> =
     enabled: studio.config.apps.baseUrl !== null,
     allowUnsigned: studio.config.apps.allowUnsigned,
     trustedPublishers: trustStore.publishers.map(publisher => publisher.name),
+    installationOrigins: studio.config.apps.baseUrl !== null && hasInstallationOrigins(studio.config.apps.baseUrl),
   }
 })

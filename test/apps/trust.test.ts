@@ -142,7 +142,7 @@ describe('the trust of an installation', () => {
   const key = keyPair()
   const fingerprint = parsePublicKey(key.pem).fingerprint
   const store = storeOf({ name: 'Example GmbH', pems: [key.pem], appIds: ['org.example.*'], permissions: ['studio.timeseries.read'] })
-  const signed = { appId: 'org.example.app', trust: 'signed', bundled: false, keyFingerprint: fingerprint }
+  const signed = { appId: 'org.example.app', trust: 'signed', bundled: false, keyFingerprint: fingerprint, manifest: {} }
 
   it('grants the publisher\'s reserved permissions to signed apps, and all to bundled ones', () => {
     expect(installationTrust(signed, store)).toEqual({ verifiedPublisher: 'Example GmbH', revoked: null, granted: ['studio.timeseries.read'] })

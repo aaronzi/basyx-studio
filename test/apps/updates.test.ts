@@ -121,6 +121,8 @@ describe('signed installs and in-place updates', () => {
       permissionsAdded: ['studio.ui.notifications'],
       permissionsRemoved: [],
       sandboxAdded: ['workers'],
+      originsAdded: [],
+      originsRemoved: [],
       backendAdded: false,
     })
 

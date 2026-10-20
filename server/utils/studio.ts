@@ -8,7 +8,7 @@ import { reconcileManagedPackages } from '../lib/apps/packages'
 import { BackendRunner } from '../lib/apps/runner'
 import { installBundledApp, listInstallations, removeBundledApp } from '../lib/apps/store'
 import { capabilityTokenKey } from '../lib/apps/tokens'
-import { installationTrust } from '../lib/apps/trust'
+import { installationTrust, revocationReason } from '../lib/apps/trust'
 import { configurationWarnings, loadStudioConfig } from '../lib/config'
 import { systemDiscoveryEnvironment } from '../lib/containers/discovery'
 import { infrastructureInputOf } from '../lib/containers/infrastructure'
@@ -99,8 +99,7 @@ async function reportRevokedApps (deps: StudioDeps): Promise<void> {
   for (const record of await listInstallations(deps)) {
     const { revoked } = installationTrust(record, deps.config.apps.trustStore)
     if (revoked) {
-      const reason = revoked === 'keyRemoved' ? `its key ${record.keyFingerprint} is not in the trust store` : `its publisher may no longer sign ${record.appId}`
-      console.warn(`[studio] app ${record.appId} ${record.version} is revoked: ${reason}`)
+      console.warn(`[studio] app ${record.appId} ${record.version} is revoked: ${revocationReason(revoked, record)}`)
     }
   }
 }

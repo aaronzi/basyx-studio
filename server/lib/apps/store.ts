@@ -6,12 +6,15 @@ import type { AppPackage } from './package'
 import type { TrustStore, VerifiedSignature } from './trust'
 import type { AppManifest, AppSandbox } from '@basyx/studio-sdk/protocol'
 import { randomBytes } from 'node:crypto'
+import { needsRemoteCodeGrant, sandboxOrigins } from '@basyx/studio-app-kit/manifest'
+import { sandboxOriginKinds } from '@basyx/studio-sdk/protocol'
 import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
 import semver from 'semver'
 import { appBlobs, appFiles, appInstallations } from '../../database/schema'
 import { recordAudit } from '../audit'
 import { StudioProblem } from '../problem'
 import { readAppPackage, sha256Hex } from './package'
+import { checkSandbox } from './sandbox'
 import { installationTrust, verifyPackageSignature } from './trust'
 
 export type AppInstallationRecord = typeof appInstallations.$inferSelect
@@ -130,6 +133,7 @@ async function prepareUpload (deps: StudioDeps, bytes: Uint8Array, signature: st
     })
   }
   const signer = signature === null ? null : verifyPackageSignature(deps.config.apps.trustStore, bytes, signature, pkg.manifest.id)
+  checkSandbox(deps.config, pkg.manifest, { publisher: signer?.publisher ?? null, developerMode: signer === null })
   const [existing] = await deps.db.select().from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
   if (existing) {
     checkUpdate(deps, existing, pkg, signer)
@@ -186,6 +190,8 @@ export async function inspectAppPackage (deps: StudioDeps, bytes: Uint8Array, si
       permissionsAdded: summary.permissions.filter(permission => !before.permissions.includes(permission)),
       permissionsRemoved: before.permissions.filter(permission => !summary.permissions.includes(permission)),
       sandboxAdded: (['webAssembly', 'workers'] as const).filter(flag => summary.sandbox[flag] && !before.sandbox[flag]),
+      originsAdded: sandboxOriginKinds.flatMap(kind => summary.sandbox[kind].filter(origin => !before.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
+      originsRemoved: sandboxOriginKinds.flatMap(kind => before.sandbox[kind].filter(origin => !summary.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
       backendAdded: summary.backend && !before.backend,
     }
   }
@@ -375,7 +381,7 @@ export async function readAppFile (deps: Pick<StudioDeps, 'db' | 'config'>, inst
     .innerJoin(appBlobs, eq(appBlobs.digest, appFiles.digest))
     .innerJoin(appInstallations, eq(appInstallations.id, appFiles.installationId))
     .where(and(eq(appFiles.installationId, installationId), eq(appFiles.path, path)))
-  if (!row || installationTrust(row.installation, deps.config.apps.trustStore).revoked) {
+  if (!row || installationTrust({ ...row.installation, manifest: row.manifest }, deps.config.apps.trustStore).revoked) {
     return null
   }
   if (!verified.has(row.digest)) {
@@ -413,7 +419,7 @@ export async function listAppFilePaths (deps: Pick<StudioDeps, 'db'>, installati
   return rows.map(row => row.path)
 }
 
-type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'submodelViews' | 'modules' | 'backend'>
+type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'remoteCode' | 'submodelViews' | 'modules' | 'backend'>
 
 function manifestSummary (manifest: AppManifest): ManifestSummary {
   return {
@@ -423,7 +429,8 @@ function manifestSummary (manifest: AppManifest): ManifestSummary {
     description: manifest.description ?? null,
     publisher: manifest.publisher.name,
     permissions: manifest.permissions,
-    sandbox: { webAssembly: manifest.sandbox?.webAssembly ?? false, workers: manifest.sandbox?.workers ?? false },
+    sandbox: { webAssembly: manifest.sandbox?.webAssembly ?? false, workers: manifest.sandbox?.workers ?? false, ...sandboxOrigins(manifest) },
+    remoteCode: needsRemoteCodeGrant(manifest),
     submodelViews: manifest.contributes.submodelViews?.length ?? 0,
     modules: manifest.contributes.modules?.length ?? 0,
     backend: Boolean(manifest.backend),

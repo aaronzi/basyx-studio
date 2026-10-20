@@ -5,6 +5,7 @@ import type { z } from 'zod'
 import { randomUUID } from 'node:crypto'
 import { defineEventHandler, getQuery, getRequestHeader, getRouterParam, readBody, setResponseStatus } from 'nuxt/server'
 import { StudioProblem } from '../lib/problem'
+import { allowedOrigins } from '../lib/urls'
 import { useStudio } from './studio'
 
 declare module 'nuxt/schema' {
@@ -21,17 +22,6 @@ export function requestIdOf (event: RequestEvent): string {
 }
 
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
-
-export function allowedOrigins (publicUrl: string, desktop: boolean): Set<string> {
-  const origins = new Set([new URL(publicUrl).origin])
-  if (desktop) {
-    // The desktop renderer may address the loopback service by either name.
-    const url = new URL(publicUrl)
-    origins.add(`${url.protocol}//localhost:${url.port}`)
-    origins.add(`${url.protocol}//127.0.0.1:${url.port}`)
-  }
-  return origins
-}
 
 /**
  * Rejects cross-site state changes before the handler runs. Browsers always

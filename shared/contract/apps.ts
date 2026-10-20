@@ -1,5 +1,5 @@
 import type { MethodName, Methods } from '@basyx/studio-sdk/protocol'
-import { permissions, protocolVersion, stackFileKinds } from '@basyx/studio-sdk/protocol'
+import { permissions, protocolVersion, sandboxOriginKinds, stackFileKinds } from '@basyx/studio-sdk/protocol'
 import { z } from 'zod'
 import { displayBreakpoints } from '../overview'
 import { engineHostSchema, stackComponentIdSchema, stackSpecSchema } from './containers'
@@ -21,10 +21,22 @@ export type LocalizedText = z.infer<typeof localizedTextSchema>
 export const appTrustSchema = z.enum(['bundled', 'signed', 'managed', 'unsigned'])
 export type AppTrust = z.infer<typeof appTrustSchema>
 
-export const appRevocationSchema = z.enum(['keyRemoved', 'appIdNotAllowed'])
+/** Why a signed installation is no longer trusted (ADR 0044), or lost the grant for code from outside its package (ADR 0045). */
+export const appRevocationSchema = z.enum(['keyRemoved', 'appIdNotAllowed', 'remoteCodeNotGranted'])
 export type AppRevocation = z.infer<typeof appRevocationSchema>
 
-const appSandboxSchema = z.object({ webAssembly: z.boolean(), workers: z.boolean() })
+export const sandboxOriginKindSchema = z.enum(sandboxOriginKinds)
+export type SandboxOriginKind = z.infer<typeof sandboxOriginKindSchema>
+
+const appSandboxSchema = z.object({
+  webAssembly: z.boolean(),
+  workers: z.boolean(),
+  /** Declared third-party origins (ADR 0045); empty when not declared. */
+  frameOrigins: z.array(z.string()),
+  connectOrigins: z.array(z.string()),
+  imageOrigins: z.array(z.string()),
+  mediaOrigins: z.array(z.string()),
+})
 
 export const appInstallationSchema = z.object({
   id: z.string(),
@@ -54,8 +66,14 @@ export const appInstallationSchema = z.object({
   permissions: z.array(appPermissionSchema),
   /** Reserved permissions it may use: all for bundled apps, those its publisher is granted for signed ones. */
   grantedPermissions: z.array(appPermissionSchema),
-  /** What its pages may run beyond scripts (manifest `sandbox`, ADR 0038). */
+  /** What its pages may run and reach beyond their own files (manifest `sandbox`, ADR 0038, ADR 0045). */
   sandbox: appSandboxSchema,
+  /**
+   * It may fetch from connect origins and run WebAssembly or `blob:` workers,
+   * so it could run code that is not in its package (ADR 0045). Installed
+   * only for bundled apps and publishers the trust store grants `remoteCode`.
+   */
+  remoteCode: z.boolean(),
   submodelViews: z.number().int(),
   modules: z.number().int(),
   backend: z.boolean(),
@@ -69,7 +87,7 @@ export type AppInstallation = z.infer<typeof appInstallationSchema>
  * for the consent dialog. Nothing is stored.
  */
 export const appPackageInspectionSchema = appInstallationSchema
-  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, submodelViews: true, modules: true, backend: true })
+  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, remoteCode: true, submodelViews: true, modules: true, backend: true })
   .extend({
     trust: z.enum(['signed', 'unsigned']),
     /** The installation this package updates in place, and what changes; `null` for a new installation. */
@@ -81,6 +99,9 @@ export const appPackageInspectionSchema = appInstallationSchema
       permissionsAdded: z.array(appPermissionSchema),
       permissionsRemoved: z.array(appPermissionSchema),
       sandboxAdded: z.array(z.enum(['webAssembly', 'workers'])),
+      /** Declared origins the update adds and removes, per kind (ADR 0045). Added ones need the confirmation. */
+      originsAdded: z.array(z.object({ kind: sandboxOriginKindSchema, origin: z.string() })),
+      originsRemoved: z.array(z.object({ kind: sandboxOriginKindSchema, origin: z.string() })),
       backendAdded: z.boolean(),
     }).nullable(),
   })
@@ -93,6 +114,12 @@ export interface AppInstallationList {
   allowUnsigned: boolean
   /** Names of the publishers whose signed packages may be installed (STUDIO_APPS_TRUSTED_PUBLISHERS). */
   trustedPublishers: string[]
+  /**
+   * Every installation has an origin of its own (ADR 0045). Without, frames
+   * share one apps origin and stay opaque, so embedded pages run without
+   * cookies or storage.
+   */
+  installationOrigins: boolean
 }
 
 const contributionBase = {
@@ -109,6 +136,12 @@ const contributionBase = {
   /** Installed in developer mode, without a signature (ADR 0044). */
   unsigned: z.boolean(),
   bundled: z.boolean(),
+  /**
+   * The origin the frame runs in when the installation has one of its own
+   * (ADR 0045): the frame then gets `allow-same-origin`, and the bridge talks
+   * to this origin only. `null` with a shared apps origin: opaque frames.
+   */
+  frameOrigin: z.string().nullable(),
 }
 
 export const submodelViewContributionSchema = z.object({
@@ -127,6 +160,8 @@ export const moduleContributionSchema = z.object({
   icon: z.string().nullable(),
   route: z.string(),
   context: z.enum(['global', 'target', 'shell']),
+  /** `fullPage`: the frame fills the page, without header, card or padding (ADR 0045). */
+  layout: z.enum(['standard', 'fullPage']),
 })
 export type ModuleContributionInfo = z.infer<typeof moduleContributionSchema>
 
