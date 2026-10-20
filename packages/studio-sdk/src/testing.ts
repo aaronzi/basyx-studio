@@ -1,8 +1,11 @@
 import type { AppContext, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
 import type { Transport } from './transport.ts'
 import { StudioClient } from './index.ts'
-import { methodPermissions, protocolVersion } from './protocol.ts'
+import { editModeMethods, methodPermissions, protocolVersion, putAttachmentMaxBytes } from './protocol.ts'
 import { StudioError } from './transport.ts'
+
+export { memoryAas } from './memory-aas.ts'
+export type { MemoryAas, MemoryAasOptions } from './memory-aas.ts'
 
 // An in-memory Studio for running an app's UI in a plain dev server and for
 // unit tests (MVP-7 D2, ADR 0043). It answers the UI methods that Studio's
@@ -15,6 +18,9 @@ import { StudioError } from './transport.ts'
 //     },
 //   })
 //   await mountApp(App, components, { client: studio.client })
+//
+// `memoryAas()` provides handlers for the AAS methods, including structural
+// writes and attachments, over shells and submodels the caller passes.
 
 /** A handler of one method. Throw a `StudioError` (see `studioError`) to refuse the call. */
 export type TestHandler<M extends MethodName> = (params: Methods[M]['params'], studio: TestStudio) => Methods[M]['result'] | Promise<Methods[M]['result']>
@@ -99,6 +105,7 @@ const problemTitles: Record<string, { status: number, title: string }> = {
   not_found: { status: 404, title: 'Not found' },
   unsupported_operation: { status: 422, title: 'This operation is not supported here' },
   app_permission_not_declared: { status: 403, title: 'The app did not declare the permission for this call' },
+  app_edit_mode_required: { status: 403, title: 'Switch to edit mode to change content from an app' },
   internal_error: { status: 500, title: 'Internal error' },
 }
 
@@ -159,6 +166,16 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     const permission = methodPermissions[name]
     if (options.permissions && permission && !options.permissions.includes(permission)) {
       throw studioError('app_permission_not_declared', `${method} needs the permission ${permission}, which ${context.appId} did not declare.`)
+    }
+    // Studio's server refuses these outside edit mode, whatever the app shows.
+    if (editModeMethods.includes(name) && context.mode !== 'edit') {
+      throw studioError('app_edit_mode_required', `${method} needs Studio's edit mode.`)
+    }
+    if (name === 'studio.aas.putAttachment') {
+      const { data } = params as Methods['studio.aas.putAttachment']['params']
+      if (!(data instanceof ArrayBuffer || ArrayBuffer.isView(data)) || data.byteLength === 0 || data.byteLength > putAttachmentMaxBytes) {
+        throw studioError('invalid_request', `The attachment must be an ArrayBuffer or Uint8Array of 1 byte to ${putAttachmentMaxBytes / 1024 / 1024} MiB.`)
+      }
     }
     const handler = handlers[name] as TestHandler<MethodName> | undefined
     if (!handler) {
