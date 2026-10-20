@@ -1,0 +1,31 @@
+{
+  "$schema": "../../packages/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.eclipse.basyx.studio.file-system",
+  "version": "1.0.0",
+  "publisher": { "name": "Eclipse BaSyx" },
+  "title": { "en": "Files", "de": "Dateien", "es": "Archivos", "fr": "Fichiers", "ja": "ファイル", "nl": "Bestanden", "zh-Hans": "文件" },
+  "description": {
+    "en": "Shows the folders and files of a FileSystem submodel, as the BaSyx AAS Web UI does, with a preview of images, PDFs, text, audio and video; in edit mode, files are uploaded, and files and folders created, renamed, moved and deleted.",
+    "de": "Zeigt die Ordner und Dateien eines FileSystem-Teilmodells wie die BaSyx AAS Web UI, mit einer Vorschau von Bildern, PDFs, Text, Audio und Video; im Bearbeitungsmodus lassen sich Dateien hochladen sowie Dateien und Ordner anlegen, umbenennen, verschieben und löschen.",
+    "es": "Muestra las carpetas y los archivos de un submodelo FileSystem, como la BaSyx AAS Web UI, con una vista previa de imágenes, PDF, texto, audio y vídeo; en el modo de edición se pueden subir archivos y crear, renombrar, mover y eliminar archivos y carpetas.",
+    "fr": "Affiche les dossiers et fichiers d'un sous-modèle FileSystem, comme la BaSyx AAS Web UI, avec un aperçu des images, PDF, textes, sons et vidéos ; en mode édition, on peut téléverser des fichiers et créer, renommer, déplacer et supprimer fichiers et dossiers.",
+    "ja": "FileSystemサブモデルのフォルダーとファイルをBaSyx AAS Web UIと同様に表示し、画像、PDF、テキスト、音声、動画をプレビューします。編集モードでは、ファイルのアップロード、ファイルとフォルダーの作成、名前の変更、移動、削除ができます。",
+    "nl": "Toont de mappen en bestanden van een FileSystem-submodel zoals de BaSyx AAS Web UI, met een voorbeeld van afbeeldingen, pdf's, tekst, audio en video; in de bewerkmodus kunnen bestanden worden geüpload en bestanden en mappen worden aangemaakt, hernoemd, verplaatst en verwijderd.",
+    "zh-Hans": "像 BaSyx AAS Web UI 一样显示 FileSystem 子模型的文件夹和文件，并预览图像、PDF、文本、音频和视频；在编辑模式下，可以上传文件，以及创建、重命名、移动和删除文件和文件夹。"
+  },
+  "studioApi": "^0.1.5",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.aas.write"],
+  "contributes": {
+    "submodelViews": [
+      {
+        "id": "file-system",
+        "title": { "en": "Files", "de": "Dateien", "es": "Archivos", "fr": "Fichiers", "ja": "ファイル", "nl": "Bestanden", "zh-Hans": "文件" },
+        "entry": "ui/index.html",
+        "semanticIds": ["https://basyx.org/FileSystem/FileSystem/0/1"],
+        "columns": { "md": 12, "xl": 8 }
+      }
+    ]
+  }
+}
