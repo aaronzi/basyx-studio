@@ -34,14 +34,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
 
-      # studio-app.json and the built files at the root of the archive. The
-      # version in studio-app.json must be higher than the installed one.
-      # `studio-app pack` of @basyx/studio-app-kit replaces this step once it
-      # is published (external apps plan, P4).
+      # studio-app.json and the files below dist/ (add `--include backend`
+      # for a backend), checked as Studio's upload checks them, by
+      # `studio-app pack` of @basyx/studio-app-kit (ADR 0043). The version in
+      # studio-app.json must be higher than the installed one.
       - name: Pack
         run: |
           package="${APP_ID}-${GITHUB_REF_NAME#v}.zip"
-          (cd dist && zip -X -r "../${package}" .)
+          pnpm exec studio-app pack --out "${package}"
           echo "PACKAGE=${package}" >> "$GITHUB_ENV"
 
       # cosign 3: the signing flags below need it (installer v3 installs cosign 2).
@@ -49,7 +49,9 @@ jobs:
         with:
           cosign-release: v3.0.6
 
-      # A detached signature over the exact package bytes. cosign 3 needs both
+      # A detached signature over the exact package bytes. With a PEM key
+      # instead of a cosign key, `pnpm exec studio-app sign "${PACKAGE}" --key
+      # signing.pem` writes the same .sig without cosign. cosign 3 needs both
       # flags to sign offline with a key; with cosign 2, which has no
       # --use-signing-config, leave that flag out.
       # Without them, cosign 3 writes a Sigstore bundle (--bundle) and

@@ -31,7 +31,9 @@ You need [cosign](https://docs.sigstore.dev/cosign/system_config/installation/)
    the trust store.
 
 2. Pack an app: a ZIP file with `studio-app.json` at its root, whose `id` is
-   within the publisher's `appIds` (`org.example.*` here). Sign it:
+   within the publisher's `appIds` (`org.example.*` here). `studio-app pack`
+   of [`@basyx/studio-app-kit`](../../../packages/studio-app-kit/README.md)
+   writes it with Studio's checks. Sign it:
 
    ```bash
    cosign sign-blob --key example-team.key --use-signing-config=false --tlog-upload=false \
@@ -96,6 +98,9 @@ from the repository's secrets, verifies the signature with the committed
 - Keyless signing (`cosign sign-blob` without `--key`) is not accepted: Studio
   verifies against the keys in its trust store only, which must be ECDSA P-256.
 - Other CI systems run the same two cosign commands.
+- Without cosign, `studio-app sign --key signing.pem` and `studio-app verify
+  --key signing.pub` write and check the same `.sig` with a PEM key (PKCS#8 or
+  SEC1). They do not read cosign's encrypted `cosign.key`.
 
 When a key is rotated, add the new public key to the publisher's `keys` first,
 release with it, then remove the old key. Apps the old key signed are revoked
