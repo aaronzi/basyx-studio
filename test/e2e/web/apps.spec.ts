@@ -276,6 +276,55 @@ test('contains a hostile app and refuses what it did not declare (DoD 5, 6)', as
   }
 })
 
+test('changes structure and uploads files through the bridge, only in edit mode (ADR 0049)', async ({ page }) => {
+  const installationId = await installApp(page, await zipDirectory(join(fixturesDirectory, 'writer')))
+  await page.goto(`/targets/${openTargetId}/apps/${installationId}/writer`)
+  const frame = appFrame(page, 'Structure writer')
+  const results = async () => JSON.parse(await frame.locator('#results').textContent() ?? '{}') as Record<string, unknown>
+  const run = async () => {
+    // A click into a frame that is still being placed can be lost.
+    await expect(frame.getByRole('button', { name: 'Run' })).toBeEnabled()
+    await waitUntilSettled(page.locator('iframe[title="App: Structure writer"]'))
+    await frame.getByRole('button', { name: 'Run' }).click()
+  }
+
+  // Studio's server refuses structural writes in view mode, whatever the app does.
+  await run()
+  await expect(frame.locator('body[data-runs="1"]')).toBeAttached({ timeout: 30_000 })
+  expect(await results()).toEqual({ error: 'app_edit_mode_required' })
+
+  await setMode(page, 'Edit')
+  await run()
+  await expect(frame.locator('body[data-runs="2"]')).toBeAttached({ timeout: 30_000 })
+  const outcome = await results()
+  expect(outcome).toMatchObject({
+    created: expect.arrayContaining(['submodel:written', 'shell:written']),
+    file: 'FOLDER_1.Readme',
+    uploaded: 'text/plain',
+    read: 'written by an app',
+    stale: 'revision_conflict',
+    renamed: 'FOLDER_2',
+    children: ['Readme'],
+    deleted: expect.arrayContaining(['shell:removed', 'submodel:removed']),
+  })
+
+  // Writes and the refusal are audited with the app's identity, without content.
+  const client = new pg.Client({ connectionString: 'postgres://studio:studio@localhost:15432/studio' })
+  await client.connect()
+  try {
+    const { rows } = await client.query(
+      `select action, outcome, details from audit_events where app_installation_id = $1 order by occurred_at`,
+      [installationId],
+    )
+    const writes = rows.filter(row => row.action === 'target.write' && row.outcome === 'success').map(row => row.details.method)
+    expect(writes).toEqual(expect.arrayContaining(['studio.aas.createShell', 'studio.aas.addElement', 'studio.aas.putAttachment', 'studio.aas.putElement', 'studio.aas.deleteShell']))
+    expect(rows.find(row => row.details.method === 'studio.aas.putAttachment' && row.outcome === 'success')?.details).toMatchObject({ fileName: 'readme.txt', size: 17, path: 'FOLDER_1.Readme' })
+    expect(rows.some(row => row.action === 'app.call' && row.details.code === 'app_edit_mode_required')).toBe(true)
+  } finally {
+    await client.end()
+  }
+})
+
 test('rejects invalid packages through the API and leaves nothing installed (DoD 7)', async ({ page }) => {
   const api = await studioApi(page)
   const manifest = { manifestVersion: 0, id: 'org.example.invalid', version: '1.0.0', publisher: { name: 'x' }, title: { en: 'Invalid' }, studioApi: '^0.1.0', runtimes: ['hosted'], permissions: [], contributes: { modules: [{ id: 'm', title: { en: 'M' }, entry: 'ui/index.html', route: 'm', context: 'global' }] } }

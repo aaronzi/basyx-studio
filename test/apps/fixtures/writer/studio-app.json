@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 0,
+  "id": "org.example.structure-writer",
+  "version": "1.0.0",
+  "publisher": { "name": "Studio tests" },
+  "title": { "en": "Structure writer" },
+  "studioApi": "^0.1.5",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.aas.write"],
+  "contributes": {
+    "modules": [
+      { "id": "writer", "title": { "en": "Structure writer" }, "entry": "ui/index.html", "route": "writer", "context": "target" }
+    ]
+  }
+}
