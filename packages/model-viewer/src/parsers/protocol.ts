@@ -1,4 +1,4 @@
-import type { IfcElementInfo, MeshBatch } from '../types'
+import type { IfcElementInfo, MeshBatch } from '../types.ts'
 
 // Messages between the viewer and its parser worker.
 

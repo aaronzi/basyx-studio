@@ -1,4 +1,4 @@
-import type { ViewerTheme } from './viewer'
+import type { ViewerTheme } from './viewer.ts'
 
 /**
  * The scene's colors from a Vuetify theme: its light surface as background,

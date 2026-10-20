@@ -1,6 +1,6 @@
-import type { ParserRequest, ParserResponse, WorkerMessage } from './protocol'
-import { createParserHandler } from './handler'
-import { transferablesOf } from './protocol'
+import type { ParserRequest, ParserResponse, WorkerMessage } from './protocol.ts'
+import { createParserHandler } from './handler.ts'
+import { transferablesOf } from './protocol.ts'
 
 // The parser worker: IFC and STEP are read off the main thread, so the page
 // stays responsive while large models load.

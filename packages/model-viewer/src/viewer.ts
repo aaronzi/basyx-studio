@@ -1,5 +1,5 @@
-import type { ModelFormat } from './formats'
-import type { IfcElementInfo, MeshBatch, ProgressCallback } from './types'
+import type { ModelFormat } from './formats.ts'
+import type { IfcElementInfo, MeshBatch, ProgressCallback } from './types.ts'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js'
@@ -7,9 +7,9 @@ import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { ViewHelper } from 'three/addons/helpers/ViewHelper.js'
 import dracoWasm from 'three/addons/libs/draco/gltf/draco_decoder.wasm?url'
 import dracoJs from 'three/addons/libs/draco/gltf/draco_wasm_wrapper.js?url'
-import { refineModelFormat } from './formats'
-import { emptyImage, externalResources, withoutExternalImages } from './gltf'
-import { ParserClient } from './parsers/client'
+import { refineModelFormat } from './formats.ts'
+import { emptyImage, externalResources, withoutExternalImages } from './gltf.ts'
+import { ParserClient } from './parsers/client.ts'
 
 // The 3D viewer of Studio and its apps (three.js, MIT License): orbit
 // controls, a view cube, framing and picking of IFC elements. The scene,
