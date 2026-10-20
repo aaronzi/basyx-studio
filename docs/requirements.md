@@ -69,7 +69,7 @@ Priority terms follow this meaning:
 | APP-008 | Must | Apps shall be able to request HTTP access to declared third-party origins through permission-controlled egress. |
 | APP-009 | Must | Apps shall be able to use stable common Studio functionality, including selected AAS types and semantic utilities exposed by `@basyx/studio-sdk`. |
 | APP-010 | Must | App UI code shall not execute in the core Studio renderer context. Backend app code shall not execute in the Studio Service process. |
-| APP-011 | Must | Installation shall verify immutable artifact digests, signatures, compatibility, and requested permissions. |
+| APP-011 | Must | Installation shall verify immutable artifact digests, signatures, compatibility, and requested permissions. Until a marketplace exists, signatures shall be checked against publisher keys that the deployment configures. |
 | APP-012 | Must | App authors shall declare and lock dependencies during an isolated build. End users shall not mutate an installed app's dependency tree. |
 | APP-013 | Should | The marketplace shall provide publisher identity, review status, SBOM/provenance, vulnerability information, revocation, and rollback. |
 | APP-014 | Should | Pure TypeScript/JavaScript backend apps should run with deny-by-default permissions in an isolated runtime. Privileged Node/native apps shall be clearly classified as full-trust software. |
@@ -80,6 +80,8 @@ Priority terms follow this meaning:
 | APP-019 | Must | An app manifest shall be able to request images or media from declared third-party origins, in addition to the WebAssembly and worker extensions of ADR 0038. Each extension shall be off by default and shown on installation; third-party origins shall carry a data-egress note. |
 | APP-020 | Should | `@basyx/studio-sdk` shall separate the client API from its transport. It shall ship an in-memory test transport so apps can be developed and unit-tested without Studio. The HTTP binding of the capability protocol shall be documented as the normative wire format. |
 | APP-021 | Should | An app with write permission shall be able to ask for edit mode. Studio shall confirm with the user in its own dialog before switching, and leaving edit mode shall remain the user's choice. |
+| APP-022 | Must | Installed apps shall be updatable in place. An update shall keep the installation's identity, so links and audit records stay valid, and shall need the same publisher's signature or the deployment's configuration. Changed permissions shall be confirmed before the update. |
+| APP-023 | Must | The SDK and the helpers for building, packaging, and signing apps shall be published as versioned packages, so apps can be built outside Studio's repository. |
 
 ## Standalone app products
 
