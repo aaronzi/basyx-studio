@@ -4,9 +4,11 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { useRuntimeConfig } from 'nuxt/server'
 import { apiBasePath } from '#shared/contract'
+import { reconcileManagedPackages } from '../lib/apps/packages'
 import { BackendRunner } from '../lib/apps/runner'
-import { installBundledApp, removeBundledApp } from '../lib/apps/store'
+import { installBundledApp, listInstallations, removeBundledApp } from '../lib/apps/store'
 import { capabilityTokenKey } from '../lib/apps/tokens'
+import { installationTrust } from '../lib/apps/trust'
 import { configurationWarnings, loadStudioConfig } from '../lib/config'
 import { systemDiscoveryEnvironment } from '../lib/containers/discovery'
 import { infrastructureInputOf } from '../lib/containers/infrastructure'
@@ -73,6 +75,36 @@ async function installBundledApps (deps: StudioDeps): Promise<void> {
   }
 }
 
+/**
+ * Installs, updates and removes the deployment's packages (STUDIO_APP_PACKAGES,
+ * ADR 0044). A package that fails is skipped; its previous version stays.
+ */
+async function installManagedPackages (deps: StudioDeps): Promise<void> {
+  const result = await reconcileManagedPackages(deps, deps.config.apps.packages)
+  for (const change of ['installed', 'updated', 'removed'] as const) {
+    if (result[change].length > 0) {
+      console.info(`[studio] managed apps ${change}: ${result[change].join(', ')}`)
+    }
+  }
+  for (const failure of result.failed) {
+    console.error(`[studio] managed app package not installed: ${failure}`)
+  }
+  if (result.failed.length > 0) {
+    console.error('[studio] managed apps that are no longer configured were kept, because a package failed')
+  }
+}
+
+/** Revocation takes effect with the trust store read at startup (ADR 0044). */
+async function reportRevokedApps (deps: StudioDeps): Promise<void> {
+  for (const record of await listInstallations(deps)) {
+    const { revoked } = installationTrust(record, deps.config.apps.trustStore)
+    if (revoked) {
+      const reason = revoked === 'keyRemoved' ? `its key ${record.keyFingerprint} is not in the trust store` : `its publisher may no longer sign ${record.appId}`
+      console.warn(`[studio] app ${record.appId} ${record.version} is revoked: ${reason}`)
+    }
+  }
+}
+
 let runtime: Promise<StudioRuntime> | undefined
 
 async function initialize (): Promise<StudioRuntime> {
@@ -99,7 +131,10 @@ async function initialize (): Promise<StudioRuntime> {
       await ensureDesktopSession(deps)
     }
     if (config.apps.baseUrl) {
+      // Managed packages first: they take precedence over bundled apps with the same ID.
+      await installManagedPackages(deps)
       await installBundledApps(deps)
+      await reportRevokedApps(deps)
     }
     let workspaces: WorkspaceManager | null = null
     let inspector: WorkspaceWorkerClient | null = null

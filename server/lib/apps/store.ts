@@ -1,17 +1,23 @@
-import type { AppInstallation } from '#shared/contract'
+import type { AppInstallation, AppPackageInspection, AppPermission } from '#shared/contract'
+import type { AppTrustLevel } from '../../database/schema'
+import type { StudioDatabase } from '../database/client'
 import type { Actor, StudioDeps } from '../deps'
-import type { AppSandbox } from '@basyx/studio-sdk/protocol'
+import type { AppPackage } from './package'
+import type { TrustStore, VerifiedSignature } from './trust'
+import type { AppManifest, AppSandbox } from '@basyx/studio-sdk/protocol'
 import { randomBytes } from 'node:crypto'
 import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
+import semver from 'semver'
 import { appBlobs, appFiles, appInstallations } from '../../database/schema'
 import { recordAudit } from '../audit'
 import { StudioProblem } from '../problem'
 import { readAppPackage, sha256Hex } from './package'
+import { installationTrust, verifyPackageSignature } from './trust'
 
 export type AppInstallationRecord = typeof appInstallations.$inferSelect
 
 /** Lower-case, so it stays the same as a `studio-app://` host name. */
-function newInstallationId (): string {
+export function newInstallationId (): string {
   return `app-${randomBytes(8).toString('hex')}`
 }
 
@@ -25,66 +31,11 @@ function requireAppsEnabled (deps: StudioDeps): void {
   }
 }
 
-/**
- * Installs a developer-mode package. Validation completes before anything
- * is stored; the installation, its files and their content-addressed blobs
- * are written in one transaction.
- */
 /** Rejects installs and uninstalls when the deployment fixes its apps (STUDIO_APPS_ALLOW_INSTALL=false). */
 function requireAppChanges (deps: StudioDeps): void {
   if (!deps.config.deployment.appInstalls) {
     throw new StudioProblem('forbidden', 'This Studio deployment does not allow installing or removing apps.')
   }
-}
-
-export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Array, requestId: string): Promise<AppInstallationRecord> {
-  requireAppsEnabled(deps)
-  requireAppChanges(deps)
-  if (!deps.config.apps.allowUnsigned) {
-    throw new StudioProblem('app_unsigned_disabled', 'Set STUDIO_APPS_ALLOW_UNSIGNED=true to allow developer-mode installs.')
-  }
-  const pkg = readAppPackage(bytes, deps.config.deploymentMode)
-  const reserved = pkg.manifest.permissions.filter(permission => (bundledOnlyPermissions as readonly string[]).includes(permission))
-  if (reserved.length > 0) {
-    throw new StudioProblem('app_package_rejected', `${reserved.join(', ')} is reserved for the apps shipped with Studio (ADR 0033).`, {
-      violations: reserved.map(permission => ({ path: 'studio-app.json#permissions', message: `requests ${permission}, which only bundled apps may hold` })),
-    })
-  }
-  const id = newInstallationId()
-
-  const record = await deps.db.transaction(async tx => {
-    const [existing] = await tx.select({ version: appInstallations.version }).from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
-    if (existing) {
-      throw new StudioProblem('app_already_installed', `${pkg.manifest.id} ${existing.version} is installed. Uninstall it first; updates come with the marketplace.`)
-    }
-    const [installed] = await tx.insert(appInstallations).values({
-      id,
-      appId: pkg.manifest.id,
-      version: pkg.manifest.version,
-      digest: pkg.digest,
-      manifest: pkg.manifest,
-      unsigned: true,
-      installedBy: actor.subject,
-    }).returning()
-    const unique = new Map(pkg.files.map(file => [file.digest, file]))
-    for (const file of unique.values()) {
-      await tx.insert(appBlobs).values({ digest: file.digest, size: file.content.length, content: file.content }).onConflictDoNothing()
-    }
-    if (pkg.files.length > 0) {
-      await tx.insert(appFiles).values(pkg.files.map(file => ({ installationId: id, path: file.path, digest: file.digest, contentType: file.contentType })))
-    }
-    return installed!
-  })
-
-  await recordAudit(deps, {
-    action: 'app.install',
-    outcome: 'success',
-    requestId,
-    actorSubject: actor.subject,
-    appInstallationId: id,
-    details: { appId: record.appId, version: record.version, digest: record.digest, unsigned: true, permissions: record.manifest.permissions },
-  })
-  return record
 }
 
 /** Permissions only the apps shipped with Studio may hold: they reach beyond the AAS (ADR 0033). */
@@ -93,11 +44,214 @@ export const bundledOnlyPermissions = ['studio.containers'] as const
 /** The subject recorded as installer of bundled apps. */
 export const bundledInstaller = 'studio'
 
+/** The subject recorded as installer of managed packages (STUDIO_APP_PACKAGES). */
+export const managedInstaller = 'deployment'
+
+type Transaction = Parameters<Parameters<StudioDatabase['transaction']>[0]>[0]
+
+// Arbitrary constant: the first key of the per-app advisory locks; the
+// two-key form never meets the migration lock.
+const appLockClass = 7_240_044
+
+/**
+ * Serializes every change of one app ID until the transaction ends, so
+ * concurrent installs, updates and removals see each other's result.
+ * Unlike a row lock, it also covers an app ID that is not installed yet.
+ */
+export async function lockAppId (tx: Transaction, appId: string): Promise<void> {
+  await tx.execute(sql`select pg_advisory_xact_lock(${appLockClass}, hashtext(${appId}))`)
+}
+
+/** How an installation is trusted and who owns it (ADR 0044). */
+export interface InstallationSource {
+  trust: AppTrustLevel
+  /** The trust store's publisher name, for signed packages. */
+  publisher: string | null
+  keyFingerprint: string | null
+  bundled: boolean
+  managed: boolean
+  installedBy: string
+}
+
+/** The source of an installation from a verified signature, or its unsigned fallback. */
+export function sourceOf (signer: VerifiedSignature | null, unsigned: AppTrustLevel, owner: Pick<InstallationSource, 'bundled' | 'managed' | 'installedBy'>): InstallationSource {
+  return { trust: signer ? 'signed' : unsigned, publisher: signer?.publisher.name ?? null, keyFingerprint: signer?.keyFingerprint ?? null, ...owner }
+}
+
+/**
+ * Writes a new installation, or replaces the package of an existing one in
+ * place: its ID stays, so frames, deep links and audit records stay valid.
+ * Blobs no installation uses any more are removed.
+ */
+export async function writeInstallation (tx: Transaction, id: string, existing: boolean, pkg: AppPackage, source: InstallationSource): Promise<AppInstallationRecord> {
+  const values = { appId: pkg.manifest.id, version: pkg.manifest.version, digest: pkg.digest, manifest: pkg.manifest, ...source, installedAt: new Date() }
+  const [record] = existing
+    ? await tx.update(appInstallations).set(values).where(eq(appInstallations.id, id)).returning()
+    : await tx.insert(appInstallations).values({ id, ...values }).returning()
+  if (existing) {
+    await tx.delete(appFiles).where(eq(appFiles.installationId, id))
+  }
+  for (const file of new Map(pkg.files.map(entry => [entry.digest, entry])).values()) {
+    await tx.insert(appBlobs).values({ digest: file.digest, size: file.content.length, content: file.content }).onConflictDoNothing()
+  }
+  if (pkg.files.length > 0) {
+    await tx.insert(appFiles).values(pkg.files.map(file => ({ installationId: id, path: file.path, digest: file.digest, contentType: file.contentType })))
+  }
+  if (existing) {
+    await tx.delete(appBlobs).where(notExists(
+      tx.select({ one: sql`1` }).from(appFiles).where(eq(appFiles.digest, appBlobs.digest)),
+    ))
+  }
+  return record!
+}
+
+interface PreparedUpload {
+  pkg: AppPackage
+  signer: VerifiedSignature | null
+  existing: AppInstallationRecord | null
+}
+
+/**
+ * Runs every check of an upload (ADR 0016, ADR 0044) without storing
+ * anything: the package, its signature against the trust store, and, when
+ * the app is installed, whether this package may update it.
+ */
+async function prepareUpload (deps: StudioDeps, bytes: Uint8Array, signature: string | null): Promise<PreparedUpload> {
+  requireAppsEnabled(deps)
+  requireAppChanges(deps)
+  if (signature === null && !deps.config.apps.allowUnsigned) {
+    throw new StudioProblem('app_unsigned_disabled', 'Sign the package with a key of a trusted publisher (STUDIO_APPS_TRUSTED_PUBLISHERS), or set STUDIO_APPS_ALLOW_UNSIGNED=true for developer-mode installs.')
+  }
+  const pkg = readAppPackage(bytes, deps.config.deploymentMode)
+  const reserved = pkg.manifest.permissions.filter(permission => (bundledOnlyPermissions as readonly string[]).includes(permission))
+  if (reserved.length > 0) {
+    throw new StudioProblem('app_package_rejected', `${reserved.join(', ')} is reserved for the apps shipped with Studio (ADR 0033).`, {
+      violations: reserved.map(permission => ({ path: 'studio-app.json#permissions', message: `requests ${permission}, which only bundled apps may hold` })),
+    })
+  }
+  const signer = signature === null ? null : verifyPackageSignature(deps.config.apps.trustStore, bytes, signature, pkg.manifest.id)
+  const [existing] = await deps.db.select().from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
+  if (existing) {
+    checkUpdate(deps, existing, pkg, signer)
+  }
+  return { pkg, signer, existing: existing ?? null }
+}
+
+/**
+ * Whether an upload may replace an installation in place (ADR 0044): signed
+ * by the same trust store publisher, signed over unsigned, or unsigned over
+ * unsigned in developer mode; with a higher version, or the same version to
+ * restore a revoked installation.
+ */
+function checkUpdate (deps: StudioDeps, existing: AppInstallationRecord, pkg: AppPackage, signer: VerifiedSignature | null): void {
+  const { id, version } = pkg.manifest
+  if (existing.bundled) {
+    throw new StudioProblem('app_already_installed', `${id} is shipped with Studio and is not replaced by uploads.`)
+  }
+  if (existing.managed) {
+    throw new StudioProblem('app_already_installed', `${id} is installed by the deployment (STUDIO_APP_PACKAGES); update the package there.`)
+  }
+  const current = installationTrust(existing, deps.config.apps.trustStore)
+  if (existing.trust === 'signed') {
+    const publisher = current.verifiedPublisher ?? existing.publisher
+    if (!signer) {
+      throw new StudioProblem('app_signer_not_allowed', `${id} is signed by ${publisher}; an update needs a signature of the same publisher.`)
+    }
+    if (signer.publisher.name !== publisher) {
+      throw new StudioProblem('app_signer_not_allowed', `${id} is signed by ${publisher}, so ${signer.publisher.name} cannot update it. Uninstall it first.`)
+    }
+  }
+  if (existing.digest === pkg.digest && !current.revoked) {
+    throw new StudioProblem('app_already_installed', `${id} ${existing.version} is installed already.`)
+  }
+  const restores = current.revoked !== null && signer !== null && semver.eq(version, existing.version)
+  if (!semver.gt(version, existing.version) && !restores) {
+    throw new StudioProblem('app_already_installed', `${id} ${existing.version} is installed; an update needs a higher version than ${version}.`)
+  }
+}
+
+/** Checks an upload and says what installing it would do, for the consent dialog. Nothing is stored. */
+export async function inspectAppPackage (deps: StudioDeps, bytes: Uint8Array, signature: string | null): Promise<AppPackageInspection> {
+  const { pkg, signer, existing } = await prepareUpload(deps, bytes, signature)
+  const { manifest } = pkg
+  const summary = manifestSummary(manifest)
+  let update: AppPackageInspection['update'] = null
+  if (existing) {
+    const before = manifestSummary(existing.manifest)
+    update = {
+      installationId: existing.id,
+      version: existing.version,
+      trust: existing.trust,
+      verifiedPublisher: installationTrust(existing, deps.config.apps.trustStore).verifiedPublisher,
+      permissionsAdded: summary.permissions.filter(permission => !before.permissions.includes(permission)),
+      permissionsRemoved: before.permissions.filter(permission => !summary.permissions.includes(permission)),
+      sandboxAdded: (['webAssembly', 'workers'] as const).filter(flag => summary.sandbox[flag] && !before.sandbox[flag]),
+      backendAdded: summary.backend && !before.backend,
+    }
+  }
+  return {
+    ...summary,
+    digest: pkg.digest,
+    trust: signer ? 'signed' : 'unsigned',
+    verifiedPublisher: signer?.publisher.name ?? null,
+    keyFingerprint: signer?.keyFingerprint ?? null,
+    grantedPermissions: (signer?.publisher.permissions ?? []).filter(permission => manifest.permissions.includes(permission)),
+    update,
+  }
+}
+
+export interface UploadResult {
+  record: AppInstallationRecord
+  /** The version it replaced in place, if it was an update. */
+  previous: AppInstallationRecord | null
+}
+
+/**
+ * Installs an uploaded package, or updates the installed app with the same
+ * ID in place (ADR 0044). Validation completes before anything is stored;
+ * the installation, its files and their content-addressed blobs are written
+ * in one transaction. The caller stops a running backend after an update.
+ */
+export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Array, signature: string | null, requestId: string): Promise<UploadResult> {
+  const { pkg, signer, existing } = await prepareUpload(deps, bytes, signature)
+  const source = sourceOf(signer, 'unsigned', { bundled: false, managed: false, installedBy: actor.subject })
+  const id = existing?.id ?? newInstallationId()
+
+  const record = await deps.db.transaction(async tx => {
+    await lockAppId(tx, pkg.manifest.id)
+    // What the checks saw must still be installed; otherwise they ran against an older state.
+    const [current] = await tx.select({ id: appInstallations.id, digest: appInstallations.digest }).from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
+    if (current?.id !== existing?.id || current?.digest !== existing?.digest) {
+      throw new StudioProblem('app_already_installed', `${pkg.manifest.id} was installed or changed in the meantime.`)
+    }
+    return writeInstallation(tx, id, existing !== null, pkg, source)
+  })
+
+  await recordAudit(deps, {
+    action: existing ? 'app.update' : 'app.install',
+    outcome: 'success',
+    requestId,
+    actorSubject: actor.subject,
+    appInstallationId: id,
+    details: {
+      appId: record.appId,
+      version: record.version,
+      digest: record.digest,
+      trust: record.trust,
+      publisher: record.publisher,
+      keyFingerprint: record.keyFingerprint,
+      permissions: record.manifest.permissions,
+      ...(existing ? { previousVersion: existing.version, previousDigest: existing.digest } : {}),
+    },
+  })
+  return { record, previous: existing }
+}
+
 /**
  * Installs or updates an app shipped with Studio (ADR 0023). Bundled apps
  * come from the Studio build itself, so they need neither developer mode nor
- * a marketplace signature. An app with the same ID that an administrator
- * installed is left alone.
+ * a signature. An app with the same ID that an administrator or the
+ * deployment installed is left alone.
  */
 export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): Promise<'installed' | 'updated' | 'unchanged' | 'skipped'> {
   const pkg = readAppPackage(bytes, null)
@@ -106,6 +260,7 @@ export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): P
     return 'skipped'
   }
   return deps.db.transaction(async tx => {
+    await lockAppId(tx, pkg.manifest.id)
     const [existing] = await tx.select().from(appInstallations).where(eq(appInstallations.appId, pkg.manifest.id))
     if (existing && !existing.bundled) {
       return 'skipped'
@@ -113,32 +268,14 @@ export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): P
     if (existing?.digest === pkg.digest) {
       return 'unchanged'
     }
-    // Keep the installation ID, so frames and audit records stay comparable across updates.
-    const id = existing?.id ?? newInstallationId()
-    if (existing) {
-      await tx.delete(appInstallations).where(eq(appInstallations.id, id))
-    }
-    await tx.insert(appInstallations).values({
-      id,
-      appId: pkg.manifest.id,
-      version: pkg.manifest.version,
-      digest: pkg.digest,
-      manifest: pkg.manifest,
-      unsigned: false,
+    await writeInstallation(tx, existing?.id ?? newInstallationId(), Boolean(existing), pkg, {
+      trust: 'bundled',
+      publisher: null,
+      keyFingerprint: null,
       bundled: true,
+      managed: false,
       installedBy: bundledInstaller,
     })
-    for (const file of new Map(pkg.files.map(entry => [entry.digest, entry])).values()) {
-      await tx.insert(appBlobs).values({ digest: file.digest, size: file.content.length, content: file.content }).onConflictDoNothing()
-    }
-    if (pkg.files.length > 0) {
-      await tx.insert(appFiles).values(pkg.files.map(file => ({ installationId: id, path: file.path, digest: file.digest, contentType: file.contentType })))
-    }
-    if (existing) {
-      await tx.delete(appBlobs).where(notExists(
-        tx.select({ one: sql`1` }).from(appFiles).where(eq(appFiles.digest, appBlobs.digest)),
-      ))
-    }
     return existing ? 'updated' : 'installed'
   })
 }
@@ -146,6 +283,7 @@ export async function installBundledApp (deps: StudioDeps, bytes: Uint8Array): P
 /** Removes a first-party app retired from Studio; user-installed apps are never touched. */
 export async function removeBundledApp (deps: Pick<StudioDeps, 'db'>, appId: string): Promise<boolean> {
   return deps.db.transaction(async tx => {
+    await lockAppId(tx, appId)
     const [existing] = await tx.select({ id: appInstallations.id, bundled: appInstallations.bundled }).from(appInstallations).where(eq(appInstallations.appId, appId))
     if (!existing?.bundled) {
       return false
@@ -170,6 +308,11 @@ export async function getInstallation (deps: Pick<StudioDeps, 'db'>, id: string)
   return record
 }
 
+/** The installations whose files may be served and whose contributions are offered: all but revoked ones (ADR 0044). */
+export async function listActiveInstallations (deps: Pick<StudioDeps, 'db' | 'config'>): Promise<AppInstallationRecord[]> {
+  return (await listInstallations(deps)).filter(record => !installationTrust(record, deps.config.apps.trustStore).revoked)
+}
+
 /** Removes the installation and every blob no other installation uses. */
 export async function uninstallApp (deps: StudioDeps, actor: Actor, id: string, requestId: string): Promise<AppInstallationRecord> {
   requireAppChanges(deps)
@@ -177,7 +320,18 @@ export async function uninstallApp (deps: StudioDeps, actor: Actor, id: string, 
   if (record.bundled) {
     throw new StudioProblem('forbidden', 'Apps shipped with Studio cannot be uninstalled.')
   }
+  if (record.managed) {
+    throw new StudioProblem('forbidden', 'This app is installed by the deployment (STUDIO_APP_PACKAGES) and is removed there.')
+  }
+  await removeInstallation(deps, record, actor.subject, requestId)
+  return record
+}
+
+/** Deletes an installation, its files and unused blobs, and audits it. */
+export async function removeInstallation (deps: StudioDeps, record: AppInstallationRecord, actorSubject: string, requestId?: string): Promise<void> {
+  const { id } = record
   await deps.db.transaction(async tx => {
+    await lockAppId(tx, record.appId)
     await tx.delete(appInstallations).where(eq(appInstallations.id, id))
     await tx.delete(appBlobs).where(notExists(
       tx.select({ one: sql`1` }).from(appFiles).where(eq(appFiles.digest, appBlobs.digest)),
@@ -187,11 +341,10 @@ export async function uninstallApp (deps: StudioDeps, actor: Actor, id: string, 
     action: 'app.uninstall',
     outcome: 'success',
     requestId,
-    actorSubject: actor.subject,
+    actorSubject,
     appInstallationId: id,
     details: { appId: record.appId, version: record.version },
   })
-  return record
 }
 
 export interface AppFile {
@@ -205,18 +358,24 @@ export interface AppFile {
 // Digests already verified in this process. Blobs are immutable.
 const verified = new Set<string>()
 
-/** Reads one file of an installation, verifying its content digest. */
-export async function readAppFile (deps: Pick<StudioDeps, 'db'>, installationId: string, path: string): Promise<AppFile | null> {
+/** Reads one file of an installation, verifying its content digest. Revoked installations have no files. */
+export async function readAppFile (deps: Pick<StudioDeps, 'db' | 'config'>, installationId: string, path: string): Promise<AppFile | null> {
   if (!isInstallationId(installationId)) {
     return null
   }
   const [row] = await deps.db
-    .select({ content: appBlobs.content, contentType: appFiles.contentType, digest: appFiles.digest, manifest: appInstallations.manifest })
+    .select({
+      content: appBlobs.content,
+      contentType: appFiles.contentType,
+      digest: appFiles.digest,
+      manifest: appInstallations.manifest,
+      installation: { appId: appInstallations.appId, trust: appInstallations.trust, bundled: appInstallations.bundled, keyFingerprint: appInstallations.keyFingerprint },
+    })
     .from(appFiles)
     .innerJoin(appBlobs, eq(appBlobs.digest, appFiles.digest))
     .innerJoin(appInstallations, eq(appInstallations.id, appFiles.installationId))
     .where(and(eq(appFiles.installationId, installationId), eq(appFiles.path, path)))
-  if (!row) {
+  if (!row || installationTrust(row.installation, deps.config.apps.trustStore).revoked) {
     return null
   }
   if (!verified.has(row.digest)) {
@@ -225,7 +384,7 @@ export async function readAppFile (deps: Pick<StudioDeps, 'db'>, installationId:
     }
     verified.add(row.digest)
   }
-  const { manifest, ...file } = row
+  const { manifest, installation: _installation, ...file } = row
   return { ...file, sandbox: manifest.sandbox ?? {} }
 }
 
@@ -254,23 +413,38 @@ export async function listAppFilePaths (deps: Pick<StudioDeps, 'db'>, installati
   return rows.map(row => row.path)
 }
 
-export function toAppInstallation (record: AppInstallationRecord): AppInstallation {
-  const { manifest } = record
+type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'submodelViews' | 'modules' | 'backend'>
+
+function manifestSummary (manifest: AppManifest): ManifestSummary {
   return {
-    id: record.id,
-    appId: record.appId,
-    version: record.version,
+    appId: manifest.id,
+    version: manifest.version,
     title: manifest.title,
     description: manifest.description ?? null,
     publisher: manifest.publisher.name,
-    digest: record.digest,
-    unsigned: record.unsigned,
-    bundled: record.bundled,
     permissions: manifest.permissions,
     sandbox: { webAssembly: manifest.sandbox?.webAssembly ?? false, workers: manifest.sandbox?.workers ?? false },
     submodelViews: manifest.contributes.submodelViews?.length ?? 0,
     modules: manifest.contributes.modules?.length ?? 0,
     backend: Boolean(manifest.backend),
+  }
+}
+
+export function toAppInstallation (record: AppInstallationRecord, trustStore: TrustStore): AppInstallation {
+  const trust = installationTrust(record, trustStore)
+  return {
+    ...manifestSummary(record.manifest),
+    id: record.id,
+    appId: record.appId,
+    version: record.version,
+    digest: record.digest,
+    trust: record.trust,
+    verifiedPublisher: trust.verifiedPublisher,
+    keyFingerprint: record.keyFingerprint,
+    revoked: trust.revoked,
+    bundled: record.bundled,
+    managed: record.managed,
+    grantedPermissions: trust.granted.filter((permission: AppPermission) => record.manifest.permissions.includes(permission)),
     installedAt: record.installedAt.toISOString(),
     installedBy: record.installedBy,
   }

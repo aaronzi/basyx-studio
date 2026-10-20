@@ -1,4 +1,5 @@
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
+import { generateKeyPairSync } from 'node:crypto'
 import { readdir, readFile } from 'node:fs/promises'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -49,4 +50,10 @@ export async function zipDirectory (directory: string): Promise<Uint8Array> {
     entries[relative(directory, file).split('\\').join('/')] = new Uint8Array(await readFile(file))
   }
   return zipSync(entries)
+}
+
+/** A fresh ECDSA P-256 key pair, as `cosign generate-key-pair` makes, with the public key as PEM. */
+export function keyPair () {
+  const { publicKey, privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+  return { privateKey, pem: publicKey.export({ type: 'spki', format: 'pem' }).toString() }
 }

@@ -98,9 +98,13 @@ const bytea = customType<{ data: Uint8Array, driverData: Uint8Array }>({
   fromDriver: value => new Uint8Array(value.buffer, value.byteOffset, value.byteLength),
 })
 
+/** How Studio trusts the files of an installation (ADR 0044). */
+export const appTrustLevels = ['bundled', 'signed', 'managed', 'unsigned'] as const
+export type AppTrustLevel = typeof appTrustLevels[number]
+
 /**
- * Installed apps (developer mode, MVP-3). One version per app ID; updates come
- * with the marketplace. Installing or uninstalling changes only these rows.
+ * Installed apps (MVP-3, ADR 0044). One version per app ID; an update keeps
+ * the installation ID. Installing or uninstalling changes only these rows.
  */
 export const appInstallations = pgTable('app_installations', {
   id: text('id').primaryKey(),
@@ -110,9 +114,16 @@ export const appInstallations = pgTable('app_installations', {
   digest: text('digest').notNull(),
   /** The validated manifest, as installed. */
   manifest: jsonb('manifest').$type<AppManifest>().notNull(),
-  unsigned: boolean('unsigned').notNull(),
+  /** `bundled`, `signed` (verified against the trust store), `managed` (mounted unsigned by the operator) or `unsigned`. */
+  trust: text('trust', { enum: appTrustLevels }).notNull(),
+  /** The trust store's name of the publisher whose key signed the package; `null` unless signed. */
+  publisher: text('publisher'),
+  /** `sha256:<hex>` of the signing key; `null` unless signed. Revocation compares it with the trust store. */
+  keyFingerprint: text('key_fingerprint'),
   /** Shipped with Studio and installed at startup (ADR 0023); not uninstallable by users. */
   bundled: boolean('bundled').notNull().default(false),
+  /** Installed from STUDIO_APP_PACKAGES at startup; not changed or uninstalled in the UI. */
+  managed: boolean('managed').notNull().default(false),
   installedBy: text('installed_by').notNull(),
   installedAt: timestamp('installed_at', { withTimezone: true }).notNull().defaultNow(),
 }, table => [uniqueIndex('app_installations_app_id_idx').on(table.appId)])

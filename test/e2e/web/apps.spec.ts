@@ -87,8 +87,14 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   await expect(alice.locator('iframe[title="App: Test view"]')).toHaveCount(0)
 
   await page.goto('/?panel=apps')
-  await page.locator('input[type="file"]').setInputFiles({ name: 'view.zip', mimeType: 'application/zip', buffer: Buffer.from(await testView()) })
+  // The package, not its signature (ADR 0044).
+  await page.locator('input[type="file"][accept^=".zip"]').setInputFiles({ name: 'view.zip', mimeType: 'application/zip', buffer: Buffer.from(await testView()) })
   await page.getByRole('button', { name: 'Install app' }).click()
+  // Studio checks the package first and asks to confirm what it requests (ADR 0044).
+  const consent = page.getByRole('dialog')
+  await expect(consent.getByText('This package is not signed.')).toBeVisible()
+  await expect(consent.getByText('Read AAS data you have access to')).toBeVisible()
+  await consent.getByRole('button', { name: 'Install', exact: true }).click()
   await expect(page.getByText('Installed Nameplate test view 0.1.0.')).toBeVisible()
   await expect(page.getByText('org.example.nameplate-test-view')).toBeVisible()
 
@@ -96,7 +102,7 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   const broken = zipSync({
     'studio-app.json': strToU8(JSON.stringify({ manifestVersion: 0, id: 'org.example.broken', version: '1.0.0', publisher: { name: 'x' }, title: { en: 'Broken' }, studioApi: '^0.1.0', runtimes: ['hosted'], permissions: ['studio.root'], contributes: {} })),
   })
-  await page.locator('input[type="file"]').setInputFiles({ name: 'broken.zip', mimeType: 'application/zip', buffer: Buffer.from(broken) })
+  await page.locator('input[type="file"][accept^=".zip"]').setInputFiles({ name: 'broken.zip', mimeType: 'application/zip', buffer: Buffer.from(broken) })
   await page.getByRole('button', { name: 'Install app' }).click()
   await expect(page.getByText('The app package is not valid.')).toBeVisible()
   await expect(page.getByText('studio-app.json#permissions.0', { exact: true })).toBeVisible()

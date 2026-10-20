@@ -14,6 +14,7 @@ import { reactive } from 'vue'
 import { auditEvents, containerStacks, infrastructures } from '~~/server/database/schema'
 import { authorizeAppCall } from '~~/server/lib/apps/calls'
 import { installApp, installBundledApp, listInstallations } from '~~/server/lib/apps/store'
+import { emptyTrustStore } from '~~/server/lib/apps/trust'
 import { canonicalRepository, EngineClient, execOutput } from '~~/server/lib/containers/engine'
 import { parseImport, readImport } from '~~/server/lib/containers/import'
 import { ContainerManager } from '~~/server/lib/containers/manager'
@@ -54,7 +55,7 @@ async function finish (job: { id: string }) {
 beforeAll(async () => {
   database = await openDatabase({ kind: 'memory' })
   await applyMigrations(database.db, await loadMigrationsFromDirectory(new URL('../../server/database/migrations', import.meta.url).pathname))
-  deps = { db: database.db, cipher: new SecretCipher(randomBytes(32)), config: { deploymentMode: 'desktop', infrastructuresEditable: true, deployment: { appInstalls: true }, apps: { baseUrl: 'http://apps.localhost/app/', allowUnsigned: true } } as StudioConfig }
+  deps = { db: database.db, cipher: new SecretCipher(randomBytes(32)), config: { deploymentMode: 'desktop', infrastructuresEditable: true, deployment: { appInstalls: true }, apps: { baseUrl: 'http://apps.localhost/app/', allowUnsigned: true, trustStore: emptyTrustStore, packages: [] } } as StudioConfig }
 })
 afterAll(async () => database.close())
 
@@ -258,15 +259,15 @@ describe('container regressions', () => {
 
   it('refuses uploaded apps requesting container authority and skips the desktop bundle on hosted Studio', async () => {
     const manifest = manifestOf({ id: 'org.example.container-test', runtimes: ['desktop'], permissions: ['studio.containers'] })
-    await expect(installApp(deps, actor, zipApp(manifest), 'install')).rejects.toMatchObject({ code: 'app_package_rejected' })
+    await expect(installApp(deps, actor, zipApp(manifest), null, 'install')).rejects.toMatchObject({ code: 'app_package_rejected' })
     const hosted = { ...deps, config: { ...deps.config, deploymentMode: 'hosted' as const } }
     expect(await installBundledApp(hosted, zipApp(manifest))).toBe('skipped')
     await installBundledApp(deps, zipApp(manifest))
     const record = (await listInstallations(deps)).find(item => item.appId === manifest.id)!
-    expect(() => authorizeAppCall(record, 'studio.containers.listStacks', 'host')).not.toThrow()
-    expect(() => authorizeAppCall({ ...record, bundled: false }, 'studio.containers.listStacks', 'host')).toThrow('reserved')
-    expect(() => authorizeAppCall(record, 'studio.containers.listStacks', 'backend')).toThrow('not available')
-    expect(() => authorizeAppCall({ ...record, manifest: { ...record.manifest, permissions: [] } }, 'studio.containers.listStacks', 'host')).toThrow('permission')
+    expect(() => authorizeAppCall(record, 'studio.containers.listStacks', 'host', emptyTrustStore)).not.toThrow()
+    expect(() => authorizeAppCall({ ...record, bundled: false }, 'studio.containers.listStacks', 'host', emptyTrustStore)).toThrow('reserved')
+    expect(() => authorizeAppCall(record, 'studio.containers.listStacks', 'backend', emptyTrustStore)).toThrow('not available')
+    expect(() => authorizeAppCall({ ...record, manifest: { ...record.manifest, permissions: [] } }, 'studio.containers.listStacks', 'host', emptyTrustStore)).toThrow('permission')
   })
 
   it('recognizes Docker canonical names for official and publisher images', () => {

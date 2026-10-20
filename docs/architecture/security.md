@@ -114,9 +114,10 @@ App signatures establish artifact integrity and publisher identity; they do not 
 - Backend apps use separate constrained runtimes/processes.
 - Capability requests are validated, authorized, and audited.
 - Network plus AAS-read permission receives an explicit data-egress warning.
-- Purpose-specific capabilities that read through connections (`studio.timeseries.read`) are reserved for bundled apps until installed apps get an install-time warning for them.
+- Purpose-specific capabilities that read through connections (`studio.timeseries.read`) are reserved for bundled apps and for signed apps whose publisher the deployment's trust store grants them; the install dialog shows whether it does ([ADR 0044](../adr/0044-app-package-signatures-trust-store-and-updates.md)).
+- Until the marketplace exists, packages are signed with publisher keys that the deployment trusts per app ID (`STUDIO_APPS_TRUSTED_PUBLISHERS`). Unsigned packages need developer mode, except managed packages the operator mounts. Updates need the same publisher's signature.
 - Apps never receive OAuth tokens, client secrets, database credentials, host Pinia stores, or unrestricted Electron IPC.
-- Revoked artifacts cannot be newly installed and can be disabled according to deployment policy.
+- Revoked artifacts cannot be newly installed and can be disabled according to deployment policy. Removing a key from the trust store revokes the apps it signed at the next start: their files, contributions and calls are refused.
 
 ## View-definition and binding security
 

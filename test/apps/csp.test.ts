@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { appContentSecurityPolicy } from '../../server/lib/apps/csp'
 import { readAppPackage } from '../../server/lib/apps/package'
 import { toAppInstallation } from '../../server/lib/apps/store'
+import { emptyTrustStore } from '../../server/lib/apps/trust'
 import { manifestOf, zipApp } from './support'
 
 // The Content Security Policy of app files (ADR 0017), and what a manifest's
@@ -45,9 +46,9 @@ describe('the manifest sandbox', () => {
   it('is accepted and shown with the installation', () => {
     const pkg = readAppPackage(zipApp(manifestOf({ sandbox: { webAssembly: true, workers: true } })), 'hosted')
     expect(pkg.manifest.sandbox).toEqual({ webAssembly: true, workers: true })
-    const record = { id: 'app-0123456789abcdef', appId: pkg.manifest.id, version: '1.0.0', manifest: pkg.manifest, digest: 'sha256:x', unsigned: true, bundled: false, installedAt: new Date(0), installedBy: 'admin' }
-    expect(toAppInstallation(record as never).sandbox).toEqual({ webAssembly: true, workers: true })
-    expect(toAppInstallation({ ...record, manifest: manifestOf() } as never).sandbox).toEqual({ webAssembly: false, workers: false })
+    const record = { id: 'app-0123456789abcdef', appId: pkg.manifest.id, version: '1.0.0', manifest: pkg.manifest, digest: 'sha256:x', trust: 'unsigned', publisher: null, keyFingerprint: null, bundled: false, managed: false, installedAt: new Date(0), installedBy: 'admin' }
+    expect(toAppInstallation(record as never, emptyTrustStore).sandbox).toEqual({ webAssembly: true, workers: true })
+    expect(toAppInstallation({ ...record, manifest: manifestOf() } as never, emptyTrustStore).sandbox).toEqual({ webAssembly: false, workers: false })
   })
 
   it('accepts nothing but its two switches', () => {

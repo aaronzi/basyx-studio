@@ -8,6 +8,8 @@ import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto'
  */
 export interface CapabilityClaims {
   installationId: string
+  /** The package digest of the backend the token was issued to (ADR 0044). */
+  digest: string
   sessionId: string
   targetId: string | null
   /** Expiry, milliseconds since the epoch. */
@@ -28,6 +30,7 @@ function sign (key: Buffer, payload: string): string {
 export function issueCapabilityToken (key: Buffer, claims: Omit<CapabilityClaims, 'expiresAt'>, now = Date.now()): string {
   const payload = Buffer.from(JSON.stringify({
     i: claims.installationId,
+    d: claims.digest,
     s: claims.sessionId,
     t: claims.targetId,
     e: now + capabilityTokenTtlMs,
@@ -50,15 +53,15 @@ export function verifyCapabilityToken (key: Buffer, token: string, now = Date.no
   if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
     return null
   }
-  let claims: { i?: unknown, s?: unknown, t?: unknown, e?: unknown }
+  let claims: { i?: unknown, d?: unknown, s?: unknown, t?: unknown, e?: unknown }
   try {
     claims = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
   } catch {
     return null
   }
-  if (typeof claims.i !== 'string' || typeof claims.s !== 'string' || (claims.t !== null && typeof claims.t !== 'string')
+  if (typeof claims.i !== 'string' || typeof claims.d !== 'string' || typeof claims.s !== 'string' || (claims.t !== null && typeof claims.t !== 'string')
     || typeof claims.e !== 'number' || claims.e <= now) {
     return null
   }
-  return { installationId: claims.i, sessionId: claims.s, targetId: claims.t, expiresAt: claims.e }
+  return { installationId: claims.i, digest: claims.d, sessionId: claims.s, targetId: claims.t, expiresAt: claims.e }
 }

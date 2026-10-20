@@ -8,6 +8,7 @@ import { appBlobs, appFiles, auditEvents } from '~~/server/database/schema'
 import { isRetiredBundledAppPackage } from '~~/server/lib/apps/bundled'
 import { contributionsFor } from '~~/server/lib/apps/contributions'
 import { getInstallation, installApp, installBundledApp, listInstallations, readAppFile, removeBundledApp, toAppInstallation, uninstallApp } from '~~/server/lib/apps/store'
+import { emptyTrustStore } from '~~/server/lib/apps/trust'
 import { SecretCipher } from '~~/server/lib/crypto/cipher'
 import { openDatabase } from '~~/server/lib/database/client'
 import { applyMigrations, loadMigrationsFromDirectory } from '~~/server/lib/database/migrate'
@@ -23,7 +24,7 @@ function configWith (apps: Partial<StudioConfig['apps']>): StudioConfig {
     publicUrl: 'http://localhost:3000',
     adminRole: 'studio-admin',
     deployment: { appInstalls: true },
-    apps: { baseUrl: 'http://apps.localhost:3000/app/', allowUnsigned: true, denoPath: null, capabilityUrl: 'http://127.0.0.1:3000', workDir: '/tmp', ...apps },
+    apps: { baseUrl: 'http://apps.localhost:3000/app/', allowUnsigned: true, trustStore: emptyTrustStore, packages: [], denoPath: null, capabilityUrl: 'http://127.0.0.1:3000', workDir: '/tmp', ...apps },
   } as StudioConfig
 }
 
@@ -54,9 +55,9 @@ describe('app installations', () => {
   })
 
   it('installs a package, serves its files by digest, and audits the install', async () => {
-    const record = await installApp(deps, admin, zipApp(manifestOf(), { 'ui/index.html': '<p>hello</p>', 'ui/shared.js': 'export const shared = 1' }), 'r1')
+    const { record } = await installApp(deps, admin, zipApp(manifestOf(), { 'ui/index.html': '<p>hello</p>', 'ui/shared.js': 'export const shared = 1' }), null, 'r1')
     expect(record.id).toMatch(/^app-[0-9a-f]{16}$/)
-    expect(toAppInstallation(record)).toMatchObject({ appId: 'org.example.test', unsigned: true, permissions: ['studio.aas.read'], submodelViews: 1, modules: 0, backend: false })
+    expect(toAppInstallation(record, emptyTrustStore)).toMatchObject({ appId: 'org.example.test', trust: 'unsigned', verifiedPublisher: null, revoked: null, permissions: ['studio.aas.read'], submodelViews: 1, modules: 0, backend: false })
 
     const file = await readAppFile(deps, record.id, 'ui/index.html')
     expect(new TextDecoder().decode(file!.content)).toBe('<p>hello</p>')
@@ -69,37 +70,32 @@ describe('app installations', () => {
     expect(audit).toMatchObject({ action: 'app.install', outcome: 'success', actorSubject: 'studio-admin' })
   })
 
-  it('refuses a second installation of the same app ID', async () => {
-    const problem = await failure(installApp(deps, admin, zipApp(manifestOf({ version: '2.0.0' })), 'r2'))
-    expect(problem.code).toBe('app_already_installed')
-  })
-
   it('refuses unsigned installs when disabled, and installs when apps have no origin', async () => {
     const disabled = { ...deps, config: configWith({ allowUnsigned: false }) }
-    expect((await failure(installApp(disabled, admin, zipApp(manifestOf({ id: 'org.example.other' })), 'r3'))).code).toBe('app_unsigned_disabled')
+    expect((await failure(installApp(disabled, admin, zipApp(manifestOf({ id: 'org.example.other' })), null, 'r3'))).code).toBe('app_unsigned_disabled')
     const noOrigin = { ...deps, config: configWith({ baseUrl: null }) }
-    expect((await failure(installApp(noOrigin, admin, zipApp(manifestOf({ id: 'org.example.other' })), 'r4'))).code).toBe('unsupported_operation')
+    expect((await failure(installApp(noOrigin, admin, zipApp(manifestOf({ id: 'org.example.other' })), null, 'r4'))).code).toBe('unsupported_operation')
     const fixed = { ...deps, config: { ...configWith({}), deployment: { appInstalls: false } } as StudioConfig }
-    expect((await failure(installApp(fixed, admin, zipApp(manifestOf({ id: 'org.example.other' })), 'r4b'))).code).toBe('forbidden')
+    expect((await failure(installApp(fixed, admin, zipApp(manifestOf({ id: 'org.example.other' })), null, 'r4b'))).code).toBe('forbidden')
     expect((await failure(uninstallApp(fixed, admin, 'any', 'r4c'))).code).toBe('forbidden')
   })
 
   it('leaves nothing behind when a package is rejected', async () => {
     const before = (await listInstallations(deps)).length
     const blobs = (await handle.db.select().from(appBlobs)).length
-    await failure(installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.bad', studioApi: '^9.0.0' })), 'r5'))
+    await failure(installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.bad', studioApi: '^9.0.0' })), null, 'r5'))
     expect((await listInstallations(deps)).length).toBe(before)
     expect((await handle.db.select().from(appBlobs)).length).toBe(blobs)
   })
 
   it('offers submodel views only for an exactly matching semantic ID, and modules always', async () => {
-    const record = await installApp(deps, admin, zipApp(manifestOf({
+    const { record } = await installApp(deps, admin, zipApp(manifestOf({
       id: 'org.example.modules',
       contributes: {
         submodelViews: [{ id: 'np', title: { en: 'Nameplate' }, entry: 'ui/index.html', semanticIds: ['https://admin-shell.io/idta/nameplate/3/0/Nameplate'] }],
         modules: [{ id: 'explorer', title: { en: 'Explorer' }, entry: 'ui/index.html', route: 'explorer', context: 'target', icon: 'mdi-compass' }],
       },
-    })), 'r6')
+    })), null, 'r6')
     const installations = await listInstallations(deps)
     const baseUrl = 'http://apps.localhost:3000/app/'
     const matching = contributionsFor(installations, baseUrl, ['https://admin-shell.io/idta/nameplate/3/0/Nameplate'])
@@ -122,7 +118,7 @@ describe('app installations', () => {
     expect(await installBundledApp(strict, v1)).toBe('installed')
     expect(await installBundledApp(strict, v1)).toBe('unchanged')
     const installed = (await listInstallations(deps)).find(record => record.appId === 'org.example.bundled')!
-    expect(toAppInstallation(installed)).toMatchObject({ bundled: true, unsigned: false, installedBy: 'studio' })
+    expect(toAppInstallation(installed, emptyTrustStore)).toMatchObject({ bundled: true, trust: 'bundled', installedBy: 'studio' })
 
     const v2 = zipApp(manifestOf({ id: 'org.example.bundled', version: '1.1.0' }), { 'ui/index.html': '<p>v2</p>' })
     expect(await installBundledApp(strict, v2)).toBe('updated')
@@ -134,7 +130,7 @@ describe('app installations', () => {
   })
 
   it('leaves an app an administrator installed when a bundled app has the same ID', async () => {
-    const own = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.own' }), { 'ui/index.html': '<p>own</p>' }), 'r-own')
+    const { record: own } = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.own' }), { 'ui/index.html': '<p>own</p>' }), null, 'r-own')
     expect(await installBundledApp(deps, zipApp(manifestOf({ id: 'org.example.own', version: '9.0.0' }), { 'ui/index.html': '<p>bundled</p>' }))).toBe('skipped')
     expect((await getInstallation(deps, own.id)).bundled).toBe(false)
   })
@@ -145,7 +141,7 @@ describe('app installations', () => {
     expect(await removeBundledApp(deps, 'org.example.retired')).toBe(true)
     expect((await listInstallations(deps)).some(record => record.appId === 'org.example.retired')).toBe(false)
 
-    const own = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.keep-own' })), 'r-own-retired')
+    const { record: own } = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.keep-own' })), null, 'r-own-retired')
     expect(await removeBundledApp(deps, own.appId)).toBe(false)
     expect(await getInstallation(deps, own.id)).toBeDefined()
   })
@@ -159,7 +155,7 @@ describe('app installations', () => {
   it('uninstalls and removes only blobs that no other installation uses', async () => {
     const shared = 'export const shared = 1'
     const first = (await listInstallations(deps)).find(record => record.appId === 'org.example.test')!
-    const second = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.second' }), { 'ui/index.html': '<p>second</p>', 'ui/shared.js': shared }), 'r7')
+    const { record: second } = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.second' }), { 'ui/index.html': '<p>second</p>', 'ui/shared.js': shared }), null, 'r7')
 
     await uninstallApp(deps, admin, first.id, 'r8')
     expect((await failure(getInstallation(deps, first.id))).code).toBe('app_not_found')
@@ -171,7 +167,7 @@ describe('app installations', () => {
   })
 
   it('refuses to serve a file whose content no longer matches its digest', async () => {
-    const record = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.tamper' }), { 'ui/index.html': '<p>original, never served before</p>' }), 'r9')
+    const { record } = await installApp(deps, admin, zipApp(manifestOf({ id: 'org.example.tamper' }), { 'ui/index.html': '<p>original, never served before</p>' }), null, 'r9')
     const [file] = await handle.db.select().from(appFiles).where(eq(appFiles.installationId, record.id))
     await handle.db.update(appBlobs).set({ content: new TextEncoder().encode('<script>evil()</script>') }).where(eq(appBlobs.digest, file!.digest))
     expect((await failure(readAppFile(deps, record.id, 'ui/index.html'))).code).toBe('internal_error')

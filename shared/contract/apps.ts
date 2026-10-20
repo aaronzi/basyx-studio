@@ -18,6 +18,14 @@ export type AppPermission = z.infer<typeof appPermissionSchema>
 export const localizedTextSchema = z.record(z.string(), z.string())
 export type LocalizedText = z.infer<typeof localizedTextSchema>
 
+export const appTrustSchema = z.enum(['bundled', 'signed', 'managed', 'unsigned'])
+export type AppTrust = z.infer<typeof appTrustSchema>
+
+export const appRevocationSchema = z.enum(['keyRemoved', 'appIdNotAllowed'])
+export type AppRevocation = z.infer<typeof appRevocationSchema>
+
+const appSandboxSchema = z.object({ webAssembly: z.boolean(), workers: z.boolean() })
+
 export const appInstallationSchema = z.object({
   id: z.string(),
   appId: z.string(),
@@ -27,13 +35,27 @@ export const appInstallationSchema = z.object({
   publisher: z.string(),
   /** `sha256:<hex>` of the uploaded package. */
   digest: z.string(),
-  /** Installed through developer mode, without a marketplace signature. */
-  unsigned: z.boolean(),
+  /**
+   * How Studio trusts its files (ADR 0044): shipped with Studio, signed by a
+   * key of the trust store, mounted unsigned by the operator, or installed
+   * unsigned in developer mode.
+   */
+  trust: appTrustSchema,
+  /** The trust store's name of the publisher whose key signed it; `null` unless signed and trusted. */
+  verifiedPublisher: z.string().nullable(),
+  /** `sha256:<hex>` of the signing key; `null` unless signed. */
+  keyFingerprint: z.string().nullable(),
+  /** Why a signed installation is no longer trusted; its frames and calls are refused. */
+  revoked: appRevocationSchema.nullable(),
   /** Shipped with Studio and installed at startup (ADR 0023). */
   bundled: z.boolean(),
+  /** Installed by the deployment from STUDIO_APP_PACKAGES; not changed or removed here. */
+  managed: z.boolean(),
   permissions: z.array(appPermissionSchema),
+  /** Reserved permissions it may use: all for bundled apps, those its publisher is granted for signed ones. */
+  grantedPermissions: z.array(appPermissionSchema),
   /** What its pages may run beyond scripts (manifest `sandbox`, ADR 0038). */
-  sandbox: z.object({ webAssembly: z.boolean(), workers: z.boolean() }),
+  sandbox: appSandboxSchema,
   submodelViews: z.number().int(),
   modules: z.number().int(),
   backend: z.boolean(),
@@ -41,6 +63,37 @@ export const appInstallationSchema = z.object({
   installedBy: z.string(),
 })
 export type AppInstallation = z.infer<typeof appInstallationSchema>
+
+/**
+ * What `POST /app-installations?inspect=true` found in a package (ADR 0044),
+ * for the consent dialog. Nothing is stored.
+ */
+export const appPackageInspectionSchema = appInstallationSchema
+  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, submodelViews: true, modules: true, backend: true })
+  .extend({
+    trust: z.enum(['signed', 'unsigned']),
+    /** The installation this package updates in place, and what changes; `null` for a new installation. */
+    update: z.object({
+      installationId: z.string(),
+      version: z.string(),
+      trust: appTrustSchema,
+      verifiedPublisher: z.string().nullable(),
+      permissionsAdded: z.array(appPermissionSchema),
+      permissionsRemoved: z.array(appPermissionSchema),
+      sandboxAdded: z.array(z.enum(['webAssembly', 'workers'])),
+      backendAdded: z.boolean(),
+    }).nullable(),
+  })
+export type AppPackageInspection = z.infer<typeof appPackageInspectionSchema>
+
+/** `GET /app-installations`. */
+export interface AppInstallationList {
+  items: AppInstallation[]
+  enabled: boolean
+  allowUnsigned: boolean
+  /** Names of the publishers whose signed packages may be installed (STUDIO_APPS_TRUSTED_PUBLISHERS). */
+  trustedPublishers: string[]
+}
 
 const contributionBase = {
   installationId: z.string(),
@@ -51,6 +104,9 @@ const contributionBase = {
   /** URL of the sandboxed entry document on the app origin. */
   entryUrl: z.string(),
   permissions: z.array(appPermissionSchema),
+  /** The package the entry is served from; a frame's calls carry it, so an update cuts off frames of the old version. */
+  digest: z.string(),
+  /** Installed in developer mode, without a signature (ADR 0044). */
   unsigned: z.boolean(),
   bundled: z.boolean(),
 }
@@ -203,6 +259,12 @@ export const appMethodNameSchema = z.enum(Object.keys(appMethodParamsSchemas) as
 export const appCallInputSchema = z.object({
   /** Required for host calls; implied by the token for backend calls. */
   installationId: z.string().max(64).optional(),
+  /**
+   * The package digest the calling frame was loaded from (ADR 0044). Studio's
+   * page always sends it; a call from an older version is refused with
+   * `app_outdated`.
+   */
+  digest: z.string().max(80).optional(),
   /** The target the frame is bound to; `null` for a global module outside a target. */
   targetId: z.string().max(200).nullable().optional(),
   /** The shell the frame shows, if any; some infrastructures reach submodels only through it. */

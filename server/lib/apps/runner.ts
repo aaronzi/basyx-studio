@@ -289,6 +289,8 @@ export class BackendRunner {
   readonly #options: Required<BackendRunnerOptions>
   #processes = new Map<string, { process: BackendProcess, idle: NodeJS.Timeout | undefined }>()
   #starting = new Map<string, Promise<BackendProcess>>()
+  /** Advanced by `stop`, so a start that began before it neither runs nor stays cached. */
+  #generations = new Map<string, number>()
   #capabilityUrl: string | undefined
 
   constructor (options: BackendRunnerOptions) {
@@ -314,8 +316,14 @@ export class BackendRunner {
     return process.call(method, params, token)
   }
 
-  /** Stops the backend and removes its extracted files. */
+  /**
+   * Stops the backend and removes its extracted files. A start in progress
+   * is abandoned: the next call starts the backend again, with the files the
+   * loader then returns (e.g. after an update in place).
+   */
   async stop (installationId: string): Promise<void> {
+    this.#generations.set(installationId, this.#generation(installationId) + 1)
+    this.#starting.delete(installationId)
     const entry = this.#processes.get(installationId)
     this.#processes.delete(installationId)
     if (entry) {
@@ -331,6 +339,10 @@ export class BackendRunner {
       entry.process.kill()
       this.#processes.delete(installationId)
     }
+  }
+
+  #generation (installationId: string): number {
+    return this.#generations.get(installationId) ?? 0
   }
 
   #directory (installationId: string): string {
@@ -354,7 +366,13 @@ export class BackendRunner {
     }
     let starting = this.#starting.get(installationId)
     if (!starting) {
-      starting = this.#start(installationId, load).finally(() => this.#starting.delete(installationId))
+      const started: Promise<BackendProcess> = this.#start(installationId, this.#generation(installationId), load).finally(() => {
+        // A stop may have replaced this start with a newer one meanwhile.
+        if (this.#starting.get(installationId) === started) {
+          this.#starting.delete(installationId)
+        }
+      })
+      starting = started
       this.#starting.set(installationId, starting)
     }
     return starting
@@ -366,12 +384,17 @@ export class BackendRunner {
     return this.#capabilityUrl ?? this.#options.capabilityUrl
   }
 
-  async #start (installationId: string, load: () => Promise<BackendSource>): Promise<BackendProcess> {
+  async #start (installationId: string, generation: number, load: () => Promise<BackendSource>): Promise<BackendProcess> {
     if (!existsSync(this.#options.denoPath)) {
       throw new StudioProblem('app_backend_unavailable', 'The Deno runtime for backend apps is not installed.')
     }
+    const stopped = () => new StudioProblem('app_backend_unavailable', 'The backend was stopped while it started, e.g. by an update of the app.')
     const source = await load()
-    const directory = this.#directory(installationId)
+    // Each start has its own directory, so an abandoned one cannot write into the next.
+    const directory = join(this.#directory(installationId), String(generation))
+    if (this.#generation(installationId) !== generation) {
+      throw stopped()
+    }
     await rm(directory, { recursive: true, force: true })
     for (const [path, content] of source.files) {
       const file = join(directory, path)
@@ -381,6 +404,10 @@ export class BackendRunner {
     const capabilityUrl = await this.#reachableCapabilityUrl()
     const endpoint = `${capabilityUrl}${this.#options.callPath}`
     await writeFile(join(directory, harnessFile), harnessSource(source.entry, endpoint))
+    if (this.#generation(installationId) !== generation) {
+      await rm(directory, { recursive: true, force: true })
+      throw stopped()
+    }
 
     const child = spawn(this.#options.denoPath, [
       'run',
@@ -414,6 +441,11 @@ export class BackendRunner {
     })
     this.#processes.set(installationId, { process: backend, idle: undefined })
     await backend.ready
+    if (this.#generation(installationId) !== generation) {
+      // Stopped while it started: stop removed the cached entry already.
+      backend.kill()
+      throw stopped()
+    }
     return backend
   }
 }

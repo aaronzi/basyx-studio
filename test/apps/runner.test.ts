@@ -130,6 +130,26 @@ describe.runIf(existsSync(denoPath))('BackendRunner (Deno)', () => {
     await new Promise(resolve => setTimeout(resolve, 200))
     expect(() => process.kill(pid, 0)).toThrow()
   })
+
+  it('abandons a start that a stop overtakes, so the next call runs the new files', async () => {
+    const versioned = (version: number) => async (): Promise<BackendSource> => ({
+      ...await source(),
+      files: new Map([['backend/main.js', new TextEncoder().encode(`export async function version () { return ${version} }`)]]),
+    })
+    // Version 1 is still loading when an update in place stops the backend.
+    let release!: () => void
+    const loading = new Promise<void>(resolve => (release = resolve))
+    const first = runner.call('app-0123456789abcdef', async () => {
+      await loading
+      return versioned(1)()
+    }, 'version', undefined, 'sct.test-token')
+    await new Promise(resolve => setTimeout(resolve, 50))
+    await runner.stop('app-0123456789abcdef')
+    release()
+    await expect(first).rejects.toMatchObject({ code: 'app_backend_unavailable' })
+    expect(await runner.call('app-0123456789abcdef', versioned(2), 'version', undefined, 'sct.test-token')).toBe(2)
+    await runner.stop('app-0123456789abcdef')
+  })
 })
 
 /** An HTTP server on one loopback address, or `null` where it is unavailable (no IPv6). */

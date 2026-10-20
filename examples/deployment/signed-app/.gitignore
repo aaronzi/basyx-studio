@@ -1,0 +1,5 @@
+# Private keys never belong next to the trust store.
+*.key
+# Packages you sign locally.
+packages/*.zip
+packages/*.zip.sig

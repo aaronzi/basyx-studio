@@ -5,7 +5,7 @@ import type { Actor } from '../lib/deps'
 import type { StudioRuntime } from './studio'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { authorizeAppCall, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod } from '../lib/apps/calls'
+import { authorizeAppCall, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
 import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
@@ -31,6 +31,8 @@ export interface AppCall {
   targetId: string | null
   /** The shell the frame shows, if any. */
   shellId?: string | null
+  /** The package digest the caller runs; see `requireInstalledRevision`. */
+  digest?: string
   method: AppMethodName
   params: unknown
 }
@@ -58,7 +60,8 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   })
 
   try {
-    authorizeAppCall(installation, method, call.caller)
+    requireInstalledRevision(installation, call.digest)
+    authorizeAppCall(installation, method, call.caller, studio.config.apps.trustStore)
   } catch (error) {
     await auditFailure(error)
     throw error
@@ -124,6 +127,7 @@ async function callBackend (studio: StudioRuntime, call: AppCall, params: { meth
   }
   const token = issueCapabilityToken(studio.capabilityKey, {
     installationId: installation.id,
+    digest: installation.digest,
     sessionId: call.actor.sessionId,
     targetId: call.targetId,
   })

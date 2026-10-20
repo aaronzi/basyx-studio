@@ -21,7 +21,8 @@ export function contributionsFor (installations: AppInstallationRecord[], baseUr
       appId: installation.appId,
       appTitle: manifest.title,
       permissions: manifest.permissions,
-      unsigned: installation.unsigned,
+      digest: installation.digest,
+      unsigned: installation.trust === 'unsigned',
       bundled: installation.bundled,
     }
     for (const semanticId of semanticIds) {

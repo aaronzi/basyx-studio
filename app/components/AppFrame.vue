@@ -162,6 +162,9 @@
     attempt.value++
     watchStart()
   }
+  // An update in place keeps the entry URL: load the new version, whose
+  // package the bridge then binds the frame's calls to (ADR 0044).
+  watch(() => props.contribution.digest, retry)
   onMounted(() => {
     mounted.value = true
     watchStart()
