@@ -1,10 +1,11 @@
 import { createHash, createPrivateKey, createPublicKey, KeyObject, sign, verify } from 'node:crypto'
 
-// Detached package signatures (external apps plan U1, ADR 0043): ECDSA
-// P-256 with SHA-256 over the exact bytes of `<package>.zip`, DER-encoded and
-// base64, in `<package>.zip.sig`. This is the format `cosign sign-blob --key`
-// writes and `cosign verify-blob --key` reads, so a team can sign with
-// either tool.
+// Detached package signatures (external apps plan U1, ADR 0043, ADR 0044):
+// ECDSA P-256 with SHA-256 over the exact bytes of `<package>.zip`,
+// DER-encoded and base64, in `<package>.zip.sig`. This is what
+// `cosign sign-blob --key` writes with `--output-signature`; cosign 3 writes
+// a Sigstore bundle by default, whose message signature is the same value.
+// Studio reads both, and so does `verifyPackageSignature`.
 
 export const signatureExtension = '.sig'
 
@@ -42,14 +43,67 @@ export function signPackage (bytes: Uint8Array, privateKey: KeyInput, passphrase
   return sign('sha256', bytes, privateKeyOf(privateKey, passphrase)).toString('base64')
 }
 
-/** Whether `signature` (base64, surrounding whitespace ignored) signs exactly these bytes with this key. */
-export function verifyPackageSignature (bytes: Uint8Array, signature: string, publicKey: KeyInput): boolean {
-  const text = signature.trim()
-  if (!/^[a-z0-9+/]+={0,2}$/i.test(text)) {
+const base64 = /^[a-z0-9+/]+={0,2}$/i
+
+function decodeBase64 (value: unknown): Buffer | null {
+  return typeof value === 'string' && base64.test(value) && value.length % 4 === 0 ? Buffer.from(value, 'base64') : null
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+export interface SignatureFile {
+  /** The DER-encoded ECDSA signature. */
+  signature: Buffer
+  /** `sha256:<hex>` of the signed bytes, when a Sigstore bundle names it. */
+  digest: string | null
+}
+
+/**
+ * Reads the content of a `.sig` file: a base64 signature, or a Sigstore
+ * bundle with a message signature (cosign 3's default). `null` for
+ * anything else.
+ */
+export function readSignatureFile (text: string): SignatureFile | null {
+  const trimmed = text.trim()
+  if (!trimmed.startsWith('{')) {
+    const signature = decodeBase64(trimmed)
+    return signature ? { signature, digest: null } : null
+  }
+  let bundle: unknown
+  try {
+    bundle = JSON.parse(trimmed)
+  } catch {
+    return null
+  }
+  const message = isRecord(bundle) ? bundle.messageSignature : undefined
+  if (!isRecord(bundle) || typeof bundle.mediaType !== 'string' || !bundle.mediaType.startsWith('application/vnd.dev.sigstore.bundle') || !isRecord(message)) {
+    return null
+  }
+  let digest: string | null = null
+  if (isRecord(message.messageDigest)) {
+    const hash = decodeBase64(message.messageDigest.digest)
+    if (message.messageDigest.algorithm !== 'SHA2_256' || !hash) {
+      return null
+    }
+    digest = `sha256:${hash.toString('hex')}`
+  }
+  const signature = decodeBase64(message.signature)
+  return signature ? { signature, digest } : null
+}
+
+/**
+ * Whether the content of a `.sig` file (see `readSignatureFile`) signs
+ * exactly these bytes with this key. Malformed signatures are invalid.
+ */
+export function verifyPackageSignature (bytes: Uint8Array, signatureFile: string, publicKey: KeyInput): boolean {
+  const file = readSignatureFile(signatureFile)
+  if (!file || (file.digest && file.digest !== `sha256:${createHash('sha256').update(bytes).digest('hex')}`)) {
     return false
   }
   try {
-    return verify('sha256', bytes, publicKeyOf(publicKey), Buffer.from(text, 'base64'))
+    return verify('sha256', bytes, publicKeyOf(publicKey), file.signature)
   } catch {
     return false
   }

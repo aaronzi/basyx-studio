@@ -25,7 +25,8 @@ Commands:
       --out <file>         The signature file (default: <package.zip>.sig)
   verify <package.zip>   Run Studio's checks on a package.
       --key <file>         Also check <package.zip>.sig against this public key (PEM).
-      --signature <file>   The signature file (default: <package.zip>.sig)
+      --signature <file>   The signature file, base64 or a Sigstore bundle as cosign 3
+                           writes it (default: <package.zip>.sig)
 `
 
 function report (findings: Finding[]): void {

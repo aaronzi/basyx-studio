@@ -37,15 +37,18 @@ registry, in versions that say which Studio they work with.
   - `@basyx/studio-app-kit`: what was `apps/shared` (`mountApp`, Studio's
     Vuetify defaults and aliases, theme sync, AAS reading helpers, i18n),
     `./vite` with the `studioApp()` preset, `./settings.scss`, the manifest
-    and package checks (`./manifest`, `./package`), and the `studio-app`
-    command. Vue, Vuetify, Vite and Sass are peer dependencies.
+    and package checks and signatures (`./manifest`, `./package`,
+    `./signature`), and the `studio-app` command. `@basyx/studio-sdk`, Vue,
+    Vuetify, Vite and Sass are peer dependencies, so an app has one copy of
+    each.
   - `@basyx/model-viewer`: the 3D viewer, made public. It ships Vite's
     `?url` and `?worker&url` imports for its WebAssembly files and worker,
     so apps that use it build with Vite, as the kit assumes anyway.
 - **In the workspace, packages export their source.** `exports` names
   `src/*.ts`, and `publishConfig.exports` names `dist/`, which `pnpm pack`
   and `pnpm publish` apply. Studio, the bundled apps and the tests need no
-  build of the packages; the tarballs contain only what an outside app gets.
+  build of the packages; the tarballs export only the built output (with
+  the source beside it for source maps).
   Relative imports carry the `.ts` extension, which `tsc` rewrites to `.js`
   (`rewriteRelativeImportExtensions`), so the same source also runs in Node.
 - **P2, one source of Studio's look.** `apps/shared` moves to
@@ -78,11 +81,14 @@ registry, in versions that say which Studio they work with.
     anything is decompressed.
   - `studio-app sign <package.zip> --key <private.pem>` writes
     `<package>.zip.sig`: an ECDSA P-256 signature with SHA-256 over the
-    exact package bytes, DER-encoded and base64, the format of
-    `cosign sign-blob --key` (U1 of the plan). Keys are PEM files
-    (PKCS#8 or SEC1; an encrypted PKCS#8 key takes its passphrase from
-    `STUDIO_APP_KEY_PASSPHRASE`). Cosign's own encrypted key format is not
-    read; teams that keep their key in cosign sign with cosign.
+    exact package bytes, DER-encoded and base64, as
+    `cosign sign-blob --key --output-signature` writes it (U1 of the plan,
+    [ADR 0044](0044-app-package-signatures-trust-store-and-updates.md)).
+    `verify` also reads the Sigstore bundle that cosign 3 writes by default,
+    as Studio does. Keys are PEM files (PKCS#8 or SEC1; an encrypted PKCS#8
+    key takes its passphrase from `STUDIO_APP_KEY_PASSPHRASE`). Cosign's own
+    encrypted key format is not read; teams that keep their key in cosign
+    sign with cosign.
 - **P5, transport and test transport** (MVP-7 D1 and D2):
   - `StudioClient` is built on a `Transport` (`call`, `onContext`,
     `close`). `connect()` is unchanged for apps and creates the

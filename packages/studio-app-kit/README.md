@@ -79,12 +79,14 @@ studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
   expanded, 2,000 entries). Studio's server imports the same code. The
   runtime is checked at install.
 - `sign` writes `<package.zip>.sig`: ECDSA P-256 with SHA-256 over the exact
-  package bytes, DER-encoded, in base64. That is the format of
-  `cosign sign-blob --key`, so `cosign verify-blob --key signing.pub` checks
-  it, and a package signed with cosign verifies here. The key is PEM
-  (PKCS#8 or SEC1); an encrypted PKCS#8 key takes its passphrase from
-  `STUDIO_APP_KEY_PASSPHRASE`. Cosign's own encrypted key files are not
-  read; sign with cosign if your key is one.
+  package bytes, DER-encoded, in base64. That is what
+  `cosign sign-blob --key --output-signature` writes, so
+  `cosign verify-blob --key signing.pub` checks it. `verify` also reads the
+  Sigstore bundle that cosign 3 writes by default, as Studio does
+  ([ADR 0044](../../docs/adr/0044-app-package-signatures-trust-store-and-updates.md)).
+  The key is PEM (PKCS#8 or SEC1); an encrypted PKCS#8 key takes its
+  passphrase from `STUDIO_APP_KEY_PASSPHRASE`. Cosign's own encrypted key
+  files are not read; sign with cosign if your key is one.
 - `verify --key` also checks the signature and prints the key's
   fingerprint (`sha256:` of its public key).
 

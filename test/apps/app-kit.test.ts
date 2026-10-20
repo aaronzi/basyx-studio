@@ -1,6 +1,6 @@
 import type { Finding } from '@basyx/studio-app-kit/manifest'
 import { execFileSync } from 'node:child_process'
-import { generateKeyPairSync, randomBytes, verify } from 'node:crypto'
+import { createHash, generateKeyPairSync, randomBytes, verify } from 'node:crypto'
 import { mkdtempSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -132,6 +132,19 @@ describe('package signatures', () => {
     expect(verifyPackageSignature(tampered, signature, publicPem)).toBe(false)
     expect(verifyPackageSignature(bytes, signature, generateKeyPairSync('ec', { namedCurve: 'P-256' }).publicKey)).toBe(false)
     expect(verifyPackageSignature(bytes, 'not base64!', publicPem)).toBe(false)
+  })
+
+  it('reads the message signature of a Sigstore bundle, cosign 3’s default', () => {
+    const signature = signPackage(bytes, privateKey)
+    const bundle = (digest: Uint8Array) => JSON.stringify({
+      mediaType: 'application/vnd.dev.sigstore.bundle.v0.3+json',
+      verificationMaterial: { publicKey: { hint: 'x' } },
+      messageSignature: { messageDigest: { algorithm: 'SHA2_256', digest: Buffer.from(digest).toString('base64') }, signature },
+    })
+    const digest = createHash('sha256').update(bytes).digest()
+    expect(verifyPackageSignature(bytes, bundle(digest), publicPem)).toBe(true)
+    expect(verifyPackageSignature(bytes, bundle(new Uint8Array(32)), publicPem)).toBe(false)
+    expect(verifyPackageSignature(bytes, '{"mediaType":"application/json"}', publicPem)).toBe(false)
   })
 
   it('reads SEC1 and encrypted PKCS#8 keys, and refuses keys other than P-256', () => {
