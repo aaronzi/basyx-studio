@@ -111,4 +111,23 @@ describe('createTestStudio', () => {
     studio.close()
     await expect(studio.client.ui.setHeight(1)).rejects.toThrow('closed')
   })
+
+  it('rejects pending calls on close and ignores their handlers’ results', async () => {
+    let started!: () => void
+    let finish!: (submodel: Record<string, unknown>) => void
+    const running = new Promise<void>(resolve => (started = resolve))
+    const studio = createTestStudio({
+      handlers: {
+        'studio.aas.getSubmodel': () => new Promise(resolve => {
+          finish = resolve
+          started()
+        }),
+      },
+    })
+    const call = studio.client.aas.getSubmodel('urn:x')
+    await running
+    studio.close()
+    finish({ modelType: 'Submodel' })
+    await expect(call).rejects.toThrow('closed')
+  })
 })

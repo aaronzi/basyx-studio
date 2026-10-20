@@ -158,24 +158,42 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     return handler(params as Methods[MethodName]['params'], studio)
   }
 
+  // The answer as it crosses a MessagePort: a structured clone, or the
+  // refusal in Studio's problem shape.
+  async function respond (method: string, params: unknown): Promise<unknown> {
+    await Promise.resolve()
+    try {
+      return structuredClone(await answer(method, params))
+    } catch (error) {
+      if (error instanceof StudioError) {
+        throw new StudioError(structuredClone(error.problem))
+      }
+      const detail = error instanceof Error ? error.message : String(error)
+      throw new StudioError({ code: 'internal_error', title: 'Internal error', status: 500, detail, retryable: true }, { cause: error })
+    }
+  }
+
+  // Calls whose handler has not finished; `close()` rejects them, as the
+  // port transport does, and their handlers' results are ignored.
+  const pending = new Set<(error: Error) => void>()
+
   const transport: Transport = {
-    async call (method, params) {
-      // Values cross a MessagePort as structured clones, never as shared objects.
-      const copy = structuredClone(params)
-      calls.push({ method: method as MethodName, params: copy })
-      await Promise.resolve()
+    call (method, params) {
       if (closed) {
-        throw new Error('The connection to BaSyx Studio is closed.')
+        return Promise.reject(new Error('The connection to BaSyx Studio is closed.'))
       }
+      // Values cross a MessagePort as structured clones, never as shared objects.
+      let copy: unknown
       try {
-        return structuredClone(await answer(method, copy))
+        copy = structuredClone(params)
       } catch (error) {
-        if (error instanceof StudioError) {
-          throw new StudioError(structuredClone(error.problem))
-        }
-        const detail = error instanceof Error ? error.message : String(error)
-        throw new StudioError({ code: 'internal_error', title: 'Internal error', status: 500, detail, retryable: true }, { cause: error })
+        return Promise.reject(error)
       }
+      calls.push({ method: method as MethodName, params: copy })
+      return new Promise((resolve, reject) => {
+        pending.add(reject)
+        respond(method, copy).then(resolve, reject).finally(() => pending.delete(reject))
+      })
     },
     onContext (listener) {
       listeners.add(listener)
@@ -185,6 +203,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
     close () {
       closed = true
+      for (const reject of pending) {
+        reject(new Error('The connection to BaSyx Studio was closed.'))
+      }
+      pending.clear()
       listeners.clear()
     },
   }
