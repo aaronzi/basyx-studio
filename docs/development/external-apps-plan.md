@@ -92,8 +92,8 @@ shipped as its own image. As a Studio app, it needs neither.
 | File management on a FileSystem submodel (upload, rename, move, delete) | Read only; no FileSystem view in Studio | A bundled FileSystem view (X3) on MVP-7 A1, A2 |
 | A public third-party REST API | Blocked: no `connect-src`, no backend network | MVP-7 K1–K9 |
 | Latest values from InfluxDB | Bundled apps only; no "latest" for LinkedSegments | T1, T2 |
-| Embedded third-party pages (dashboards, 3D captures) | Blocked: `frame-src 'none'` | Replaced by charts over TimeSeries submodels (X1) |
-| Product brand, no Studio frame | — | Not needed for the pilot; MVP-7 single-app mode later (X4) |
+| Embedded third-party pages (dashboards, 3D captures) | Blocked: `frame-src 'none'` | `sandbox.frameOrigins` with one origin per installation ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md), X1 as amended) |
+| Product brand, no Studio frame | — | Not needed for the pilot; MVP-7 single-app mode later (X4). Pages without Studio's header and card: full-page modules (ADR 0045) |
 | No credential in the browser | The current module puts a database token into its bundle | Connections (already implemented) |
 
 ## Decisions
@@ -137,7 +137,7 @@ Decided on 2026-10-20.
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| X1 | Embedded third-party pages | Studio keeps `frame-src 'none'`. Dashboards that the pilot embeds today become charts in the pilot, over TimeSeries submodels read with `studio.timeseries.read` (T1, T2). Other third-party pages become links through `studio.ui.openExternal`. A `sandbox.frameOrigins` extension is not planned; pages that need their own sign-in would not work inside an opaque-origin frame anyway. |
+| X1 | Embedded third-party pages | *Amended on 2026-10-20 by [ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md).* Originally: Studio keeps `frame-src 'none'`, dashboards become charts over TimeSeries submodels (T1, T2), other pages become links through `studio.ui.openExternal`, and no `sandbox.frameOrigins` extension is planned. Reviewing the pilot showed that public pages, such as a 3D-capture viewer, have no replacement, and that they stay blank only because the app frame's opaque origin is inherited by embedded pages. Now: each installation may have its own origin, app frames there get `allow-same-origin`, and the manifest declares `sandbox.frameOrigins`. Charts over TimeSeries submodels stay the way for the pilot's own data. Pages that need the third party's sign-in remain unsupported. |
 | X2 | Bill of material and other existing views | The pilot does not reimplement Studio's submodel views. It opens Studio's shell page with `studio.ui.openShell({shellId})` (MVP-7 M6, taken here for full Studio), where the bundled views show the submodels. Apps embedding other apps' views is the follow-up (see [Later](#later)). |
 | X3 | FileSystem view | A bundled Studio app for the FileSystem submodel (`https://basyx.org/FileSystem/FileSystem/0/1`): a folder tree, preview, upload, rename, move and delete in edit mode. It uses MVP-7 A1 and A2, so it is their first consumer. The pilot reaches it as in X2. |
 | X4 | Delivery | The pilot runs as an app in a full Studio. Single-app mode stays with MVP-7 and is not a condition of this plan. The package will run unchanged in it (SAP-002). |
@@ -174,7 +174,7 @@ Decided on 2026-10-20.
 
 | Phase | Content | Done when |
 | --- | --- | --- |
-| A | ADRs: published SDK and app kit; signatures, trust store and updates (amends ADR 0004 and ADR 0016, takes MVP-7 M2). Requirement changes. This plan's ADRs are 0043 (published SDK and app kit) and 0044 (signatures, trust store and updates), so MVP-7's planned ADRs start at 0045. | ADRs reviewed |
+| A | ADRs: published SDK and app kit; signatures, trust store and updates (amends ADR 0004 and ADR 0016, takes MVP-7 M2). Requirement changes. This plan's ADRs are 0043 (published SDK and app kit) and 0044 (signatures, trust store and updates), so MVP-7's planned ADRs start at 0045. ADR 0045 then decided embedded pages for the pilot (X1 as amended), so they start at 0046. | ADRs reviewed |
 | B | Packages P1–P6: build, app kit, `studio-app` command, test transport, release workflow, the tarball example. Bundled apps move to the kit. | The packages are on npm with provenance. An app in an empty repository builds, packs and runs in a plain dev server against the test transport. All bundled apps work unchanged. |
 | C | Signatures, trust and updates U1–U9, with the migration and the consent dialog | A signed package installs without developer mode and updates in place with the same installation ID. A package signed by an unknown key, or by a key outside its app ID pattern, is refused. Removing the key revokes the app. |
 | D | Pilot, read-only: the pilot's repository builds against the published packages; its pages that only read AAS run in the test transport and in Studio; its CI packs and signs. Runs in parallel with C as soon as B is done. | The read-only pages run in a Studio started from the Compose example, from a signed package built outside this repository |
@@ -196,7 +196,8 @@ This plan runs before the rest of MVP-7 and takes parts of it:
   this repository", is this plan's pilot. It is done when this plan's
   phase F is.
 
-Single-app mode, A3–A5 and the sandbox extensions S1–S3 stay with MVP-7.
+Single-app mode and A3–A5 stay with MVP-7. The sandbox extensions S1–S3
+are decided and implemented with ADR 0045, which the pilot needed first.
 
 ## Later
 
