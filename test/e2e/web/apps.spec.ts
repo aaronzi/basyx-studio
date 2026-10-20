@@ -89,6 +89,11 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   await page.goto('/?panel=apps')
   await page.locator('input[type="file"]').setInputFiles({ name: 'view.zip', mimeType: 'application/zip', buffer: Buffer.from(await testView()) })
   await page.getByRole('button', { name: 'Install app' }).click()
+  // Studio checks the package first and asks to confirm what it requests (ADR 0044).
+  const consent = page.getByRole('dialog')
+  await expect(consent.getByText('This package is not signed.')).toBeVisible()
+  await expect(consent.getByText('Read AAS data you have access to')).toBeVisible()
+  await consent.getByRole('button', { name: 'Install', exact: true }).click()
   await expect(page.getByText('Installed Nameplate test view 0.1.0.')).toBeVisible()
   await expect(page.getByText('org.example.nameplate-test-view')).toBeVisible()
 

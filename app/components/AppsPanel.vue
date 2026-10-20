@@ -26,9 +26,9 @@
 
       <v-alert v-else-if="!appChanges" class="mb-4" :text="t('apps.installsFixed')" type="info" />
 
-      <v-alert v-else-if="!list.data.value.allowUnsigned" class="mb-4" :text="t('apps.unsignedDisabled')" type="info" />
+      <v-alert v-else-if="!canInstall" class="mb-4" :text="t('apps.unsignedDisabled')" type="info" />
 
-      <v-card v-else class="mb-4" :subtitle="t('apps.installHint')" :title="t('apps.install')">
+      <v-card v-else class="mb-4" :subtitle="installHint" :title="t('apps.install')">
         <v-card-text>
           <div class="d-flex flex-wrap align-center ga-4">
             <v-file-input
@@ -40,12 +40,21 @@
               prepend-icon="mdi-folder-zip-outline"
             />
 
+            <v-file-input
+              v-model="signatureFile"
+              accept=".sig,.bundle,.json"
+              class="flex-grow-1"
+              hide-details
+              :label="t('apps.signature')"
+              prepend-icon="mdi-file-certificate-outline"
+            />
+
             <v-btn-primary
               :disabled="!file"
-              :loading="installing"
+              :loading="checking"
               prepend-icon="mdi-download"
               :text="t('apps.install')"
-              @click="install"
+              @click="inspect"
             />
           </div>
 
@@ -102,12 +111,38 @@
                   <span class="me-1">{{ label(item.title) }}</span>
 
                   <v-chip
+                    v-if="item.revoked"
+                    v-tooltip="t(`apps.revokedHint.${item.revoked}`)"
+                    color="error"
+                    prepend-icon="mdi-shield-off-outline"
+                    size="x-small"
+                    :text="t('apps.revoked')"
+                  />
+
+                  <v-chip
+                    v-else-if="item.verifiedPublisher"
+                    v-tooltip="t('apps.signedHint', { publisher: item.verifiedPublisher })"
+                    color="success"
+                    prepend-icon="mdi-shield-check-outline"
+                    size="x-small"
+                    :text="item.verifiedPublisher"
+                  />
+
+                  <v-chip
                     v-if="item.trust === 'unsigned'"
                     v-tooltip="t('apps.unsignedHint')"
                     color="warning"
                     prepend-icon="mdi-alert-outline"
                     size="x-small"
                     :text="t('apps.unsigned')"
+                  />
+
+                  <v-chip
+                    v-if="item.managed"
+                    v-tooltip="item.trust === 'managed' ? t('apps.managedUnsignedHint') : t('apps.managedHint')"
+                    prepend-icon="mdi-cog-outline"
+                    size="x-small"
+                    :text="t('apps.managed')"
                   />
 
                   <v-chip
@@ -134,7 +169,11 @@
               </v-list-item-subtitle>
 
               <v-list-item-subtitle v-if="item.permissions.length > 0">
-                {{ t('apps.permissions', { list: item.permissions.map(permission => t(`apps.permission.${permission.replaceAll('.', '_')}`)).join(', ') }) }}
+                {{ t('apps.permissions', { list: item.permissions.map(permission => permissionLabel(permission)).join(', ') }) }}
+              </v-list-item-subtitle>
+
+              <v-list-item-subtitle v-if="item.revoked" class="text-error">
+                {{ t(`apps.revokedHint.${item.revoked}`) }}
               </v-list-item-subtitle>
 
               <v-list-item-subtitle v-if="item.sandbox.webAssembly || item.sandbox.workers">
@@ -145,7 +184,7 @@
                 <span class="text-body-small text-medium-emphasis text-no-wrap">{{ item.version }}</span>
               </template>
 
-              <template v-if="!item.bundled && appChanges" #actions>
+              <template v-if="!item.bundled && !item.managed && appChanges" #actions>
                 <v-btn
                   v-tooltip="t('apps.uninstall')"
                   :aria-label="t('apps.uninstall')"
@@ -163,6 +202,98 @@
       </v-card>
     </template>
 
+    <v-dialog max-width="560" :model-value="inspection !== null" @update:model-value="inspection = null">
+      <DialogCard v-if="inspection" :title="t(inspection.update ? 'apps.updateTitle' : 'apps.installTitle', { name: label(inspection.title), version: inspection.version })">
+        <v-alert
+          v-if="inspection.verifiedPublisher"
+          class="mb-4"
+          :text="t('apps.verified', { publisher: inspection.verifiedPublisher })"
+          type="success"
+        />
+
+        <v-alert
+          v-else
+          class="mb-4"
+          :text="t('apps.unsignedConsent')"
+          type="warning"
+        />
+
+        <v-alert
+          v-if="inspection.update"
+          class="mb-4"
+          :text="t('apps.updateInPlace', { version: inspection.update.version })"
+          type="info"
+        />
+
+        <v-list>
+          <v-list-item
+            prepend-icon="mdi-identifier"
+            :subtitle="t('apps.by', { publisher: inspection.publisher })"
+            :title="inspection.appId"
+          />
+
+          <v-list-subheader>{{ t('apps.requests') }}</v-list-subheader>
+
+          <v-list-item
+            v-for="permission in inspection.permissions"
+            :key="permission"
+            prepend-icon="mdi-key-outline"
+            :title="permissionLabel(permission)"
+          >
+            <template #append>
+              <div class="d-flex ga-1">
+                <v-chip
+                  v-if="inspection.update?.permissionsAdded.includes(permission)"
+                  color="warning"
+                  size="x-small"
+                  :text="t('apps.new')"
+                />
+
+                <v-chip
+                  v-if="reservedPermissions.includes(permission) && !inspection.grantedPermissions.includes(permission)"
+                  v-tooltip="t('apps.notGrantedHint')"
+                  size="x-small"
+                  :text="t('apps.notGranted')"
+                />
+              </div>
+            </template>
+          </v-list-item>
+
+          <v-list-item
+            v-for="flag in sandboxFlags(inspection)"
+            :key="flag"
+            prepend-icon="mdi-cube-outline"
+            :title="t(flag === 'webAssembly' ? 'apps.sandboxWebAssembly' : 'apps.sandboxWorkers')"
+          >
+            <template v-if="inspection.update?.sandboxAdded.includes(flag)" #append>
+              <v-chip color="warning" size="x-small" :text="t('apps.new')" />
+            </template>
+          </v-list-item>
+
+          <v-list-item v-if="inspection.backend" prepend-icon="mdi-server" :title="t('apps.backendHint')">
+            <template v-if="inspection.update?.backendAdded" #append>
+              <v-chip color="warning" size="x-small" :text="t('apps.new')" />
+            </template>
+          </v-list-item>
+
+          <v-list-item
+            v-if="inspection.permissions.length === 0 && !inspection.backend && sandboxFlags(inspection).length === 0"
+            prepend-icon="mdi-check"
+            :title="t('apps.requestsNothing')"
+          />
+        </v-list>
+
+        <p v-if="inspection.update && inspection.update.permissionsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
+          {{ t('apps.permissionsRemoved', { list: inspection.update.permissionsRemoved.map(permission => permissionLabel(permission)).join(', ') }) }}
+        </p>
+
+        <template #actions>
+          <v-btn :text="t('apps.cancel')" @click="inspection = null" />
+          <v-btn-primary :loading="installing" :text="t(inspection.update ? 'apps.update' : 'apps.confirmInstall')" @click="install" />
+        </template>
+      </DialogCard>
+    </v-dialog>
+
     <v-dialog max-width="480" :model-value="confirmUninstall !== null" @update:model-value="confirmUninstall = null">
       <DialogCard :title="t('apps.uninstall')">
         {{ t('apps.uninstallConfirm', { name: confirmUninstall ? label(confirmUninstall.title) : '' }) }}
@@ -177,7 +308,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AppInstallation } from '#shared/contract'
+  import type { AppInstallation, AppInstallationList, AppPackageInspection, AppPermission } from '#shared/contract'
   import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -192,36 +323,77 @@
   const label = useLocalizedLabel()
   const panel = usePanel()
 
+  /** Permissions that need more than the manifest: the trust store has to grant them (ADR 0044). */
+  const reservedPermissions: AppPermission[] = ['studio.timeseries.read']
+
   const list = useQuery({
     key: ['admin', 'apps'],
-    query: ({ signal }) => api<{ items: AppInstallation[], enabled: boolean, allowUnsigned: boolean }>('/app-installations', { signal }),
+    query: ({ signal }) => api<AppInstallationList>('/app-installations', { signal }),
   })
 
   const items = computed(() => list.data.value?.items ?? [])
   const search = ref<string | null>(null)
   const selected = ref<string[]>([])
 
+  /** Signed packages of trusted publishers, or unsigned ones in developer mode. */
+  const canInstall = computed(() => Boolean(list.data.value && (list.data.value.allowUnsigned || list.data.value.trustedPublishers.length > 0)))
+
+  const installHint = computed(() => {
+    const data = list.data.value
+    if (!data || data.trustedPublishers.length === 0) {
+      return t('apps.installHint')
+    }
+    const publishers = data.trustedPublishers.join(', ')
+    return data.allowUnsigned ? t('apps.installHintSignedOrUnsigned', { publishers }) : t('apps.installHintSigned', { publishers })
+  })
+
   const filterGroups = computed<FilterGroup[]>(() => [{
     title: t('apps.filters'),
     options: [
       { value: 'source:bundled', title: t('apps.bundled'), icon: 'mdi-check-decagram-outline' },
+      { value: 'source:managed', title: t('apps.managed'), icon: 'mdi-cog-outline' },
       { value: 'source:uploaded', title: t('apps.uploaded'), icon: 'mdi-upload-outline' },
+      { value: 'trust:signed', title: t('apps.signed'), icon: 'mdi-shield-check-outline' },
       { value: 'trust:unsigned', title: t('apps.unsigned'), icon: 'mdi-alert-outline' },
+      { value: 'trust:revoked', title: t('apps.revoked'), icon: 'mdi-shield-off-outline' },
       { value: 'backend:yes', title: t('apps.backend'), icon: 'mdi-server' },
     ].filter(option => items.value.some(item => facetsOf(item).includes(option.value))),
   }])
 
   function facetsOf (item: AppInstallation): string[] {
-    return [item.bundled ? 'source:bundled' : 'source:uploaded', ...(item.trust === 'unsigned' ? ['trust:unsigned'] : []), ...(item.backend ? ['backend:yes'] : [])]
+    let source = 'source:uploaded'
+    if (item.bundled) {
+      source = 'source:bundled'
+    } else if (item.managed) {
+      source = 'source:managed'
+    }
+    return [
+      source,
+      ...(item.trust === 'signed' ? ['trust:signed'] : []),
+      ...(item.trust === 'unsigned' ? ['trust:unsigned'] : []),
+      ...(item.revoked ? ['trust:revoked'] : []),
+      ...(item.backend ? ['backend:yes'] : []),
+    ]
   }
 
   const filtered = computed(() => filterRecords(items.value, search.value, selected.value, item => ({
-    text: [label(item.title), item.publisher, item.appId],
+    text: [label(item.title), item.publisher, item.verifiedPublisher ?? '', item.appId],
     facets: facetsOf(item),
   })))
 
+  function permissionLabel (permission: AppPermission): string {
+    return t(`apps.permission.${permission.replaceAll('.', '_')}`)
+  }
+
+  function sandboxFlags (inspection: AppPackageInspection): Array<'webAssembly' | 'workers'> {
+    return (['webAssembly', 'workers'] as const).filter(flag => inspection.sandbox[flag])
+  }
+
   const file = ref<File | null>(null)
+  const signatureFile = ref<File | null>(null)
+  const checking = ref(false)
   const installing = ref(false)
+  const inspection = ref<AppPackageInspection | null>(null)
   const installed = ref<string | null>(null)
   const installError = ref<unknown>(null)
   const actionError = ref<unknown>(null)
@@ -234,26 +406,67 @@
     await invalidate(['admin', 'apps'], ['app-contributions'])
   }
 
-  async function install () {
+  /** The `.sig` file's content for the header: a base64 signature, or a Sigstore bundle on one line. */
+  async function signatureHeader (): Promise<Record<string, string>> {
+    if (!signatureFile.value) {
+      return {}
+    }
+    const text = (await signatureFile.value.text()).trim()
+    let value = text.replaceAll(/\s+/g, '')
+    if (text.startsWith('{')) {
+      try {
+        value = JSON.stringify(JSON.parse(text))
+      } catch {
+        // Studio reports what is wrong with it.
+      }
+    }
+    return { 'Studio-App-Signature': value }
+  }
+
+  /** Step one (ADR 0044): Studio checks the package and says what installing it does. */
+  async function inspect () {
     if (!file.value) {
       return
     }
-    installing.value = true
+    checking.value = true
     installed.value = null
     installError.value = null
+    try {
+      inspection.value = await api<AppPackageInspection>('/app-installations', {
+        method: 'POST',
+        query: { inspect: 'true' },
+        body: file.value,
+        headers: { 'Content-Type': 'application/zip', ...await signatureHeader() },
+      })
+    } catch (error) {
+      installError.value = error
+    } finally {
+      checking.value = false
+    }
+  }
+
+  /** Step two: install, or update in place, after the administrator confirmed. */
+  async function install () {
+    const checked = inspection.value
+    if (!file.value || !checked) {
+      return
+    }
+    installing.value = true
     try {
       const installation = await api<AppInstallation>('/app-installations', {
         method: 'POST',
         body: file.value,
-        headers: { 'Content-Type': 'application/zip' },
+        headers: { 'Content-Type': 'application/zip', ...await signatureHeader() },
       })
-      installed.value = t('apps.installed', { name: label(installation.title), version: installation.version })
+      installed.value = t(checked.update ? 'apps.updated' : 'apps.installed', { name: label(installation.title), version: installation.version })
       file.value = null
+      signatureFile.value = null
       await refresh()
     } catch (error) {
       installError.value = error
     } finally {
       installing.value = false
+      inspection.value = null
     }
   }
 
