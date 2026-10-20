@@ -12,8 +12,12 @@
 
 import type { Methods } from './protocol.ts'
 
-/** Capability methods a backend may call (AAS access on the caller's target). */
-export type BackendMethodName = Extract<keyof Methods, `studio.aas.${string}`>
+/**
+ * Capability methods a backend may call: AAS access on the caller's target,
+ * and the app's HTTP connections (ADR 0047), with bodies as `Uint8Array`
+ * like in the UI.
+ */
+export type BackendMethodName = Extract<keyof Methods, `studio.aas.${string}`> | 'studio.connections.call'
 
 export interface BackendStudio {
   call: <M extends BackendMethodName>(method: M, params: Methods[M]['params']) => Promise<Methods[M]['result']>

@@ -136,6 +136,16 @@ export class StudioClient {
     read: (params: Methods['studio.timeseries.read']['params']) => this.call('studio.timeseries.read', params),
   }
 
+  /** HTTP services the app declares in `connections` (needs studio.connections; Studio ≥ 0.1.6, ADR 0047). */
+  readonly connections = {
+    /**
+     * Calls a declared operation through the connection an administrator
+     * bound to it on the active target's infrastructure. Every status is a
+     * result; refusals and transport failures reject with a `StudioError`.
+     */
+    call: (params: Methods['studio.connections.call']['params']) => this.call('studio.connections.call', params),
+  }
+
   readonly backend = {
     /** Calls an exported handler of the app's backend. */
     call: <T = unknown>(method: string, params?: unknown) => this.call('studio.backend.call', { method, params }) as Promise<T>,

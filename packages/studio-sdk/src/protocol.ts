@@ -32,6 +32,11 @@ export const permissions = [
   'studio.containers',
   /** Bundled first-party apps only: time series of IDTA Time Series Data submodels, also from databases (ADR 0040). */
   'studio.timeseries.read',
+  /**
+   * Calling the declared operations of the app's `connections` through HTTP
+   * connections that an administrator bound to the app (ADR 0047).
+   */
+  'studio.connections',
 ] as const
 export type Permission = (typeof permissions)[number]
 
@@ -55,6 +60,13 @@ export interface AppManifest {
    * install.
    */
   sandbox?: AppSandbox
+  /**
+   * The HTTP services the app calls through Studio, each described by an
+   * OpenAPI document in the package (Studio app API 0.1.6, ADR 0047). An
+   * administrator binds each to a connection of an infrastructure, which
+   * holds the URL and the credentials.
+   */
+  connections?: AppConnection[]
   contributes: {
     submodelViews?: SubmodelViewContribution[]
     modules?: ModuleContribution[]
@@ -79,6 +91,18 @@ export interface AppSandbox {
   imageOrigins?: string[]
   /** Audio and video from other origins (CSP `media-src`, Studio app API 0.1.3). */
   mediaOrigins?: string[]
+}
+
+/** A service the app calls through Studio (ADR 0047). */
+export interface AppConnection {
+  /** Named in `studio.connections.call` and in the administrator's binding. */
+  id: string
+  title: LocalizedText
+  description?: LocalizedText
+  /** Package path of an OpenAPI 3.0 or 3.1 document in JSON. */
+  api: string
+  /** The `operationId`s of that document the app calls; others stay unreachable. */
+  operations: string[]
 }
 
 /** The lists of third-party origins in a manifest's `sandbox` (ADR 0045). */
@@ -418,6 +442,54 @@ export function presetSpec (preset: StackSpec['preset'], name: string): StackSpe
   }
 }
 
+// HTTP connections (`studio.connections.call`, ADR 0047). Studio builds the
+// request from the operation in the app's OpenAPI document and sends it to
+// the URL the administrator configured, with the connection's credentials.
+
+/** A path, query or header parameter value. */
+export type ConnectionParameterValue = string | number | boolean
+
+/** A body of `application/x-www-form-urlencoded` (fields) or `multipart/form-data` (fields and files). */
+export interface ConnectionFormBody {
+  fields?: Record<string, string>
+  files?: Record<string, { fileName: string, contentType?: string, bytes: Uint8Array }>
+}
+
+export interface ConnectionCallParams {
+  /** The `id` of a connection in the manifest. */
+  connection: string
+  /** An `operationId` the manifest lists for it. */
+  operation: string
+  /** Values of the path template's parameters. */
+  path?: Record<string, ConnectionParameterValue>
+  /** Values of declared query parameters; arrays for repeated ones. */
+  query?: Record<string, ConnectionParameterValue | ConnectionParameterValue[]>
+  /** Values of declared header parameters, e.g. `If-Match`. */
+  headers?: Record<string, ConnectionParameterValue>
+  /** One of the request media types the operation declares; default its first. */
+  contentType?: string
+  /**
+   * A JSON value for JSON media types, a string for text, a
+   * `ConnectionFormBody` for forms and multipart, and a `Uint8Array` for
+   * anything else. Up to 8 MiB.
+   */
+  body?: unknown
+}
+
+export interface ConnectionCallResult {
+  /** The service's status; non-2xx answers are results too. */
+  status: number
+  contentType: string | null
+  etag: string | null
+  /** The answer's `Location` relative to the connection's URL, like the operations' paths (`/orders/7`); `null` when it points elsewhere. */
+  location: string | null
+  /** A JSON value for JSON, a string for text, a `Uint8Array` for other media types, `null` when empty. */
+  body: unknown
+}
+
+/** The largest request body `studio.connections.call` sends (8 MiB). */
+export const connectionCallMaxBodyBytes = 8 * 1024 * 1024
+
 export interface PickedFile {
   handle: string
   fileName: string
@@ -564,6 +636,12 @@ export interface Methods {
   'studio.containers.importStack': { params: { fileHandle: string }, result: StackImport }
   /** Reads a segment of a Time Series Data submodel of the active target (Studio app API 0.1.2). */
   'studio.timeseries.read': { params: TimeSeriesReadParams, result: TimeSeriesResult }
+  /**
+   * Calls a declared operation of one of the app's connections, through the
+   * connection of the active target's infrastructure that is bound to it
+   * (Studio app API 0.1.6).
+   */
+  'studio.connections.call': { params: ConnectionCallParams, result: ConnectionCallResult }
 }
 export type MethodName = keyof Methods
 
@@ -618,6 +696,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.containers.exportStack': 'studio.containers',
   'studio.containers.importStack': 'studio.containers',
   'studio.timeseries.read': 'studio.timeseries.read',
+  'studio.connections.call': 'studio.connections',
 }
 
 /**

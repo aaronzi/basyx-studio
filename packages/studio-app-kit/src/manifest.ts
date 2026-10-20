@@ -1,3 +1,4 @@
+import type { ApiIndex, OperationValidators } from './openapi.ts'
 import type { AppManifest, SandboxOriginKind } from '@basyx/studio-sdk/protocol'
 import type { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js'
 import manifestSchema from '@basyx/studio-sdk/app-manifest.schema.json' with { type: 'json' }
@@ -5,6 +6,9 @@ import { sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/proto
 import addFormats from 'ajv-formats'
 import Ajv2020 from 'ajv/dist/2020.js'
 import semver from 'semver'
+import { compileApi, indexApi, maxApiDocumentBytes } from './openapi.ts'
+
+export * from './openapi.ts'
 
 // What a Studio app package must be (ADR 0016), in one place for Studio's
 // upload (server/lib/apps) and for `studio-app pack` and `verify` (ADR 0043).
@@ -162,6 +166,22 @@ export function checkManifestConsistency (manifest: AppManifest, files: Readonly
   } else if (hasBackendPermission) {
     findings.push({ path: `${manifestFileName}#permissions`, message: 'requests studio.backend, but the app has no backend' })
   }
+  const hasConnectionsPermission = manifest.permissions.includes('studio.connections')
+  const connectionIds = new Set<string>()
+  for (const [index, connection] of (manifest.connections ?? []).entries()) {
+    if (connectionIds.has(connection.id)) {
+      findings.push({ path: `${manifestFileName}#connections[${index}].id`, message: `duplicates the connection ID ${JSON.stringify(connection.id)}` })
+    }
+    connectionIds.add(connection.id)
+    if (!files.has(connection.api)) {
+      findings.push({ path: `${manifestFileName}#connections[${index}].api`, message: `names ${JSON.stringify(connection.api)}, which is not in the package` })
+    }
+  }
+  if (connectionIds.size > 0 && !hasConnectionsPermission) {
+    findings.push({ path: `${manifestFileName}#permissions`, message: 'must include studio.connections when the app declares connections' })
+  } else if (connectionIds.size === 0 && hasConnectionsPermission) {
+    findings.push({ path: `${manifestFileName}#permissions`, message: 'requests studio.connections, but the app declares no connections' })
+  }
   for (const kind of sandboxOriginKinds) {
     for (const [index, origin] of (manifest.sandbox?.[kind] ?? []).entries()) {
       const port = Number(/:(\d+)$/.exec(origin)?.[1] ?? 0)
@@ -187,7 +207,49 @@ function usedFeatures (manifest: AppManifest): { path: string, since: string }[]
       features.push({ path: `contributes.modules[${index}].layout`, since: '0.1.3' })
     }
   }
+  if (manifest.connections !== undefined) {
+    features.push({ path: 'connections', since: '0.1.6' })
+  }
   return features
+}
+
+/** The indexed and compiled OpenAPI document of an app connection (ADR 0047). */
+export interface ConnectionApi {
+  index: ApiIndex
+  validators: Map<string, OperationValidators>
+}
+
+/**
+ * Checks the OpenAPI documents of the manifest's connections (ADR 0047):
+ * each parses, defines the listed operations once, refers only within
+ * itself, uses parameters and bodies Studio can send, and has schemas that
+ * compile. `read` gives a package file's text, or `undefined`. Returns the
+ * findings, and per connection ID what Studio calls with.
+ */
+export function checkConnectionApis (manifest: AppManifest, read: (path: string) => string | undefined): { apis: Map<string, ConnectionApi>, findings: Finding[] } {
+  const apis = new Map<string, ConnectionApi>()
+  const findings: Finding[] = []
+  for (const [index, connection] of (manifest.connections ?? []).entries()) {
+    const text = read(connection.api)
+    if (text === undefined) {
+      continue
+    }
+    if (text.length > maxApiDocumentBytes) {
+      findings.push({ path: connection.api, message: `is larger than ${maxApiDocumentBytes / 1024 / 1024} MiB` })
+      continue
+    }
+    const indexed = indexApi(text, connection.operations, connection.api, `${manifestFileName}#connections[${index}].operations`)
+    findings.push(...indexed.findings)
+    if (!indexed.index) {
+      continue
+    }
+    const compiled = compileApi(indexed.index, connection.api)
+    findings.push(...compiled.findings)
+    if (compiled.findings.length === 0) {
+      apis.set(connection.id, { index: indexed.index, validators: compiled.validators })
+    }
+  }
+  return { apis, findings }
 }
 
 /**

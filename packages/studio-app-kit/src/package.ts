@@ -4,7 +4,7 @@ import { existsSync } from 'node:fs'
 import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { unzipSync, zipSync } from 'fflate'
-import { appArchiveLimits, checkCompatibility, checkManifestConsistency, contentTypeOf, isArchiveLitter, manifestFileName, maxManifestBytes, parseManifest } from './manifest.ts'
+import { appArchiveLimits, checkCompatibility, checkConnectionApis, checkManifestConsistency, contentTypeOf, isArchiveLitter, manifestFileName, maxManifestBytes, parseManifest } from './manifest.ts'
 
 // Packing and checking app packages outside Studio (`studio-app pack` and
 // `verify`, ADR 0043), with the checks of Studio's upload (ADR 0016).
@@ -136,8 +136,10 @@ export function checkPackage (bytes: Uint8Array): PackageCheck {
   if (!parsed.manifest) {
     return { manifest: null, files, findings: [...findings, ...parsed.findings] }
   }
+  const decoder = new TextDecoder('utf-8', { fatal: false })
   findings.push(
     ...checkManifestConsistency(parsed.manifest, new Set(files)),
+    ...checkConnectionApis(parsed.manifest, path => entries[path] ? decoder.decode(entries[path]) : undefined).findings,
     ...checkCompatibility(parsed.manifest, null, { provider: 'the installed @basyx/studio-sdk' }),
   )
   return { manifest: parsed.manifest, files, findings }

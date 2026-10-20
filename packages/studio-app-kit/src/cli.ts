@@ -43,6 +43,9 @@ function notes (manifest: AppManifest): void {
   if (needsRemoteCodeGrant(manifest)) {
     console.info('  Note: sandbox.connectOrigins together with webAssembly or workers installs only if the trust store grants the publisher remoteCode (ADR 0045).')
   }
+  for (const connection of manifest.connections ?? []) {
+    console.info(`  Note: the connection ${connection.id} (${connection.operations.length === 1 ? '1 operation' : `${connection.operations.length} operations`}) is called only where an administrator binds it to a connection of an infrastructure (ADR 0047).`)
+  }
 }
 
 function fail (message: string): never {
