@@ -43,6 +43,7 @@ var g = {
 		"test:integration": "STUDIO_TESTENV=1 vitest run",
 		"test:e2e:web": "playwright test -c test/e2e/web.config.ts",
 		"test:e2e:desktop": "playwright test -c test/e2e/desktop.config.ts",
+		"test:e2e:origins": "playwright test -c test/e2e/origins.config.ts",
 		"build:electron:dir": "pnpm build:electron:app && electron-builder --dir --publish never"
 	},
 	dependencies: {
@@ -279,15 +280,19 @@ function z(e, t, n) {
 		n(new URL(i.requestingUrl).origin === r);
 	}), e.setPermissionCheckHandler((e, t, n) => n === r);
 }
-function B(e, t) {
+function B(e) {
+	for (let t = e?.parent; t; t = t.parent) if (t.url.startsWith(`${E}:`)) return !0;
+	return !1;
+}
+function V(e, t) {
 	let n = new URL(t).origin;
 	e.webContents.on("will-frame-navigate", (e) => {
 		if (e.isMainFrame) return;
 		let t = new URL(e.url), r = e.frame?.url ? new URL(e.frame.url) : null;
-		t.origin !== n && (t.protocol !== `${E}:` || r?.protocol === `${E}:` && r.hostname !== t.hostname) && e.preventDefault();
+		t.origin === n || t.protocol === `${E}:` && (r?.protocol !== `${E}:` || r.hostname === t.hostname) || (t.protocol === "https:" || t.protocol === "http:") && r?.protocol !== `${E}:` && B(e.frame) || e.preventDefault();
 	});
 }
-async function V(e, t) {
+async function H(e, t) {
 	let n = m.fromPartition("studio");
 	z(n, e, t), t && n.webRequest.onBeforeSendHeaders({ urls: [`${e}*`] }, (e, n) => {
 		n({ requestHeaders: {
@@ -298,7 +303,7 @@ async function V(e, t) {
 	let r = new c({
 		show: !1,
 		title: "BaSyx Studio",
-		...l.isPackaged ? {} : { icon: q() },
+		...l.isPackaged ? {} : { icon: J() },
 		width: 1440,
 		height: 900,
 		minWidth: 1024,
@@ -311,7 +316,7 @@ async function V(e, t) {
 			preload: s(import.meta.dirname, "preload.cjs")
 		}
 	});
-	K(r), B(r, e);
+	q(r), V(r, e);
 	let i = new URL(e).origin;
 	r.webContents.on("will-navigate", (e, t) => {
 		new URL(t).origin !== i && e.preventDefault();
@@ -320,7 +325,7 @@ async function V(e, t) {
 		return (t === "https:" || t === "http:") && h.openExternal(e), { action: "deny" };
 	}), r.once("ready-to-show", () => r.show()), await r.loadURL(e), l.isPackaged || r.webContents.openDevTools();
 }
-async function H(e, t = {}) {
+async function U(e, t = {}) {
 	if (!k) throw Error("The Studio Service is not running.");
 	let n = await fetch(new URL(`api/studio/v1/${e}`, k), {
 		method: t.method ?? "GET",
@@ -335,31 +340,31 @@ async function H(e, t = {}) {
 	if (!n.ok) throw Error(`The Studio Service answered with HTTP ${n.status}.`);
 	return await n.json();
 }
-function U(e) {
+function W(e) {
 	let t = e.senderFrame;
 	return !!(k && t && t === e.sender.mainFrame && new URL(t.url).origin === new URL(k).origin);
 }
-function W() {
+function G() {
 	d.handle("studio:choose-aasx-file", async (e) => {
-		if (!U(e)) throw Error("Untrusted sender.");
+		if (!W(e)) throw Error("Untrusted sender.");
 		let t = c.fromWebContents(e.sender), n = {
 			properties: ["openFile"],
 			filters: T
 		}, r = t ? await u.showOpenDialog(t, n) : await u.showOpenDialog(n);
-		return r.canceled || !r.filePaths[0] ? null : H("desktop/file-grants", {
+		return r.canceled || !r.filePaths[0] ? null : U("desktop/file-grants", {
 			method: "POST",
 			body: {
 				path: r.filePaths[0],
 				purpose: "open"
 			}
 		});
-	}), d.handle("studio:choose-stack-files", (e, t, n) => G(e, t, n)), d.handle("studio:choose-save-location", async (e, t) => {
-		if (!U(e)) throw Error("Untrusted sender.");
+	}), d.handle("studio:choose-stack-files", (e, t, n) => K(e, t, n)), d.handle("studio:choose-save-location", async (e, t) => {
+		if (!W(e)) throw Error("Untrusted sender.");
 		let n = c.fromWebContents(e.sender), r = {
 			defaultPath: typeof t == "string" ? t.replaceAll(/[/\\]/g, "_") : void 0,
 			filters: T
 		}, i = n ? await u.showSaveDialog(n, r) : await u.showSaveDialog(r);
-		return i.canceled || !i.filePath ? null : H("desktop/file-grants", {
+		return i.canceled || !i.filePath ? null : U("desktop/file-grants", {
 			method: "POST",
 			body: {
 				path: i.filePath.toLowerCase().endsWith(".aasx") ? i.filePath : `${i.filePath}.aasx`,
@@ -368,10 +373,10 @@ function W() {
 		});
 	});
 }
-async function G(e, t, n) {
-	if (!U(e)) throw Error("Untrusted sender.");
+async function K(e, t, n) {
+	if (!W(e)) throw Error("Untrusted sender.");
 	if (!b(t)) throw Error("Unknown file kind.");
-	let r = c.fromWebContents(e.sender), i = (e, n) => H("desktop/file-grants", {
+	let r = c.fromWebContents(e.sender), i = (e, n) => U("desktop/file-grants", {
 		method: "POST",
 		body: {
 			path: e,
@@ -401,13 +406,13 @@ async function G(e, t, n) {
 	}, s = r ? await u.showOpenDialog(r, o) : await u.showOpenDialog(o);
 	return s.canceled ? [] : Promise.all(s.filePaths.slice(0, 20).map((e) => i(e, "open")));
 }
-function K(e) {
+function q(e) {
 	let t = !1;
 	e.on("close", (n) => {
 		if (t) return;
 		n.preventDefault();
 		let r = M;
-		H("desktop/state").then((e) => e.unsavedWorkspaces).catch(() => []).then(async (n) => {
+		U("desktop/state").then((e) => e.unsavedWorkspaces).catch(() => []).then(async (n) => {
 			if (n.length > 0) {
 				let { response: t } = await u.showMessageBox(e, {
 					type: "warning",
@@ -426,35 +431,35 @@ function K(e) {
 		});
 	});
 }
-function q() {
+function J() {
 	return s(l.getAppPath(), "build", "icon.png");
 }
-async function J() {
-	W(), l.setAboutPanelOptions({
+async function Y() {
+	G(), l.setAboutPanelOptions({
 		applicationName: g.productName,
 		applicationVersion: l.getVersion(),
 		version: "",
 		copyright: g.build.copyright,
-		...l.isPackaged ? {} : { iconPath: q() }
-	}), !l.isPackaged && process.platform === "darwin" && l.dock?.setIcon(q());
+		...l.isPackaged ? {} : { iconPath: J() }
+	}), !l.isPackaged && process.platform === "darwin" && l.dock?.setIcon(J());
 	let e = process.env.VITE_DEV_SERVER_URL;
 	if (!l.isPackaged) {
 		if (!e) throw Error("The Electron development server URL is missing.");
-		k = N(e), await V(k);
+		k = N(e), await H(k);
 		return;
 	}
 	let t = await L();
-	k = t.url, A = t.launchSecret, await V(k, A);
+	k = t.url, A = t.launchSecret, await H(k, A);
 }
-function Y(e) {
+function X(e) {
 	let t = e instanceof Error ? e.message : "Unknown startup error.";
 	u.showErrorBox("BaSyx Studio could not start", t), l.quit();
 }
 process.env.STUDIO_USER_DATA_DIR && l.setPath("userData", process.env.STUDIO_USER_DATA_DIR), l.requestSingleInstanceLock() ? (l.on("second-instance", () => {
 	let [e] = c.getAllWindows();
 	e && (e.isMinimized() && e.restore(), e.focus());
-}), l.whenReady().then(J).catch(Y)) : l.quit(), l.on("activate", () => {
-	c.getAllWindows().length === 0 && k && V(k, A).catch(Y);
+}), l.whenReady().then(Y).catch(X)) : l.quit(), l.on("activate", () => {
+	c.getAllWindows().length === 0 && k && H(k, A).catch(X);
 }), l.on("before-quit", () => {
 	M = !0;
 }), l.on("will-quit", () => {
