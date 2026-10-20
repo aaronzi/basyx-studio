@@ -58,7 +58,7 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   })
 
   try {
-    authorizeAppCall(installation, method, call.caller)
+    authorizeAppCall(installation, method, call.caller, studio.config.apps.trustStore)
   } catch (error) {
     await auditFailure(error)
     throw error

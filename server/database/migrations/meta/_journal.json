@@ -57,6 +57,13 @@
       "when": 1792424409745,
       "tag": "0007_infrastructure_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792491228740,
+      "tag": "0008_app_trust",
+      "breakpoints": true
     }
   ]
 }

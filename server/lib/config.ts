@@ -1,7 +1,9 @@
 import type { DeploymentMode } from '#shared/contract'
+import type { TrustStore } from './apps/trust'
 import { existsSync, readFileSync } from 'node:fs'
-import { extname, isAbsolute, resolve } from 'node:path'
+import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { z } from 'zod'
+import { emptyTrustStore, parseTrustStore, TrustStoreError } from './apps/trust'
 
 const csv = z
   .string()
@@ -38,6 +40,8 @@ const envSchema = z.object({
   STUDIO_LAUNCH_SECRET: z.string().optional(),
   STUDIO_APPS_URL: z.url({ protocol: /^https?$/ }).optional(),
   STUDIO_APPS_ALLOW_UNSIGNED: z.enum(['true', 'false']).optional(),
+  STUDIO_APPS_TRUSTED_PUBLISHERS: z.string().min(1).optional(),
+  STUDIO_APP_PACKAGES: csv.optional(),
   STUDIO_DENO_PATH: z.string().min(1).optional(),
   STUDIO_INFRASTRUCTURES_FILE: z.string().min(1).optional(),
   STUDIO_INFRASTRUCTURES: z.string().optional(),
@@ -77,6 +81,10 @@ export interface StudioAppsConfig {
   baseUrl: string | null
   /** Whether unsigned (developer-mode) packages may be installed. */
   allowUnsigned: boolean
+  /** Publishers whose keys may sign packages (STUDIO_APPS_TRUSTED_PUBLISHERS, ADR 0044). */
+  trustStore: TrustStore
+  /** Package files and directories the deployment installs at startup (STUDIO_APP_PACKAGES). */
+  packages: string[]
   /** The Deno executable for backend apps; resolved from node_modules when unset. */
   denoPath: string | null
   /** Loopback URL of this service, the only address backend apps may reach. */
@@ -165,6 +173,26 @@ function readInfrastructureSources (file: string | undefined, inline: string | u
     sources.push({ source: 'STUDIO_INFRASTRUCTURES', text: inline })
   }
   return sources
+}
+
+function readTrustStore (file: string | undefined): TrustStore {
+  if (!file) {
+    return emptyTrustStore
+  }
+  let text: string
+  try {
+    text = readFileSync(file, 'utf8')
+  } catch {
+    throw new ConfigurationError(`STUDIO_APPS_TRUSTED_PUBLISHERS: ${file} could not be read.`)
+  }
+  try {
+    return parseTrustStore(text, dirname(resolve(file)))
+  } catch (error) {
+    if (error instanceof TrustStoreError) {
+      throw new ConfigurationError(`STUDIO_APPS_TRUSTED_PUBLISHERS: ${file}: ${error.message}`)
+    }
+    throw error
+  }
 }
 
 const logoTypes: Record<string, string> = {
@@ -324,6 +352,8 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
       baseUrl: appsBaseUrl,
       // Off by default for hosted deployments; the desktop user installs for themselves.
       allowUnsigned: (values.STUDIO_APPS_ALLOW_UNSIGNED ?? (deploymentMode === 'desktop' ? 'true' : 'false')) === 'true',
+      trustStore: readTrustStore(values.STUDIO_APPS_TRUSTED_PUBLISHERS),
+      packages: (values.STUDIO_APP_PACKAGES ?? []).map(path => resolve(path)),
       denoPath: values.STUDIO_DENO_PATH ?? null,
       // The runner falls back to [::1] when the server listens on IPv6 only.
       capabilityUrl: `http://127.0.0.1:${port}`,
@@ -346,6 +376,9 @@ function externalFileOrigins (entries: string[] | undefined, mode: DeploymentMod
 /** Settings that work but deserve a line in the log at startup. */
 export function configurationWarnings (config: StudioConfig, env: NodeJS.ProcessEnv): string[] {
   const warnings: string[] = []
+  if (!config.apps.baseUrl && (env.STUDIO_APPS_TRUSTED_PUBLISHERS || env.STUDIO_APP_PACKAGES)) {
+    warnings.push('STUDIO_APPS_TRUSTED_PUBLISHERS and STUDIO_APP_PACKAGES have no effect: apps are off without STUDIO_APPS_URL.')
+  }
   if (config.anonymous) {
     if (env.STUDIO_OIDC_ISSUER || env.STUDIO_OIDC_CLIENT_ID) {
       warnings.push('STUDIO_AUTH_MODE=none: the STUDIO_OIDC_* settings are ignored.')

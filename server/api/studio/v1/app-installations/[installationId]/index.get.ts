@@ -6,5 +6,6 @@ import { useStudio } from '~~/server/utils/studio'
 
 export default defineStudioHandler(async (event): Promise<AppInstallation> => {
   await requireActor(event)
-  return toAppInstallation(await getInstallation(await useStudio(), routeParam(event, 'installationId')))
+  const studio = await useStudio()
+  return toAppInstallation(await getInstallation(studio, routeParam(event, 'installationId')), studio.config.apps.trustStore)
 })

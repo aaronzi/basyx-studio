@@ -102,7 +102,7 @@
                   <span class="me-1">{{ label(item.title) }}</span>
 
                   <v-chip
-                    v-if="item.unsigned"
+                    v-if="item.trust === 'unsigned'"
                     v-tooltip="t('apps.unsignedHint')"
                     color="warning"
                     prepend-icon="mdi-alert-outline"
@@ -212,7 +212,7 @@
   }])
 
   function facetsOf (item: AppInstallation): string[] {
-    return [item.bundled ? 'source:bundled' : 'source:uploaded', ...(item.unsigned ? ['trust:unsigned'] : []), ...(item.backend ? ['backend:yes'] : [])]
+    return [item.bundled ? 'source:bundled' : 'source:uploaded', ...(item.trust === 'unsigned' ? ['trust:unsigned'] : []), ...(item.backend ? ['backend:yes'] : [])]
   }
 
   const filtered = computed(() => filterRecords(items.value, search.value, selected.value, item => ({

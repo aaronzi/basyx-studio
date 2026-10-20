@@ -54,6 +54,12 @@ export const problemCodes = [
   'app_incompatible',
   'app_already_installed',
   'app_unsigned_disabled',
+  /** The signature is malformed, or does not verify with any key of the trust store (ADR 0044). */
+  'app_signature_invalid',
+  /** The signing key may not sign this app ID, or an update comes from another publisher than the installation. */
+  'app_signer_not_allowed',
+  /** The key that signed the installed app was removed from the trust store, or no longer covers its app ID. */
+  'app_revoked',
   'app_not_found',
   'app_permission_not_declared',
   'app_backend_unavailable',

@@ -4,6 +4,7 @@ import { randomBytes } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import { authorizeAppCall, executeAasMethod } from '~~/server/lib/apps/calls'
 import { capabilityTokenKey, capabilityTokenTtlMs, issueCapabilityToken, verifyCapabilityToken } from '~~/server/lib/apps/tokens'
+import { emptyTrustStore } from '~~/server/lib/apps/trust'
 import { StudioProblem } from '~~/server/lib/problem'
 import { manifestOf } from './support'
 
@@ -30,7 +31,7 @@ describe('capability tokens', () => {
 })
 
 describe('app call authorization', () => {
-  const installation = { id: 'app-0123456789abcdef', appId: 'org.example.test', manifest: manifestOf({ permissions: ['studio.aas.read'] }) } as AppInstallationRecord
+  const installation = { id: 'app-0123456789abcdef', appId: 'org.example.test', trust: 'unsigned', bundled: false, keyFingerprint: null, manifest: manifestOf({ permissions: ['studio.aas.read'] }) } as AppInstallationRecord
 
   function code (action: () => void): string {
     try {
@@ -42,25 +43,25 @@ describe('app call authorization', () => {
   }
 
   it('allows declared permissions and context, and refuses undeclared ones', () => {
-    expect(code(() => authorizeAppCall(installation, 'studio.aas.getElement', 'host'))).toBe('allowed')
-    expect(code(() => authorizeAppCall(installation, 'studio.ui.getContext', 'host'))).toBe('allowed')
-    expect(code(() => authorizeAppCall(installation, 'studio.aas.setElementValue', 'host'))).toBe('app_permission_not_declared')
-    expect(code(() => authorizeAppCall(installation, 'studio.ui.notify', 'host'))).toBe('app_permission_not_declared')
-    expect(code(() => authorizeAppCall(installation, 'studio.backend.call', 'host'))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall(installation, 'studio.aas.getElement', 'host', emptyTrustStore))).toBe('allowed')
+    expect(code(() => authorizeAppCall(installation, 'studio.ui.getContext', 'host', emptyTrustStore))).toBe('allowed')
+    expect(code(() => authorizeAppCall(installation, 'studio.aas.setElementValue', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall(installation, 'studio.ui.notify', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall(installation, 'studio.backend.call', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
   })
 
   it('limits backends to AAS methods', () => {
-    expect(code(() => authorizeAppCall(installation, 'studio.aas.listShells', 'backend'))).toBe('allowed')
-    expect(code(() => authorizeAppCall(installation, 'studio.ui.getContext', 'backend'))).toBe('unsupported_operation')
-    expect(code(() => authorizeAppCall(installation, 'studio.timeseries.read', 'backend'))).toBe('unsupported_operation')
+    expect(code(() => authorizeAppCall(installation, 'studio.aas.listShells', 'backend', emptyTrustStore))).toBe('allowed')
+    expect(code(() => authorizeAppCall(installation, 'studio.ui.getContext', 'backend', emptyTrustStore))).toBe('unsupported_operation')
+    expect(code(() => authorizeAppCall(installation, 'studio.timeseries.read', 'backend', emptyTrustStore))).toBe('unsupported_operation')
   })
 
   it('reserves time series reads for the apps shipped with Studio (ADR 0040)', () => {
     const manifest = manifestOf({ permissions: ['studio.aas.read', 'studio.timeseries.read'] })
     const installed = { ...installation, manifest, bundled: false } as AppInstallationRecord
-    expect(code(() => authorizeAppCall(installed, 'studio.timeseries.read', 'host'))).toBe('app_permission_not_declared')
-    expect(code(() => authorizeAppCall({ ...installed, bundled: true }, 'studio.timeseries.read', 'host'))).toBe('allowed')
-    expect(code(() => authorizeAppCall({ ...installation, bundled: true } as AppInstallationRecord, 'studio.timeseries.read', 'host'))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall(installed, 'studio.timeseries.read', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
+    expect(code(() => authorizeAppCall({ ...installed, bundled: true }, 'studio.timeseries.read', 'host', emptyTrustStore))).toBe('allowed')
+    expect(code(() => authorizeAppCall({ ...installation, bundled: true } as AppInstallationRecord, 'studio.timeseries.read', 'host', emptyTrustStore))).toBe('app_permission_not_declared')
   })
 })
 
