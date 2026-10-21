@@ -95,7 +95,7 @@
     viewState?: string
   }>()
   const emit = defineEmits<{
-    'navigate': [subPath: string]
+    'navigate': [subPath: string, history: 'push' | 'replace']
     /** The app's content height (`studio.ui.setHeight`), for a container that sizes itself to it. */
     'content-height': [height: number]
     /** The app closed the full-screen dialog it runs in (`studio.ui.closeFullscreen`). */
@@ -200,7 +200,7 @@
     contribution: () => props.contribution,
     targetId: props.target?.id ?? null,
     context: () => context.value,
-    onNavigate: subPath => emit('navigate', subPath),
+    onNavigate: (subPath, history) => emit('navigate', subPath, history),
     onOpenFullscreen: props.nested ? undefined : openFullscreen,
     onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
   })

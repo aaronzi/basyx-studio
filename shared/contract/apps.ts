@@ -280,6 +280,7 @@ export const appMethodParamsSchemas = {
   }).strict(),
   'studio.ui.navigate': z.object({
     subPath: z.string().max(500).regex(/^(?:[\w.~-]+(?:\/[\w.~-]+)*)?$/, 'must be a relative path'),
+    history: z.enum(['push', 'replace']).default('replace'),
   }).strict(),
   'studio.ui.setHeight': z.object({ height: z.number().int().min(0).max(20_000) }).strict(),
   'studio.ui.openFile': z.object({ submodelId: identifier, idShortPath, download: z.boolean().default(false) }).strict(),

@@ -179,11 +179,19 @@ APP-018 stays as it is; R2 relies on it.
 | Phase | Content | Done when |
 | --- | --- | --- |
 | A | ADRs: 0048 (settings and connection status per installation, G1–G4) and 0051 (views of other apps, E1–E4). ADR 0046 stays reserved for MVP-7's single-app mode, and 0049 and 0050 are taken, so the next free numbers are 0048 and 0051. Requirements APP-025 and APP-026 are added with this plan. Updates to `app-platform.md`. | ADRs reviewed |
-| B | Capability fixes without an ADR: R1, R3, N1 | An app reads the asset type and specific asset IDs of every shell from `listShells` pages alone. `readFile` on an empty File answers 404 without a request to the AAS server, on a live target and a workspace. In a module that pushes, back returns to its previous page and forward again; modules that do not push are unchanged. |
+| B | Capability fixes without an ADR: R1, R3, N1. *Done: app API 0.1.8, packages 0.1.6 (see [Phase B status](#phase-b-status)).* | An app reads the asset type and specific asset IDs of every shell from `listShells` pages alone. `readFile` on an empty File answers 404 without a request to the AAS server, on a live target and a workspace. In a module that pushes, back returns to its previous page and forward again; modules that do not push are unchanged. |
 | C | App kit and packages: L1–L3, N2, N3, W1, B1 | An app with a German base catalog falls back to German texts and formats numbers and dates in German. The three-page example uses the router history and the kit's layout defaults and restates none of them (ESLint). A test Studio built from an imported manifest needs no cast. An IFC-only build contains no occt-import-js WebAssembly. |
 | D | Settings and connection status G1–G4 (ADR 0048) | One signed package runs on two infrastructures whose asset types and external IDs differ, configured in YAML and in the dialog, without a rebuild. An app shows that a connection is not bound before calling it. A value of the wrong type is refused. |
 | E | Views of other apps: E1, then E2 as ADR 0051 decides | From an app's page, the user opens a shell's bill of material, files and time series in Studio's dialog and returns to the same page. With E2, the Time Series view shows inside the app's page, and the app cannot call methods with the view's permissions. |
 | F | Signing on GitLab (W2), at any time | A GitLab pipeline signs a package that `studio-app verify` and Studio accept, with the key in a masked variable |
+
+### Phase B status
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| R1 | Done | `ShellSummary.assetType` and `specificAssetIds` (`{ name, value }`) in `studio.aas.listShells`, from the shell's asset information or the registry descriptor (`server/lib/aas/shells.ts`); Studio's own shell list API has them too. Unit tests for both sources against a stand-in repository and registry, the workspace and `memoryAas`; the hosted e2e test finds the asset type in the Shell Explorer's list |
+| R3 | Done | `LiveAasTarget.attachment` and the workspace model answer a File without a value with `target_resource_not_found` (404) after reading the element, before asking the AAS server or the package for its content, so `studio.ui.readFile`, `openFile` and Studio's attachment route all do. Unit tests show that no content request is sent |
+| N1 | Done | `studio.ui.navigate({ subPath, history: 'push' })`, `client.ui.navigate(subPath, { history: 'push' })`; `'replace'` stays the default and the client sends `history` only when given. `AppModuleView` pushes or replaces the route. The module pages are keyed by module and target, not by sub-path, so the frame stays loaded and gets the new sub-path with the context; before, Nuxt's default page key reloaded the frame on every `navigate`. `@basyx/studio-sdk/testing` records `navigations` and moves with `back()` and `forward()`. The Shell Explorer example pushes its pages; the hosted e2e test goes back to the list and forward to the shell in the same frame |
 
 O1 and O2 are not phases of this plan. They depend on the `@basyx` scope and
 on Studio's first release. Phases B, C and F can start at once; D and E

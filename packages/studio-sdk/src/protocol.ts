@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.7'
+export const studioAppApiVersion = '0.1.8'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -241,6 +241,19 @@ export interface ShellSummary {
   displayName: { language: string, text: string }[]
   assetKind: string | null
   globalAssetId: string | null
+  /** The asset type from the shell's asset information or descriptor (Studio app API 0.1.8; absent before). */
+  assetType?: string | null
+  /**
+   * The specific asset IDs as the AAS server returns them to the user, e.g.
+   * a serial number, to relate shells from the pages of `listShells` alone
+   * (Studio app API 0.1.8; absent before).
+   */
+  specificAssetIds?: SpecificAssetId[]
+}
+
+export interface SpecificAssetId {
+  name: string
+  value: string
 }
 
 export interface SubmodelSummary {
@@ -499,7 +512,12 @@ export interface PickedFile {
 export interface Methods {
   'studio.ui.getContext': { params: Record<string, never>, result: AppContext }
   'studio.ui.notify': { params: { message: string, level?: 'info' | 'success' | 'warning' | 'error' }, result: null }
-  'studio.ui.navigate': { params: { subPath: string }, result: null }
+  /**
+   * Changes the module's sub-path. `history: 'push'` adds an entry to the
+   * browser's history, so back returns to the previous sub-path (Studio app
+   * API 0.1.8); `'replace'`, the default, does not, e.g. for filter state.
+   */
+  'studio.ui.navigate': { params: { subPath: string, history?: 'push' | 'replace' }, result: null }
   /** Asks Studio to size the frame to the app's content height in CSS pixels (embedded views). */
   'studio.ui.setHeight': { params: { height: number }, result: null }
   /** Opens the content of a File element of the active target in a new browser tab (or downloads it). */

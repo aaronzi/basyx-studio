@@ -55,8 +55,15 @@ export class StudioClient {
 
   readonly ui = {
     notify: (message: string, level: Methods['studio.ui.notify']['params']['level'] = 'info') => this.call('studio.ui.notify', { message, level }),
-    /** Changes the module's sub-path in Studio's URL (nested routes). */
-    navigate: (subPath: string) => this.call('studio.ui.navigate', { subPath }),
+    /**
+     * Changes the module's sub-path in Studio's URL (nested routes). With
+     * `{ history: 'push' }`, the browser's back button returns to the
+     * previous sub-path (Studio ≥ 0.1.8); by default the entry is replaced.
+     */
+    navigate: (subPath: string, options: { history?: 'push' | 'replace' } = {}) => this.call('studio.ui.navigate', {
+      subPath,
+      ...(options.history === undefined ? {} : { history: options.history }),
+    }),
     /** Sizes the frame to a content height; see `fitHeight` to follow the document. */
     setHeight: (height: number) => this.call('studio.ui.setHeight', { height: Math.ceil(height) }),
     /** Opens a File element's content in a new tab; `download` saves it instead. */

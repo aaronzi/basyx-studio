@@ -10,7 +10,8 @@ export interface AppBridgeOptions {
   /** The target the frame is bound to; fixed for the frame's lifetime. */
   targetId: string | null
   context: () => AppContext
-  onNavigate: (subPath: string) => void
+  /** Changes the module's sub-path; `push` adds a history entry, so back returns to the previous one. */
+  onNavigate: (subPath: string, history: 'push' | 'replace') => void
   /**
    * Opens the frame's view in a full-screen dialog with the view's state,
    * with or without Studio's header; absent where no further dialog opens.
@@ -223,7 +224,8 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       }
       case 'studio.ui.navigate': {
         if (contribution.kind === 'module') {
-          options.onNavigate(appMethodParamsSchemas['studio.ui.navigate'].parse(params).subPath)
+          const { subPath, history } = appMethodParamsSchemas['studio.ui.navigate'].parse(params)
+          options.onNavigate(subPath, history)
         }
         break
       }

@@ -393,7 +393,10 @@ export class WorkspaceModel {
       throw new StudioProblem('unsupported_operation', 'Only File elements have an attachment.')
     }
     const location = typeof value.value === 'string' ? value.value : ''
-    const file = location ? await this.files.read(location) : null
+    if (!location) {
+      throw new StudioProblem('target_resource_not_found', 'The File element has no value.')
+    }
+    const file = await this.files.read(location)
     if (!file) {
       throw new StudioProblem('target_resource_not_found', 'The file is not part of the package.')
     }

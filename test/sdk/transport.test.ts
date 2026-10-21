@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 // The client on its transports (MVP-7 D1 and D2, ADR 0043): the MessagePort
 // of studio-sdk/0 and the in-memory Studio for dev servers and tests.
 
-const shell: ShellSummary = { id: 'urn:example:shell:1', idShort: 'Pump', displayName: [], assetKind: 'Instance', globalAssetId: null }
+const shell: ShellSummary = { id: 'urn:example:shell:1', idShort: 'Pump', displayName: [], assetKind: 'Instance', globalAssetId: null, assetType: 'urn:example:type:pump', specificAssetIds: [{ name: 'serialNumber', value: 'P-1' }] }
 
 describe('portTransport', () => {
   /** A client on one end of a channel, and a host on the other that answers with `respond`. */
@@ -73,6 +73,33 @@ describe('createTestStudio', () => {
     await studio.client.ui.notify('Saved', 'success')
     expect(studio.notifications).toEqual([{ message: 'Saved', level: 'success' }])
     await expect(studio.client.call('studio.ui.getContext', {})).resolves.toMatchObject({ subPath: 'shells/1' })
+  })
+
+  it('pushes sub-paths that back and forward move through, as the browser does (app API 0.1.8)', async () => {
+    const studio = createTestStudio()
+    await studio.client.ui.navigate('shells/1', { history: 'push' })
+    await studio.client.ui.navigate('shells/1/files', { history: 'push' })
+    await studio.client.ui.navigate('shells/1/documents')
+    expect(studio.navigations).toEqual([
+      { subPath: 'shells/1', history: 'push' },
+      { subPath: 'shells/1/files', history: 'push' },
+      { subPath: 'shells/1/documents', history: 'replace' },
+    ])
+    // Only pushed entries are sent: the old client sends no history at all.
+    expect(studio.calls.map(call => call.params)).toEqual([
+      { subPath: 'shells/1', history: 'push' },
+      { subPath: 'shells/1/files', history: 'push' },
+      { subPath: 'shells/1/documents' },
+    ])
+    expect(studio.back()).toBe(true)
+    expect(studio.client.context.subPath).toBe('shells/1')
+    expect(studio.back()).toBe(true)
+    expect(studio.client.context.subPath).toBe('')
+    expect(studio.back()).toBe(false)
+    expect(studio.forward()).toBe(true)
+    expect(studio.forward()).toBe(true)
+    expect(studio.client.context.subPath).toBe('shells/1/documents')
+    expect(studio.forward()).toBe(false)
   })
 
   it('records the shells an app opens', async () => {

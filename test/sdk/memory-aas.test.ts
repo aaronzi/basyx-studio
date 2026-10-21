@@ -108,4 +108,26 @@ describe('memoryAas', () => {
     expect(aas.shells.map(item => item.idShort)).toEqual(['Pump'])
     expect(aas.submodels.map(item => item.idShort)).toEqual(['Files'])
   })
+
+  it('lists the asset type and specific asset IDs of shells, and refuses File reads as Studio does', async () => {
+    const aas = memoryAas({
+      shells: [{
+        modelType: 'AssetAdministrationShell',
+        id: 'urn:example:shell:pump',
+        assetInformation: { assetKind: 'Instance', assetType: 'urn:example:type:pump', specificAssetIds: [{ name: 'serialNumber', value: 'P-1', semanticId: null }] },
+      }],
+      submodels: [{ modelType: 'Submodel', id: submodelId, submodelElements: [{ modelType: 'Property', idShort: 'Serial', valueType: 'xs:string' }] }],
+    })
+    const { client } = createTestStudio({ handlers: aas.handlers })
+    expect((await client.aas.listShells()).items).toEqual([{
+      id: 'urn:example:shell:pump',
+      idShort: null,
+      displayName: [],
+      assetKind: 'Instance',
+      globalAssetId: null,
+      assetType: 'urn:example:type:pump',
+      specificAssetIds: [{ name: 'serialNumber', value: 'P-1' }],
+    }])
+    await expect(client.ui.readFile(submodelId, 'Serial')).rejects.toMatchObject({ code: 'unsupported_operation' })
+  })
 })

@@ -51,6 +51,11 @@ export interface TestNotification {
 
 export type TestOpenedShell = Methods['studio.ui.openShell']['params']
 
+export interface TestNavigation {
+  subPath: string
+  history: NonNullable<Methods['studio.ui.navigate']['params']['history']>
+}
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -62,6 +67,14 @@ export interface TestStudio {
   readonly notifications: TestNotification[]
   /** The shells the app opened with `studio.ui.openShell`, where Studio would have left the app's page. */
   readonly openedShells: TestOpenedShell[]
+  /** Every `studio.ui.navigate` call, with the history mode Studio applied. */
+  readonly navigations: TestNavigation[]
+  /**
+   * Moves through the sub-paths that `navigate` pushed, as the browser's back
+   * and forward buttons do, and sends the context; `false` at either end.
+   */
+  back: () => boolean
+  forward: () => boolean
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -184,6 +197,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const calls: TestCall[] = []
   const notifications: TestNotification[] = []
   const openedShells: TestOpenedShell[] = []
+  const navigations: TestNavigation[] = []
+  // The browser's history of the module's sub-paths.
+  const entries = [context.subPath]
+  let entry = 0
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -196,7 +213,13 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const builtIn: TestHandlers = {
     'studio.ui.getContext': () => context,
     'studio.ui.setHeight': () => null,
-    'studio.ui.navigate': ({ subPath }) => {
+    'studio.ui.navigate': ({ subPath, history = 'replace' }) => {
+      navigations.push({ subPath, history })
+      if (history === 'push' && subPath !== entries[entry]) {
+        entries.splice(++entry, Infinity, subPath)
+      } else {
+        entries[entry] = subPath
+      }
       setContext({ subPath })
       return null
     },
@@ -290,6 +313,15 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
   }
 
+  function go (delta: -1 | 1): boolean {
+    if (entries[entry + delta] === undefined) {
+      return false
+    }
+    entry += delta
+    setContext({ subPath: entries[entry]! })
+    return true
+  }
+
   const studio: TestStudio = {
     client: new StudioClient(transport, structuredClone(context)),
     get context () {
@@ -298,6 +330,9 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     calls,
     notifications,
     openedShells,
+    navigations,
+    back: () => go(-1),
+    forward: () => go(1),
     setContext,
     close: () => transport.close(),
   }
