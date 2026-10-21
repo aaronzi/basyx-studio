@@ -183,7 +183,7 @@ APP-018 stays as it is; R2 relies on it.
 | B | Capability fixes without an ADR: R1, R3, N1. *Done: app API 0.1.8, packages 0.1.6 (see [Phase B status](#phase-b-status)).* | An app reads the asset type and specific asset IDs of every shell from `listShells` pages alone. `readFile` on an empty File answers 404 without a request to the AAS server, on a live target and a workspace. In a module that pushes, back returns to its previous page and forward again; modules that do not push are unchanged. |
 | C | App kit and packages: L1–L3, N2, N3, W1, B1. *Done: packages 0.1.7, app API unchanged (see [Phase C status](#phase-c-status)).* | An app with a German base catalog falls back to German texts and formats numbers and dates in German. The three-page example uses the router history and the kit's layout defaults and restates none of them (ESLint). A test Studio built from an imported manifest needs no cast. An IFC-only build contains no occt-import-js WebAssembly. |
 | D | Settings and connection status G1–G4 (ADR 0048). *Done: app API 0.1.9, packages 0.1.8 (see [Phase D status](#phase-d-status)).* | One signed package runs on two infrastructures whose asset types and external IDs differ, configured in YAML and in the dialog, without a rebuild. An app shows that a connection is not bound before calling it. A value of the wrong type is refused. |
-| E | Views of other apps: E1, then E2 as ADR 0051 decides | From an app's page, the user opens a shell's bill of material, files and time series in Studio's dialog and returns to the same page. With E2, the Time Series view shows inside the app's page, and the app cannot call methods with the view's permissions. |
+| E | Views of other apps: E1, then E2 as ADR 0051 decides. *E1 done: app API 0.1.10, packages 0.1.9 (see [Phase E status](#phase-e-status)).* | From an app's page, the user opens a shell's bill of material, files and time series in Studio's dialog and returns to the same page. With E2, the Time Series view shows inside the app's page, and the app cannot call methods with the view's permissions. |
 | F | Signing on GitLab (W2), at any time. *Done: `examples/deployment/signed-app/ci/.gitlab-ci.yml` and the README's [GitLab CI](../../examples/deployment/signed-app/README.md#gitlab-ci) section. Checked against GitLab's CI schema; its job script, run in `node:24` with a throwaway key, signs a package that `studio-app verify` and Studio's signature check accept. Not yet run on a GitLab runner.* | A GitLab pipeline signs a package that `studio-app verify` and Studio accept, with the key in a masked variable |
 
 ### Phase B status
@@ -217,6 +217,16 @@ none), settings may be `required`, and `enum` also applies to the items of a
 | G2 | Done | Installation values on the *Apps* page (`PUT /app-installations/{id}/settings`, migration 0009); infrastructure values in the dialog, the declared YAML, export and import (`apps: [{ app, settings }]`), checked against the installed manifests. Studio installs managed and bundled apps before it applies declared infrastructures. Unit tests resolve one package on two declared infrastructures and refuse wrong types in every path; the hosted e2e test sets values by API, in the dialog and on the *Apps* page |
 | G3 | Done | `context.settings` from `GET /app-installations/{id}/context`, read before the frame loads; `settings` in a backend's context (Deno runner test); defaults from the manifest in `createTestStudio({ manifest })` (W1). The `asset-board` example |
 | G4 | Done | `context.connections` with `{ bound }` per declared connection; `connectionsHandler` refuses unbound ones. The `work-orders` example shows "not configured" before calling (hosted e2e test) |
+
+### Phase E status
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| A (ADR 0051) | Proposed | [ADR 0051](../adr/0051-views-of-other-apps.md) decides E1–E4 |
+| E1 | Done | App API 0.1.10, packages 0.1.9: `studio.ui.openView` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkViewToOpen`, `viewToOpen`), the host bridge and `AppFrame.vue` (Studio's dialog), the SDK client and `@basyx/studio-sdk/testing` (`openedViews`). Unit tests for the choice of view, the submodel and shell checks, authorization and the test Studio; the Shell Explorer example shows submodels in their views, and the hosted apps e2e test opens the Digital Nameplate view from it and returns to the same page |
+| E2 | Decided | ADR 0051: `studio.ui.embedView`, read-only, with an origin per installation only; built next |
+| E3 | Decided | ADR 0051: no chart component in the app kit |
+| E4 | Decided | ADR 0051: nothing for embeds that need a sign-in |
 
 O1 and O2 are not phases of this plan. They depend on the `@basyx` scope and
 on Studio's first release. Phases B, C and F can start at once; D and E

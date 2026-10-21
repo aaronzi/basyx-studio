@@ -111,6 +111,18 @@ describe('createTestStudio', () => {
     await expect(createTestStudio({ permissions: [] }).client.ui.openShell('urn:example:aas:1')).rejects.toMatchObject({ code: 'app_permission_not_declared' })
   })
 
+  it('records the views an app opens, open until the user closes them', async () => {
+    const studio = createTestStudio({ permissions: ['studio.ui.navigation'] })
+    const seen: (boolean | undefined)[] = []
+    studio.client.onContext(context => seen.push(context.fullscreenOpen))
+    await studio.client.ui.openView('urn:example:sm:bom', { shellId: 'urn:example:aas:1' })
+    expect(studio.openedViews).toEqual([{ submodelId: 'urn:example:sm:bom', shellId: 'urn:example:aas:1' }])
+    expect(studio.context.fullscreenOpen).toBe(true)
+    studio.setContext({ fullscreenOpen: false })
+    expect(seen).toEqual([true, false])
+    await expect(createTestStudio({ permissions: [] }).client.ui.openView('urn:example:sm:bom')).rejects.toMatchObject({ code: 'app_permission_not_declared' })
+  })
+
   it('sends a changed context to the app', () => {
     const studio = createTestStudio()
     studio.setContext({ theme: { dark: true, colors: {} } })

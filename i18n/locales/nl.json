@@ -536,7 +536,7 @@
       "studio_aas_read": "AAS-gegevens lezen waartoe je toegang hebt",
       "studio_aas_write": "AAS-waarden wijzigen die je mag wijzigen",
       "studio_ui_notifications": "Meldingen tonen",
-      "studio_ui_navigation": "Het eigen paginaadres wijzigen, doelen openen en links in je browser openen",
+      "studio_ui_navigation": "Het eigen paginaadres wijzigen, doelen en AAS'en openen, submodellen in de weergaven van andere apps tonen en links in je browser openen",
       "studio_backend": "Code aan de serverkant uitvoeren (geïsoleerd)",
       "studio_ui_clipboard": "Tekst naar het klembord kopiëren wanneer je klikt",
       "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)",

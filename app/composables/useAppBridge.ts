@@ -1,7 +1,7 @@
-import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, Problem } from '#shared/contract'
+import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, OpenedView, Problem } from '#shared/contract'
 import type { Ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
-import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, encodeConnectionCall, externalFileUrl, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
+import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, encodeConnectionCall, externalFileUrl, openedViewSchema, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
 import { StudioApiError } from '~/composables/useStudioApi'
 import { resourceKey } from '~/utils/aas'
 
@@ -19,6 +19,12 @@ export interface AppBridgeOptions {
   onOpenFullscreen?: (state: string, header: boolean) => void
   /** Closes the full-screen dialog the frame runs in; absent outside one. */
   onCloseFullscreen?: () => void
+  /**
+   * Shows another app's view in a full-screen dialog over the frame
+   * (`studio.ui.openView`, ADR 0051); absent in dialogs, which open no
+   * further view.
+   */
+  onOpenView?: (view: OpenedView) => void
 }
 
 /** A refusal of the host itself, in the shape of Studio's problems. */
@@ -28,10 +34,11 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
 
 /**
  * Methods that act outside the app's frame and so need a click or key press
- * in it just before: `openShell` leaves the app's page, which only the user
- * should decide, not a timer or a page load.
+ * in it just before: `openShell` leaves the app's page, and `openView`
+ * covers it with another app's view, which only the user should decide, not
+ * a timer or a page load.
  */
-const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell'])
+const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell', 'studio.ui.openView'])
 
 function problemOf (error: unknown): Problem {
   if (error instanceof StudioApiError && error.problem) {
@@ -118,6 +125,9 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       if (activationMethods.has(method.data) && !activated) {
         throw hostProblem('forbidden', 'Call this from a click or key press in the app.', 403)
       }
+      if (method.data === 'studio.ui.openView' && !options.onOpenView) {
+        throw hostProblem('unsupported_operation', 'Views of other apps open only from a frame on Studio\'s page, not from a dialog.', 422)
+      }
       const context = options.context()
       // Connection calls carry bytes, which travel as base64 over HTTP (ADR 0047).
       const connectionCall = method.data === 'studio.connections.call'
@@ -133,7 +143,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         respond({ type: 'response', id, result: decoded.result }, decoded.transfer)
         return
       }
-      const replaced = await carryOut(method.data, params, contribution)
+      const replaced = await carryOut(method.data, params, result, contribution)
       respond({ type: 'response', id, result: replaced ? replaced.result : result }, replaced?.transfer)
     } catch (error) {
       const problem = problemOf(error)
@@ -180,7 +190,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
    * Studio authorized the call; UI methods are carried out here. A returned
    * result replaces Studio's; its `transfer` buffers move to the frame.
    */
-  async function carryOut (method: AppMethodName, params: unknown, contribution: AppContributionInfo): Promise<{ result: unknown, transfer?: Transferable[] } | null> {
+  async function carryOut (method: AppMethodName, params: unknown, result: unknown, contribution: AppContributionInfo): Promise<{ result: unknown, transfer?: Transferable[] } | null> {
     switch (method) {
       case 'studio.ui.notify': {
         const notice = appMethodParamsSchemas['studio.ui.notify'].parse(params)
@@ -245,6 +255,12 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
           })
         }
         break
+      }
+      case 'studio.ui.openView': {
+        // Studio checked the submodel as the user and picked the view; the
+        // app learns only that it opened, not which app's view it is.
+        options.onOpenView?.(openedViewSchema.parse(result))
+        return { result: null }
       }
       case 'studio.ui.openExternal': {
         window.open(appMethodParamsSchemas['studio.ui.openExternal'].parse(params).url, '_blank', 'noopener')

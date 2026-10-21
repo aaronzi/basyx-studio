@@ -536,7 +536,7 @@
       "studio_aas_read": "Leer los datos AAS a los que tienes acceso",
       "studio_aas_write": "Cambiar los valores AAS que puedes cambiar",
       "studio_ui_notifications": "Mostrar notificaciones",
-      "studio_ui_navigation": "Cambiar la dirección de su propia página, abrir destinos y abrir enlaces en tu navegador",
+      "studio_ui_navigation": "Cambiar la dirección de su propia página, abrir destinos y AAS, mostrar submodelos en las vistas de otras apps y abrir enlaces en tu navegador",
       "studio_backend": "Ejecutar código en el servidor (aislado)",
       "studio_ui_clipboard": "Copiar texto al portapapeles cuando haces clic",
       "studio_containers": "Iniciar, detener, exportar y eliminar instancias locales de BaSyx en Docker o Podman (solo aplicaciones incluidas con Studio)",

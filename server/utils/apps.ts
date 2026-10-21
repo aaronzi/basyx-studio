@@ -1,4 +1,4 @@
-import type { AppMethodName } from '#shared/contract'
+import type { AppMethodName, OpenedView } from '#shared/contract'
 import type { AppCaller, AppCallMode } from '../lib/apps/calls'
 import type { AppInstallationRecord } from '../lib/apps/store'
 import type { Actor } from '../lib/deps'
@@ -6,9 +6,10 @@ import type { StudioRuntime } from './studio'
 import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
+import { authorizeAppCall, checkShellToOpen, checkViewToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
+import { viewToOpen } from '../lib/apps/contributions'
 import { userTargetContext } from '../lib/apps/settings'
-import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
+import { listActiveInstallations, listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
 import { getInfrastructure } from '../lib/infrastructures'
@@ -111,7 +112,7 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   if (method === 'studio.connections.call') {
     return performConnectionCall(studio, call, params as never, requestId)
   }
-  if (!isAasMethod(method) && method !== 'studio.ui.openShell') {
+  if (!isAasMethod(method) && method !== 'studio.ui.openShell' && method !== 'studio.ui.openView') {
     return null
   }
   if (!targetId) {
@@ -122,6 +123,14 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
     const opened = await openTargetFor({ actor, targetId, requestId, operation: method, read: true, appInstallationId: installation.id, shellId: shell.shellId })
     await checkShellToOpen(opened.target, shell)
     return null
+  }
+  if (method === 'studio.ui.openView') {
+    // Only Studio's page learns the view; it answers the app with null.
+    const choice = params as Methods['studio.ui.openView']['params']
+    const opened = await openTargetFor({ actor, targetId, requestId, operation: method, read: true, appInstallationId: installation.id, shellId: choice.shellId })
+    const submodel = await checkViewToOpen(opened.target, choice)
+    const view = viewToOpen(await listActiveInstallations(studio), requireAppsBaseUrl(studio), submodel.semanticId, choice)
+    return { view, submodel, shellId: choice.shellId ?? null } satisfies OpenedView
   }
 
   const opened = await openTargetFor({

@@ -67,11 +67,46 @@
         />
       </v-card-fullscreen>
     </v-dialog>
+
+    <!-- Another app's view of a submodel (studio.ui.openView, ADR 0051): a
+         frame with its own contribution, permissions and origin over this
+         one, which stays as it is underneath until the dialog closes. -->
+    <v-dialog v-if="!fullscreen" v-model="viewOpen" fullscreen>
+      <v-card-fullscreen v-if="openedView" class="d-flex flex-column" data-test="app-view-dialog" height="100%">
+        <v-toolbar class="flex-shrink-0" :title="label(openedView.view.title)">
+          <template #append>
+            <span class="text-body-small text-medium-emphasis text-truncate d-none d-sm-inline">{{ t('overview.reason', { app: label(openedView.view.appTitle), submodel: openedView.submodel.idShort ?? openedView.submodel.id }) }}</span>
+
+            <v-chip
+              v-if="openedView.view.unsigned"
+              class="ms-2"
+              color="warning"
+              size="x-small"
+              :text="t('apps.unsigned')"
+            />
+
+            <v-btn :aria-label="t('common.close')" data-test="app-view-close" icon="mdi-close" @click="viewOpen = false" />
+          </template>
+        </v-toolbar>
+
+        <v-divider />
+
+        <app-frame
+          :key="`${openedView.view.installationId}:${openedView.view.id}:${openedView.submodel.id}`"
+          :contribution="openedView.view"
+          fullscreen
+          :shell-id="openedView.shellId"
+          :submodel="{ id: openedView.submodel.id, semanticId: openedView.submodel.semanticId }"
+          :target="target"
+          @close-fullscreen="viewOpen = false"
+        />
+      </v-card-fullscreen>
+    </v-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
-  import type { AppContext, AppContributionInfo, AppTargetContext, Target } from '#shared/contract'
+  import type { AppContext, AppContributionInfo, AppTargetContext, OpenedView, Target } from '#shared/contract'
   import type { AppStartProblem } from '~/utils/app-start'
   import { useQuery } from '@pinia/colada'
   import { useTheme } from 'vuetify'
@@ -143,7 +178,7 @@
     subPath: props.subPath ?? '',
     mode: ui.mode,
     fullscreen: props.fullscreen ?? false,
-    fullscreenOpen: fullscreenOpen.value,
+    fullscreenOpen: fullscreenOpen.value || viewOpen.value,
     viewState: props.viewState ?? '',
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },
@@ -153,6 +188,13 @@
 
   const mounted = ref(false)
   const fullscreenOpen = ref(false)
+  /** Another app's view this frame opened (`studio.ui.openView`), shown until the user closes it. */
+  const openedView = shallowRef<OpenedView | null>(null)
+  const viewOpen = ref(false)
+  function openView (view: OpenedView) {
+    openedView.value = view
+    viewOpen.value = true
+  }
   /** What the view handed to `studio.ui.openFullscreen`, for the frame in the dialog. */
   const fullscreenState = ref('')
   /** Whether the dialog shows Studio's header with the view's title and a close button. */
@@ -219,6 +261,7 @@
     onNavigate: (subPath, history) => emit('navigate', subPath, history),
     onOpenFullscreen: props.nested ? undefined : openFullscreen,
     onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
+    onOpenView: props.fullscreen ? undefined : openView,
   })
   watch(height, value => {
     if (value !== null) {

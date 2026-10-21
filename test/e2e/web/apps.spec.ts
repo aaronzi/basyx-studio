@@ -232,6 +232,20 @@ test('adds module routes, nested routes and shell modules that follow the active
   await expect(page).toHaveURL(explorerUrl)
   await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
 
+  // studio.ui.openView (ADR 0051): the submodel in the bundled Digital
+  // Nameplate view, in Studio's dialog over the app, as its own frame; closing
+  // it returns to the same page of the app, which never left.
+  await frame.getByRole('button', { name: 'Show Nameplate in its view' }).click()
+  const dialog = page.locator('[data-test="app-view-dialog"]')
+  await expect(dialog.getByText('Digital Nameplate', { exact: true }).first()).toBeVisible()
+  await expect(dialog.locator('iframe[title="App: Digital Nameplate"]')).toBeVisible()
+  await expect(dialog.frameLocator('iframe[title="App: Digital Nameplate"]').getByText('Serial number').first()).toBeVisible()
+  await expect(page).toHaveURL(explorerUrl)
+  await dialog.locator('[data-test="app-view-close"]').click()
+  await expect(dialog).toBeHidden()
+  await expect(page).toHaveURL(explorerUrl)
+  await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
+
   // A new target gets a new frame that sees only that target.
   await page.goto(`/targets/${securedTargetId}/apps/${installationId}/explorer`)
   await expect(frame.locator('[data-test="heading"]')).toHaveText('Shells of E2E apps secured (as Studio)')

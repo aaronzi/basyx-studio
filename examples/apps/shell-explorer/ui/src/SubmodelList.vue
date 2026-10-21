@@ -18,8 +18,17 @@
         :title="submodel.idShort ?? submodel.id"
         @click="submodel.status === 'available' && open(submodel.id)"
       >
-        <template v-if="submodel.status !== 'available'" #append>
-          <v-chip :text="submodel.status" />
+        <template #append>
+          <v-chip v-if="submodel.status !== 'available'" :text="submodel.status" />
+          <!-- The submodel in an installed app's view, over this page (app API 0.1.10). -->
+          <v-btn
+            v-else-if="submodel.semanticId"
+            :aria-label="`Show ${submodel.idShort ?? submodel.id} in its view`"
+            icon="mdi-application-outline"
+            size="small"
+            variant="text"
+            @click.stop="show(submodel.id)"
+          />
         </template>
       </v-list-item>
     </v-list>
@@ -40,6 +49,19 @@
   async function open (submodelId?: string) {
     try {
       await props.client.ui.openShell(props.shellId, { submodelId })
+    } catch (error_) {
+      error.value = error_ instanceof Error ? error_.message : String(error_)
+    }
+  }
+
+  /**
+   * Shows a submodel in the view Studio picks for it, in Studio's dialog over
+   * this page; the page stays as it is. Without an installed view, Studio
+   * says so (`unsupported_operation`), and the shell's page is the way there.
+   */
+  async function show (submodelId: string) {
+    try {
+      await props.client.ui.openView(submodelId, { shellId: props.shellId })
     } catch (error_) {
       error.value = error_ instanceof Error ? error_.message : String(error_)
     }
