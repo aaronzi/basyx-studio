@@ -147,8 +147,22 @@ test('manages files and folders as the Web UI does, in edit mode, and previews t
   await waitUntilSettled(page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').last())
   await stacked.locator('[data-test="preview-close"]').click()
   await expect(page.locator('[data-test="app-fullscreen"]:visible')).toHaveCount(1)
+  // Only the explorer's dialog is left, not the preview's fading backdrop.
+  await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(1)
+
+  // What changes in the full-screen dialog shows in the embedded view once it closes.
+  await explorer.locator('[data-test="new"]').click()
+  await explorer.locator('[data-test="create-folder"]').click()
+  await explorer.locator('[data-test="name-field"] input').fill('Temporary')
+  await explorer.locator('[data-test="dialog-submit"]').click()
+  await expect(explorer.locator('[data-test="notice"]')).toContainText('Folder Temporary created.', { timeout: 30_000 })
   await page.locator('[data-test="app-fullscreen-close"]').click()
   await expect(page.locator('[data-test="app-fullscreen"]:visible')).toHaveCount(0)
+  await expect(card(page, 'folder', 'Temporary')).toBeVisible({ timeout: 30_000 })
+  await card(page, 'folder', 'Temporary').locator('[data-test="entry-menu"]').click()
+  await click(page, '[data-test="menu-delete"]')
+  await click(page, '[data-test="dialog-submit"]')
+  await expectNotice(page, 'Deleted: 1')
   await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(0)
 
   // New → Create folder.

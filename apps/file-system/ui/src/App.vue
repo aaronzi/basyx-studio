@@ -456,6 +456,14 @@
     selected.value = entries.value.every(entry => selected.value.has(entry.path)) ? new Set() : new Set(entries.value.map(entry => entry.path))
   }
 
+  // A full-screen dialog of this view is a frame of its own, which may have
+  // changed the files: show what is there now once it closes.
+  watch(() => context.value.fullscreenOpen, (open, wasOpen) => {
+    if (wasOpen && !open) {
+      void load()
+    }
+  })
+
   // Leaving edit mode ends a selection and closes what changes files.
   watch(canEdit, editable => {
     if (!editable) {

@@ -145,6 +145,13 @@ export interface AppContext {
   subPath: string
   /** Studio's mode: apps show edit controls only in `edit` (MVP-4). */
   mode: 'view' | 'edit'
+  /**
+   * True while a full-screen dialog this view opened (`studio.ui.openFullscreen`)
+   * is open. It runs in a frame of its own, so a view reloads what it shows
+   * when this turns false again: the dialog may have changed it (Studio app
+   * API 0.1.7; absent before).
+   */
+  fullscreenOpen?: boolean
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
   fullscreen: boolean
   /**

@@ -129,6 +129,7 @@
     subPath: props.subPath ?? '',
     mode: ui.mode,
     fullscreen: props.fullscreen ?? false,
+    fullscreenOpen: fullscreenOpen.value,
     viewState: props.viewState ?? '',
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },

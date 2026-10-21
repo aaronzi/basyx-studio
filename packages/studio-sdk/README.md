@@ -35,7 +35,7 @@ runs the app, whatever the package version.
 | 0.1.1 | 0.1.3: `sandbox.frameOrigins`, `connectOrigins`, `imageOrigins`, `mediaOrigins`; module `layout` | next release |
 | 0.1.2 | 0.1.4: `ui.openShell`; `timeseries.read` with `anchor: 'latest'` for LinkedSegments | next release |
 | 0.1.3 | 0.1.5: structural writes (`aas.createShell`, `createSubmodel`, `putSubmodel`, `addElement`, `putElement`, `deleteElement`, `deleteSubmodel`, `deleteShell`), `aas.putAttachment`, `aas.getSubmodelSnapshot`, `structureRevision` on element snapshots; `memoryAas` in `testing` | next release |
-| 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })` and `ui.closeFullscreen`; `<v-btn-toggle-icon>` in the app kit | next release |
+| 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -174,6 +174,11 @@ own toolbar and closes the dialog with `ui.closeFullscreen()`, also on
 Escape; Studio closes it on Escape only while its own page has the focus.
 From inside a full-screen dialog, only such a header-less one opens, above
 it.
+
+Each full-screen dialog is a frame of its own, so what the view there
+changes is not seen by the frame that opened it. `context.fullscreenOpen`
+is `true` while that dialog is open; reload what the view shows when it
+turns `false` again (Studio app API 0.1.7).
 
 An app that parses files with WebAssembly, or off the page in a worker,
 declares it in the manifest ([ADR 0038](../../docs/adr/0038-webassembly-workers-and-file-reads-for-apps.md)):
