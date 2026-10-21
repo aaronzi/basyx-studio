@@ -66,6 +66,35 @@ describe('memoryAas', () => {
     expect(aas.submodels[0]!.submodelElements).toEqual([])
   })
 
+  it('hands out revisions that reads do not change', async () => {
+    // An empty submodel and an empty folder: reading them must not add `[]`.
+    const aas = memoryAas({ submodels: [{ modelType: 'Submodel', id: submodelId, idShort: 'Files' }] })
+    const { client } = createTestStudio({ handlers: aas.handlers, context: { mode: 'edit' } })
+    const empty = await client.aas.getSubmodelSnapshot(submodelId)
+    await expect(client.aas.putSubmodel({ submodelId, submodel: empty.submodel, revision: empty.revision })).resolves.toMatchObject({ submodel: { id: submodelId } })
+
+    const top = await client.aas.getSubmodelSnapshot(submodelId)
+    const folder = await client.aas.addElement({ submodelId, element: { modelType: 'SubmodelElementCollection', idShort: 'Empty' }, structureRevision: top.structureRevision })
+    expect(await client.aas.getElement(submodelId, 'Empty')).toMatchObject({ revision: folder.revision })
+    await expect(client.aas.deleteElement({ submodelId, idShortPath: 'Empty', revision: folder.revision })).resolves.toBeNull()
+    expect(aas.submodels[0]!.submodelElements).toEqual([])
+  })
+
+  it('keeps attachments of Files whose value a replaced submodel keeps', async () => {
+    const aas = memoryAas({ submodels: [{ modelType: 'Submodel', id: submodelId, idShort: 'Files', submodelElements: [{ modelType: 'File', idShort: 'Manual', contentType: 'text/plain' }] }] })
+    aas.setFile(submodelId, 'Manual', { bytes: new TextEncoder().encode('hello'), contentType: 'text/plain' })
+    const { client } = createTestStudio({ handlers: aas.handlers, context: { mode: 'edit' } })
+    expect(new TextDecoder().decode((await client.ui.readFile(submodelId, 'Manual')).bytes)).toBe('hello')
+    const snapshot = await client.aas.getSubmodelSnapshot(submodelId)
+    await client.aas.putSubmodel({ submodelId, submodel: snapshot.submodel, revision: snapshot.revision })
+    expect(new TextDecoder().decode((await client.ui.readFile(submodelId, 'Manual')).bytes)).toBe('hello')
+
+    // A File without value has no content.
+    const next = await client.aas.getSubmodelSnapshot(submodelId)
+    await client.aas.putSubmodel({ submodelId, submodel: { ...next.submodel, submodelElements: [{ modelType: 'File', idShort: 'Manual', contentType: 'text/plain' }] }, revision: next.revision })
+    await expect(client.ui.readFile(submodelId, 'Manual')).rejects.toMatchObject({ code: 'target_resource_not_found' })
+  })
+
   it('creates and deletes shells and submodels', async () => {
     const aas = files()
     const { client } = createTestStudio({ handlers: aas.handlers, context: { mode: 'edit' } })

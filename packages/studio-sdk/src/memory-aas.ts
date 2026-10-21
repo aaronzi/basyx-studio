@@ -24,7 +24,7 @@ export interface MemoryAas {
   readonly shells: JsonObject[]
   /** The submodels as they are now. */
   readonly submodels: JsonObject[]
-  /** Stores the content of a File element, as if it had been uploaded. */
+  /** Stores the content of a File element under its value, as if it had been uploaded; a File without value gets one. */
   setFile: (submodelId: string, idShortPath: string, file: FileContent) => void
 }
 
@@ -86,11 +86,23 @@ function childKey (modelType: unknown): 'value' | 'statements' | 'annotations' |
   }
 }
 
-function childrenOf (container: JsonObject): JsonObject[] {
+function childrenKey (container: JsonObject): 'submodelElements' | 'value' | 'statements' | 'annotations' {
   const key = container.modelType === 'Submodel' ? 'submodelElements' : childKey(container.modelType)
   if (!key) {
     throw refuse('unsupported_operation', 'This element has no children.')
   }
+  return key
+}
+
+/** A container's children, for reading: an empty container stays as it is, so its revision does not change. */
+function childrenOf (container: JsonObject): JsonObject[] {
+  const children = container[childrenKey(container)]
+  return Array.isArray(children) ? children as JsonObject[] : []
+}
+
+/** A container's children, to change them: an empty container gets its array. */
+function mutableChildrenOf (container: JsonObject): JsonObject[] {
+  const key = childrenKey(container)
   if (!Array.isArray(container[key])) {
     container[key] = []
   }
@@ -130,8 +142,14 @@ function joinPath (parentPath: string | null, child: JsonObject, index: number, 
 export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
   const shells: JsonObject[] = structuredClone(options.shells ?? [])
   const submodels: JsonObject[] = structuredClone(options.submodels ?? [])
-  // Contents follow their element through renames, as on a server.
-  const files = new WeakMap<JsonObject, FileContent & { fileName: string }>()
+  // Contents belong to the File's value, as in a workspace package: an
+  // element that keeps its value keeps its content, also through a rename
+  // or a replaced submodel.
+  const files = new Map<string, FileContent>()
+  let stored = 0
+  /** A new location for a file's content, as a server or package names it. */
+  const location = (fileName: string) => `/aasx/files/${++stored}/${encodeURIComponent(fileName)}`
+  const contentOf = (element: JsonObject) => typeof element.value === 'string' ? files.get(element.value) : undefined
 
   const shellOf = (id: string) => shells.find(shell => shell.id === id) ?? (() => {
     throw refuse('target_resource_not_found', `No shell ${id}.`)
@@ -280,11 +298,11 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
     },
     'studio.aas.addElement': ({ submodelId, parentPath, element, index, structureRevision: expected }) => {
       const parent = parentPath === undefined ? submodelOf(submodelId) : locate(submodelId, parentPath).element
-      const children = childrenOf(parent)
-      if (structureRevision(children) !== expected) {
+      if (structureRevision(childrenOf(parent)) !== expected) {
         throw refuse('structure_conflict')
       }
-      checkNamed(parent, children, element, -1)
+      checkNamed(parent, childrenOf(parent), element, -1)
+      const children = mutableChildrenOf(parent)
       const position = index === undefined ? children.length : Math.min(index, children.length)
       const added = structuredClone(element)
       children.splice(position, 0, added)
@@ -302,10 +320,6 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
       const key = childKey(current.modelType)
       if (key) {
         next[key] = current[key]
-      }
-      const file = files.get(current)
-      if (file) {
-        files.set(next, file)
       }
       children[position] = next
       const parentPath = idShortPath.replace(/(?:^|\.)[^.[\]]+$|\[\d+\]$/, '') || null
@@ -354,12 +368,12 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
         throw refuse('invalid_request', `The file is larger than ${putAttachmentMaxBytes / 1024 / 1024} MiB.`)
       }
       element.contentType = contentType
-      element.value = fileName
-      files.set(element, { bytes, contentType, fileName })
+      element.value = location(fileName)
+      files.set(element.value as string, { bytes, contentType })
       return snapshot(element)
     },
     'studio.ui.readFile': ({ submodelId, idShortPath }) => {
-      const file = files.get(locate(submodelId, idShortPath).element)
+      const file = contentOf(locate(submodelId, idShortPath).element)
       if (!file) {
         throw refuse('target_resource_not_found', 'The File element has no content.')
       }
@@ -373,7 +387,10 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
     submodels,
     setFile: (submodelId, idShortPath, file) => {
       const { element } = locate(submodelId, idShortPath)
-      files.set(element, { bytes: file.bytes.slice(), contentType: file.contentType, fileName: String(element.value ?? '').split('/').pop() || 'file' })
+      if (typeof element.value !== 'string' || !element.value) {
+        element.value = location(element.idShort ? String(element.idShort) : 'file')
+      }
+      files.set(element.value as string, { bytes: file.bytes.slice(), contentType: file.contentType })
     },
   }
 }
