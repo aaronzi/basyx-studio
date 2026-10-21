@@ -2,6 +2,7 @@
   "fs": {
     "gallery": "Galerij",
     "explorer": "Verkenner",
+    "view": "Weergave",
     "root": "Bestanden",
     "up": "Eén niveau omhoog",
     "new": "Nieuw",
@@ -68,6 +69,7 @@
     "pdfFailed": "Deze pdf kan niet worden weergegeven. Open of download hem.",
     "pdfPage": "Pagina {page} van {pages}",
     "previousPage": "Vorige pagina",
-    "nextPage": "Volgende pagina"
+    "nextPage": "Volgende pagina",
+    "gone": "Dit bestand bestaat niet meer."
   }
 }

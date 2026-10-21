@@ -14,7 +14,7 @@
     "nl": "Toont de mappen en bestanden van een FileSystem-submodel zoals de BaSyx AAS Web UI, met een voorbeeld van afbeeldingen, pdf's, tekst, audio en video; in de bewerkmodus kunnen bestanden worden geüpload en bestanden en mappen worden aangemaakt, hernoemd, verplaatst en verwijderd.",
     "zh-Hans": "像 BaSyx AAS Web UI 一样显示 FileSystem 子模型的文件夹和文件，并预览图像、PDF、文本、音频和视频；在编辑模式下，可以上传文件，以及创建、重命名、移动和删除文件和文件夹。"
   },
-  "studioApi": "^0.1.5",
+  "studioApi": "^0.1.7",
   "runtimes": ["hosted", "desktop"],
   "permissions": ["studio.aas.read", "studio.aas.write"],
   "contributes": {

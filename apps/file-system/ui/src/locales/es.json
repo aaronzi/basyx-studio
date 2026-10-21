@@ -2,6 +2,7 @@
   "fs": {
     "gallery": "Galería",
     "explorer": "Explorador de archivos",
+    "view": "Vista",
     "root": "Archivos",
     "up": "Subir un nivel",
     "new": "Nuevo",
@@ -68,6 +69,7 @@
     "pdfFailed": "Este PDF no se puede mostrar. Ábralo o descárguelo.",
     "pdfPage": "Página {page} de {pages}",
     "previousPage": "Página anterior",
-    "nextPage": "Página siguiente"
+    "nextPage": "Página siguiente",
+    "gone": "Este archivo ya no existe."
   }
 }

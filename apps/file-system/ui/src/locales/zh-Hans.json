@@ -2,6 +2,7 @@
   "fs": {
     "gallery": "图库",
     "explorer": "文件资源管理器",
+    "view": "视图",
     "root": "文件",
     "up": "向上一级",
     "new": "新建",
@@ -68,6 +69,7 @@
     "pdfFailed": "无法显示此 PDF。请打开或下载它。",
     "pdfPage": "第 {page} 页，共 {pages} 页",
     "previousPage": "上一页",
-    "nextPage": "下一页"
+    "nextPage": "下一页",
+    "gone": "此文件已不存在。"
   }
 }

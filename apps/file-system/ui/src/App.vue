@@ -1,7 +1,64 @@
 <template>
   <v-app>
+    <!-- A frame Studio opened for a preview shows only the preview, over the dimmed page. -->
+    <v-card
+      v-if="previewMode"
+      class="d-flex flex-column"
+      color="transparent"
+      data-test="preview"
+      height="100vh"
+      theme="dark"
+    >
+      <v-toolbar class="ps-3 flex-shrink-0" color="transparent">
+        <template v-if="previewed">
+          <v-icon :color="iconColorOf(previewed)" :icon="iconOf(previewed)" />
+          <v-toolbar-title class="text-title-medium text-white" data-test="preview-name">{{ previewed.name }}</v-toolbar-title>
+        </template>
+
+        <v-spacer />
+
+        <template v-if="previewed && !previewed.external">
+          <v-btn
+            :aria-label="t('fs.open')"
+            color="white"
+            data-test="preview-open"
+            icon="mdi-open-in-new"
+            @click="openFile(previewed, false)"
+          />
+
+          <v-btn :aria-label="t('fs.download')" color="white" icon="mdi-download" @click="openFile(previewed, true)" />
+        </template>
+
+        <v-btn
+          :aria-label="t('preview.close')"
+          color="white"
+          data-test="preview-close"
+          icon="mdi-close"
+          @click="closePreview"
+        />
+      </v-toolbar>
+
+      <file-preview
+        v-if="previewed"
+        :client="client"
+        :file="previewed"
+        :locale="locale"
+        :submodel-id="submodelId"
+        @close="closePreview"
+        @download="openFile(previewed, true)"
+      />
+
+      <div v-else class="d-flex flex-grow-1 align-center justify-center" @click.self="closePreview">
+        <v-progress-circular v-if="loading" color="primary" indeterminate size="64" />
+
+        <v-sheet v-else class="pa-6" max-width="500" rounded="lg">
+          <v-empty-state data-test="preview-error" icon="mdi-alert-circle" :text="loadError ?? t('preview.gone')" :title="t('preview.failedTitle')" />
+        </v-sheet>
+      </div>
+    </v-card>
+
     <!-- Studio's card shows the view's title; in Studio's full-screen dialog, the card fills the frame. -->
-    <v-view-card :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">
+    <v-view-card v-else :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">
       <v-toolbar class="pe-2" color="transparent" density="comfortable">
         <!-- Selection actions, as in the Web UI -->
         <v-sheet
@@ -42,9 +99,22 @@
 
         <v-spacer />
 
-        <v-btn-toggle v-model="view" class="me-3" mandatory>
-          <v-btn :aria-label="t('fs.gallery')" data-test="view-grid" icon="mdi-view-grid" value="grid" />
-          <v-btn :aria-label="t('fs.explorer')" data-test="view-list" icon="mdi-view-list" value="list" />
+        <v-btn-toggle v-model="view" :aria-label="t('fs.view')" class="me-3" mandatory>
+          <v-btn-toggle-icon
+            v-tooltip="t('fs.gallery')"
+            :aria-label="t('fs.gallery')"
+            data-test="view-grid"
+            icon="mdi-view-grid-outline"
+            value="grid"
+          />
+
+          <v-btn-toggle-icon
+            v-tooltip="t('fs.explorer')"
+            :aria-label="t('fs.explorer')"
+            data-test="view-list"
+            icon="mdi-view-list-outline"
+            value="list"
+          />
         </v-btn-toggle>
 
         <new-menu v-if="canEdit" @create-folder="startDialog('newFolder')" @upload="startDialog('upload')" />
@@ -246,57 +316,6 @@
       </v-sheet>
     </v-view-card>
 
-    <!-- The Web UI's preview: in Studio's full-screen dialog, over the file explorer. -->
-    <v-overlay
-      v-if="fullscreen"
-      content-class="d-flex w-100 h-100"
-      :model-value="previewed !== null"
-      :opacity="0.9"
-      @update:model-value="previewPath = null"
-    >
-      <v-card
-        v-if="previewed"
-        class="d-flex flex-column h-100 w-100"
-        color="transparent"
-        data-test="preview"
-        theme="dark"
-      >
-        <v-toolbar class="ps-3" color="transparent">
-          <v-icon :color="iconColorOf(previewed)" :icon="iconOf(previewed)" />
-          <v-toolbar-title class="text-title-medium text-white" data-test="preview-name">{{ previewed.name }}</v-toolbar-title>
-          <v-spacer />
-
-          <template v-if="!previewed.external">
-            <v-btn
-              :aria-label="t('fs.open')"
-              color="white"
-              data-test="preview-open"
-              icon="mdi-open-in-new"
-              @click="openFile(previewed, false)"
-            />
-
-            <v-btn :aria-label="t('fs.download')" color="white" icon="mdi-download" @click="openFile(previewed, true)" />
-          </template>
-
-          <v-btn
-            :aria-label="t('preview.close')"
-            color="white"
-            data-test="preview-close"
-            icon="mdi-close"
-            @click="previewPath = null"
-          />
-        </v-toolbar>
-
-        <file-preview
-          :client="client"
-          :file="previewed"
-          :locale="locale"
-          :submodel-id="submodelId"
-          @close="previewPath = null"
-          @download="openFile(previewed, true)"
-        />
-      </v-card>
-    </v-overlay>
   </v-app>
 </template>
 
@@ -351,14 +370,16 @@
 
   const view = ref<'grid' | 'list'>(storedView())
   const folder = ref(state.folder ?? '')
-  const previewPath = ref<string | null>(state.preview ?? null)
+  /** The file this frame previews: Studio opened it for that, without its header. */
+  const previewPath = fullscreen.value ? (state.preview ?? null) : null
+  const previewMode = previewPath !== null
   const selected = ref<Set<string>>(new Set())
 
   const tree = computed(() => submodel.value ? readFileSystem(submodel.value, locale.value) : [])
   const entries = computed(() => childrenAt(tree.value, folder.value))
   const selectedEntries = computed(() => entries.value.filter(entry => selected.value.has(entry.path)))
   const previewed = computed(() => {
-    const entry = previewPath.value ? findEntry(tree.value, previewPath.value) : null
+    const entry = previewPath ? findEntry(tree.value, previewPath) : null
     return entry?.kind === 'file' ? entry : null
   })
   const breadcrumbs = computed(() => [
@@ -403,13 +424,17 @@
     selected.value = new Set()
   }
 
-  /** Previews a file: here in the full-screen dialog, else by opening it. */
+  /**
+   * Previews a file as the Web UI does, filling the window: Studio opens the
+   * view again without its header, over the dimmed page, and that frame
+   * shows only the preview.
+   */
   function preview (entry: FileEntry) {
-    if (fullscreen.value) {
-      previewPath.value = entry.path
-    } else {
-      void props.client.ui.openFullscreen(JSON.stringify({ folder: folder.value, preview: entry.path } satisfies ViewState))
-    }
+    void props.client.ui.openFullscreen(JSON.stringify({ folder: folder.value, preview: entry.path } satisfies ViewState), { header: false })
+  }
+
+  function closePreview () {
+    void props.client.ui.closeFullscreen()
   }
 
   function openFile (entry: FileEntry, download: boolean) {
@@ -444,6 +469,9 @@
   const thumbnails = ref<Record<string, string>>({})
   const thumbnailKeys = new Map<string, string>()
   watch(entries, async current => {
+    if (previewMode) {
+      return
+    }
     for (const entry of current) {
       if (entry.kind !== 'file' || entry.external || previewKind(entry.contentType) !== 'image') {
         continue
@@ -770,9 +798,20 @@
     }
   }
 
+  // The preview closes on Escape, as a dialog does; Studio's page does not get the frame's keys.
+  function onKeydown (event: KeyboardEvent) {
+    if (previewMode && event.key === 'Escape') {
+      closePreview()
+    }
+  }
+
   onMounted(() => {
     window.addEventListener('dragend', endDrag)
+    window.addEventListener('keydown', onKeydown)
     void load()
   })
-  onBeforeUnmount(() => window.removeEventListener('dragend', endDrag))
+  onBeforeUnmount(() => {
+    window.removeEventListener('dragend', endDrag)
+    window.removeEventListener('keydown', onKeydown)
+  })
 </script>

@@ -2,6 +2,7 @@
   "fs": {
     "gallery": "ギャラリー",
     "explorer": "ファイル エクスプローラー",
+    "view": "表示",
     "root": "ファイル",
     "up": "1 つ上の階層へ",
     "new": "新規",
@@ -68,6 +69,7 @@
     "pdfFailed": "この PDF は表示できません。開くかダウンロードしてください。",
     "pdfPage": "{pages} ページ中 {page} ページ",
     "previousPage": "前のページ",
-    "nextPage": "次のページ"
+    "nextPage": "次のページ",
+    "gone": "このファイルはもうありません。"
   }
 }

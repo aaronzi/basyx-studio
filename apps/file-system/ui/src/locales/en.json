@@ -2,6 +2,7 @@
   "fs": {
     "gallery": "Gallery",
     "explorer": "File explorer",
+    "view": "View",
     "root": "Files",
     "up": "Up one level",
     "new": "New",
@@ -68,6 +69,7 @@
     "pdfFailed": "This PDF could not be shown. Open or download it.",
     "pdfPage": "Page {page} of {pages}",
     "previousPage": "Previous page",
-    "nextPage": "Next page"
+    "nextPage": "Next page",
+    "gone": "This file is no longer here."
   }
 }
