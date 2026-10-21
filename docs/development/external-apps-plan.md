@@ -17,6 +17,8 @@
     administrator can tell who signed it;
   - an existing multi-page AAS application, today a module of a forked AAS web
     UI, runs as a Studio app and replaces the fork and its separate image.
+    *When the fork and its image end is decided in the pilot's repository, not
+    by this plan (see phase F).*
 - Requirements: APP-001, APP-006, APP-009, APP-011, APP-015, APP-017,
   APP-020, APP-022, APP-023, SAP-002, SAP-003, SAP-006, CON-002, CON-004
   ([requirements](../requirements.md))
@@ -180,7 +182,7 @@ Decided on 2026-10-20.
 | C | Signatures, trust and updates U1–U9, with the migration and the consent dialog | A signed package installs without developer mode and updates in place with the same installation ID. A package signed by an unknown key, or by a key outside its app ID pattern, is refused. Removing the key revokes the app. |
 | D | Pilot, read-only: the pilot's repository builds against the published packages; its pages that only read AAS run in the test transport and in Studio; its CI packs and signs. Runs in parallel with C as soon as B is done. | The read-only pages run in a Studio started from the Compose example, from a signed package built outside this repository |
 | E | Capabilities: MVP-7 K1–K9 (HTTP connections; done, [ADR 0047](../adr/0047-http-connections-for-apps.md), app API 0.1.6), A1 and A2 (structural writes and attachments; done, [ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md), app API 0.1.5), T1 and T2, `studio.ui.openShell` (X2), and the bundled FileSystem view (X3; done, `apps/file-system`) | The pilot calls its third-party API through a connection and shows charts from `studio.timeseries.read` instead of embedded dashboards. Files are managed in the FileSystem view on Studio's shell page. No credential reaches the browser. |
-| F | Report: what the pilot still misses, and the end of the forked web UI image | A follow-up plan lists the remaining gaps |
+| F | Report: what the pilot still misses, and the end of the forked web UI image. *Done on 2026-10-21 for the report: the [external apps follow-up plan](external-apps-follow-up-plan.md) lists the remaining gaps. The end of the pilot's forked web UI image is not part of it: it stays with the pilot's repository, which keeps working on its app first.* | A follow-up plan lists the remaining gaps |
 
 ### Phase E status
 
@@ -190,6 +192,13 @@ Decided on 2026-10-20.
 | A1, A2 | Done | [ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md), app API 0.1.5: `server/lib/apps/calls.ts`, `server/utils/apps.ts`, `PUT /app-calls/attachment`, the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`memoryAas`). One contract per method on a workspace (with the undo log) and on the live test environment (with registry and discovery sync); a web e2e through the bridge, refused in view mode |
 | X2 | Done | `studio.ui.openShell` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkShellToOpen`), the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`openedShells`). Unit tests for the shell and submodel check, authorization and the test Studio |
 | X3 | Done | `apps/file-system` (the bundled Files app), [ADR 0050](../adr/0050-pdfjs-for-the-file-system-view.md) for PDF.js. Unit tests read a submodel in the Web UI's shape and run the writer on `memoryAas`; a web e2e uploads, previews (a PDF drawn by PDF.js), creates a folder, moves, renames and deletes on a shell's Overview and checks the submodel in the Web UI's shape |
+
+### Phase F status
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| Report | Done | [External apps follow-up plan](external-apps-follow-up-plan.md): fourteen gaps found while building the pilot, each checked against `main` (d8a77e0), with decisions, ADR numbers 0048 and 0051, and phases |
+| End of the forked web UI image | Not part of this plan | Stays with the pilot's repository |
 
 ## Relation to MVP-7
 
@@ -214,7 +223,7 @@ are decided and implemented with ADR 0045, which the pilot needed first.
 
 - Apps embedding other apps' submodel views (X2), so the pilot can show the
   BoM, FileSystem and Time Series views in its own pages. This is the first
-  follow-up.
+  follow-up. *Taken by the [follow-up plan](external-apps-follow-up-plan.md) (E1, E2).*
 - A marketplace with OCI artifacts, keyless signatures, SBOM and review status
   (APP-013). U1's format is what `cosign` writes, so OCI signatures can follow.
 - A trust store on desktop.

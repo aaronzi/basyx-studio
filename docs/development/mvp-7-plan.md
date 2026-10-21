@@ -281,7 +281,7 @@ infrastructures:
 | D | AAS capabilities A1–A5, with server-side edit-mode checks and audit. A1 and A2 done with the external apps plan's phase E (ADR 0049); A3–A5 open | Contract tests per method, on a live target and on a workspace; registry sync and findings as in the editor |
 | E | HTTP connections (K1–K9); binding in YAML and in the infrastructure dialog. Implemented with ADR 0047 for the external apps plan: the `work-orders` example app, its mock service and `examples/deployment/http-connections`; `test/e2e/web/connections.spec.ts` checks the definition of done. | An app calls the mock service with `delegatedUser` and with a static token. Foreign URLs, undeclared operations, unbound apps, invalid bodies and redirects are refused and audited. The browser's network log shows no token. |
 | F | Image and media origins (S1–S3), implemented with ADR 0045; the example below is still open | An example loads map images from a declared origin; without the declaration, the CSP blocks them |
-| G | Pilot: port an existing multi-service AAS application's main workflows to an app, outside this repository. Report the missing capabilities. | A follow-up plan lists the gaps found |
+| G | Pilot: port an existing multi-service AAS application's main workflows to an app, outside this repository. Report the missing capabilities. *Done on 2026-10-21 with phase F of the external apps plan: the [external apps follow-up plan](external-apps-follow-up-plan.md) lists the gaps.* | A follow-up plan lists the gaps found |
 
 ## Later
 
@@ -290,6 +290,6 @@ infrastructures:
   Service at all.
 - Branded desktop builds (SAP-007).
 - Apps embedding other apps' submodel views, such as the Time Series view, in
-  their own pages.
+  their own pages. *Taken by the [external apps follow-up plan](external-apps-follow-up-plan.md) (E1, E2).*
 - Streaming uploads and downloads for large files.
 - Server-sent events from connections (live data) through a capability.
