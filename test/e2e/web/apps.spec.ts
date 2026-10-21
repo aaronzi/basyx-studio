@@ -319,6 +319,9 @@ test('changes structure and uploads files through the bridge, only in edit mode 
     const writes = rows.filter(row => row.action === 'target.write' && row.outcome === 'success').map(row => row.details.method)
     expect(writes).toEqual(expect.arrayContaining(['studio.aas.createShell', 'studio.aas.addElement', 'studio.aas.putAttachment', 'studio.aas.putElement', 'studio.aas.deleteShell']))
     expect(rows.find(row => row.details.method === 'studio.aas.putAttachment' && row.outcome === 'success')?.details).toMatchObject({ fileName: 'readme.txt', size: 17, path: 'FOLDER_1.Readme' })
+    // Identifiers Studio generated, and an element's path after a rename.
+    expect(rows.find(row => row.details.method === 'studio.aas.createShell' && row.outcome === 'success')?.details).toMatchObject({ shellId: outcome.shellId, createdSubmodelIds: [outcome.submodelId] })
+    expect(rows.find(row => row.details.method === 'studio.aas.putElement' && row.outcome === 'success')?.details).toMatchObject({ path: 'FOLDER_1', resultPath: 'FOLDER_2' })
     expect(rows.some(row => row.action === 'app.call' && row.details.code === 'app_edit_mode_required')).toBe(true)
   } finally {
     await client.end()

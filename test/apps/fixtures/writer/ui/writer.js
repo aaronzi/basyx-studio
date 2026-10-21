@@ -69,6 +69,7 @@ async function run () {
     results.renamed = renamed.idShortPath
     results.children = renamed.value.value.map(child => child.idShort)
     results.submodelId = submodelId
+    results.shellId = shellId
   } catch (error) {
     results.error = error.code ?? String(error)
   } finally {

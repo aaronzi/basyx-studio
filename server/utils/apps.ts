@@ -6,7 +6,7 @@ import type { StudioRuntime } from './studio'
 import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision, requiresEditMode } from '../lib/apps/calls'
+import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
 import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
@@ -129,9 +129,11 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   let result: unknown
   try {
     result = await executeAasMethod(context, method, params as never)
-    await opened.auditWrite('success', details)
+    await opened.auditWrite('success', { ...details, ...resultDetails(method, result) })
   } catch (error) {
-    await opened.auditWrite('failure', { ...details, code: error instanceof StudioProblem ? error.code : 'internal_error' })
+    // A write over several resources that failed half-way names what it wrote.
+    const written = error instanceof StudioProblem ? writtenIds(error.steps ?? []) : {}
+    await opened.auditWrite('failure', { ...details, ...written, code: error instanceof StudioProblem ? error.code : 'internal_error' })
     throw error
   }
   // Registries and discovery that Studio keeps in step: a failed step is reported, not thrown (I5).
@@ -153,13 +155,39 @@ function writeDetails (appId: string, method: AppMethodName, params: Record<stri
   if (params.data instanceof Uint8Array) {
     details.size = params.data.byteLength
   }
-  if (requiresEditMode(method) && method.startsWith('studio.aas.create')) {
-    const json = (method === 'studio.aas.createShell' ? params.shell : params.submodel) as { id?: unknown } | undefined
-    if (typeof json?.id === 'string') {
-      details.id = json.id
+  return details
+}
+
+/**
+ * What a successful write produced, for the audit log: the identifiers of
+ * new shells and submodels, which Studio may have generated (ADR 0028), and
+ * an element's path after it was added or renamed.
+ */
+function resultDetails (method: AppMethodName, result: unknown): Record<string, unknown> {
+  const value = (result ?? {}) as { shell?: { id?: unknown }, submodelId?: unknown, idShortPath?: unknown, steps?: Array<{ resource: string, id: string, outcome: string }> }
+  switch (method) {
+    case 'studio.aas.createShell': {
+      const { createdSubmodelIds } = writtenIds(value.steps ?? [])
+      return { shellId: value.shell?.id, ...(createdSubmodelIds ? { createdSubmodelIds } : {}) }
+    }
+    case 'studio.aas.createSubmodel': {
+      return { submodelId: value.submodelId }
+    }
+    case 'studio.aas.addElement':
+    case 'studio.aas.putElement': {
+      return { resultPath: value.idShortPath }
+    }
+    default: {
+      return {}
     }
   }
-  return details
+}
+
+/** The shells and submodels a write over several resources wrote, from its steps. */
+function writtenIds (steps: Array<{ resource: string, id: string, outcome: string }>): { createdShellIds?: string[], createdSubmodelIds?: string[] } {
+  const ids = (resource: string) => steps.filter(step => step.resource === resource && step.outcome === 'written').map(step => step.id)
+  const written = { createdShellIds: ids('shell'), createdSubmodelIds: ids('submodel') }
+  return Object.fromEntries(Object.entries(written).filter(([, list]) => list.length > 0))
 }
 
 async function callBackend (studio: StudioRuntime, call: AppCall, params: { method: string, params?: unknown }): Promise<unknown> {
