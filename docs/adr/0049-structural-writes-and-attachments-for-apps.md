@@ -88,7 +88,8 @@ network request, while `/app-calls` takes JSON.
   could use the editor's routes anyway.
 - BaSyx Go keeps a File's content at its idShort path: an idShort change of
   the File or of a collection above it, through `putElement` as through the
-  editor, drops the content (measured against the test environment). Apps
+  editor, drops the content (measured against the test environment; reported as
+  [eclipse-basyx/basyx-go-components#772](https://github.com/eclipse-basyx/basyx-go-components/issues/772)). Apps
   rename files and folders by `displayName`, as the Web UI's FileSystem view
   does.
 - Moving a File between folders reads and uploads its content again, so

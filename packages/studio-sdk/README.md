@@ -221,7 +221,8 @@ frame call that started it.
   element.
 - Rename files and folders by their `displayName`, not their idShort. BaSyx
   Go keeps a File's content at its idShort path: changing the idShort of a
-  File, or of a collection that contains one, drops the content.
+  File, or of a collection that contains one, drops the content
+  ([basyx-go-components#772](https://github.com/eclipse-basyx/basyx-go-components/issues/772)).
 - On a desktop workspace every write is an entry in the undo log; Studio
   refreshes its own views after each one. The audit log records the app, the
   method and what it changed, never the content.
