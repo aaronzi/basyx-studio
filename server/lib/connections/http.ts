@@ -13,8 +13,9 @@ import { bodyKindOf } from '@basyx/studio-app-kit/manifest'
 import { connectionCallMaxBodyBytes } from '@basyx/studio-sdk/protocol'
 import { connectionWireFormSchema } from '#shared/contract'
 import { recordAudit } from '../audit'
+import { networkFailureOf } from '../network/guarded-fetch'
 import { StudioProblem } from '../problem'
-import { openConnection } from './client'
+import { connectionMaxResponseBytes, openConnection } from './client'
 
 // HTTP connections (ADR 0047): an app calls an operation it declares in the
 // OpenAPI document of one of its connections, and Studio sends it to the
@@ -405,6 +406,34 @@ export class CallLimiter {
   }
 }
 
+/**
+ * A transport failure as the app may see it: its kind, without the host
+ * names and addresses the network layer reports, which stay with Studio
+ * (ADR 0047). The original is the problem's cause, and the audit keeps it.
+ */
+export function appFacingProblem (error: unknown, connection: Pick<HttpConnection, 'key'>, timeoutMs: number): unknown {
+  // Only failures of the network layer name hosts; Studio's own refusals stay as they are.
+  const failure = error instanceof StudioProblem ? networkFailureOf(error.cause) : undefined
+  if (!failure) {
+    return error
+  }
+  const { key } = connection
+  switch (failure.kind) {
+    case 'blocked': {
+      return new StudioProblem('connection_request_refused', `Studio does not send requests to the address of the connection ${key}; the deployment's network policy refuses it.`, { cause: error })
+    }
+    case 'timeout': {
+      return new StudioProblem('connection_unavailable', `The connection ${key} did not answer within ${timeoutMs / 1000} s.`, { cause: error })
+    }
+    case 'too_large': {
+      return new StudioProblem('connection_unavailable', `The connection ${key} answered with more than ${connectionMaxResponseBytes / 1024 / 1024} MiB.`, { cause: error })
+    }
+    default: {
+      return new StudioProblem('connection_unavailable', `The connection ${key} could not be reached.`, { cause: error })
+    }
+  }
+}
+
 /** What a call needs of the credential broker. */
 export interface HttpCallBroker extends ConnectionTokenSource {
   access: (record: InfrastructureRecord, sessionId: string) => Promise<TargetAccess>
@@ -491,8 +520,18 @@ export async function callHttpConnection (deps: StudioDeps, broker: HttpCallBrok
     if (!release) {
       throw new StudioProblem('connection_busy', `${maxCallsInFlight} calls to the connection ${connection.key} are in progress; try again when one has finished.`)
     }
+    // Credential problems name no address; failures of the request to the service may, so the app gets them without it.
     client = await openConnection(deps, broker, record, connection, actor.sessionId, { returnRedirects: true })
-    const response = await client.request(request.path, { method: request.method, query: request.query, headers: request.headers, body: request.body })
+    const opened = client
+    const bound = connection
+    const redacted = async <T>(step: () => Promise<T>): Promise<T> => {
+      try {
+        return await step()
+      } catch (error) {
+        throw appFacingProblem(error, bound, opened.timeoutMs)
+      }
+    }
+    const response = await redacted(() => opened.request(request.path, { method: request.method, query: request.query, headers: request.headers, body: request.body }))
     if (response.status >= 300 && response.status < 400 && response.status !== 304) {
       await response.body?.cancel()
       throw new StudioProblem('connection_request_refused', `The connection ${connection.key} answered ${params.operation} with a redirect (HTTP ${response.status}), which Studio does not follow.`, { violations: [{ path: 'status', message: String(response.status) }] })
@@ -501,11 +540,14 @@ export async function callHttpConnection (deps: StudioDeps, broker: HttpCallBrok
       // The next call gets a new token; this answer is still the app's.
       broker.invalidateConnection(record, connection.key)
     }
-    const result = callResult(response.status, response.headers, await client.bytes(response), locationBelow(connection.url, request.path, response.headers.get('location')))
+    const bytes = await redacted(() => opened.bytes(response))
+    const result = callResult(response.status, response.headers, bytes, locationBelow(connection.url, request.path, response.headers.get('location')))
     await audit('success', { status: response.status })
     return result
   } catch (error) {
-    await audit('failure', { code: error instanceof StudioProblem ? error.code : 'internal_error' })
+    // The audit keeps the network layer's own message, the app gets the redacted one.
+    const cause = error instanceof StudioProblem && error.cause instanceof StudioProblem ? error.cause : null
+    await audit('failure', { code: error instanceof StudioProblem ? error.code : 'internal_error', ...(cause ? { reason: cause.detail ?? cause.title } : {}) })
     throw error
   } finally {
     release?.()

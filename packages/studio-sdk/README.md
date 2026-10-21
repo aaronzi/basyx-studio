@@ -367,7 +367,8 @@ await studio.connections.call({
 - `call({ connection, operation, path?, query?, headers?, contentType?, body? })`:
   Studio fills the path template one segment per value, sends declared query
   and header parameters only, validates them and JSON bodies against the
-  document's schemas, and uses the operation's method.
+  document's schemas, and uses the operation's method. Array parameters take
+  arrays. Properties marked `readOnly` are not required in request bodies.
 - `body` is a JSON value for JSON media types, a string for text, `{ fields }`
   for `application/x-www-form-urlencoded`, `{ fields, files }` for
   `multipart/form-data` (`files: { file: { fileName, contentType, bytes } }`)
@@ -386,7 +387,8 @@ await studio.connections.call({
   (`invalid_request` with `violations`), with four calls of the page to the
   connection in flight (`connection_busy`), on redirects
   (`connection_request_refused`) and when the service cannot be reached
-  (`connection_unavailable`). Studio audits every call and every refusal.
+  (`connection_unavailable`, without the service's address). Studio audits
+  every call and every refusal.
 - The install dialog lists the operations as method and path; an update that
   adds operations or changes their method or path asks again.
 - `sandbox.connectOrigins` remains for keyless public data the browser reads

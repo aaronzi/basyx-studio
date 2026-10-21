@@ -68,20 +68,23 @@
 
               <div v-for="(binding, index) in connection.apps" :key="index" class="d-flex flex-column ga-2">
                 <div class="d-flex flex-wrap align-start ga-2">
+                  <!-- A cleared combobox emits null; the binding keeps strings. -->
                   <v-combobox
-                    v-model="binding.app"
                     class="flex-grow-1"
                     :items="appIds"
                     :label="t('admin.connections.app')"
+                    :model-value="binding.app"
                     :rules="[required, validAppId]"
+                    @update:model-value="value => binding.app = value ?? ''"
                   />
 
                   <v-combobox
-                    v-model="binding.connection"
                     class="flex-grow-1"
                     :items="appConnectionIds(binding.app)"
                     :label="t('admin.connections.appConnection')"
+                    :model-value="binding.connection"
                     :rules="[required, validKey]"
+                    @update:model-value="value => binding.connection = value ?? ''"
                   />
 
                   <v-btn
@@ -234,7 +237,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AppConnectionOperation, AppInstallationList, ConnectionAuthScheme, ConnectionBinding, ConnectionTestResult, SecurityMode } from '#shared/contract'
+  import type { AppConnectionOperation, AppInstallationList, ConnectionAuthScheme, ConnectionTestResult, SecurityMode } from '#shared/contract'
   import type { ConnectionForm } from '~/utils/connections'
   import { useQuery } from '@pinia/colada'
   import { connectionBindingSchema, connectionKeySchema, connectionSecretFields, connectionTypeNames, connectionTypes } from '#shared/contract'
@@ -267,13 +270,13 @@
   const appsWithConnections = computed(() => (installations.data.value?.items ?? []).filter(app => app.connections.length > 0))
   const appIds = computed(() => appsWithConnections.value.map(app => app.appId))
 
-  function appConnectionIds (appId: string): string[] {
-    return appsWithConnections.value.find(app => app.appId === appId.trim())?.connections.map(connection => connection.id) ?? []
+  function appConnectionIds (appId: string | null): string[] {
+    return appsWithConnections.value.find(app => app.appId === appId?.trim())?.connections.map(connection => connection.id) ?? []
   }
 
-  function operationsOf (binding: ConnectionBinding): AppConnectionOperation[] {
-    const app = appsWithConnections.value.find(candidate => candidate.appId === binding.app.trim())
-    return app?.connections.find(connection => connection.id === binding.connection.trim())?.operations ?? []
+  function operationsOf (binding: ConnectionForm['apps'][number]): AppConnectionOperation[] {
+    const app = appsWithConnections.value.find(candidate => candidate.appId === binding.app?.trim())
+    return app?.connections.find(connection => connection.id === binding.connection?.trim())?.operations ?? []
   }
 
   /** The schemes the type's adapter accepts; the user's identity only where users sign in. */
@@ -289,11 +292,12 @@
     return field ? t(`admin.connections.secrets.${field}`) : undefined
   }
 
-  const required = (value: string) => !!value.trim() || t('admin.connections.required')
+  // Rules also see the null of a cleared combobox.
+  const required = (value: string | null) => !!value?.trim() || t('admin.connections.required')
   const httpUrl = (value: string) => /^https?:\/\/\S+$/.test(value.trim()) || t('admin.connections.httpUrl')
   const httpUrls = (values: string[]) => values.every(value => /^https?:\/\/\S+$/.test(value.trim())) || t('admin.connections.httpUrl')
-  const validKey = (value: string) => connectionKeySchema.safeParse(value.trim()).success || t('admin.connections.keyInvalid')
-  const validAppId = (value: string) => connectionBindingSchema.shape.app.safeParse(value.trim()).success || t('admin.connections.appInvalid')
+  const validKey = (value: string | null) => connectionKeySchema.safeParse(value?.trim()).success || t('admin.connections.keyInvalid')
+  const validAppId = (value: string | null) => connectionBindingSchema.shape.app.safeParse(value?.trim()).success || t('admin.connections.appInvalid')
   const uniqueKey = (value: string) => connections.value.filter(connection => connection.key.trim() === value.trim()).length < 2 || t('admin.connections.keyTaken')
   const secretRef = (value: string) => !value.trim() || /^(?:env:[A-Z_][A-Z0-9_]*|file:\/\S+)$/.test(value.trim()) || t('admin.connections.secretRefInvalid')
   const timeout = (value: string) => !value.trim() || (Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 120) || t('admin.connections.timeoutInvalid')

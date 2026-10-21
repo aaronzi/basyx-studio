@@ -223,12 +223,15 @@ const parameterNames = z.string().min(1).max(200)
  * base64 }`. Studio's page and the backend harness convert the app's
  * `Uint8Array`s (`encodeConnectionCall`).
  */
+/** A parameter value, or a list of them for array parameters (path, query and header). */
+const parameterValuesSchema = z.union([parameterValueSchema, z.array(parameterValueSchema).max(1000)])
+
 export const connectionCallParamsSchema = z.object({
   connection: connectionKeySchema,
   operation: z.string().min(1).max(200),
-  path: z.record(parameterNames, parameterValueSchema).optional(),
-  query: z.record(parameterNames, z.union([parameterValueSchema, z.array(parameterValueSchema).max(1000)])).optional(),
-  headers: z.record(parameterNames, parameterValueSchema).optional(),
+  path: z.record(parameterNames, parameterValuesSchema).optional(),
+  query: z.record(parameterNames, parameterValuesSchema).optional(),
+  headers: z.record(parameterNames, parameterValuesSchema).optional(),
   contentType: z.string().min(1).max(200).optional(),
   body: z.unknown().optional(),
   encoding: z.literal('base64').optional(),
@@ -282,26 +285,42 @@ function binary (value: unknown): Uint8Array | null {
   return value instanceof ArrayBuffer ? new Uint8Array(value) : null
 }
 
-/** The app's call parameters in the HTTP binding: `Uint8Array` bodies and multipart files as base64. */
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** The bytes of a multipart file part as the app passes it (`{ fileName, bytes }`), if it is one. */
+function fileBytes (file: unknown): Uint8Array | null {
+  return isRecord(file) ? binary(file.bytes) : null
+}
+
+/**
+ * The app's call parameters in the HTTP binding: a `Uint8Array` body and
+ * the bytes of multipart file parts as base64. Anything else, also a JSON
+ * body with a `files` property, passes unchanged.
+ */
 export function encodeConnectionCall (params: unknown): unknown {
-  if (typeof params !== 'object' || params === null) {
+  if (!isRecord(params)) {
     return params
   }
-  const { body, ...rest } = params as Record<string, unknown>
+  const { body, ...rest } = params
   const bytes = binary(body)
   if (bytes) {
     return { ...rest, body: base64Of(bytes), encoding: 'base64' }
   }
-  const files = (body as { files?: unknown } | null)?.files
-  if (typeof files === 'object' && files !== null) {
-    const encoded = Object.fromEntries(Object.entries(files).map(([name, file]) => {
-      const { bytes: content, ...part } = (file ?? {}) as Record<string, unknown>
-      const fileBytes = binary(content)
-      return [name, fileBytes ? { ...part, base64: base64Of(fileBytes) } : file]
-    }))
-    return { ...rest, body: { ...(body as object), files: encoded } }
+  const files = isRecord(body) && isRecord(body.files) ? body.files : null
+  if (!files || !Object.values(files).some(file => fileBytes(file))) {
+    return params
   }
-  return params
+  const encoded = Object.fromEntries(Object.entries(files).map(([name, file]) => {
+    const content = fileBytes(file)
+    if (!content) {
+      return [name, file]
+    }
+    const { bytes: _bytes, ...part } = file as Record<string, unknown>
+    return [name, { ...part, base64: base64Of(content) }]
+  }))
+  return { ...rest, body: { ...body as Record<string, unknown>, files: encoded } }
 }
 
 /** A result of the HTTP binding as the app receives it: a base64 body as `Uint8Array`. */

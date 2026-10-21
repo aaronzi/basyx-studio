@@ -99,14 +99,23 @@ const toBase64 = bytes => {
   return btoa(text)
 }
 const fromBase64 = base64 => Uint8Array.from(atob(base64), char => char.charCodeAt(0))
+const isRecord = value => typeof value === 'object' && value !== null && !Array.isArray(value)
+const binary = value => value instanceof Uint8Array ? value : (value instanceof ArrayBuffer ? new Uint8Array(value) : null)
+const fileBytes = file => isRecord(file) ? binary(file.bytes) : null
+// Only a binary body and the bytes of multipart file parts change; a JSON body with a files property passes as it is.
 function encodeCall (params) {
   const body = params?.body
-  if (body instanceof Uint8Array) return { ...params, body: toBase64(body), encoding: 'base64' }
-  if (body && typeof body === 'object' && body.files && typeof body.files === 'object') {
-    const files = Object.fromEntries(Object.entries(body.files).map(([name, { bytes, ...part }]) => [name, bytes instanceof Uint8Array ? { ...part, base64: toBase64(bytes) } : part]))
-    return { ...params, body: { ...body, files } }
-  }
-  return params
+  const bytes = binary(body)
+  if (bytes) return { ...params, body: toBase64(bytes), encoding: 'base64' }
+  const files = isRecord(body) && isRecord(body.files) ? body.files : null
+  if (!files || !Object.values(files).some(fileBytes)) return params
+  const encoded = Object.fromEntries(Object.entries(files).map(([name, file]) => {
+    const content = fileBytes(file)
+    if (!content) return [name, file]
+    const { bytes: _bytes, ...part } = file
+    return [name, { ...part, base64: toBase64(content) }]
+  }))
+  return { ...params, body: { ...body, files: encoded } }
 }
 function decodeResult (result) {
   if (result?.encoding !== 'base64') return result

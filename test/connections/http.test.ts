@@ -254,6 +254,50 @@ describe('requests built from operations', () => {
   })
 })
 
+describe('read-only properties and array parameters', () => {
+  // A record service whose IDs the service assigns, and a header list.
+  const records = {
+    openapi: '3.0.3',
+    info: { title: 'Records', version: '1' },
+    paths: {
+      '/records/{ids}': {
+        post: {
+          operationId: 'createRecords',
+          parameters: [
+            { name: 'ids', in: 'path', required: true, schema: { type: 'array', items: { type: 'integer' } } },
+            { name: 'X-Tags', in: 'header', required: true, schema: { type: 'array', minItems: 2, items: { type: 'integer' } } },
+          ],
+          requestBody: { content: { 'application/json': { schema: { $ref: '#/components/schemas/Record' } } } },
+          responses: { 201: { description: 'created' } },
+        },
+      },
+    },
+    components: {
+      schemas: {
+        Id: { type: 'integer', readOnly: true },
+        Record: { type: 'object', required: ['id', 'name', 'created'], properties: { id: { $ref: '#/components/schemas/Id' }, name: { type: 'string' }, created: { type: 'string', readOnly: true } } },
+      },
+    },
+  }
+  const { manifest, read } = manifestWith(records, ['createRecords'])
+  const api = checkConnectionApis(manifest, read).apis.get('orders')!
+  const build = (params: Omit<ConnectionCallWireParams, 'connection' | 'operation'>) =>
+    buildHttpRequest(api.index.operations.get('createRecords')!, api.validators.get('createRecords')!, { connection: 'orders', operation: 'createRecords', ...params })
+
+  it('does not require read-only properties in requests, also through references', async () => {
+    const request = await build({ path: { ids: [1] }, headers: { 'X-Tags': [1, 2] }, body: { name: 'new record' } })
+    expect(request.body).toBe('{"name":"new record"}')
+    await expect(build({ path: { ids: [1] }, headers: { 'X-Tags': [1, 2] }, body: {} })).rejects.toMatchObject({ code: 'invalid_request', violations: [{ path: 'body', message: expect.stringContaining('name') }] })
+  })
+
+  it('takes arrays for array path and header parameters and sends them comma-separated', async () => {
+    const params = { path: { ids: [1, 2] }, headers: { 'X-Tags': [3, '4'] }, body: { name: 'x' } }
+    expect(connectionCallParamsSchema.safeParse({ connection: 'orders', operation: 'createRecords', ...params }).success).toBe(true)
+    expect(await build(params)).toMatchObject({ path: '/records/1%2C2', headers: { 'X-Tags': '3,4' } })
+    await expect(build({ ...params, headers: { 'X-Tags': [3] } })).rejects.toMatchObject({ violations: [{ path: 'headers.X-Tags' }] })
+  })
+})
+
 describe('bytes in the HTTP binding', () => {
   it('encodes the app\'s Uint8Arrays as base64 and decodes binary answers', () => {
     const encoded = encodeConnectionCall({ connection: 'orders', operation: 'putPhoto', body: new Uint8Array([1, 2, 3]) })
@@ -263,6 +307,13 @@ describe('bytes in the HTTP binding', () => {
       .toEqual({ connection: 'orders', operation: 'addAttachment', body: { fields: { a: 'b' }, files: { file: { fileName: 'a.bin', base64: '/w==' } } } })
     const json = { connection: 'orders', operation: 'createOrder', body: { title: 'x' } }
     expect(encodeConnectionCall(json)).toBe(json)
+    // JSON bodies with a files property pass as they are.
+    for (const body of [{ files: ['a.txt', 'b.txt'] }, { files: { readme: { bytes: 'not binary' } } }, { files: { gone: null } }]) {
+      const call = { connection: 'orders', operation: 'createOrder', body }
+      expect(encodeConnectionCall(call)).toBe(call)
+    }
+    expect(encodeConnectionCall({ connection: 'orders', operation: 'addAttachment', body: { files: { file: { fileName: 'a.bin', bytes: new Uint8Array([1]) }, note: null } } }))
+      .toEqual({ connection: 'orders', operation: 'addAttachment', body: { files: { file: { fileName: 'a.bin', base64: 'AQ==' }, note: null } } })
     const { result, transfer } = decodeConnectionResult({ status: 200, contentType: 'image/png', etag: null, location: null, body: 'AQID', encoding: 'base64' })
     expect(result).toEqual({ status: 200, contentType: 'image/png', etag: null, location: null, body: new Uint8Array([1, 2, 3]) })
     expect(transfer).toHaveLength(1)
@@ -426,6 +477,21 @@ describe('calls through http connections', () => {
     await expect(call(record, { operation: 'getOrder', path: { orderId: '1' } })).rejects.toMatchObject({ code: 'connection_request_refused' })
     await expect(call(record, { operation: 'getOrder', path: { orderId: '1' } })).rejects.not.toMatchObject({ detail: expect.stringContaining('attacker') })
     expect((await audits())[0]).toMatchObject({ outcome: 'failure', code: 'connection_request_refused', operation: 'getOrder' })
+  })
+
+  it('gives apps transport failures without the service\'s host or address, and keeps them in the audit', async () => {
+    const unreachable = await insert([ordersConnection({ url: 'http://sensitive-service.invalid/v1', auth: { scheme: 'none' } })])
+    const refusal = await call(unreachable, { operation: 'listOrders', query: { asset: 'x' } }).catch((error: unknown) => error) as { code: string, detail: string }
+    expect(refusal).toMatchObject({ code: 'connection_unavailable', detail: 'The connection work-orders could not be reached.' })
+    await handle.db.delete(infrastructures)
+    const blocked = await insert([ordersConnection({ allowPrivateNetwork: false, auth: { scheme: 'none' } })])
+    const policy = await call(blocked, { operation: 'listOrders', query: { asset: 'x' } }).catch((error: unknown) => error) as { code: string, detail: string }
+    expect(policy.code).toBe('connection_request_refused')
+    expect(policy.detail).not.toContain('127.0.0.1')
+    expect(requests).toHaveLength(0)
+    const reasons = (await audits()).map(audit => String(audit.reason))
+    expect(reasons[0]).toContain('sensitive-service.invalid')
+    expect(reasons[1]).toContain('127.0.0.1')
   })
 
   it('refuses unbound apps, undeclared operations and invalid calls before sending anything, and audits each', async () => {

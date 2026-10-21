@@ -187,7 +187,9 @@ The answer:
   and `null` when empty. JSON that does not parse is returned as text.
 - Transport failures stay problems: `connection_unavailable` (timeout,
   unreachable, answer too large), `connection_credentials_unavailable`, and
-  the broker's token problems.
+  the broker's token problems. The app gets them without the host names and
+  addresses the network layer reports; the audit keeps the original message
+  (`reason`).
 
 ### Bodies
 
@@ -201,8 +203,12 @@ The answer:
 - Studio validates path, query and header values and JSON bodies against the
   operation's schemas with Ajv. OpenAPI 3.1 schemas are JSON Schema 2020-12;
   3.0 schemas are converted first (`nullable`, boolean
-  `exclusiveMinimum`/`exclusiveMaximum`). Parameter values may be given as
-  strings and are coerced to the schema's type. Form and multipart fields are
+  `exclusiveMinimum`/`exclusiveMaximum`). A property marked `readOnly`,
+  directly or through a reference, is not required in a request even where
+  `required` lists it, as OpenAPI defines. Parameter values may be given as
+  strings and are coerced to the schema's type; array parameters take arrays,
+  sent comma-separated in paths and headers and repeated or comma-separated
+  in queries as the operation's `explode` says. Form and multipart fields are
   checked against the body schema's properties, `required` and
   `additionalProperties: false`. Text and bytes are not inspected. Responses
   are not validated: they are the service's.

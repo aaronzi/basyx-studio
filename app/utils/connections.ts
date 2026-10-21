@@ -1,4 +1,4 @@
-import type { Connection, ConnectionAuthInput, ConnectionAuthScheme, ConnectionBinding, ConnectionInput, ConnectionTestResult, ConnectionType, SecretSummary } from '#shared/contract'
+import type { Connection, ConnectionAuthInput, ConnectionAuthScheme, ConnectionInput, ConnectionTestResult, ConnectionType, SecretSummary } from '#shared/contract'
 import { connectionSecretFields } from '#shared/contract'
 
 // The admin form of an infrastructure's connections (ADR 0040): one flat
@@ -31,8 +31,8 @@ export interface ConnectionForm {
   stored: SecretSummary | null
   storedScheme: ConnectionAuthScheme | null
   organization: string
-  /** `http`: the app connections bound to it (ADR 0047), as edited. */
-  apps: ConnectionBinding[]
+  /** `http`: the app connections bound to it (ADR 0047), as edited; a cleared field may be null. */
+  apps: Array<{ app: string | null, connection: string | null }>
   testing: boolean
   testResult: ConnectionTestResult | null
   testError: unknown
@@ -150,7 +150,7 @@ export function connectionInputOf (form: ConnectionForm, desktop: boolean): Conn
       type: 'http',
       aliases: [],
       settings: {},
-      apps: form.apps.map(binding => ({ app: binding.app.trim(), connection: binding.connection.trim() })).filter(binding => binding.app || binding.connection),
+      apps: form.apps.map(binding => ({ app: (binding.app ?? '').trim(), connection: (binding.connection ?? '').trim() })).filter(binding => binding.app || binding.connection),
     }
   }
   return {

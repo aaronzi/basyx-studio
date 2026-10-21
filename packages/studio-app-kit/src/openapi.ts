@@ -438,6 +438,34 @@ function indexOperation (
   }
 }
 
+/**
+ * The document as requests see it: a property marked `readOnly` (directly
+ * or through a reference) is sent by the service only, so it is not
+ * required in a request, even where `required` lists it (OpenAPI 3.0
+ * Schema Object; 3.1 keeps the meaning).
+ */
+export function requestDocument (document: Record<string, unknown>): Record<string, unknown> {
+  const visit = (value: unknown, pointer: Pointer): unknown => {
+    if (Array.isArray(value)) {
+      return value.map((item, index) => visit(item, [...pointer, String(index)]))
+    }
+    if (!isObject(value)) {
+      return value
+    }
+    const copy: Json = {}
+    for (const [key, child] of Object.entries(value)) {
+      copy[key] = visit(child, [...pointer, key])
+    }
+    if (isObject(value.properties) && Array.isArray(value.required)) {
+      const properties = value.properties
+      copy.required = value.required.filter(name => typeof name !== 'string' || !Object.hasOwn(properties, name)
+        || resolvePointer(document, [...pointer, 'properties', name])?.value.readOnly !== true)
+    }
+    return copy
+  }
+  return visit(document, []) as Record<string, unknown>
+}
+
 /** The properties of a form or multipart body schema, and which carry files. */
 export interface FormSchema {
   properties: Map<string, { pointer: Pointer, file: boolean }>
@@ -514,8 +542,10 @@ function apiAjv (document: Json, coerce: boolean): Ajv2020 {
  * validated as given. The findings name schemas that do not compile.
  */
 export function compileApi (index: ApiIndex, file: string): { validators: Map<string, OperationValidators>, findings: Finding[] } {
-  const strict = apiAjv(index.document, false)
-  const coercing = apiAjv(index.document, true)
+  // Request schemas: required read-only properties are the service's to send.
+  const document = requestDocument(index.document)
+  const strict = apiAjv(document, false)
+  const coercing = apiAjv(document, true)
   const findings: Finding[] = []
   const validators = new Map<string, OperationValidators>()
   const compile = (ajv: Ajv2020, pointer: Pointer): ValidateFunction | null => {
@@ -546,7 +576,7 @@ export function compileApi (index: ApiIndex, file: string): { validators: Map<st
           compiled.bodies.set(media.mediaType, validate)
         }
       } else if (kind === 'form' || kind === 'multipart') {
-        const schema = formSchemaOf(index.document, media.schema)
+        const schema = formSchemaOf(document, media.schema)
         const fields = new Map<string, ValidateFunction>()
         for (const [name, property] of schema.properties) {
           const validate = property.file ? null : compile(coercing, property.pointer)

@@ -460,12 +460,12 @@ export interface ConnectionCallParams {
   connection: string
   /** An `operationId` the manifest lists for it. */
   operation: string
-  /** Values of the path template's parameters. */
-  path?: Record<string, ConnectionParameterValue>
-  /** Values of declared query parameters; arrays for repeated ones. */
+  /** Values of the path template's parameters; arrays for array parameters, sent comma-separated. */
+  path?: Record<string, ConnectionParameterValue | ConnectionParameterValue[]>
+  /** Values of declared query parameters; arrays for array parameters, repeated or comma-separated as the operation says. */
   query?: Record<string, ConnectionParameterValue | ConnectionParameterValue[]>
-  /** Values of declared header parameters, e.g. `If-Match`. */
-  headers?: Record<string, ConnectionParameterValue>
+  /** Values of declared header parameters, e.g. `If-Match`; arrays for array parameters, sent comma-separated. */
+  headers?: Record<string, ConnectionParameterValue | ConnectionParameterValue[]>
   /** One of the request media types the operation declares; default its first. */
   contentType?: string
   /**
