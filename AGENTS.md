@@ -28,6 +28,16 @@
   holds in Studio and in the bundled apps, whose kit registers the same
   alias and the `v-tooltip` directive.
   The look comes from `packages/studio-app-kit/src/vuetify-defaults.ts`.
+- Menus are a `<v-menu>` with a bare `<v-list>` of `<v-list-item>`s
+  (`prepend-icon`, `title`, `subtitle`). Do not style the list or its items
+  (`density`, `slim`, `bg-color`, `border`, `rounded`, `elevation`,
+  `min-height`, `nav`); the menu defaults give them their compact look.
+- A look that Studio and the bundled apps share (fields, button groups,
+  toggle icons, menus) is defined once in
+  `packages/studio-app-kit/src/vuetify-defaults.ts` and spread into both
+  `vuetify.config.ts` and the kit's `defaults.ts`. When you add or change
+  such a default in `vuetify.config.ts`, check whether apps use the same
+  component; if they do, put it there instead.
 - The bundled apps (`apps/`) have their own Vuetify instance, set up by
   `@basyx/studio-app-kit` (`packages/studio-app-kit`), which they import
   like an app from another repository. Its defaults are in

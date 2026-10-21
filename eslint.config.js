@@ -1,7 +1,7 @@
 import vuetify from 'eslint-config-vuetify'
 import withNuxt from './.nuxt/eslint.config.mjs'
 import { appDefaults } from './packages/studio-app-kit/src/defaults.ts'
-import { buttonGroupStyleProps } from './packages/studio-app-kit/src/vuetify-defaults.ts'
+import { buttonGroupStyleProps, menuStyleProps } from './packages/studio-app-kit/src/vuetify-defaults.ts'
 import vuetifyConfig from './vuetify.config.ts'
 
 // VAppBar -> v-app-bar, maxWidth -> max-width
@@ -46,6 +46,19 @@ const iconButtonsInToggles = ['key.name', 'key.argument.name'].map(attribute => 
   message: 'An icon-only button in <v-btn-toggle> is <v-btn-toggle-icon>, which keeps room around its icon (see AGENTS.md).',
 }))
 
+/**
+ * Menus look the same everywhere (the app kit's vuetify-defaults.ts): a bare
+ * <v-list> of <v-list-item>s in a <v-menu>, never styled in a template.
+ */
+const menuLists = {
+  'v-list': `VElement[rawName='v-menu'] > VElement[rawName='v-list']`,
+  'v-list-item': `VElement[rawName='v-menu'] > VElement[rawName='v-list'] VElement[rawName='v-list-item']`,
+}
+const styledMenus = Object.entries(menuLists).flatMap(([element, path]) => menuStyleProps.flatMap(prop => ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `${path} > VStartTag > VAttribute[${attribute}='${prop}']`,
+  message: `\`${prop}\` on <${element}> in a <v-menu>: menus get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
+}))))
+
 export default withNuxt(
   vuetify({
     ts: true,
@@ -68,7 +81,13 @@ export default withNuxt(
       argument: 'style',
       message: 'Use Vuetify props or utility classes instead of inline styles.',
     }],
-    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles],
+  },
+}).append({
+  // Toggles and menus as Studio and the bundled apps share them; example apps
+  // bring their own defaults (examples/apps/shared/vuetify.ts).
+  files: ['app/**/*.vue', 'apps/**/*.vue'],
+  rules: {
+    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles, ...styledMenus],
   },
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only

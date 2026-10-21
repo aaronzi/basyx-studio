@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
+import { buttonGroupDefaults, fieldDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
 
@@ -125,21 +125,8 @@ export default defineVuetifyConfiguration({
       VFileInput: { density: 'compact' },
       VTextarea: { density: 'compact' },
     },
-    // Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
-    // Items are inset evenly (pa-1) with a smaller radius (4 px) than the
-    // menu card (8 px), so their highlight follows the card's corners. Lists
-    // are transparent elsewhere (below); the menus of selects, comboboxes and
-    // autocompletes have no card around their list, so it brings the surface.
-    // Every menu looks the same, with or without a card around its list: a
-    // bare list brings the card's border, radius and shadow itself; inside a
-    // card (as the account menu) the card has them.
-    VMenu: {
-      VCard: { flat: false, VList: { border: false, rounded: 0, elevation: 0 } },
-      VList: { density: 'compact', slim: true, bgColor: 'surface', class: 'pa-1 text-body-medium', border: true, rounded: 'lg', elevation: 1 },
-      VListItem: { minHeight: 36, rounded: true },
-      // A menu's search is its header: lower than a dialog's or the command palette's.
-      VTextField: { density: 'compact' },
-    },
+    // Menus as in the apps (@basyx/studio-app-kit/vuetify-defaults).
+    ...menuDefaults,
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },

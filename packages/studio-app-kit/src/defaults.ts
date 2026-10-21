@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults } from './vuetify-defaults.ts'
+import { buttonGroupDefaults, fieldDefaults, menuDefaults } from './vuetify-defaults.ts'
 
 // Vuetify defaults of Studio's apps (ADR 0023, ADR 0043). They follow
 // Studio's look: a view renders flat inside the card Studio gives it (an
@@ -20,6 +20,8 @@ export const appDefaults = {
   VChip: { label: true, size: 'small', variant: 'tonal' },
   VList: { density: 'compact', bgColor: 'transparent' },
   VListItem: { rounded: 'lg' },
+  // Menus as in Studio.
+  ...menuDefaults,
   VAlert: { border: 'start', variant: 'tonal' },
   VProgressLinear: { indeterminate: true, color: 'primary' },
 } as const

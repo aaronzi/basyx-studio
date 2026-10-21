@@ -34,5 +34,29 @@ export const buttonGroupDefaults = {
   VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
 } as const
 
+/*
+ * Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
+ * Items are inset evenly (pa-1) with a smaller radius (4 px) than the menu
+ * card (8 px), so their highlight follows the card's corners. Lists are
+ * transparent elsewhere; the menus of selects, comboboxes and autocompletes
+ * have no card around their list, so it brings the surface. Every menu looks
+ * the same, with or without a card around its list: a bare list brings the
+ * card's border, radius and shadow itself; inside a card (as Studio's
+ * account menu) the card has them. Templates use a bare <v-list> of
+ * <v-list-item>s in a <v-menu> and style neither; ESLint refuses it.
+ */
+export const menuDefaults = {
+  VMenu: {
+    VCard: { flat: false, VList: { border: false, rounded: 0, elevation: 0 } },
+    VList: { density: 'compact', slim: true, bgColor: 'surface', class: 'pa-1 text-body-medium', border: true, rounded: 'lg', elevation: 1 },
+    VListItem: { minHeight: 36, rounded: true },
+    // A menu's search is its header: lower than a dialog's or the command palette's.
+    VTextField: { density: 'compact' },
+  },
+} as const
+
+/** Props that style a menu's list or items; the menu defaults above set them, never a template. */
+export const menuStyleProps = ['density', 'slim', 'bg-color', 'border', 'rounded', 'elevation', 'min-height', 'nav'] as const
+
 /** Props that style a group; set them in the defaults above, never in a template. */
 export const buttonGroupStyleProps = ['variant', 'color', 'base-color', 'density', 'rounded', 'tile', 'border', 'divided', 'elevation', 'size'] as const
