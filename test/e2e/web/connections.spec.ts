@@ -131,11 +131,14 @@ test('passes the signed-in user\'s identity by token exchange', async ({ page })
 
 test('refuses unbound apps, undeclared operations and invalid bodies, and keeps path values on the service', async ({ page }) => {
   const unbound = await registerWithService(page, 'E2E connections (unbound)', { mode: 'unsecured' }, { scheme: 'bearer', token: { ref: 'env:STUDIO_E2E_WORK_ORDERS_TOKEN' } }, false)
+  // The app learns from its context that the connection is not bound, before any call (ADR 0048); Studio still refuses the call.
   await page.goto(`/targets/${unbound}/apps/${installationId}/work-orders`)
-  await expect(moduleFrame(page).locator('[data-test="error"]')).toContainText('connection_not_bound')
+  await expect(moduleFrame(page).locator('[data-test="not-bound"]')).toBeVisible()
+  const api = await studioApi(page)
+  const unboundCall = await api.post('/app-calls', { installationId, targetId: unbound, method: 'studio.connections.call', params: { connection: 'orders', operation: 'whoAmI' } })
+  expect([unboundCall.status(), (await unboundCall.json()).code]).toEqual([403, 'connection_not_bound'])
 
   const bound = await registerWithService(page, 'E2E connections (static token)', { mode: 'unsecured' }, { scheme: 'bearer', token: { ref: 'env:STUDIO_E2E_WORK_ORDERS_TOKEN' } })
-  const api = await studioApi(page)
   const call = (params: Record<string, unknown>) => api.post('/app-calls', { installationId, targetId: bound, method: 'studio.connections.call', params: { connection: 'orders', ...params } })
 
   const undeclared = await call({ operation: 'deleteAllOrders' })

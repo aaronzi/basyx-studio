@@ -13,7 +13,10 @@ never sees the service's URL or a credential.
 - [`ui/src/App.vue`](ui/src/App.vue) calls `studio.connections.call` for
   JSON bodies, an `If-Match` header with the ETag it read, a
   `multipart/form-data` upload and a binary answer (a photo), and shows the
-  service's problem details for answers that are not 2xx.
+  service's problem details for answers that are not 2xx. Where the
+  connection is not bound, it says so from `context.connections` before
+  calling (Studio app API 0.1.9,
+  [ADR 0048](../../../docs/adr/0048-app-settings-and-connection-status.md)).
 - [`ui/src/dev-studio.ts`](ui/src/dev-studio.ts) answers the same operations
   in memory with `connectionsHandler` of `@basyx/studio-sdk/testing`, so
   `pnpm dev` runs the app without Studio.

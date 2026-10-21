@@ -81,7 +81,8 @@ did, and older packages run unchanged (SAP-002).
 
 ### Settings and status per installation
 
-To be decided in ADR 0048.
+Decided in [ADR 0048](../adr/0048-app-settings-and-connection-status.md),
+which names the second scope `infrastructure`.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
@@ -181,7 +182,7 @@ APP-018 stays as it is; R2 relies on it.
 | A | ADRs: 0048 (settings and connection status per installation, G1–G4) and 0051 (views of other apps, E1–E4). ADR 0046 stays reserved for MVP-7's single-app mode, and 0049 and 0050 are taken, so the next free numbers are 0048 and 0051. Requirements APP-025 and APP-026 are added with this plan. Updates to `app-platform.md`. | ADRs reviewed |
 | B | Capability fixes without an ADR: R1, R3, N1. *Done: app API 0.1.8, packages 0.1.6 (see [Phase B status](#phase-b-status)).* | An app reads the asset type and specific asset IDs of every shell from `listShells` pages alone. `readFile` on an empty File answers 404 without a request to the AAS server, on a live target and a workspace. In a module that pushes, back returns to its previous page and forward again; modules that do not push are unchanged. |
 | C | App kit and packages: L1–L3, N2, N3, W1, B1. *Done: packages 0.1.7, app API unchanged (see [Phase C status](#phase-c-status)).* | An app with a German base catalog falls back to German texts and formats numbers and dates in German. The three-page example uses the router history and the kit's layout defaults and restates none of them (ESLint). A test Studio built from an imported manifest needs no cast. An IFC-only build contains no occt-import-js WebAssembly. |
-| D | Settings and connection status G1–G4 (ADR 0048) | One signed package runs on two infrastructures whose asset types and external IDs differ, configured in YAML and in the dialog, without a rebuild. An app shows that a connection is not bound before calling it. A value of the wrong type is refused. |
+| D | Settings and connection status G1–G4 (ADR 0048). *Done: app API 0.1.9, packages 0.1.8 (see [Phase D status](#phase-d-status)).* | One signed package runs on two infrastructures whose asset types and external IDs differ, configured in YAML and in the dialog, without a rebuild. An app shows that a connection is not bound before calling it. A value of the wrong type is refused. |
 | E | Views of other apps: E1, then E2 as ADR 0051 decides | From an app's page, the user opens a shell's bill of material, files and time series in Studio's dialog and returns to the same page. With E2, the Time Series view shows inside the app's page, and the app cannot call methods with the view's permissions. |
 | F | Signing on GitLab (W2), at any time. *Done: `examples/deployment/signed-app/ci/.gitlab-ci.yml` and the README's [GitLab CI](../../examples/deployment/signed-app/README.md#gitlab-ci) section. Checked against GitLab's CI schema; its job script, run in `node:24` with a throwaway key, signs a package that `studio-app verify` and Studio's signature check accept. Not yet run on a GitLab runner.* | A GitLab pipeline signs a package that `studio-app verify` and Studio accept, with the key in a masked variable |
 
@@ -200,8 +201,22 @@ APP-018 stays as it is; R2 relies on it.
 | L1–L3 | Done | `packages/studio-app-kit/src/i18n.ts`: `provideI18n(client, base, translations, { baseLocale })`, `formatLocale`, nested catalogs and `PartialCatalog` to any depth; existing calls are unchanged. Unit tests: a German base catalog with a partial English translation falls back to German and formats `1.234,5`; dialects format as their language; nested and two-level keys |
 | N2 | Done | `layoutDefaults` in `vuetify-defaults.ts` (`VAppBar`, `VNavigationDrawer`, `VToolbar`, `VTabs`), used by `vuetify.config.ts` and the kit's `appDefaults`. Studio's in-page toolbars were all compact and transparent, so that became `VToolbar`'s default and the templates no longer state it; the app bar keeps its surface (`color: 'surface'`), because it renders a `VToolbar` itself. `VMain` gets no default: Studio sets none, and a scrollable `VMain` would keep a standard module's frame from growing with its content |
 | N3 | Done | `@basyx/studio-app-kit/router` (`createStudioHistory(client, { history: 'push' })`), `mountApp`'s `setup`, the kit README's *Modules with pages*, and `examples/apps/inventory`: a full-page module with an overview, a list of shells and a page per shell, checked against the kit's defaults by `eslint.config.js`. Pushing is opt-in, because it needs app API 0.1.8 (N1); without it the history replaces Studio's entry. A sandboxed frame cannot move the browser's history (checked in Chromium), so `router.back()` moves through the pages the history visited. Unit tests run the example's router on the test Studio, including the browser's back and forward buttons |
-| W1 | Done, without settings | `createTestStudio({ manifest })` in `packages/studio-sdk/src/testing.ts`: permissions (unknown ones fail, `permissions` narrows them), connections and operations refused before any handler, the app ID and first contribution in the context. The starter's dev Studio uses it. Declared settings defaults (G1) follow with phase D |
+| W1 | Done, without settings | `createTestStudio({ manifest })` in `packages/studio-sdk/src/testing.ts`: permissions (unknown ones fail, `permissions` narrows them), connections and operations refused before any handler, the app ID and first contribution in the context. The starter's dev Studio uses it. Declared settings defaults (G1) came with phase D |
 | B1 | Done | `@basyx/model-viewer/ifc`, `/step`, `/viewer/core` and `/vue/core`, one worker per parser; `/viewer` and `/vue` register both, so existing imports are unchanged. A unit test builds the example, which registers only `ifcParser`, and finds web-ifc's WebAssembly and worker and nothing of STEP; the bundled 3D Models app still holds both |
+
+### Phase D status
+
+ADR 0048 decides G1–G4. Compared with the proposal, the second scope is
+called `infrastructure` (values are set on infrastructures; workspaces have
+none), settings may be `required`, and `enum` also applies to the items of a
+`stringList`.
+
+| Item | Status | Evidence |
+| --- | --- | --- |
+| G1 | Done | `settings` in the manifest (`packages/studio-sdk/app-manifest.schema.json`) and its checks in `@basyx/studio-app-kit/manifest` (`checkSettingValue`, `checkSettingValues`), shared by `studio-app pack`, `verify` and the upload; `^0.1.9` for `settings`. Unit tests for the findings and the value checks |
+| G2 | Done | Installation values on the *Apps* page (`PUT /app-installations/{id}/settings`, migration 0009); infrastructure values in the dialog, the declared YAML, export and import (`apps: [{ app, settings }]`), checked against the installed manifests. Studio installs managed and bundled apps before it applies declared infrastructures. Unit tests resolve one package on two declared infrastructures and refuse wrong types in every path; the hosted e2e test sets values by API, in the dialog and on the *Apps* page |
+| G3 | Done | `context.settings` from `GET /app-installations/{id}/context`, read before the frame loads; `settings` in a backend's context (Deno runner test); defaults from the manifest in `createTestStudio({ manifest })` (W1). The `asset-board` example |
+| G4 | Done | `context.connections` with `{ bound }` per declared connection; `connectionsHandler` refuses unbound ones. The `work-orders` example shows "not configured" before calling (hosted e2e test) |
 
 O1 and O2 are not phases of this plan. They depend on the `@basyx` scope and
 on Studio's first release. Phases B, C and F can start at once; D and E

@@ -1,7 +1,17 @@
 <template>
   <v-app>
     <v-main>
-      <div class="d-flex flex-column ga-4 pa-4">
+      <!-- Without a binding on this infrastructure, say so before any call (Studio app API 0.1.9, ADR 0048). -->
+      <div v-if="!bound" class="pa-4">
+        <v-alert
+          data-test="not-bound"
+          text="No connection of this infrastructure is bound to the work-order service. An administrator binds it in the infrastructure's dialog, under Connections."
+          title="Not configured"
+          type="info"
+        />
+      </div>
+
+      <div v-else class="d-flex flex-column ga-4 pa-4">
         <!-- Who the service sees: the static token's holder, or the signed-in user (delegatedUser). -->
         <div class="d-flex flex-wrap align-center ga-2">
           <v-chip v-if="caller" data-test="caller" prepend-icon="mdi-account-key-outline" :text="`The service sees: ${caller.subject} (${caller.via})`" />
@@ -92,6 +102,13 @@
   interface Order { id: string, asset: string, title: string, status: 'open' | 'done', due: string | null, createdBy: string, photos: { id: string, caption: string }[] }
 
   const props = defineProps<{ client: StudioClient }>()
+
+  // Studio app API 0.1.9 says whether the connection is bound; older Studios
+  // do not, and the first call answers instead.
+  const bound = ref(props.client.context.connections?.orders?.bound !== false)
+  props.client.onContext(context => {
+    bound.value = context.connections?.orders?.bound !== false
+  })
 
   const caller = ref<{ subject: string, via: string } | null>(null)
   const assets = ref<{ title: string, value: string }[]>([])
@@ -186,6 +203,9 @@
   watch(asset, load)
 
   onMounted(async () => {
+    if (!bound.value) {
+      return
+    }
     const me = await callService('whoAmI')
     caller.value = (me?.body as { subject: string, via: string } | undefined) ?? null
     const shells = await props.client.aas.listShells({ limit: 100 })

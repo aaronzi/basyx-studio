@@ -1,0 +1,54 @@
+{
+  "$schema": "../../../packages/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.eclipse.basyx.examples.asset-board",
+  "version": "0.1.0",
+  "publisher": { "name": "Eclipse BaSyx" },
+  "title": { "en": "Asset board" },
+  "description": { "en": "Lists the shells of the asset types an administrator sets for each infrastructure, with their serial numbers, from declared settings (ADR 0048)." },
+  "studioApi": "^0.1.9",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.ui.navigation"],
+  "settings": [
+    {
+      "key": "assetTypes",
+      "type": "stringList",
+      "scope": "infrastructure",
+      "required": true,
+      "title": { "en": "Asset types", "de": "Asset-Typen" },
+      "description": { "en": "The assetType values of the shells to list.", "de": "Die assetType-Werte der Verwaltungsschalen, die die App listet." }
+    },
+    {
+      "key": "serialIdName",
+      "type": "string",
+      "scope": "infrastructure",
+      "default": "serialNumber",
+      "title": { "en": "Serial number ID", "de": "ID der Seriennummer" },
+      "description": { "en": "The name of the specific asset ID that holds the serial number.", "de": "Der Name der spezifischen Asset-ID mit der Seriennummer." }
+    },
+    {
+      "key": "pageSize",
+      "type": "number",
+      "default": 25,
+      "title": { "en": "Shells per page", "de": "Verwaltungsschalen pro Seite" }
+    },
+    {
+      "key": "showOthers",
+      "type": "boolean",
+      "default": false,
+      "title": { "en": "Show other shells", "de": "Andere Verwaltungsschalen zeigen" }
+    }
+  ],
+  "contributes": {
+    "modules": [
+      {
+        "id": "board",
+        "title": { "en": "Asset board" },
+        "icon": "mdi-view-dashboard-outline",
+        "entry": "ui/index.html",
+        "route": "asset-board",
+        "context": "target"
+      }
+    ]
+  }
+}
