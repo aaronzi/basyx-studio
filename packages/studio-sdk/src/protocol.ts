@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.5'
+export const studioAppApiVersion = '0.1.7'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -441,11 +441,20 @@ export interface Methods {
    */
   'studio.ui.readExternalFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
   /**
-   * Opens the same view again in a full-screen dialog of Studio; ignored
-   * inside that dialog. `state` (up to 4,000 characters) reaches the view
-   * there as `context.viewState`, so it can show what the user had selected.
+   * Opens the same view again in a full-screen dialog of Studio. `state`
+   * (up to 4,000 characters) reaches the view there as `context.viewState`,
+   * so it can show what the user had selected.
+   *
+   * With `header: false` (Studio app API 0.1.7), Studio shows the frame on
+   * its own over the dimmed page, without its header and close button, e.g.
+   * for a file preview or an image viewer: the view draws its own toolbar,
+   * closes itself with `studio.ui.closeFullscreen` and does so on Escape.
+   * Inside a full-screen dialog, only such a header-less one opens, above it;
+   * other calls there are ignored.
    */
-  'studio.ui.openFullscreen': { params: { state?: string }, result: null }
+  'studio.ui.openFullscreen': { params: { state?: string, header?: boolean }, result: null }
+  /** Closes the full-screen dialog the view runs in; ignored elsewhere (Studio app API 0.1.7). */
+  'studio.ui.closeFullscreen': { params: Record<string, never>, result: null }
   'studio.aas.listShells': { params: { limit?: number, cursor?: string }, result: Page<ShellSummary> }
   'studio.aas.getShell': { params: { shellId: string }, result: JsonObject }
   'studio.aas.listSubmodels': { params: { shellId: string }, result: { items: SubmodelSummary[] } }
@@ -561,6 +570,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.readFile': 'studio.aas.read',
   'studio.ui.readExternalFile': 'studio.ui.externalFiles',
   'studio.ui.openFullscreen': null,
+  'studio.ui.closeFullscreen': null,
   'studio.aas.listShells': 'studio.aas.read',
   'studio.aas.getShell': 'studio.aas.read',
   'studio.aas.listSubmodels': 'studio.aas.read',

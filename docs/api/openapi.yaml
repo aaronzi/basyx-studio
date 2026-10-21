@@ -5907,6 +5907,7 @@ components:
             - studio.aas.deleteShell
             - studio.backend.call
             - studio.ui.openFullscreen
+            - studio.ui.closeFullscreen
             - studio.ui.readExternalFile
             - studio.ui.openTarget
             - studio.ui.openShell
