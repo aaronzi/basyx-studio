@@ -59,69 +59,6 @@
 
     <!-- Studio's card shows the view's title; in Studio's full-screen dialog, the card fills the frame. -->
     <v-view-card v-else :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">
-      <v-toolbar class="pe-2" color="transparent" density="comfortable">
-        <!-- Selection actions, as in the Web UI -->
-        <v-sheet
-          v-if="selected.size > 0"
-          border
-          class="d-flex align-center ms-3"
-          data-test="selection"
-          rounded="xl"
-        >
-          <v-btn
-            :aria-label="t('fs.clearSelection')"
-            data-test="clear-selection"
-            icon="mdi-close"
-            size="small"
-            @click="selected = new Set()"
-          />
-
-          <span class="text-title-small mx-2">{{ t('fs.selected', { count: selected.size }) }}</span>
-
-          <v-btn
-            :aria-label="t('fs.move')"
-            data-test="move-selected"
-            icon="mdi-folder-move"
-            size="small"
-            @click="startDialog('move', selectedEntries)"
-          />
-
-          <v-btn
-            :aria-label="t('fs.delete')"
-            data-test="delete-selected"
-            icon="mdi-delete"
-            size="small"
-            @click="startDialog('delete', selectedEntries)"
-          />
-        </v-sheet>
-
-        <v-toolbar-title v-else data-test="title">{{ view === 'grid' ? t('fs.gallery') : t('fs.explorer') }}</v-toolbar-title>
-
-        <v-spacer />
-
-        <v-btn-toggle v-model="view" :aria-label="t('fs.view')" class="me-3" mandatory>
-          <v-btn-toggle-icon
-            v-tooltip="t('fs.gallery')"
-            :aria-label="t('fs.gallery')"
-            data-test="view-grid"
-            icon="mdi-view-grid-outline"
-            value="grid"
-          />
-
-          <v-btn-toggle-icon
-            v-tooltip="t('fs.explorer')"
-            :aria-label="t('fs.explorer')"
-            data-test="view-list"
-            icon="mdi-view-list-outline"
-            value="list"
-          />
-        </v-btn-toggle>
-
-        <new-menu v-if="canEdit" @create-folder="startDialog('newFolder')" @upload="startDialog('upload')" />
-      </v-toolbar>
-
-      <v-divider />
-
       <v-progress-linear v-if="loading" />
 
       <v-alert
@@ -135,7 +72,7 @@
       <!-- The overlays are contained in this area; it does not scroll itself, so they stay in view. -->
       <v-sheet
         v-else
-        class="position-relative"
+        class="position-relative d-flex flex-column"
         :class="fullscreen ? 'flex-grow-1 overflow-hidden' : undefined"
         color="transparent"
         :height="fullscreen ? undefined : 560"
@@ -143,19 +80,9 @@
         @dragover="onAreaDragOver"
         @drop="onAreaDrop"
       >
-        <div class="h-100 overflow-y-auto pa-4">
-          <v-alert
-            v-if="notice"
-            class="mb-3"
-            closable
-            data-test="notice"
-            :text="notice.text"
-            :type="notice.type"
-            @click:close="notice = null"
-          />
-
-          <!-- Breadcrumbs with "up", as in the Web UI -->
-          <v-list-item border class="pa-0 mb-3" data-test="breadcrumbs">
+        <div class="px-4 pt-4">
+          <!-- Breadcrumbs with "up", as in the Web UI; on the right the selection, the view toggle and New. -->
+          <v-list-item border class="pa-0" data-test="breadcrumbs">
             <template #prepend>
               <v-btn
                 :aria-label="t('fs.up')"
@@ -175,7 +102,77 @@
                 <v-breadcrumbs-item :data-test="`crumb-${index}`" :disabled="item.disabled" @click="openFolder(breadcrumbs[index]!.value)">{{ item.title }}</v-breadcrumbs-item>
               </template>
             </v-breadcrumbs>
+
+            <template #append>
+              <div class="d-flex align-center flex-wrap justify-end ga-2 me-2 my-1">
+                <v-sheet
+                  v-if="selected.size > 0"
+                  border
+                  class="d-flex align-center"
+                  data-test="selection"
+                  rounded="xl"
+                >
+                  <v-btn
+                    :aria-label="t('fs.clearSelection')"
+                    data-test="clear-selection"
+                    icon="mdi-close"
+                    size="small"
+                    @click="selected = new Set()"
+                  />
+
+                  <span class="text-title-small mx-2">{{ t('fs.selected', { count: selected.size }) }}</span>
+
+                  <v-btn
+                    :aria-label="t('fs.move')"
+                    data-test="move-selected"
+                    icon="mdi-folder-move"
+                    size="small"
+                    @click="startDialog('move', selectedEntries)"
+                  />
+
+                  <v-btn
+                    :aria-label="t('fs.delete')"
+                    data-test="delete-selected"
+                    icon="mdi-delete"
+                    size="small"
+                    @click="startDialog('delete', selectedEntries)"
+                  />
+                </v-sheet>
+
+                <v-btn-toggle v-model="view" :aria-label="t('fs.view')" mandatory>
+                  <v-btn-toggle-icon
+                    v-tooltip="t('fs.gallery')"
+                    :aria-label="t('fs.gallery')"
+                    data-test="view-grid"
+                    icon="mdi-view-grid-outline"
+                    value="grid"
+                  />
+
+                  <v-btn-toggle-icon
+                    v-tooltip="t('fs.explorer')"
+                    :aria-label="t('fs.explorer')"
+                    data-test="view-list"
+                    icon="mdi-view-list-outline"
+                    value="list"
+                  />
+                </v-btn-toggle>
+
+                <new-menu v-if="canEdit" @create-folder="startDialog('newFolder')" @upload="startDialog('upload')" />
+              </div>
+            </template>
           </v-list-item>
+        </div>
+
+        <div class="flex-grow-1 overflow-y-auto pa-4">
+          <v-alert
+            v-if="notice"
+            class="mb-3"
+            closable
+            data-test="notice"
+            :text="notice.text"
+            :type="notice.type"
+            @click:close="notice = null"
+          />
 
           <gallery-view
             v-if="view === 'grid'"
