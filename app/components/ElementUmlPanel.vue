@@ -1,6 +1,6 @@
 <template>
   <div class="d-flex flex-column h-100">
-    <v-toolbar color="transparent" density="compact">
+    <v-toolbar>
       <v-btn-toggle v-model="showSource" class="ms-2" mandatory>
         <v-btn :text="t('details.modes.diagram')" :value="false" />
         <v-btn :text="t('details.modes.source')" :value="true" />

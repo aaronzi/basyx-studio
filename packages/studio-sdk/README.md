@@ -38,6 +38,7 @@ runs the app, whatever the package version.
 | 0.1.4 | 0.1.6: `connections`, `studio.connections.call`, permission `studio.connections` | next release |
 | 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
 | 0.1.6 | 0.1.8: `assetType` and `specificAssetIds` in `aas.listShells`; `ui.navigate(subPath, { history: 'push' })`; `navigations`, `back` and `forward` in `testing` | next release |
+| 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the model viewer (`./viewer/core`, `./vue/core`, `./ifc`, `./step`) | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -434,9 +435,11 @@ as its data:
 ```ts
 import { createTestStudio, studioError, testTheme } from '@basyx/studio-sdk/testing'
 
+import manifest from '../studio-app.json'
+
 const studio = createTestStudio({
+  manifest, // optional: refuse what the manifest does not declare, as Studio does
   context: { locale: 'de', submodel: { id: 'urn:example:sm:1', semanticId: null } },
-  permissions: ['studio.aas.read'], // optional: refuse what the manifest does not declare
   handlers: {
     'studio.aas.getSubmodel': ({ submodelId }) => {
       const submodel = submodels[submodelId]
@@ -455,6 +458,15 @@ studio.calls // every call the app made
 
 - `context` replaces parts of `testContext()`: a module on a writable target
   named "Test target", in view mode, English and Studio's light theme.
+- `manifest` is the app's `studio-app.json` as imported, without a cast.
+  Calls are refused as Studio refuses them: a method whose permission the
+  manifest does not declare (`app_permission_not_declared`), and a
+  connection or operation it does not declare (`connection_operation_not_declared`),
+  before any handler. The context names the manifest's ID and its first
+  module, else its first submodel view. A permission Studio does not know
+  fails `createTestStudio`, as it fails Studio's upload. `permissions`
+  narrows the manifest's, e.g. to test the app without one; without a
+  manifest, it is the list the calls are checked against.
 - Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
   (moves `context.subPath`, sends the new context and is recorded in
   `studio.navigations`), `notify` (recorded in `studio.notifications`) and

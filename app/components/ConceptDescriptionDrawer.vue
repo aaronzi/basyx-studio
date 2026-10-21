@@ -9,7 +9,7 @@
     :width="drawerWidth"
   >
     <div v-if="cdKey" class="d-flex flex-column h-100">
-      <v-toolbar class="px-1" color="transparent" density="compact">
+      <v-toolbar class="px-1">
         <v-spacer />
 
         <v-btn

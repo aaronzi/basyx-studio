@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex flex-column flex-grow-1">
     <div class="d-flex flex-column flex-grow-1" data-test="model-view">
-      <v-toolbar class="flex-shrink-0" color="transparent" density="compact">
+      <v-toolbar class="flex-shrink-0">
         <div class="d-flex align-center ga-2 ms-4 overflow-hidden">
           <v-chip :text="formatLabel" />
 

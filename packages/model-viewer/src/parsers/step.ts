@@ -1,4 +1,4 @@
-import type { MeshBatch } from '../types.ts'
+import type { MeshBatch, OpenModel } from '../types.ts'
 // @ts-expect-error occt-import-js ships no types; `Occt` below describes what is used.
 import occtimportjs from 'occt-import-js'
 
@@ -24,6 +24,9 @@ interface Occt {
 }
 
 let occt: Promise<Occt> | null = null
+
+/** Opens a STEP file for the viewer. */
+export const openStep: OpenModel = async (bytes, wasmUrl) => ({ meshes: await readStep(bytes, wasmUrl) })
 
 export async function readStep (bytes: Uint8Array, wasmUrl: string): Promise<MeshBatch[]> {
   occt ??= (occtimportjs as (options: Record<string, unknown>) => Promise<Occt>)({ locateFile: () => wasmUrl })

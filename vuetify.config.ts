@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults, fullscreenDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
+import { buttonGroupDefaults, fieldDefaults, fullscreenDefaults, layoutDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
 
@@ -93,8 +93,9 @@ export default defineVuetifyConfiguration({
   },
 
   defaults: {
-    VAppBar: { flat: true, border: 'b', density: 'comfortable' },
-    VNavigationDrawer: { border: 'e' },
+    // The app bar, drawers, toolbars and tabs, shared with the apps
+    // (@basyx/studio-app-kit/vuetify-defaults).
+    ...layoutDefaults,
     VAvatar: { rounded: 'lg' },
     VBtn: { variant: 'text', rounded: 'lg', class: 'text-none' },
     VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none' },
@@ -159,7 +160,6 @@ export default defineVuetifyConfiguration({
     VTooltip: { location: 'bottom', openDelay: 400 },
     VExpansionPanels: { variant: 'accordion', flat: true },
     VDataTable: { hover: true, density: 'comfortable' },
-    VTabs: { color: 'primary', density: 'comfortable' },
     VContainer: { fluid: true, maxWidth: 1280, class: 'pa-2 pa-sm-3 pa-md-4' },
   },
 })

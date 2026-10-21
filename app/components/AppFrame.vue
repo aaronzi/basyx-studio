@@ -43,7 +43,7 @@
     >
       <v-card-fullscreen class="d-flex flex-column" :color="fullscreenHeader ? undefined : 'transparent'" data-test="app-fullscreen" height="100%">
         <template v-if="fullscreenHeader">
-          <v-toolbar class="flex-shrink-0" color="transparent" density="compact" :title="label(contribution.title)">
+          <v-toolbar class="flex-shrink-0" :title="label(contribution.title)">
             <template #append>
               <v-btn :aria-label="t('common.close')" data-test="app-fullscreen-close" icon="mdi-close" @click="fullscreenOpen = false" />
             </template>

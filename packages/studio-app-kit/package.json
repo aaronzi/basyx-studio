@@ -1,6 +1,6 @@
 {
   "name": "@basyx/studio-app-kit",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Build BaSyx Studio apps: Studio's look for Vue and Vuetify, a Vite preset, and the studio-app command to pack, sign and verify app packages",
   "license": "MIT",
   "repository": {
@@ -17,6 +17,7 @@
     ".": "./src/index.ts",
     "./aas": "./src/aas.ts",
     "./i18n": "./src/i18n.ts",
+    "./router": "./src/router.ts",
     "./defaults": "./src/defaults.ts",
     "./vuetify-defaults": "./src/vuetify-defaults.ts",
     "./settings.scss": "./src/settings.scss",
@@ -46,6 +47,7 @@
     "sass": "^1.106.0",
     "vite": "^8.3.4",
     "vue": "^3.5.44",
+    "vue-router": "^4.5.0 || ^5.0.0",
     "vuetify": "^4.2.6"
   },
   "peerDependenciesMeta": {
@@ -53,6 +55,9 @@
       "optional": true
     },
     "vite": {
+      "optional": true
+    },
+    "vue-router": {
       "optional": true
     }
   },
@@ -64,6 +69,7 @@
     "typescript": "^6.0.3",
     "vite": "^8.3.4",
     "vue": "^3.5.44",
+    "vue-router": "^5.4.0",
     "vuetify": "^4.2.6"
   },
   "publishConfig": {
@@ -84,6 +90,10 @@
       "./i18n": {
         "types": "./dist/i18n.d.ts",
         "default": "./dist/i18n.js"
+      },
+      "./router": {
+        "types": "./dist/router.d.ts",
+        "default": "./dist/router.js"
       },
       "./defaults": {
         "types": "./dist/defaults.d.ts",

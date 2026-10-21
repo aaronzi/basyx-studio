@@ -1,31 +1,25 @@
-import type { IfcModel } from './ifc.ts'
+import type { OpenModel, ParsedModel } from '../types.ts'
 import type { ParserRequest, ParserResponse } from './protocol.ts'
 
-// Answers parser requests, in the worker or, where workers are not
-// available, on the main thread. The parsers load only for their format.
+// Answers a parser's requests, in its worker or, where workers are not
+// available, on the main thread. One model is open at a time.
 
-export function createParserHandler (send: (response: ParserResponse) => void) {
-  let ifc: IfcModel | null = null
+export function createParserHandler (open: OpenModel, send: (response: ParserResponse) => void) {
+  let model: ParsedModel | null = null
 
   return async function handle (request: ParserRequest): Promise<void> {
     try {
       if (request.type === 'element') {
-        if (!ifc) {
+        if (!model?.element) {
           throw new Error('No IFC model is open.')
         }
-        send({ type: 'element', id: request.id, element: await ifc.element(request.expressId) })
+        send({ type: 'element', id: request.id, element: await model.element(request.expressId) })
         return
       }
-      ifc?.close()
-      ifc = null
-      if (request.format === 'ifc') {
-        const { IfcModel } = await import('./ifc.ts')
-        ifc = await IfcModel.open(request.bytes, request.wasmUrl)
-        send({ type: 'meshes', id: request.id, meshes: ifc.meshes(progress => send({ type: 'progress', id: request.id, progress })) })
-      } else {
-        const { readStep } = await import('./step.ts')
-        send({ type: 'meshes', id: request.id, meshes: await readStep(request.bytes, request.wasmUrl) })
-      }
+      model?.close?.()
+      model = null
+      model = await open(request.bytes, request.wasmUrl, progress => send({ type: 'progress', id: request.id, progress }))
+      send({ type: 'meshes', id: request.id, meshes: model.meshes })
     } catch (error) {
       send({ type: 'error', id: request.id, message: error instanceof Error ? error.message : String(error) })
     }

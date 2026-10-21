@@ -631,6 +631,40 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
+  examples/apps/inventory:
+    dependencies:
+      '@basyx/model-viewer':
+        specifier: workspace:*
+        version: link:../../../packages/model-viewer
+      '@basyx/studio-app-kit':
+        specifier: workspace:*
+        version: link:../../../packages/studio-app-kit
+      '@basyx/studio-sdk':
+        specifier: workspace:*
+        version: link:../../../packages/studio-sdk
+      '@mdi/font':
+        specifier: 7.4.47
+        version: 7.4.47
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      vue-router:
+        specifier: ^5.4.0
+        version: 5.4.0(@pinia/colada@1.4.8(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3)))(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3)))(rolldown@1.2.12)(rollup@4.64.0)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
+      vuetify:
+        specifier: ^4.2.6
+        version: 4.2.6(patch_hash=b38d9461aa6dd0e33f8dde3a31e3cc6edbb1acfc432894b391b1750f568c4687)(@floating-ui/dom@1.8.0)(typescript@6.0.3)(vue-i18n@11.4.13(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
+      sass:
+        specifier: ^1.106.0
+        version: 1.106.0
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+
   examples/apps/public-embeds:
     dependencies:
       '@basyx/studio-sdk':
@@ -761,6 +795,9 @@ importers:
       vue:
         specifier: ^3.5.44
         version: 3.5.44(typescript@6.0.3)
+      vue-router:
+        specifier: ^5.4.0
+        version: 5.4.0(@pinia/colada@1.4.8(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3)))(@vue/compiler-sfc@3.5.44)(esbuild@0.28.2)(pinia@4.1.0(@vue/devtools-api@8.2.1)(typescript@6.0.3)(vue@3.5.44(typescript@6.0.3)))(rolldown@1.2.12)(rollup@4.64.0)(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.0)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
       vuetify:
         specifier: ^4.2.6
         version: 4.2.6(patch_hash=b38d9461aa6dd0e33f8dde3a31e3cc6edbb1acfc432894b391b1750f568c4687)(@floating-ui/dom@1.8.0)(typescript@6.0.3)(vue-i18n@11.4.13(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3))

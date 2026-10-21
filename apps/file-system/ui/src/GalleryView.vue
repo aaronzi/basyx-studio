@@ -31,8 +31,6 @@
         >
           <v-toolbar
             class="cursor-pointer"
-            color="transparent"
-            density="compact"
             title="..."
             @click="emit('open', parent)"
           />

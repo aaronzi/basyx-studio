@@ -1,6 +1,6 @@
 <template>
   <v-card :color="active ? 'primary' : undefined" data-test="folder-card" :variant="active ? 'tonal' : undefined">
-    <v-toolbar class="cursor-pointer" color="transparent" density="compact" @click="emit('open')">
+    <v-toolbar class="cursor-pointer" @click="emit('open')">
       <template #prepend>
         <v-checkbox-btn
           v-if="editable"

@@ -9,7 +9,7 @@
       height="100vh"
       theme="dark"
     >
-      <v-toolbar class="ps-3 flex-shrink-0" color="transparent">
+      <v-toolbar class="ps-3 flex-shrink-0" density="default">
         <template v-if="previewed">
           <v-icon :color="iconColorOf(previewed)" :icon="iconOf(previewed)" />
           <v-toolbar-title class="text-title-medium text-white" data-test="preview-name">{{ previewed.name }}</v-toolbar-title>

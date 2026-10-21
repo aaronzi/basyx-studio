@@ -10,7 +10,7 @@
   >
     <!-- A new element: its form takes the drawer until it is created or cancelled (U4). -->
     <div v-if="creating" class="d-flex flex-column h-100">
-      <v-toolbar class="px-1" color="transparent" density="compact">
+      <v-toolbar class="px-1">
         <v-toolbar-title class="text-title-medium">{{ t('editor.newTitle', { type: creating.element.modelType, parent: creating.parentLabel }) }}</v-toolbar-title>
         <v-btn :aria-label="t('common.close')" icon="mdi-close" size="small" @click="emit('cancel-create')" />
       </v-toolbar>
@@ -32,7 +32,7 @@
 
     <!-- The shell form (U5): the shell header's Edit opens it here. -->
     <div v-else-if="editingShell && shellDetail" class="d-flex flex-column h-100">
-      <v-toolbar class="px-1" color="transparent" density="compact">
+      <v-toolbar class="px-1">
         <v-toolbar-title class="text-title-medium">{{ t('shell.editTitle') }}</v-toolbar-title>
         <v-btn :aria-label="t('common.close')" icon="mdi-close" size="small" @click="emit('close-shell')" />
       </v-toolbar>
@@ -53,7 +53,7 @@
     <div v-else-if="item" class="d-flex flex-column h-100">
       <!-- Where the selection is, on one line: up to the parent, or jump to
            any level from the path menu. The title below names the selection. -->
-      <v-toolbar class="px-1" color="transparent" density="compact">
+      <v-toolbar class="px-1">
         <template v-if="trail.length > 0">
           <v-btn
             v-tooltip="t('details.up', { name: trail.at(-1)!.title })"
