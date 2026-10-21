@@ -20,12 +20,18 @@ export const fieldDefaults = {
  * Grouped buttons: a bordered, divided group of text buttons with square
  * inner corners. Templates use a bare <v-btn-toggle> (one choice of several)
  * or <v-btn-group> (related actions or menus) and style neither the group
- * nor its buttons; ESLint refuses it.
+ * nor its buttons; ESLint refuses it. An icon-only choice in a toggle is a
+ * <v-btn-toggle-icon> (alias of VBtn): the toggle hands its compact density
+ * to every v-btn, which squeezes an icon button to 28 px around a 24 px
+ * icon; the alias reads only its own defaults, which keep room around a
+ * smaller icon.
  */
 
 export const buttonGroupDefaults = {
   VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
   VBtnGroup: { density: 'compact', rounded: 'lg', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
+  // As the group's own buttons (the group sets height, flat and the rest).
+  VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
 } as const
 
 /** Props that style a group; set them in the defaults above, never in a template. */

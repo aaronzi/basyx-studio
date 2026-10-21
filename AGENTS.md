@@ -22,6 +22,11 @@
   `<v-btn-group>` (related actions or menus). Do not style the group or its
   buttons (`variant`, `color`, `density`, `rounded`, `border`, `divided`,
   `size`) and do not build a toggle from separate buttons with `:active`.
+  In a `<v-btn-toggle>`, choices with text are `<v-btn>`; icon-only
+  choices are `<v-btn-toggle-icon>` with an `aria-label` and a `v-tooltip`,
+  never `<v-btn icon>` (as on the targets page, `app/pages/index.vue`). This
+  holds in Studio and in the bundled apps, whose kit registers the same
+  alias and the `v-tooltip` directive.
   The look comes from `packages/studio-app-kit/src/vuetify-defaults.ts`.
 - The bundled apps (`apps/`) have their own Vuetify instance, set up by
   `@basyx/studio-app-kit` (`packages/studio-app-kit`), which they import

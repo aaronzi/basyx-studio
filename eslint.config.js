@@ -37,6 +37,15 @@ const styledButtonGroups = ['v-btn-toggle', 'v-btn-group'].flatMap(element => bu
   message: `\`${key}\` on <${element}>: grouped buttons get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
 })))
 
+/**
+ * Icon-only choices in a toggle are <v-btn-toggle-icon>: a plain <v-btn icon>
+ * takes the toggle's compact density and squeezes its icon (see AGENTS.md).
+ */
+const iconButtonsInToggles = ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `VElement[rawName='v-btn-toggle'] VElement[rawName='v-btn'] > VStartTag > VAttribute[${attribute}='icon']`,
+  message: 'An icon-only button in <v-btn-toggle> is <v-btn-toggle-icon>, which keeps room around its icon (see AGENTS.md).',
+}))
+
 export default withNuxt(
   vuetify({
     ts: true,
@@ -59,6 +68,7 @@ export default withNuxt(
       argument: 'style',
       message: 'Use Vuetify props or utility classes instead of inline styles.',
     }],
+    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles],
   },
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only

@@ -7,6 +7,7 @@ import { VBtn } from 'vuetify/components/VBtn'
 import { VBtnGroup } from 'vuetify/components/VBtnGroup'
 import { VBtnToggle } from 'vuetify/components/VBtnToggle'
 import { VCard } from 'vuetify/components/VCard'
+import { Tooltip } from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import { appDefaults } from './defaults.ts'
 import '@mdi/font/css/materialdesignicons.css'
@@ -32,7 +33,9 @@ export async function mountApp (app: Component, components: Record<string, Compo
   const client = await (options.client ?? connect())
   const vuetify = createVuetify({
     components: { ...components, VBtn, VBtnGroup, VBtnToggle, VCard },
-    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VViewCard: VCard },
+    // `v-tooltip` as Studio uses it, e.g. on icon-only buttons.
+    directives: { Tooltip },
+    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VBtnToggleIcon: VBtn, VViewCard: VCard },
     defaults: appDefaults,
     icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
   })

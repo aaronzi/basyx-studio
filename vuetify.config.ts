@@ -66,10 +66,8 @@ export default defineVuetifyConfiguration({
     // A further action beside the main one, e.g. on the left of a dialog's
     // actions: bordered and filled, as in the BaSyx AAS Web UI and shadcn.
     VBtnSecondary: 'VBtn',
-    // An icon-only button in a v-btn-toggle. The toggle hands its compact
-    // density to every v-btn, which squeezes an icon button to 28 px around a
-    // 24 px icon; an alias only reads its own defaults, so this one keeps room
-    // around a smaller icon.
+    // An icon-only choice in a v-btn-toggle; its defaults are shared with
+    // the apps (@basyx/studio-app-kit/vuetify-defaults).
     VBtnToggleIcon: 'VBtn',
     // A small icon action in a compact header, e.g. of an Overview widget or
     // a value tile: comfortable density keeps the header one line high.
@@ -103,10 +101,8 @@ export default defineVuetifyConfiguration({
     VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none' },
     // One bordered group, divided between its buttons. Only the group is
     // rounded: the buttons' own rounding (VBtn above) would show at the dividers.
-    // VBtnToggle and VBtnGroup, shared with the bundled apps.
+    // VBtnToggle, VBtnGroup and VBtnToggleIcon, shared with the bundled apps.
     ...buttonGroupDefaults,
-    // As the toggle's own buttons (VBtnGroup sets height, flat and the rest).
-    VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
     VBtnWidgetIcon: { variant: 'text', rounded: 'lg', density: 'comfortable', size: 'small' },
     VCard: { flat: true, border: true, rounded: 'lg' },
     VCardFullscreen: { flat: true, border: false, rounded: 0 },

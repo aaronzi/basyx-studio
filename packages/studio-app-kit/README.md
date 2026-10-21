@@ -25,7 +25,8 @@ await mountApp(App, { VApp, VList, VListItem })
 ```
 
 `mountApp` connects to Studio, creates Vuetify with Studio's defaults,
-aliases (`<v-btn-primary>`, `<v-view-card>`) and icons, follows Studio's
+aliases (`<v-btn-primary>`, `<v-btn-toggle-icon>` for icon-only choices in a
+`<v-btn-toggle>`, `<v-view-card>`), the `v-tooltip` directive and icons, follows Studio's
 theme, mounts `App` into `#app` with the client as its `client` prop, and
 sizes the frame to the content. Pass `{ client }` to run on another client,
 e.g. the test Studio of `@basyx/studio-sdk/testing` in a dev server.
