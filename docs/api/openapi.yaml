@@ -6059,6 +6059,7 @@ components:
             - studio.ui.openTarget
             - studio.ui.openShell
             - studio.ui.openView
+            - studio.ui.embedView
             - studio.ui.openExternal
             - studio.ui.copyText
             - studio.containers.listEngines

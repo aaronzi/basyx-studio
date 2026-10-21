@@ -1,7 +1,7 @@
-import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, OpenedView, Problem } from '#shared/contract'
+import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, EmbeddedView, OpenedView, Problem } from '#shared/contract'
 import type { Ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
-import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, encodeConnectionCall, externalFileUrl, openedViewSchema, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
+import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, embeddedViewSchema, encodeConnectionCall, externalFileUrl, openedViewSchema, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
 import { StudioApiError } from '~/composables/useStudioApi'
 import { resourceKey } from '~/utils/aas'
 
@@ -22,9 +22,10 @@ export interface AppBridgeOptions {
   /**
    * Shows another app's view in a full-screen dialog over the frame
    * (`studio.ui.openView`, ADR 0051); absent in dialogs, which open no
-   * further view.
+   * further view. A view embedded in the frame's page opens itself there
+   * (`studio.ui.openFullscreen`), with its state.
    */
-  onOpenView?: (view: OpenedView) => void
+  onOpenView?: (view: OpenedView, state?: string) => void
 }
 
 /** A refusal of the host itself, in the shape of Studio's problems. */
@@ -40,6 +41,48 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
  */
 const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell', 'studio.ui.openView'])
 
+/**
+ * What a view embedded in an app's page may not do (ADR 0051): the app
+ * around it decides where it is and what lies over it, so it could steer
+ * clicks into it. It is read-only, and nothing it does acts outside it.
+ */
+const embeddedRefused = new Set<AppMethodName>([
+  ...activationMethods,
+  ...studioAppWriteMethods,
+  'studio.ui.openFile',
+  'studio.ui.navigate',
+  'studio.ui.openTarget',
+  'studio.ui.embedView',
+])
+
+/**
+ * A connection to a document: the frame's own, or a view that the frame's
+ * app embedded in its page (`studio.ui.embedView`, ADR 0051).
+ */
+interface Channel {
+  port: MessagePort
+  contribution: AppContributionInfo
+  /** The package the connected document was loaded from; its calls carry it (ADR 0044). */
+  digest: string | null
+  context: () => AppContext
+  /** The embedded view, or `null` for the frame's own document. */
+  embedded: EmbeddedView | null
+  /** The context last sent, to send only changes. */
+  lastContext: string
+}
+
+/** Whether a window is a frame somewhere below another one. */
+function isInside (source: Window, ancestor: Window): boolean {
+  let current = source
+  for (let depth = 0; depth < 16 && current !== current.parent; depth++) {
+    current = current.parent
+    if (current === ancestor) {
+      return true
+    }
+  }
+  return false
+}
+
 function problemOf (error: unknown): Problem {
   if (error instanceof StudioApiError && error.problem) {
     return error.problem
@@ -52,7 +95,9 @@ function problemOf (error: unknown): Problem {
  * frame it created, hands that frame one MessagePort per load of its entry,
  * validates every request, and forwards capability calls to Studio, which
  * checks them against the installed manifest and the user's rights. A frame
- * that navigates away from its entry loses its port and is reloaded.
+ * that navigates away from its entry loses its port and is reloaded. Views
+ * that the frame's app embedded get ports of their own, read-only, which
+ * never pass through the app (ADR 0051).
  */
 export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: AppBridgeOptions) {
   const api = useStudioApi()
@@ -67,19 +112,42 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   /** Content height the app asked for (`studio.ui.setHeight`), or `null`. */
   const height = ref<number | null>(null)
 
-  let port: MessagePort | null = null
-  /** The package the connected document was loaded from; its calls carry it (ADR 0044). */
-  let digest: string | null = null
+  let main: Channel | null = null
+  /** Views the frame's app embedded, by their embed token. */
+  const embeds = new Map<string, { view: EmbeddedView, channel: Channel | null }>()
   let handedOut = false
   let loads = 0
   let reloading = false
-  let lastContext = ''
 
-  function respond (message: unknown, transfer: Transferable[] = []) {
-    port?.postMessage(message, transfer)
+  function openChannel (contribution: AppContributionInfo, digest: string | null, context: () => AppContext, embedded: EmbeddedView | null): { channel: Channel, remote: MessagePort } {
+    const { port1, port2 } = new MessageChannel()
+    const channel: Channel = { port: port1, contribution, digest, context, embedded, lastContext: JSON.stringify(context()) }
+    port1.addEventListener('message', event => void onRequest(channel, event))
+    port1.start()
+    return { channel, remote: port2 }
   }
 
-  async function onRequest (event: MessageEvent) {
+  /** The context of an embedded view: the frame's target, theme and language, its own submodel, and always `view` mode. */
+  function embeddedContext (embedded: EmbeddedView): AppContext {
+    const { view, submodel, shellId } = embedded
+    return {
+      ...options.context(),
+      installationId: view.installationId,
+      appId: view.appId,
+      contribution: { kind: 'submodelView', id: view.id },
+      shell: shellId ? { id: shellId } : null,
+      submodel: { id: submodel.id, semanticId: submodel.semanticId },
+      subPath: '',
+      mode: 'view',
+      fullscreen: false,
+      fullscreenOpen: false,
+      viewState: '',
+      embedded: true,
+    }
+  }
+
+  async function onRequest (channel: Channel, event: MessageEvent) {
+    const respond = (message: unknown, transfer: Transferable[] = []) => channel.port.postMessage(message, transfer)
     const parsed = appRequestMessageSchema.safeParse(event.data)
     if (!parsed.success) {
       return
@@ -91,8 +159,15 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       return
     }
     if (method.data === 'studio.ui.getContext') {
-      respond({ type: 'response', id, result: options.context() })
+      respond({ type: 'response', id, result: channel.context() })
       return
+    }
+    if (channel.embedded) {
+      const answered = answerEmbedded(channel.embedded, method.data, params)
+      if (answered) {
+        respond(answered.problem ? { type: 'error', id, problem: answered.problem } : { type: 'response', id, result: null })
+        return
+      }
     }
     if (method.data === 'studio.ui.setHeight') {
       // Only sizes the app's own frame; needs no permission or round trip.
@@ -120,7 +195,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     // A click in the frame also activates Studio's page (user activation
     // propagates to ancestor frames); read it before the round trip.
     const activated = navigator.userActivation?.isActive ?? true
-    const contribution = options.contribution()
+    const { contribution } = channel
     try {
       if (activationMethods.has(method.data) && !activated) {
         throw hostProblem('forbidden', 'Call this from a click or key press in the app.', 403)
@@ -128,15 +203,15 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       if (method.data === 'studio.ui.openView' && !options.onOpenView) {
         throw hostProblem('unsupported_operation', 'Views of other apps open only from a frame on Studio\'s page, not from a dialog.', 422)
       }
-      const context = options.context()
+      const context = channel.context()
       // Connection calls carry bytes, which travel as base64 over HTTP (ADR 0047).
       const connectionCall = method.data === 'studio.connections.call'
       const { result } = method.data === 'studio.aas.putAttachment'
-        ? await putAttachment(params, contribution)
+        ? await putAttachment(params, channel)
         : await api<AppCallResult>('/app-calls', {
             method: 'POST',
             // Studio's mode goes with every call: its server refuses structural writes outside edit mode (MVP-7 A1).
-            body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: context.shell?.id ?? null, mode: context.mode, method: method.data, params: connectionCall ? encodeConnectionCall(params) : params },
+            body: { installationId: contribution.installationId, digest: channel.digest ?? undefined, targetId: options.targetId, shellId: context.shell?.id ?? null, mode: context.mode, method: method.data, params: connectionCall ? encodeConnectionCall(params) : params },
           })
       if (connectionCall) {
         const decoded = decodeConnectionResult(result as ConnectionCallWireResult)
@@ -160,7 +235,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
    * Studio's API as the body, the rest of the call in the query, so the
    * server authorizes and audits it like any other call.
    */
-  async function putAttachment (params: unknown, contribution: AppContributionInfo): Promise<AppCallResult> {
+  async function putAttachment (params: unknown, channel: Channel): Promise<AppCallResult> {
     if (!options.targetId) {
       throw hostProblem('invalid_request', 'This app frame is not bound to a target.', 400)
     }
@@ -170,13 +245,13 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       throw new StudioApiError({ type: 'about:blank', title: 'Invalid parameters for studio.aas.putAttachment.', status: 400, code: 'invalid_request', requestId: '', retryable: false, violations })
     }
     const { data, contentType, ...call } = parsed.data
-    const context = options.context()
+    const context = channel.context()
     return api<AppCallResult>('/app-calls/attachment', {
       method: 'PUT',
       query: {
         ...call,
-        installationId: contribution.installationId,
-        digest: digest ?? undefined,
+        installationId: channel.contribution.installationId,
+        digest: channel.digest ?? undefined,
         targetId: options.targetId,
         shellId: context.shell?.id ?? undefined,
         mode: context.mode,
@@ -262,6 +337,13 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         options.onOpenView?.(openedViewSchema.parse(result))
         return { result: null }
       }
+      case 'studio.ui.embedView': {
+        // The app gets the frame URL; the view connects to this page itself
+        // with the token in it, never through the app (ADR 0051).
+        const embedded = embeddedViewSchema.parse(result)
+        embeds.set(embedded.token, { view: embedded, channel: null })
+        return { result: { url: embedded.url } }
+      }
       case 'studio.ui.openExternal': {
         window.open(appMethodParamsSchemas['studio.ui.openExternal'].parse(params).url, '_blank', 'noopener')
         break
@@ -292,11 +374,57 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     return null
   }
 
+  /**
+   * Answers what an embedded view asks of the page itself, and refuses what
+   * it may not do (ADR 0051); `null` for calls that go to Studio as usual.
+   */
+  function answerEmbedded (embedded: EmbeddedView, method: AppMethodName, params: unknown): { problem: Problem | null } | null {
+    switch (method) {
+      case 'studio.ui.setHeight':
+      case 'studio.ui.closeFullscreen': {
+        // The app around it sizes the frame; Studio does not tell it the view's height.
+        return { problem: null }
+      }
+      case 'studio.ui.openFullscreen': {
+        // In Studio's dialog, which Studio draws, the view runs as usual again.
+        const parsed = appMethodParamsSchemas['studio.ui.openFullscreen'].safeParse(params ?? {})
+        options.onOpenView?.({ view: embedded.view, submodel: embedded.submodel, shellId: embedded.shellId }, parsed.success ? parsed.data.state : undefined)
+        return { problem: null }
+      }
+    }
+    if (embeddedRefused.has(method)) {
+      return { problem: problemOf(hostProblem('forbidden', 'A view in another app\'s page is read-only; open it in Studio to do this.', 403)) }
+    }
+    return null
+  }
+
   function closePort () {
-    port?.close()
-    port = null
-    digest = null
+    main?.port.close()
+    main = null
+    for (const embed of embeds.values()) {
+      embed.channel?.port.close()
+    }
+    embeds.clear()
     connected.value = false
+  }
+
+  /**
+   * Connects a view that the frame's app embedded (ADR 0051): only with a
+   * token this frame was given, from the view's own origin, and from a window
+   * inside this frame. The port goes to the view's origin only, so the app
+   * around it never holds it. A view that loads again gets a new port.
+   */
+  function connectEmbedded (token: string, event: MessageEvent, own: Window) {
+    const embed = embeds.get(token)
+    const source = event.source as Window | null
+    if (!embed || !main || !source || source === own || event.origin !== embed.view.view.frameOrigin || !isInside(source, own)) {
+      return
+    }
+    embed.channel?.port.close()
+    const { view } = embed
+    const { channel, remote } = openChannel(view.view, view.view.digest, () => embeddedContext(view), view)
+    embed.channel = channel
+    source.postMessage({ protocol: appProtocol, type: 'connect', context: channel.context() }, event.origin, [remote])
   }
 
   function onMessage (event: MessageEvent) {
@@ -304,26 +432,29 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     // The frame's own origin, when the installation has one (ADR 0045);
     // otherwise its origin is opaque and cannot be named.
     const frameOrigin = options.contribution().frameOrigin
+    const hello = appHelloSchema.safeParse(event.data)
+    if (!window || !hello.success) {
+      return
+    }
+    if (hello.data.embed !== undefined) {
+      connectEmbedded(hello.data.embed, event, window)
+      return
+    }
     // A queued hello from the previous document has the same WindowProxy.
     // Do not give it the next document's port during a forced entry reload.
-    if (!window || event.source !== window || handedOut || reloading || !appHelloSchema.safeParse(event.data).success) {
+    if (event.source !== window || handedOut || reloading) {
       return
     }
     if (frameOrigin && event.origin !== frameOrigin) {
       return
     }
     handedOut = true
-    digest = options.contribution().digest
-    const channel = new MessageChannel()
-    port = channel.port1
-    port.addEventListener('message', event => void onRequest(event))
-    port.start()
+    const { channel, remote } = openChannel(options.contribution(), options.contribution().digest, options.context, null)
+    main = channel
     // An opaque origin cannot be named as target origin; the message goes to
     // this frame's window only. A frame with its own origin gets the port
     // only while it still shows a document of that origin.
-    const context = options.context()
-    lastContext = JSON.stringify(context)
-    window.postMessage({ protocol: appProtocol, type: 'connect', context }, frameOrigin ?? '*', [channel.port2])
+    window.postMessage({ protocol: appProtocol, type: 'connect', context: channel.context() }, frameOrigin ?? '*', [remote])
     connected.value = true
   }
 
@@ -343,11 +474,18 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   }
 
   // Sent only when something changed, not on every render of the host page.
-  watch(() => options.context(), context => {
-    const serialized = JSON.stringify(context)
-    if (serialized !== lastContext) {
-      lastContext = serialized
-      respond({ type: 'context', context })
+  // Embedded views follow the frame's theme, language and target.
+  watch(() => options.context(), () => {
+    for (const channel of [main, ...[...embeds.values()].map(embed => embed.channel)]) {
+      if (!channel) {
+        continue
+      }
+      const context = channel.context()
+      const serialized = JSON.stringify(context)
+      if (serialized !== channel.lastContext) {
+        channel.lastContext = serialized
+        channel.port.postMessage({ type: 'context', context })
+      }
     }
   }, { deep: true })
 

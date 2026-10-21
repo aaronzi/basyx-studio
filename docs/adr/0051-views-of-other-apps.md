@@ -95,10 +95,9 @@ studio.ui.openView(submodelId: string, options?: { shellId?: string, appId?: str
 
 ### E2: `studio.ui.embedView` places a view in the app's page
 
-E2 is decided here and built in a second step:
-
 ```ts
 studio.ui.embedView(submodelId: string, options?: { shellId?: string, appId?: string, viewId?: string }): Promise<{ url: string }>
+// protocol: 'studio.ui.embedView': { params: { submodelId, shellId?, appId?, viewId? }, result: { url: string } }
 ```
 
 - **The same view, checks and permission** as `openView`; no click is needed,
@@ -136,20 +135,23 @@ studio.ui.embedView(submodelId: string, options?: { shellId?: string, appId?: st
 - **Embedded views are read-only.** The embedding app controls the frame's
   position, size, transparency and what lies over it, so it could steer the
   user's clicks into the view. Studio's page therefore gives an embedded view
-  `context.mode: 'view'` always, and refuses its writes (`setElementValue`,
-  structural writes, attachments) and the methods that need a click
-  (`openExternal`, `copyText`, `openShell`, `openView`) as well as
-  `embedView` (`forbidden`). Its reads work as its permissions allow.
-  `openFullscreen` opens the view in Studio's dialog, as `openView` does,
-  where it runs with Studio's mode again.
+  `context.mode: 'view'` and `context.embedded: true` always, and refuses its
+  writes (`setElementValue`, structural writes, attachments), the methods
+  that need a click (`openExternal`, `copyText`, `openShell`, `openView`) and
+  the others that act outside its frame (`openFile`, `navigate`,
+  `openTarget`, `embedView`) with `forbidden`. Its reads work as its
+  permissions allow. `openFullscreen` opens the view in Studio's dialog, as
+  `openView` does, where it runs with Studio's mode again; `setHeight` has no
+  effect.
 - **What the embedding app learns:** the URL, whose host names the view's
   installation ID but not its app ID or data. It cannot read the view's
   pixels, document or messages.
 - **Views built for it.** Only an SDK that knows the token connects from
   inside another app; an older view would say hello to the embedding app,
-  which must not answer for Studio. Studio embeds views whose manifest's
-  `studioApi` excludes app API versions below the one that brings E2
-  (`unsupported_operation` otherwise); the bundled views declare it.
+  which must not answer for Studio. Studio embeds the views shipped with it,
+  which are built with the current SDK, and views whose manifest's
+  `studioApi` excludes app API versions below 0.1.11; it picks among those
+  as for `openView` (`unsupported_operation` when none fits).
 
 ### E3: no chart component in the app kit
 
@@ -178,7 +180,11 @@ popups (`allow-popups`) would each need their own decision on sandbox flags.
   `openedViews` and sets `context.fullscreenOpen`). An app that calls it
   declares `"studioApi": "^0.1.10"`; an older Studio refuses the call as an
   unknown method.
-- E2 takes the next app API patch version when it is built.
+- `embedView`, `context.embedded` and the hello's `embed` token are optional
+  additions too: the app API becomes **0.1.11**, and the packages
+  **0.1.10** (`@basyx/studio-sdk/testing` records embedded views in
+  `embeddedViews`). Embedding apps and embeddable views declare
+  `"studioApi": "^0.1.11"`.
 
 ## Consequences
 

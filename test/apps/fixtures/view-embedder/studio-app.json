@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 0,
+  "id": "org.example.view-embedder",
+  "version": "1.0.0",
+  "publisher": { "name": "Studio tests" },
+  "title": { "en": "View embedder" },
+  "studioApi": "^0.1.11",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.ui.navigation"],
+  "contributes": {
+    "modules": [
+      { "id": "embedder", "title": { "en": "View embedder" }, "entry": "ui/index.html", "route": "embedder", "context": "target", "layout": "fullPage" }
+    ]
+  }
+}

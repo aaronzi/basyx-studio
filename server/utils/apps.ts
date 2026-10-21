@@ -1,13 +1,15 @@
-import type { AppMethodName, OpenedView } from '#shared/contract'
+import type { AppMethodName, EmbeddedView, OpenedView } from '#shared/contract'
 import type { AppCaller, AppCallMode } from '../lib/apps/calls'
 import type { AppInstallationRecord } from '../lib/apps/store'
 import type { Actor } from '../lib/deps'
 import type { StudioRuntime } from './studio'
 import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
-import { appMethodParamsSchemas } from '#shared/contract'
+import { appMethodParamsSchemas, embedTokenParameter } from '#shared/contract'
 import { authorizeAppCall, checkShellToOpen, checkViewToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
 import { viewToOpen } from '../lib/apps/contributions'
+import { isEmbeddable, issueEmbedToken } from '../lib/apps/embeds'
+import { appFrameOrigin } from '../lib/apps/origins'
 import { userTargetContext } from '../lib/apps/settings'
 import { listActiveInstallations, listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
@@ -43,6 +45,29 @@ export interface AppCall {
   mode: AppCallMode
   method: AppMethodName
   params: unknown
+}
+
+/**
+ * Picks a view for an app to embed in its page (`studio.ui.embedView`,
+ * ADR 0051) and signs its frame URL. Only where each installation has its
+ * own origin: Studio's page tells the view's frame from the embedding app's
+ * by origin. Desktop waits until its `studio-app:` frames are tested with it.
+ */
+async function embedView (studio: StudioRuntime, call: AppCall, choice: Methods['studio.ui.embedView']['params'], requestId: string): Promise<EmbeddedView> {
+  const baseUrl = requireAppsBaseUrl(studio)
+  const embedderOrigin = appFrameOrigin(baseUrl, call.installation.id)
+  if (studio.config.deploymentMode === 'desktop' || !embedderOrigin) {
+    throw new StudioProblem('unsupported_operation', 'Views of other apps embed only where each app has an origin of its own; use studio.ui.openView.')
+  }
+  const opened = await openTargetFor({ actor: call.actor, targetId: call.targetId!, requestId, operation: call.method, read: true, appInstallationId: call.installation.id, shellId: choice.shellId })
+  const submodel = await checkViewToOpen(opened.target, choice)
+  const installations = await listActiveInstallations(studio)
+  const view = viewToOpen(installations.filter(isEmbeddable), baseUrl, submodel.semanticId, choice)
+  const entry = installations.find(installation => installation.id === view.installationId)!.manifest.contributes.submodelViews!.find(contribution => contribution.id === view.id)!.entry
+  const token = issueEmbedToken(studio.embedKey, { installationId: view.installationId, path: entry, embedderOrigin })
+  const url = new URL(view.entryUrl)
+  url.searchParams.set(embedTokenParameter, token)
+  return { view, submodel, shellId: choice.shellId ?? null, token, url: url.href }
 }
 
 const backendModule = /\.(?:js|mjs|json|wasm)$/
@@ -112,7 +137,7 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   if (method === 'studio.connections.call') {
     return performConnectionCall(studio, call, params as never, requestId)
   }
-  if (!isAasMethod(method) && method !== 'studio.ui.openShell' && method !== 'studio.ui.openView') {
+  if (!isAasMethod(method) && method !== 'studio.ui.openShell' && method !== 'studio.ui.openView' && method !== 'studio.ui.embedView') {
     return null
   }
   if (!targetId) {
@@ -131,6 +156,9 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
     const submodel = await checkViewToOpen(opened.target, choice)
     const view = viewToOpen(await listActiveInstallations(studio), requireAppsBaseUrl(studio), submodel.semanticId, choice)
     return { view, submodel, shellId: choice.shellId ?? null } satisfies OpenedView
+  }
+  if (method === 'studio.ui.embedView') {
+    return embedView(studio, call, params as Methods['studio.ui.embedView']['params'], requestId)
   }
 
   const opened = await openTargetFor({

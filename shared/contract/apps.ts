@@ -236,12 +236,25 @@ export const openedViewSchema = z.object({
 })
 export type OpenedView = z.infer<typeof openedViewSchema>
 
+/**
+ * What Studio's server answers the host bridge for `studio.ui.embedView`
+ * (ADR 0051): the view, and the frame URL with the token that lets the
+ * embedding app frame it. The app gets the URL only.
+ */
+export const embeddedViewSchema = openedViewSchema.extend({
+  token: z.string(),
+  url: z.string(),
+})
+export type EmbeddedView = z.infer<typeof embeddedViewSchema>
+
 // ---------------------------------------------------------------------------
 // Bridge messages from app frames (validated by the host renderer)
 
 export const appHelloSchema = z.object({
   protocol: z.literal(protocolVersion),
   type: z.literal('hello'),
+  /** The embed token of a view inside another app's page (ADR 0051). */
+  embed: z.string().max(2000).optional(),
 })
 
 export const appRequestMessageSchema = z.object({
@@ -357,6 +370,12 @@ export const appMethodParamsSchemas = {
     appId: z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID').max(128).optional(),
     viewId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'must be the ID of a submodel view').optional(),
   }).strict().refine(view => view.viewId === undefined || view.appId !== undefined, { message: 'needs appId', path: ['viewId'] }),
+  'studio.ui.embedView': z.object({
+    submodelId: identifier,
+    shellId: identifier.optional(),
+    appId: z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID').max(128).optional(),
+    viewId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'must be the ID of a submodel view').optional(),
+  }).strict().refine(view => view.viewId === undefined || view.appId !== undefined, { message: 'needs appId', path: ['viewId'] }),
   'studio.ui.openExternal': z.object({ url: z.url({ protocol: /^https?$/ }).max(2000).refine(isExternalUrl, 'must be an https URL, or an http URL of this computer') }).strict(),
   'studio.ui.copyText': z.object({ text: z.string().max(10_000) }).strict(),
   'studio.containers.listEngines': z.object({}).strict(),
@@ -442,4 +461,4 @@ export const appCallResultSchema = z.object({
 })
 export type AppCallResult = z.infer<typeof appCallResultSchema>
 
-export { type AppContext, type MethodName as AppMethodName, protocolVersion as appProtocol, editModeMethods, methodPermissions, putAttachmentMaxBytes, readFileMaxBytes } from '@basyx/studio-sdk/protocol'
+export { type AppContext, type MethodName as AppMethodName, protocolVersion as appProtocol, editModeMethods, embedTokenParameter, methodPermissions, putAttachmentMaxBytes, readFileMaxBytes } from '@basyx/studio-sdk/protocol'

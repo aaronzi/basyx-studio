@@ -9,6 +9,12 @@ export interface AppPolicyOptions {
   sameOrigin?: boolean
   /** Declared origins to leave out, e.g. those that cover Studio's own. */
   excludeOrigin?: (origin: string) => boolean
+  /**
+   * The origins of other installations' views the app may embed
+   * (`studio.ui.embedView`, ADR 0051); their documents still refuse to be
+   * framed without Studio's token.
+   */
+  viewOrigins?: string | null
 }
 
 /**
@@ -19,14 +25,15 @@ export interface AppPolicyOptions {
  * unless the installation has its own, even when it is opened outside
  * Studio's iframe. The manifest's `sandbox` may allow WebAssembly and
  * workers from `blob:` URLs (ADR 0038), and frames, requests, images and
- * media from declared origins (ADR 0045). Scripts, styles, fonts and
+ * media from declared origins (ADR 0045), and frames of other apps' views
+ * (ADR 0051). Scripts, styles, fonts and
  * workers still load only the app's own files, and `worker-src` never
  * names them, so no service worker can be registered.
  */
 export function appContentSecurityPolicy (base: string, frameAncestors: Iterable<string>, sandbox: AppSandbox = {}, options: AppPolicyOptions = {}): string {
   const declared = (origins: string[] | undefined) => (origins ?? []).filter(origin => !options.excludeOrigin?.(origin))
   const sources = (...values: string[]) => values.filter(Boolean).join(' ')
-  const frames = declared(sandbox.frameOrigins)
+  const frames = [...declared(sandbox.frameOrigins), ...(options.viewOrigins ? [options.viewOrigins] : [])]
   return [
     `default-src 'none'`,
     `script-src ${sources(base, sandbox.webAssembly ? `'wasm-unsafe-eval'` : '')}`,

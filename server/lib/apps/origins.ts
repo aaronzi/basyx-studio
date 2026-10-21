@@ -40,6 +40,19 @@ export function appFrameOrigin (baseUrl: string, installationId: string): string
   return match ? match[0] : null
 }
 
+/**
+ * The origins of all installations as one CSP source, e.g.
+ * `https://*.apps.example.org`, where each has its own (hosted pattern);
+ * `null` otherwise. Embedding apps get it in `frame-src` (ADR 0051).
+ */
+export function installationOriginsSource (baseUrl: string): string | null {
+  if (!baseUrl.includes(installationPlaceholder)) {
+    return null
+  }
+  const match = /^([a-z][a-z0-9+.-]*:\/\/)([^/]+)/.exec(baseUrl)
+  return match ? `${match[1]}${match[2]!.replace(installationPlaceholder, '*')}` : null
+}
+
 /** The host (with port) of the apps origin, `{installation}` included for the pattern. */
 function appsHost (baseUrl: string): string {
   return /^[a-z][a-z0-9+.-]*:\/\/([^/]+)/.exec(baseUrl)?.[1] ?? ''

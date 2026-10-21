@@ -83,6 +83,8 @@ export interface TestNavigation {
 
 export type TestOpenedView = Methods['studio.ui.openView']['params']
 
+export type TestEmbeddedView = Methods['studio.ui.embedView']['params']
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -108,6 +110,11 @@ export interface TestStudio {
    * user closing the dialog.
    */
   readonly openedViews: TestOpenedView[]
+  /**
+   * The views the app embedded with `studio.ui.embedView`; each gets the URL
+   * `about:blank#studio-embed=<n>`, which shows nothing.
+   */
+  readonly embeddedViews: TestEmbeddedView[]
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -285,6 +292,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const entries = [context.subPath]
   let entry = 0
   const openedViews: TestOpenedView[] = []
+  const embeddedViews: TestEmbeddedView[] = []
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -319,6 +327,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
       openedViews.push(view)
       setContext({ fullscreenOpen: true })
       return null
+    },
+    'studio.ui.embedView': view => {
+      embeddedViews.push(view)
+      return { url: `about:blank#studio-embed=${embeddedViews.length}` }
     },
   }
   const handlers: TestHandlers = { ...builtIn, ...options.handlers }
@@ -426,6 +438,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     back: () => go(-1),
     forward: () => go(1),
     openedViews,
+    embeddedViews,
     setContext,
     close: () => transport.close(),
   }

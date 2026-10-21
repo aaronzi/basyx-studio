@@ -393,6 +393,8 @@ export interface AppFile {
   digest: string
   /** What the installation's pages may run beyond scripts (ADR 0038). */
   sandbox: AppSandbox
+  /** The installation may show other apps' views in its pages (`studio.ui.navigation`, ADR 0051). */
+  embedsViews: boolean
 }
 
 // Digests already verified in this process. Blobs are immutable.
@@ -425,7 +427,7 @@ export async function readAppFile (deps: Pick<StudioDeps, 'db' | 'config'>, inst
     verified.add(row.digest)
   }
   const { manifest, installation: _installation, ...file } = row
-  return { ...file, sandbox: manifest.sandbox ?? {} }
+  return { ...file, sandbox: manifest.sandbox ?? {}, embedsViews: manifest.permissions.includes('studio.ui.navigation') }
 }
 
 /** Files below a directory of an installation, for extracting a backend. */

@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 0,
+  "id": "org.example.embed-probe",
+  "version": "1.0.0",
+  "publisher": { "name": "Studio tests" },
+  "title": { "en": "Embed probe" },
+  "studioApi": "^0.1.11",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.aas.write", "studio.ui.navigation"],
+  "contributes": {
+    "submodelViews": [
+      { "id": "probe", "title": { "en": "Embed probe" }, "entry": "ui/index.html", "semanticIds": ["urn:studio:test:e2e:embed-probe"] }
+    ]
+  }
+}

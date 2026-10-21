@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.10'
+export const studioAppApiVersion = '0.1.11'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -226,6 +226,13 @@ export interface AppContext {
   fullscreenOpen?: boolean
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
   fullscreen: boolean
+  /**
+   * True for a view that another app placed in its page
+   * (`studio.ui.embedView`): it is read-only there, `mode` is always
+   * `view`, and Studio refuses its writes and the methods that need a
+   * click (Studio app API 0.1.11; absent before).
+   */
+  embedded?: boolean
   /**
    * In that dialog, the `state` the view passed to `openFullscreen`, e.g.
    * what the user had selected; `''` otherwise (Studio app API 0.1.1).
@@ -690,6 +697,15 @@ export interface Methods {
    * Needs a click in the app just before (Studio app API 0.1.10).
    */
   'studio.ui.openView': { params: { submodelId: string, shellId?: string, appId?: string, viewId?: string }, result: null }
+  /**
+   * The frame URL of a submodel's view of an installed app, picked as for
+   * `openView`, for an `<iframe>` in the app's own page (ADR 0051). The view
+   * connects to Studio itself, at its installation's origin, with its own
+   * permissions, read-only; the app never holds its connection. Only where
+   * each installation has its own origin; the URL is valid for an hour
+   * (Studio app API 0.1.11).
+   */
+  'studio.ui.embedView': { params: { submodelId: string, shellId?: string, appId?: string, viewId?: string }, result: { url: string } }
   /** Opens an http(s) URL in the system browser. */
   /** Needs a click in the app just before. Only https, or http to this computer (127.0.0.1, localhost, [::1]). */
   'studio.ui.openExternal': { params: { url: string }, result: null }
@@ -767,6 +783,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.openTarget': 'studio.ui.navigation',
   'studio.ui.openShell': 'studio.ui.navigation',
   'studio.ui.openView': 'studio.ui.navigation',
+  'studio.ui.embedView': 'studio.ui.navigation',
   'studio.ui.openExternal': 'studio.ui.navigation',
   'studio.ui.copyText': 'studio.ui.clipboard',
   'studio.containers.listEngines': 'studio.containers',
@@ -826,7 +843,12 @@ export interface Problem {
 export interface HelloMessage {
   protocol: typeof protocolVersion
   type: 'hello'
+  /** The embed token from the frame URL of a view inside another app's page (`studio.ui.embedView`). */
+  embed?: string
 }
+
+/** The query parameter of an embedded view's frame URL that carries Studio's token. */
+export const embedTokenParameter = 'studio-embed'
 
 export interface ConnectMessage {
   protocol: typeof protocolVersion
