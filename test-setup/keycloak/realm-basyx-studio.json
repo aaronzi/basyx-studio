@@ -127,6 +127,25 @@
           }
         }
       ]
+    },
+    {
+      "name": "work-orders",
+      "description": "Adds the work-orders example's mock service to the audience, so Studio may exchange a user's token for one issued to it (RFC 8693, ADR 0047)",
+      "protocol": "openid-connect",
+      "attributes": { "include.in.token.scope": "true", "display.on.consent.screen": "false" },
+      "protocolMappers": [
+        {
+          "name": "work-orders audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.client.audience": "work-orders",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
     }
   ],
   "defaultDefaultClientScopes": ["basic", "profile", "email", "studio-roles"],
@@ -153,10 +172,11 @@
       "webOrigins": [],
       "attributes": {
         "pkce.code.challenge.method": "S256",
-        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3100/*"
+        "post.logout.redirect.uris": "http://localhost:3000/*##http://localhost:3100/*",
+        "standard.token.exchange.enabled": "true"
       },
       "defaultClientScopes": ["basic", "profile", "email", "studio-roles"],
-      "optionalClientScopes": ["basyx-api"]
+      "optionalClientScopes": ["basyx-api", "work-orders"]
     },
     {
       "clientId": "studio-desktop",
@@ -213,6 +233,18 @@
       "webOrigins": [],
       "defaultClientScopes": ["basic", "profile", "email", "studio-roles"],
       "optionalClientScopes": ["basyx-api"]
+    },
+    {
+      "clientId": "work-orders",
+      "name": "Work-order service (example, ADR 0047)",
+      "description": "The audience of the tokens the work-orders example's mock service accepts (test/e2e/web/connections.spec.ts). It signs no one in.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "bearerOnly": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false
     }
   ],
   "users": [

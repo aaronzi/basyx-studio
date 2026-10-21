@@ -48,7 +48,7 @@
       "description": "What the app may do. An administrator approves these at install; every call is additionally limited by the user's own rights.",
       "type": "array",
       "uniqueItems": true,
-      "items": { "enum": ["studio.aas.read", "studio.aas.write", "studio.ui.notifications", "studio.ui.navigation", "studio.ui.clipboard", "studio.ui.externalFiles", "studio.backend", "studio.containers", "studio.timeseries.read"] }
+      "items": { "enum": ["studio.aas.read", "studio.aas.write", "studio.ui.notifications", "studio.ui.navigation", "studio.ui.clipboard", "studio.ui.externalFiles", "studio.backend", "studio.containers", "studio.timeseries.read", "studio.connections"] }
     },
     "backend": {
       "description": "Server-side code, run in an isolated Deno process. Requires the studio.backend permission.",
@@ -72,6 +72,12 @@
         "imageOrigins": { "description": "Origins of images the app shows, e.g. map tiles (CSP img-src).", "$ref": "#/$defs/origins" },
         "mediaOrigins": { "description": "Origins of audio and video the app plays (CSP media-src).", "$ref": "#/$defs/origins" }
       }
+    },
+    "connections": {
+      "description": "HTTP services the app calls through Studio with studio.connections.call, each described by an OpenAPI document in the package. An administrator binds each to a connection of an infrastructure, which holds the URL and the credentials. Requires the studio.connections permission and Studio app API 0.1.6.",
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/connection" }
     },
     "contributes": {
       "type": "object",
@@ -105,6 +111,30 @@
       "maxProperties": 32,
       "propertyNames": { "pattern": "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})*$" },
       "additionalProperties": { "type": "string", "minLength": 1, "maxLength": 1000 }
+    },
+    "connection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "api", "operations"],
+      "properties": {
+        "id": { "description": "Named in studio.connections.call and in the administrator's binding.", "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,62}$" },
+        "title": { "$ref": "#/$defs/localizedLabel" },
+        "description": { "$ref": "#/$defs/localizedText" },
+        "api": {
+          "description": "Package-relative path of an OpenAPI 3.0 or 3.1 document in JSON. Its servers and security are ignored: the administrator's connection gives the URL and the credentials.",
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^[A-Za-z0-9_-][A-Za-z0-9._/-]*\\.json$"
+        },
+        "operations": {
+          "description": "The operationIds of the document that the app calls. Other operations stay unreachable.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 200,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1, "maxLength": 200 }
+        }
+      }
     },
     "contributionId": { "type": "string", "pattern": "^[a-z][a-z0-9-]{0,63}$" },
     "htmlPath": {

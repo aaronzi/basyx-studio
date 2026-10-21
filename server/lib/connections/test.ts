@@ -57,7 +57,7 @@ export async function testConnection (
   const started = performance.now()
   let client
   try {
-    client = await openConnection(deps, tokens, tested, connection, actor.sessionId, true)
+    client = await openConnection(deps, tokens, tested, connection, actor.sessionId, { fresh: true, returnRedirects: connection.type === 'http' })
     if (connection.auth.scheme !== 'none') {
       checks.push({ check: 'token', ok: true, status: null, latencyMs: Math.round(performance.now() - started), message: null })
     }

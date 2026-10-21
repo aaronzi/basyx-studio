@@ -1,0 +1,33 @@
+{
+  "$schema": "../../../packages/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.eclipse.basyx.examples.work-orders",
+  "version": "0.1.0",
+  "publisher": { "name": "Eclipse BaSyx" },
+  "title": { "en": "Work orders" },
+  "description": { "en": "Work orders for the shells of a target, kept in a work-order service that Studio calls through an HTTP connection (ADR 0047)." },
+  "studioApi": "^0.1.6",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.ui.notifications", "studio.connections"],
+  "connections": [
+    {
+      "id": "orders",
+      "title": { "en": "Work-order service" },
+      "description": { "en": "Lists, creates and changes work orders, and keeps their photos." },
+      "api": "api/work-orders.openapi.json",
+      "operations": ["whoAmI", "listOrders", "createOrder", "getOrder", "updateOrder", "addPhoto", "getPhoto"]
+    }
+  ],
+  "contributes": {
+    "modules": [
+      {
+        "id": "orders",
+        "title": { "en": "Work orders" },
+        "icon": "mdi-clipboard-check-outline",
+        "entry": "ui/index.html",
+        "route": "work-orders",
+        "context": "target"
+      }
+    ]
+  }
+}

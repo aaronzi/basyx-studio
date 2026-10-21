@@ -1,4 +1,4 @@
-import type { AppContext, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
+import type { AppContext, ConnectionCallParams, ConnectionCallResult, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
 import type { Transport } from './transport.ts'
 import { StudioClient } from './index.ts'
 import { editModeMethods, methodPermissions, protocolVersion, putAttachmentMaxBytes } from './protocol.ts'
@@ -107,6 +107,8 @@ const problemTitles: Record<string, { status: number, title: string }> = {
   unsupported_operation: { status: 422, title: 'This operation is not supported here' },
   app_permission_not_declared: { status: 403, title: 'The app did not declare the permission for this call' },
   app_edit_mode_required: { status: 403, title: 'Switch to edit mode to change content from an app' },
+  connection_not_bound: { status: 403, title: 'The app\'s connection is not bound to a connection of this infrastructure' },
+  connection_operation_not_declared: { status: 403, title: 'The app did not declare this connection or operation' },
   internal_error: { status: 500, title: 'Internal error' },
 }
 
@@ -123,6 +125,56 @@ export function studioError (code: string, detail?: string, status?: number): St
     problem.detail = detail
   }
   return new StudioError(problem)
+}
+
+/** One operation of a test service: the call's parameters in, the parts of the answer that differ from the defaults out. */
+export type TestOperation = (request: Omit<ConnectionCallParams, 'connection' | 'operation'>, studio: TestStudio) => Partial<ConnectionCallResult> | Promise<Partial<ConnectionCallResult>>
+
+/** The default media type of a test answer's body. */
+function contentTypeOf (body: unknown): string | null {
+  if (body === null || body === undefined) {
+    return null
+  }
+  if (typeof body === 'string') {
+    return 'text/plain; charset=utf-8'
+  }
+  return body instanceof Uint8Array ? 'application/octet-stream' : 'application/json'
+}
+
+/**
+ * A handler of `studio.connections.call` that answers with test services:
+ * functions per connection ID and `operationId`, as the app's manifest
+ * declares them. A connection without functions is refused as an unbound one
+ * is (`connection_not_bound`), an operation without a function as an
+ * undeclared one (`connection_operation_not_declared`). Answers default to
+ * status 200 with the body's media type and no `etag` or `location`.
+ *
+ *   handlers: {
+ *     'studio.connections.call': connectionsHandler({
+ *       forecast: { getForecast: ({ path }) => ({ body: { station: path?.station, days: [] } }) },
+ *     }),
+ *   }
+ */
+export function connectionsHandler (connections: Record<string, Record<string, TestOperation>>): TestHandler<'studio.connections.call'> {
+  return async ({ connection, operation, ...request }, studio) => {
+    const operations = Object.hasOwn(connections, connection) ? connections[connection]! : undefined
+    if (!operations) {
+      throw studioError('connection_not_bound', `No connection of the target's infrastructure is bound to ${connection}.`)
+    }
+    const handler = Object.hasOwn(operations, operation) ? operations[operation] : undefined
+    if (!handler) {
+      throw studioError('connection_operation_not_declared', `The connection ${connection} has no operation ${operation}.`)
+    }
+    const answer = await handler(request, studio)
+    const body = answer.body ?? null
+    return {
+      status: answer.status ?? 200,
+      contentType: answer.contentType === undefined ? contentTypeOf(body) : answer.contentType,
+      etag: answer.etag ?? null,
+      location: answer.location ?? null,
+      body,
+    }
+  }
 }
 
 /** Creates a Studio in memory with a connected client. */

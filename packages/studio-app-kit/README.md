@@ -41,7 +41,7 @@ e.g. the test Studio of `@basyx/studio-sdk/testing` in a dev server.
 | `@basyx/studio-app-kit/vuetify-defaults` | The defaults Studio and its apps share (fields, button groups) |
 | `@basyx/studio-app-kit/settings.scss` | Studio's Vuetify Sass settings |
 | `@basyx/studio-app-kit/vite` | The `studioApp()` Vite preset |
-| `@basyx/studio-app-kit/manifest`, `/package`, `/signature` | The checks, packing and signatures of `studio-app`, for Node |
+| `@basyx/studio-app-kit/manifest`, `/package`, `/signature` | The checks, packing and signatures of `studio-app`, for Node; `manifest` also indexes and compiles the OpenAPI documents of `connections` (`checkConnectionApis`) |
 
 Views render flat inside the card Studio draws; build the UI from Vuetify
 components and utility classes, as Studio does.
@@ -66,7 +66,7 @@ another folder.
 ## The `studio-app` command
 
 ```bash
-studio-app pack [project] [--dist dist] [--include backend] [--out <file or folder>]
+studio-app pack [project] [--dist dist] [--include backend] [--include api] [--out <file or folder>]
 studio-app sign <package.zip> --key signing.pem [--out <file>]
 studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
 ```
@@ -78,8 +78,19 @@ studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
   manifest schema, unique contribution IDs and routes, entries that exist,
   the backend permission, the format of `sandbox` origins, an app API range
   that includes every field the manifest uses (`^0.1.3` for origins and
-  `layout`), the app API range against the installed `@basyx/studio-sdk`,
-  file types and archive limits (20 MiB, 50 MiB expanded, 2,000 entries).
+  `layout`, `^0.1.6` for `connections`), the app API range against the
+  installed `@basyx/studio-sdk`, file types and archive limits (20 MiB,
+  50 MiB expanded, 2,000 entries).
+- For `connections` ([ADR 0047](../../docs/adr/0047-http-connections-for-apps.md)),
+  they also check each OpenAPI document as Studio's upload does: JSON,
+  OpenAPI 3.0 or 3.1, at most 4 MiB, only local `$ref`s, every listed
+  `operationId` exactly once, parameters Studio can send, no body with `GET`
+  or `HEAD`, and schemas that compile. A finding names the document and a
+  JSON pointer into it, e.g. `api/orders.json#/paths/~1orders/get/parameters/2`.
+  Keep the document outside `dist/` and pack it with `--include api`, or put
+  it in Vite's `public` folder; `api` names its package path. `pack` and
+  `verify` print a note that the connections need an administrator's
+  binding.
   Studio's server imports the same code. The runtime, origins that cover the
   deployment's own, and the trust store's `remoteCode` grant for
   `connectOrigins` with `webAssembly` or `workers` are checked at install

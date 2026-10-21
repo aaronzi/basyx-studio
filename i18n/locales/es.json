@@ -242,6 +242,9 @@
     "connection_unavailable": "No se pudo acceder al servicio.",
     "connection_error": "El servicio informó de un error.",
     "connection_request_refused": "Studio no envía esta solicitud.",
+    "connection_not_bound": "Ninguna conexión de esta infraestructura está vinculada a la aplicación.",
+    "connection_operation_not_declared": "La aplicación no declaró esta operación.",
+    "connection_busy": "Hay demasiadas llamadas a este servicio en curso. Inténtelo de nuevo en un momento.",
     "timeseries_invalid": "No se puede leer la serie temporal.",
     "external_file_unavailable": "No se pudo obtener el archivo externo.",
     "external_file_refused": "Studio no obtiene archivos de esta dirección.",
@@ -406,7 +409,7 @@
     "probedAt": "Comprobado {time}",
     "connections": {
       "title": "Conexiones",
-      "help": "Servicios a los que remite el contenido de esta infraestructura pero que no son servicios AAS, como una base de datos de series temporales. Studio guarda sus credenciales y solo las usa para contenido leído de esta infraestructura.",
+      "help": "Servicios a los que remite el contenido de esta infraestructura pero que no son servicios AAS, como una base de datos de series temporales, y servicios HTTP que llaman las aplicaciones. Studio guarda sus credenciales y solo las usa para el contenido leído de esta infraestructura y para las aplicaciones vinculadas.",
       "unnamed": "Nueva conexión",
       "add": "Añadir conexión",
       "remove": "Quitar",
@@ -416,10 +419,12 @@
       "keyTaken": "Otra conexión tiene esta clave.",
       "type": "Tipo",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "Servicio HTTP para aplicaciones"
       },
       "typeHints": {
-        "influxdb2": "Series temporales de los LinkedSegments de submodelos Time Series Data (Flux)."
+        "influxdb2": "Series temporales de los LinkedSegments de submodelos Time Series Data (Flux).",
+        "http": "Las aplicaciones llaman a las operaciones que declaran en su manifiesto, donde las vincule abajo. Studio envía las solicitudes con estas credenciales."
       },
       "url": "URL",
       "urlHint": "Cómo llega Studio al servicio, p. ej. en su red de contenedores.",
@@ -427,6 +432,14 @@
       "aliasesHint": "Otras direcciones con las que los submodelos nombran el servicio. Studio nunca las contacta.",
       "organization": "Organización",
       "organizationHint": "Sustituye la organización de los endpoints de los submodelos. Déjelo vacío para usar la suya.",
+      "apps": "Aplicaciones",
+      "appsHint": "Conexiones de aplicaciones que pueden llamar a este servicio. Cada una muestra las operaciones que declara; la aplicación no alcanza nada más.",
+      "app": "ID de la aplicación",
+      "appConnection": "Conexión de la aplicación",
+      "addApp": "Vincular aplicación",
+      "removeApp": "Quitar vínculo",
+      "appNotInstalled": "La aplicación no está instalada o no declara esa conexión. Sus operaciones se muestran una vez instalada.",
+      "appInvalid": "Introduzca un ID de aplicación como org.example.app.",
       "scheme": "Autenticación",
       "schemes": {
         "none": "Ninguna",
@@ -518,7 +531,8 @@
       "studio_ui_clipboard": "Copiar texto al portapapeles cuando haces clic",
       "studio_containers": "Iniciar, detener, exportar y eliminar instancias locales de BaSyx en Docker o Podman (solo aplicaciones incluidas con Studio)",
       "studio_timeseries_read": "Leer series temporales, también de las bases de datos de las conexiones de la infraestructura (apps incluidas en Studio y apps firmadas a las que la implementación lo concede)",
-      "studio_ui_externalFiles": "Obtener en su navegador archivos que la AAS indica en otros hosts (esos hosts ven su dirección)"
+      "studio_ui_externalFiles": "Obtener en su navegador archivos que la AAS indica en otros hosts (esos hosts ven su dirección)",
+      "studio_connections": "Llamar a sus servicios a través de Studio, donde un administrador vincule sus conexiones"
     },
     "bundled": "Incluida",
     "bundledHint": "Se entrega con Studio y se mantiene actualizada con él.",
@@ -552,6 +566,11 @@
     "notGrantedHint": "Esta implementación no concede el permiso al editor de la app, por lo que se rechazan las llamadas que lo necesitan.",
     "permissionsRemoved": "Ya no solicita: {list}",
     "originsRemoved": "Ya no accede a: {list}",
+    "connections": "Llama a: {list}",
+    "operations": "{count} operación | {count} operaciones",
+    "connectionHint": "Conexión {id}, con estas operaciones:",
+    "connectionsNote": "La aplicación llama a estas operaciones a través de Studio, solo donde un administrador vincule sus conexiones a una conexión de una infraestructura. Las credenciales quedan en Studio.",
+    "operationsRemoved": "Ya no llama a: {list}",
     "update": "Actualizar",
     "confirmInstall": "Instalar",
     "updated": "{name} actualizada a {version}.",

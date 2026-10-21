@@ -242,6 +242,9 @@
     "connection_unavailable": "サービスに到達できませんでした。",
     "connection_error": "サービスがエラーを報告しました。",
     "connection_request_refused": "Studio はこの要求を送信しません。",
+    "connection_not_bound": "このインフラストラクチャの接続はアプリにバインドされていません。",
+    "connection_operation_not_declared": "アプリはこの操作を宣言していません。",
+    "connection_busy": "このサービスへの呼び出しが多すぎます。しばらくしてから再試行してください。",
     "timeseries_invalid": "時系列を読み取れません。",
     "external_file_unavailable": "外部ファイルを取得できませんでした。",
     "external_file_refused": "Studio はこのアドレスからファイルを取得しません。",
@@ -406,7 +409,7 @@
     "probedAt": "確認日時 {time}",
     "connections": {
       "title": "接続",
-      "help": "このインフラストラクチャのコンテンツが参照する、AAS サービスではないサービス（時系列データベースなど）です。Studio は認証情報を保管し、このインフラストラクチャから読み取ったコンテンツにのみ使用します。",
+      "help": "このインフラストラクチャのコンテンツが参照する、AAS サービスではないサービス（時系列データベースなど）と、アプリが呼び出す HTTP サービスです。Studio は認証情報を保管し、このインフラストラクチャから読み取るコンテンツと、バインドされたアプリにのみ使用します。",
       "unnamed": "新しい接続",
       "add": "接続を追加",
       "remove": "削除",
@@ -416,10 +419,12 @@
       "keyTaken": "別の接続がこのキーを使用しています。",
       "type": "種類",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "アプリ用 HTTP サービス"
       },
       "typeHints": {
-        "influxdb2": "Time Series Data サブモデルの LinkedSegment の時系列（Flux）。"
+        "influxdb2": "Time Series Data サブモデルの LinkedSegment の時系列（Flux）。",
+        "http": "アプリはマニフェストで宣言した操作を、下でバインドした場合に呼び出します。Studio はこの認証情報でリクエストを送信します。"
       },
       "url": "URL",
       "urlHint": "Studio がサービスに到達する方法（例：コンテナーネットワーク内のアドレス）。",
@@ -427,6 +432,14 @@
       "aliasesHint": "サブモデルがサービスを示すその他のアドレス。Studio はこれらに接続しません。",
       "organization": "組織",
       "organizationHint": "サブモデル内のエンドポイントの組織を置き換えます。空欄の場合はエンドポイントの組織を使用します。",
+      "apps": "アプリ",
+      "appsHint": "このサービスを呼び出せるアプリの接続です。それぞれ宣言した操作を示し、アプリはそれ以外に到達できません。",
+      "app": "アプリ ID",
+      "appConnection": "アプリの接続",
+      "addApp": "アプリをバインド",
+      "removeApp": "バインドを削除",
+      "appNotInstalled": "アプリがインストールされていないか、この接続を宣言していません。インストール後に操作が表示されます。",
+      "appInvalid": "org.example.app のようなアプリ ID を入力してください。",
       "scheme": "認証",
       "schemes": {
         "none": "なし",
@@ -518,7 +531,8 @@
       "studio_ui_clipboard": "クリック時にテキストをクリップボードへコピー",
       "studio_containers": "Docker または Podman 上のローカル BaSyx インスタンスの起動、停止、エクスポート、削除（Studio 同梱アプリのみ）",
       "studio_timeseries_read": "インフラストラクチャの接続先データベースからも時系列を読み取る (Studio に同梱のアプリと、デプロイが許可した署名済みアプリのみ)",
-      "studio_ui_externalFiles": "管理シェルが他のホスト上で指定するファイルをブラウザーで取得する（それらのホストにはあなたのアドレスが見えます）"
+      "studio_ui_externalFiles": "管理シェルが他のホスト上で指定するファイルをブラウザーで取得する（それらのホストにはあなたのアドレスが見えます）",
+      "studio_connections": "管理者が接続をバインドした場合に、Studio 経由でサービスを呼び出す"
     },
     "bundled": "同梱",
     "bundledHint": "Studio に同梱され、Studio と一緒に更新されます。",
@@ -552,6 +566,11 @@
     "notGrantedHint": "このデプロイはアプリの発行元にこの権限を付与していないため、それを必要とする呼び出しは拒否されます。",
     "permissionsRemoved": "要求されなくなった権限: {list}",
     "originsRemoved": "アクセスしなくなったオリジン: {list}",
+    "connections": "呼び出し先: {list}",
+    "operations": "{count} 件の操作",
+    "connectionHint": "接続 {id}、以下の操作:",
+    "connectionsNote": "アプリは、管理者が接続をインフラストラクチャの接続にバインドした場合にのみ、Studio 経由でこれらの操作を呼び出します。認証情報は Studio に残ります。",
+    "operationsRemoved": "今後呼び出さない操作: {list}",
     "update": "更新",
     "confirmInstall": "インストール",
     "updated": "{name} を {version} に更新しました。",

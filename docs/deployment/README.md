@@ -30,7 +30,7 @@ because every visitor is an administrator, with an embedded database in the
 `studio-data` volume. Keep the data key: it encrypts stored tokens and
 secrets, and a new key cannot read them.
 
-Four Compose examples go further:
+Five Compose examples go further:
 
 - [`examples/deployment/quickstart`](../../examples/deployment/quickstart):
   Studio without login and a BaSyx Go AAS environment, declared as a managed
@@ -47,6 +47,10 @@ Four Compose examples go further:
 - [`examples/deployment/signed-app`](../../examples/deployment/signed-app):
   a trust store, a directory of managed packages, and a guide for signing apps
   with cosign in another repository's CI (see [Signed apps](#signed-apps)).
+- [`examples/deployment/http-connections`](../../examples/deployment/http-connections):
+  Keycloak login with token exchange, a mock work-order service, and the
+  work-orders example app calling it with a static token and as the signed-in
+  user (see [HTTP connections for apps](#http-connections-for-apps)).
 
 ## Image tags and verification
 
@@ -321,6 +325,92 @@ database:
 3. Add an `influxdb2` connection to that infrastructure, with `url` as
    Studio reaches InfluxDB and the address in the submodels' `Endpoint` (for
    example `http://localhost:8086`) under `aliases`.
+
+## HTTP connections for apps
+
+Apps that call their own services, or APIs with keys, declare them in their
+manifest as `connections`, each with an OpenAPI document and the operations
+the app calls. An administrator binds them to an `http` connection of an
+infrastructure, which holds the URL and the credentials
+([ADR 0047](../adr/0047-http-connections-for-apps.md)). Studio sends the
+requests from its server; the browser never sees the URL or the credential.
+
+```yaml
+infrastructures:
+  - key: plant
+    # name, template, endpoints and security as above
+    connections:
+      - key: work-orders
+        type: http
+        url: http://work-orders:8080/api/v1   # replaces the document's servers
+        auth: { scheme: bearer, token: { ref: env:STUDIO_PLANT_WORK_ORDERS_TOKEN } }
+        allowPrivateNetwork: true
+        timeoutSeconds: 30                    # default 30, up to 120
+        apps:                                 # the app connections that may call it
+          - { app: org.eclipse.basyx.examples.work-orders, connection: orders }
+```
+
+- `apps` binds an app connection (the app ID and the `id` of a connection in
+  its manifest) to this connection. An app connection is bound at most once
+  per infrastructure; apps call the connection of the infrastructure they run
+  on. Calls of an app connection that no connection binds are refused with
+  `connection_not_bound`. The binding names the app ID, so it survives
+  updates and may be written before the app is installed.
+- The app reaches only the operations it declares, as method and path of its
+  OpenAPI document, below `url`. The *Apps* page and the infrastructure
+  dialog list them. An update that adds operations, or moves one to another
+  method or path, asks for confirmation again; the binding then covers it.
+- `auth.scheme` may be any scheme: `none` for a keyless API that Studio
+  should call instead of the browser, `bearer`, `token`, `header` or `basic`
+  with a secret reference, `oauth2ClientCredentials`, or `delegatedUser` for
+  the signed-in user (below). Before using any of them, Studio checks that
+  the user may open the infrastructure.
+- Studio validates parameters and JSON bodies against the document, sends up
+  to 8 MiB, reads up to 20 MiB, allows four calls per session and connection
+  at a time, and never follows redirects. Every call is audited
+  (`connection.call`) with the user, the app, the infrastructure, the
+  connection, the operation, the status and the duration, never with
+  parameters or bodies.
+- *Test connection* obtains the credentials and sends `GET` to `url`. Any
+  answer other than `401`, `403` or `5xx` passes.
+
+### The signed-in user's identity
+
+With `scheme: delegatedUser`, on an infrastructure whose users sign in
+(`security.mode: delegated_user`), the service receives a token for the
+signed-in user:
+
+```yaml
+        auth:
+          scheme: delegatedUser
+          audience: work-orders        # the service's audience
+          scopes: [work-orders]        # a scope the IdP maps to that audience
+```
+
+- Studio exchanges the user's token for this infrastructure at the issuer's
+  token endpoint for one issued to `audience` (OAuth 2.0 Token Exchange,
+  RFC 8693), as the infrastructure's client, and caches it per session until
+  it expires. *Test connection* performs the exchange.
+- Keycloak 26.2 or later: enable *Standard token exchange* on the
+  infrastructure's client (`standard.token.exchange.enabled`), create a client
+  for the service (bearer-only is enough) and a client scope with an audience
+  mapper for it, add that scope to the infrastructure's client as optional,
+  and list it in `scopes`.
+  [`examples/deployment/http-connections/keycloak`](../../examples/deployment/http-connections/keycloak)
+  has such a realm.
+- Where the IdP cannot exchange tokens, `forwardUserToken: true` forwards the
+  user's token unchanged, but only if its `aud` already contains `audience`.
+  The service could then replay it against the AAS server; prefer the
+  exchange. The audit says which of the two was used.
+
+### Connections or `connectOrigins`
+
+`sandbox.connectOrigins` ([ADR 0045](../adr/0045-app-origins-embeds-and-full-page-modules.md))
+lets an app's frame read a keyless public API directly, from the user's
+browser, at an origin the publisher fixes. Use an `http` connection instead
+when the API needs a credential or the user's identity, when its URL differs
+per deployment or is only reachable from Studio's network, or when calls must
+be audited.
 
 ## Signed apps
 

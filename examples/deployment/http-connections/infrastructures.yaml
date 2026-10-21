@@ -1,0 +1,57 @@
+# Infrastructures declared by this deployment (ADR 0037), each with an http
+# connection to the work-order service bound to the work-orders app
+# (ADR 0047). Studio applies the file at every start; it is read-only in
+# Studio.
+version: 1
+infrastructures:
+  # Studio calls the service with a static token: the service sees Studio.
+  - key: plant-token
+    name: Plant (static token)
+    template: mono-all
+    endpoints:
+      - type: aasEnvironment
+        url: http://basyx:5004
+    security:
+      mode: unsecured
+    allowPrivateNetwork: true
+    connections:
+      - key: work-orders
+        type: http
+        # How Studio reaches the service. The OpenAPI document's servers are ignored.
+        url: http://work-orders:8080/api/v1
+        auth:
+          scheme: bearer
+          token: { ref: env:WORK_ORDERS_TOKEN }
+        allowPrivateNetwork: true
+        # The app connections that may call it: the app ID and the id of a
+        # connection in its manifest.
+        apps:
+          - { app: org.eclipse.basyx.examples.work-orders, connection: orders }
+
+  # The same AAS server, where users sign in: the service sees the user.
+  - key: plant-user
+    name: Plant (signed in)
+    template: mono-all
+    endpoints:
+      - type: aasEnvironment
+        url: http://basyx:5004
+    security:
+      mode: delegated_user
+      issuer: http://keycloak.localhost:8180/realms/work-orders-example
+      clientId: studio
+      clientSecret: { ref: env:STUDIO_OIDC_CLIENT_SECRET }
+      scopes: [openid]
+    allowPrivateNetwork: true
+    connections:
+      - key: work-orders
+        type: http
+        url: http://work-orders:8080/api/v1
+        # Studio exchanges the user's token (RFC 8693) for one issued to the
+        # service; the scope adds that audience (keycloak/realm-*.json).
+        auth:
+          scheme: delegatedUser
+          audience: work-orders
+          scopes: [work-orders]
+        allowPrivateNetwork: true
+        apps:
+          - { app: org.eclipse.basyx.examples.work-orders, connection: orders }

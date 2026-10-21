@@ -322,6 +322,9 @@
     "connection_unavailable": "Der Dienst konnte nicht erreicht werden.",
     "connection_error": "Der Dienst hat einen Fehler gemeldet.",
     "connection_request_refused": "Studio sendet diese Anfrage nicht.",
+    "connection_not_bound": "Keine Verbindung dieser Infrastruktur ist an die App gebunden.",
+    "connection_operation_not_declared": "Die App hat diese Operation nicht angegeben.",
+    "connection_busy": "Zu viele Aufrufe dieses Dienstes laufen gerade. Versuchen Sie es gleich noch einmal.",
     "timeseries_invalid": "Die Zeitreihe kann nicht gelesen werden.",
     "external_file_unavailable": "Die externe Datei konnte nicht abgerufen werden.",
     "external_file_refused": "Studio ruft Dateien von dieser Adresse nicht ab.",
@@ -494,7 +497,7 @@
     },
     "connections": {
       "title": "Verbindungen",
-      "help": "Dienste, auf die Inhalte dieser Infrastruktur verweisen, die aber keine AAS-Dienste sind, etwa eine Zeitreihendatenbank. Studio verwahrt ihre Zugangsdaten und verwendet sie nur für Inhalte, die aus dieser Infrastruktur gelesen wurden.",
+      "help": "Dienste, auf die Inhalte dieser Infrastruktur verweisen, die aber keine AAS-Dienste sind, etwa eine Zeitreihendatenbank, und HTTP-Dienste, die Apps aufrufen. Studio verwahrt ihre Zugangsdaten und verwendet sie nur für Inhalte dieser Infrastruktur und für die daran gebundenen Apps.",
       "unnamed": "Neue Verbindung",
       "add": "Verbindung hinzufügen",
       "remove": "Entfernen",
@@ -504,10 +507,12 @@
       "keyTaken": "Eine andere Verbindung hat diesen Schlüssel.",
       "type": "Typ",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "HTTP-Dienst für Apps"
       },
       "typeHints": {
-        "influxdb2": "Zeitreihen der LinkedSegments von Time-Series-Data-Teilmodellen (Flux)."
+        "influxdb2": "Zeitreihen der LinkedSegments von Time-Series-Data-Teilmodellen (Flux).",
+        "http": "Apps rufen die Operationen auf, die sie in ihrem Manifest angeben, wenn Sie sie unten binden. Studio sendet die Anfragen mit diesen Zugangsdaten."
       },
       "url": "URL",
       "urlHint": "Wie Studio den Dienst erreicht, z. B. in seinem Container-Netzwerk.",
@@ -515,6 +520,14 @@
       "aliasesHint": "Weitere Adressen, unter denen Teilmodelle den Dienst nennen. Studio kontaktiert sie nie.",
       "organization": "Organisation",
       "organizationHint": "Ersetzt die Organisation der Endpunkte in Teilmodellen. Leer lassen, um deren zu verwenden.",
+      "apps": "Apps",
+      "appsHint": "App-Verbindungen, die diesen Dienst aufrufen dürfen. Jede zeigt die Operationen, die sie angibt; andere erreicht die App nicht.",
+      "app": "App-ID",
+      "appConnection": "Verbindung der App",
+      "addApp": "App binden",
+      "removeApp": "Bindung entfernen",
+      "appNotInstalled": "Die App ist nicht installiert oder gibt keine solche Verbindung an. Ihre Operationen erscheinen, sobald sie installiert ist.",
+      "appInvalid": "Geben Sie eine App-ID wie org.example.app ein.",
       "scheme": "Authentifizierung",
       "schemes": {
         "none": "Keine",
@@ -606,7 +619,8 @@
       "studio_ui_clipboard": "Text auf Klick in die Zwischenablage kopieren",
       "studio_containers": "Lokale BaSyx-Instanzen mit Docker oder Podman starten, stoppen, exportieren und löschen (nur mit Studio ausgelieferte Apps)",
       "studio_timeseries_read": "Zeitreihen lesen, auch aus den Datenbanken der Verbindungen der Infrastruktur (mit Studio ausgelieferte Apps und signierte Apps, denen die Bereitstellung es gewährt)",
-      "studio_ui_externalFiles": "Dateien, die die Verwaltungsschale bei anderen Hosts nennt, in Ihrem Browser abrufen (diese Hosts sehen Ihre Adresse)"
+      "studio_ui_externalFiles": "Dateien, die die Verwaltungsschale bei anderen Hosts nennt, in Ihrem Browser abrufen (diese Hosts sehen Ihre Adresse)",
+      "studio_connections": "Ihre Dienste über Studio aufrufen, wo eine Administratorin oder ein Administrator ihre Verbindungen bindet"
     },
     "bundled": "Enthalten",
     "bundledHint": "Mit Studio ausgeliefert und mit ihm aktuell gehalten.",
@@ -652,6 +666,11 @@
     "notGrantedHint": "Diese Bereitstellung gewährt dem Herausgeber der App diese Berechtigung nicht, daher werden Aufrufe, die sie brauchen, abgelehnt.",
     "permissionsRemoved": "Nicht mehr angefordert: {list}",
     "originsRemoved": "Nicht mehr erreicht: {list}",
+    "connections": "Ruft auf: {list}",
+    "operations": "{count} Operation | {count} Operationen",
+    "connectionHint": "Verbindung {id}, mit diesen Operationen:",
+    "connectionsNote": "Die App ruft diese Operationen über Studio auf, nur wo ihre Verbindungen an eine Verbindung einer Infrastruktur gebunden sind. Die Zugangsdaten bleiben bei Studio.",
+    "operationsRemoved": "Ruft nicht mehr auf: {list}",
     "update": "Aktualisieren",
     "confirmInstall": "Installieren",
     "updated": "{name} auf {version} aktualisiert."

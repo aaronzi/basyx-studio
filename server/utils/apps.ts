@@ -11,6 +11,7 @@ import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
 import { StudioProblem } from '../lib/problem'
+import { performConnectionCall } from './connections'
 import { performContainerMethod } from './containers'
 import { requestIdOf } from './handler'
 import { useStudio } from './studio'
@@ -76,9 +77,14 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
 
   const parsed = appMethodParamsSchemas[method].safeParse(call.params ?? {})
   if (!parsed.success) {
-    throw new StudioProblem('invalid_request', `Invalid parameters for ${method}.`, {
+    const problem = new StudioProblem('invalid_request', `Invalid parameters for ${method}.`, {
       violations: parsed.error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message })),
     })
+    if (method === 'studio.connections.call') {
+      // Refusals of connection calls are always audited (CON-006).
+      await auditFailure(problem)
+    }
+    throw problem
   }
   const params = parsed.data as Record<string, unknown>
   if (params.data instanceof Uint8Array && params.data.byteLength > studio.config.uploadMaxBytes) {
@@ -98,6 +104,9 @@ export async function performAppCall (event: RequestEvent, call: AppCall): Promi
   }
   if (method === 'studio.timeseries.read') {
     return performTimeSeriesRead(studio, call, params as never, requestId)
+  }
+  if (method === 'studio.connections.call') {
+    return performConnectionCall(studio, call, params as never, requestId)
   }
   if (!isAasMethod(method) && method !== 'studio.ui.openShell') {
     return null

@@ -132,6 +132,14 @@ versions while it is 0.x.*
 
 ### Connections for apps
 
+*Decided and implemented by
+[ADR 0047](../adr/0047-http-connections-for-apps.md) on 2026-10-20, for
+phase E of the [external apps plan](external-apps-plan.md). The ADR adds
+`headers` (declared header parameters, e.g. `If-Match`) and `contentType` to
+K4's method, refuses `3xx` answers other than `304`, gives `location`
+relative to the connection's URL, binds by app ID, and lets apps call only
+the connections of the infrastructure they run on.*
+
 These build on the connections core of the [time series plan](time-series-plan.md)
 (C1–C8): infrastructure-scoped entries with `type`, `url`, `aliases`, `auth`
 and `settings`, secrets as references or encrypted values, and guarded fetch.
@@ -267,11 +275,11 @@ infrastructures:
 
 | Phase | Content | Done when |
 | --- | --- | --- |
-| A | Two ADRs: ADR 0046 (single-app mode, managed packages, app-requested edit mode) and ADR 0047 (HTTP connections, declared operations, token exchange). ADR 0042 to 0044 are taken (external files, and the [external apps plan](external-apps-plan.md)); ADR 0045 decides the image and media origins of S1–S3 together with frame and connect origins. Updates to `security.md`, `app-platform.md` and `deployment-variants.md`. | ADRs reviewed |
+| A | Two ADRs: ADR 0046 (single-app mode, managed packages, app-requested edit mode) and ADR 0047 (HTTP connections, declared operations, token exchange). ADR 0042 to 0044 are taken (external files, and the [external apps plan](external-apps-plan.md)); ADR 0045 decides the image and media origins of S1–S3 together with frame and connect origins. Updates to `security.md`, `app-platform.md` and `deployment-variants.md`. ADR 0047 is written (2026-10-20); ADR 0046 is open. | ADRs reviewed |
 | B | Managed packages, single-app mode (M1–M7), the `/_studio` prefix, branded sign-in, and the Compose example with Fleet Atlas | Fleet Atlas runs as its own product at the root URL; deep links, reload and back work; hidden Studio pages are unreachable; full Studio is unchanged when `STUDIO_APP` is unset |
 | C | SDK transport split, test transport, `studioApi` 0.2.0, `/app-calls` in the OpenAPI document | Existing apps work unchanged; one example app has unit tests on the test transport |
 | D | AAS capabilities A1–A5, with server-side edit-mode checks and audit. A1 and A2 done with the external apps plan's phase E (ADR 0049); A3–A5 open | Contract tests per method, on a live target and on a workspace; registry sync and findings as in the editor |
-| E | HTTP connections (K1–K9); binding in YAML and in the infrastructure dialog | An app calls the mock service with `delegatedUser` and with a static token. Foreign URLs, undeclared operations, unbound apps, invalid bodies and redirects are refused and audited. The browser's network log shows no token. |
+| E | HTTP connections (K1–K9); binding in YAML and in the infrastructure dialog. Implemented with ADR 0047 for the external apps plan: the `work-orders` example app, its mock service and `examples/deployment/http-connections`; `test/e2e/web/connections.spec.ts` checks the definition of done. | An app calls the mock service with `delegatedUser` and with a static token. Foreign URLs, undeclared operations, unbound apps, invalid bodies and redirects are refused and audited. The browser's network log shows no token. |
 | F | Image and media origins (S1–S3), implemented with ADR 0045; the example below is still open | An example loads map images from a declared origin; without the declaration, the CSP blocks them |
 | G | Pilot: port an existing multi-service AAS application's main workflows to an app, outside this repository. Report the missing capabilities. | A follow-up plan lists the gaps found |
 

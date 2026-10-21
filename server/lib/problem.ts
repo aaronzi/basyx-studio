@@ -70,6 +70,9 @@ const definitions: Record<ProblemCode, ProblemDefinition> = {
   connection_unavailable: { status: 502, title: 'The service could not be reached', retryable: true },
   connection_error: { status: 502, title: 'The service reported an error', retryable: true },
   connection_request_refused: { status: 422, title: 'Studio does not send this request', retryable: false },
+  connection_not_bound: { status: 403, title: 'The app\'s connection is not bound to a connection of this infrastructure', retryable: false },
+  connection_operation_not_declared: { status: 403, title: 'The app did not declare this connection or operation', retryable: false },
+  connection_busy: { status: 429, title: 'Too many calls to this connection are in progress', retryable: true },
   timeseries_invalid: { status: 422, title: 'The time series cannot be read', retryable: false },
 }
 

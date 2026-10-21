@@ -1,4 +1,4 @@
-import type { AppInstallation, AppPackageInspection, AppPermission } from '#shared/contract'
+import type { AppConnectionSummary, AppInstallation, AppPackageInspection, AppPermission } from '#shared/contract'
 import type { AppTrustLevel } from '../../database/schema'
 import type { StudioDatabase } from '../database/client'
 import type { Actor, StudioDeps } from '../deps'
@@ -13,6 +13,7 @@ import semver from 'semver'
 import { appBlobs, appFiles, appInstallations } from '../../database/schema'
 import { recordAudit } from '../audit'
 import { StudioProblem } from '../problem'
+import { installationConnections } from './connections'
 import { readAppPackage, sha256Hex } from './package'
 import { checkSandbox } from './sandbox'
 import { installationTrust, verifyPackageSignature } from './trust'
@@ -192,17 +193,39 @@ export async function inspectAppPackage (deps: StudioDeps, bytes: Uint8Array, si
       sandboxAdded: (['webAssembly', 'workers'] as const).filter(flag => summary.sandbox[flag] && !before.sandbox[flag]),
       originsAdded: sandboxOriginKinds.flatMap(kind => summary.sandbox[kind].filter(origin => !before.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
       originsRemoved: sandboxOriginKinds.flatMap(kind => before.sandbox[kind].filter(origin => !summary.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
+      ...operationChanges(await installationConnections(deps, existing), pkg.connections),
       backendAdded: summary.backend && !before.backend,
     }
   }
   return {
     ...summary,
+    connections: pkg.connections,
     digest: pkg.digest,
     trust: signer ? 'signed' : 'unsigned',
     verifiedPublisher: signer?.publisher.name ?? null,
     keyFingerprint: signer?.keyFingerprint ?? null,
     grantedPermissions: (signer?.publisher.permissions ?? []).filter(permission => manifest.permissions.includes(permission)),
     update,
+  }
+}
+
+type ConnectionOperations = Pick<NonNullable<AppPackageInspection['update']>, 'operationsAdded' | 'operationsRemoved'>
+
+/**
+ * The operations an update adds and removes (ADR 0047): an operation of the
+ * same ID with another method or path counts as removed and added, so the
+ * administrator confirms what the binding now allows.
+ */
+function operationChanges (before: AppConnectionSummary[], after: AppConnectionSummary[]): ConnectionOperations {
+  const keys = (connections: AppConnectionSummary[]) => new Map(connections.flatMap(connection => connection.operations.map(operation => [
+    `${connection.id} ${operation.operationId} ${operation.method} ${operation.path}`,
+    { connection: connection.id, operationId: operation.operationId },
+  ])))
+  const was = keys(before)
+  const now = keys(after)
+  return {
+    operationsAdded: [...now].filter(([key]) => !was.has(key)).map(([, operation]) => operation),
+    operationsRemoved: [...was].filter(([key]) => !now.has(key)).map(([, operation]) => operation),
   }
 }
 
@@ -421,6 +444,11 @@ export async function listAppFilePaths (deps: Pick<StudioDeps, 'db'>, installati
 
 type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'remoteCode' | 'submodelViews' | 'modules' | 'backend'>
 
+/** An installation as the API returns it, with its connections' operations (ADR 0047). */
+export async function describeInstallation (deps: Pick<StudioDeps, 'db' | 'config'>, record: AppInstallationRecord): Promise<AppInstallation> {
+  return toAppInstallation(record, deps.config.apps.trustStore, await installationConnections(deps, record))
+}
+
 function manifestSummary (manifest: AppManifest): ManifestSummary {
   return {
     appId: manifest.id,
@@ -437,10 +465,12 @@ function manifestSummary (manifest: AppManifest): ManifestSummary {
   }
 }
 
-export function toAppInstallation (record: AppInstallationRecord, trustStore: TrustStore): AppInstallation {
+/** An installation as the API returns it; `connections` come from `installationConnections`, see `describeInstallation`. */
+export function toAppInstallation (record: AppInstallationRecord, trustStore: TrustStore, connections: AppConnectionSummary[] = []): AppInstallation {
   const trust = installationTrust(record, trustStore)
   return {
     ...manifestSummary(record.manifest),
+    connections,
     id: record.id,
     appId: record.appId,
     version: record.version,

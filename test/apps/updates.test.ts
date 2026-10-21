@@ -123,6 +123,8 @@ describe('signed installs and in-place updates', () => {
       sandboxAdded: ['workers'],
       originsAdded: [],
       originsRemoved: [],
+      operationsAdded: [],
+      operationsRemoved: [],
       backendAdded: false,
     })
 

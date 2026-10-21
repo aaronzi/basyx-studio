@@ -1,6 +1,7 @@
 import type { Connection, ConnectionPurpose, ConnectionTestResult, ConnectionType } from '#shared/contract'
 import type { ConnectionClient } from './client'
 import { connectionTypes } from '#shared/contract'
+import { testHttp } from './http'
 import { testInfluxdb2 } from './influxdb2'
 
 // The adapters of connection types (ADR 0040). The contract
@@ -17,6 +18,7 @@ export interface ConnectionAdapter {
 
 export const connectionAdapters: Record<ConnectionType, ConnectionAdapter> = {
   influxdb2: { test: testInfluxdb2 },
+  http: { test: testHttp },
 }
 
 /** Whether a URL named in AAS content refers to a connection: the origin of its URL or of an alias. */

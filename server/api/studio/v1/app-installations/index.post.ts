@@ -2,7 +2,7 @@ import type { AppInstallation, AppPackageInspection } from '#shared/contract'
 import { maxSignatureLength } from '@basyx/studio-app-kit/signature'
 import { getQuery, getRequestHeader, setResponseStatus } from 'nuxt/server'
 import { appArchiveLimits } from '~~/server/lib/apps/package'
-import { inspectAppPackage, installApp, toAppInstallation } from '~~/server/lib/apps/store'
+import { describeInstallation, inspectAppPackage, installApp } from '~~/server/lib/apps/store'
 import { StudioProblem } from '~~/server/lib/problem'
 import { requireAdmin, requireCsrf } from '~~/server/utils/auth'
 import { defineStudioHandler, requestIdOf } from '~~/server/utils/handler'
@@ -39,5 +39,5 @@ export default defineStudioHandler(async (event): Promise<AppInstallation | AppP
     await studio.backends?.stop(record.id)
   }
   setResponseStatus(event, previous ? 200 : 201)
-  return toAppInstallation(record, studio.config.apps.trustStore)
+  return describeInstallation(studio, record)
 })

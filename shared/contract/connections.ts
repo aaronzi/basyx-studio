@@ -24,6 +24,8 @@ export interface ConnectionTypeInfo {
 export const connectionTypes = {
   /** InfluxDB 2.x: Flux over `/api/v2/query`. */
   influxdb2: { purposes: ['timeseries'], authSchemes: ['token'], defaultTimeoutSeconds: 15 },
+  /** A service that bound apps call through the operations they declare (ADR 0047). */
+  http: { purposes: [], authSchemes: connectionAuthSchemes, defaultTimeoutSeconds: 30 },
 } as const satisfies Record<string, ConnectionTypeInfo>
 export type ConnectionType = keyof typeof connectionTypes
 export const connectionTypeNames = Object.keys(connectionTypes) as [ConnectionType, ...ConnectionType[]]
@@ -110,6 +112,19 @@ export const influxdb2SettingsSchema = z.object({
   organization: z.string().trim().min(1).max(200).optional(),
 }).strict()
 
+/** HTTP connections have no settings yet; the field keeps the shape of the type union. */
+export const httpSettingsSchema = z.object({}).strict()
+
+/** An app connection bound to an `http` connection (ADR 0047): an app ID and the `id` of a connection in its manifest. */
+export const connectionBindingSchema = z.object({
+  app: z.string().max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID such as org.example.app'),
+  connection: connectionKeySchema,
+}).strict()
+export type ConnectionBinding = z.infer<typeof connectionBindingSchema>
+
+/** The largest number of app connections bound to one connection. */
+export const maxConnectionBindings = 50
+
 const connectionFields = {
   key: connectionKeySchema,
   /** How the Studio Service reaches the service, e.g. `http://influxdb:8086`. */
@@ -124,10 +139,21 @@ const connectionFields = {
 
 export const connectionInputSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('influxdb2'), ...connectionFields, auth: connectionAuthInputSchema, settings: influxdb2SettingsSchema.default({}) }),
+  z.object({
+    type: z.literal('http'),
+    ...connectionFields,
+    auth: connectionAuthInputSchema,
+    settings: httpSettingsSchema.default({}),
+    /** The app connections that may call this service, each with its declared operations. */
+    apps: z.array(connectionBindingSchema).max(maxConnectionBindings).default([]),
+  }),
 ]).superRefine((connection, context) => {
   const accepted: readonly ConnectionAuthScheme[] = connectionTypes[connection.type].authSchemes
   if (!accepted.includes(connection.auth.scheme)) {
     context.addIssue({ code: 'custom', path: ['auth', 'scheme'], message: `${connection.type} connections accept ${accepted.join(', ')}` })
+  }
+  if (connection.type === 'http' && connection.aliases.length > 0) {
+    context.addIssue({ code: 'custom', path: ['aliases'], message: 'http connections are called by apps only; no content refers to them by an alias' })
   }
 })
 export type ConnectionInput = z.input<typeof connectionInputSchema>
@@ -145,8 +171,20 @@ export const connectionSchema = z.discriminatedUnion('type', [
     auth: connectionAuthSummarySchema,
     settings: influxdb2SettingsSchema,
   }),
+  z.object({
+    type: z.literal('http'),
+    key: z.string(),
+    url: z.string(),
+    aliases: z.array(z.string()),
+    allowPrivateNetwork: z.boolean(),
+    timeoutSeconds: z.number().int().optional(),
+    auth: connectionAuthSummarySchema,
+    settings: httpSettingsSchema,
+    apps: z.array(connectionBindingSchema),
+  }),
 ])
 export type Connection = z.infer<typeof connectionSchema>
+export type HttpConnection = Extract<Connection, { type: 'http' }>
 
 /** Checks of *Test connection* (CON-005), in the order they run. */
 export const connectionChecks = ['token', 'health', 'query'] as const
@@ -169,3 +207,128 @@ export const connectionTestResultSchema = z.object({
   })),
 })
 export type ConnectionTestResult = z.infer<typeof connectionTestResultSchema>
+
+// ---------------------------------------------------------------------------
+// `studio.connections.call` (ADR 0047)
+
+/** A path, query or header parameter value as the app passes it. */
+const parameterValueSchema = z.union([z.string().max(10_000), z.number(), z.boolean()])
+
+const parameterNames = z.string().min(1).max(200)
+
+/**
+ * The parameters of `studio.connections.call` in the HTTP binding
+ * (`POST /app-calls`): bytes travel as base64, a request body as a string
+ * with `encoding: 'base64'`, a multipart file as `{ fileName, contentType,
+ * base64 }`. Studio's page and the backend harness convert the app's
+ * `Uint8Array`s (`encodeConnectionCall`).
+ */
+/** A parameter value, or a list of them for array parameters (path, query and header). */
+const parameterValuesSchema = z.union([parameterValueSchema, z.array(parameterValueSchema).max(1000)])
+
+export const connectionCallParamsSchema = z.object({
+  connection: connectionKeySchema,
+  operation: z.string().min(1).max(200),
+  path: z.record(parameterNames, parameterValuesSchema).optional(),
+  query: z.record(parameterNames, parameterValuesSchema).optional(),
+  headers: z.record(parameterNames, parameterValuesSchema).optional(),
+  contentType: z.string().min(1).max(200).optional(),
+  body: z.unknown().optional(),
+  encoding: z.literal('base64').optional(),
+}).strict()
+export type ConnectionCallWireParams = z.infer<typeof connectionCallParamsSchema>
+
+/** A multipart file in the HTTP binding. */
+export const connectionWireFileSchema = z.object({
+  fileName: z.string().min(1).max(500),
+  contentType: z.string().min(1).max(200).optional(),
+  base64: z.string(),
+}).strict()
+
+/** A form or multipart body in the HTTP binding. */
+export const connectionWireFormSchema = z.object({
+  fields: z.record(parameterNames, z.string()).optional(),
+  files: z.record(parameterNames, connectionWireFileSchema).optional(),
+}).strict()
+
+/** The result in the HTTP binding: a binary body is base64 with `encoding: 'base64'`. */
+export interface ConnectionCallWireResult {
+  status: number
+  contentType: string | null
+  etag: string | null
+  location: string | null
+  body: unknown
+  encoding?: 'base64'
+}
+
+function base64Of (bytes: Uint8Array): string {
+  let text = ''
+  for (let index = 0; index < bytes.length; index += 0x80_00) {
+    text += String.fromCodePoint(...bytes.subarray(index, index + 0x80_00))
+  }
+  return btoa(text)
+}
+
+function bytesOf (base64: string): Uint8Array {
+  const text = atob(base64)
+  const bytes = new Uint8Array(text.length)
+  for (let index = 0; index < text.length; index++) {
+    bytes[index] = text.codePointAt(index)!
+  }
+  return bytes
+}
+
+function binary (value: unknown): Uint8Array | null {
+  if (value instanceof Uint8Array) {
+    return value
+  }
+  return value instanceof ArrayBuffer ? new Uint8Array(value) : null
+}
+
+function isRecord (value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** The bytes of a multipart file part as the app passes it (`{ fileName, bytes }`), if it is one. */
+function fileBytes (file: unknown): Uint8Array | null {
+  return isRecord(file) ? binary(file.bytes) : null
+}
+
+/**
+ * The app's call parameters in the HTTP binding: a `Uint8Array` body and
+ * the bytes of multipart file parts as base64. Anything else, also a JSON
+ * body with a `files` property, passes unchanged.
+ */
+export function encodeConnectionCall (params: unknown): unknown {
+  if (!isRecord(params)) {
+    return params
+  }
+  const { body, ...rest } = params
+  const bytes = binary(body)
+  if (bytes) {
+    return { ...rest, body: base64Of(bytes), encoding: 'base64' }
+  }
+  const files = isRecord(body) && isRecord(body.files) ? body.files : null
+  if (!files || !Object.values(files).some(file => fileBytes(file))) {
+    return params
+  }
+  const encoded = Object.fromEntries(Object.entries(files).map(([name, file]) => {
+    const content = fileBytes(file)
+    if (!content) {
+      return [name, file]
+    }
+    const { bytes: _bytes, ...part } = file as Record<string, unknown>
+    return [name, { ...part, base64: base64Of(content) }]
+  }))
+  return { ...rest, body: { ...body as Record<string, unknown>, files: encoded } }
+}
+
+/** A result of the HTTP binding as the app receives it: a base64 body as `Uint8Array`. */
+export function decodeConnectionResult (result: ConnectionCallWireResult): { result: Omit<ConnectionCallWireResult, 'encoding'>, transfer: ArrayBuffer[] } {
+  const { encoding, ...rest } = result
+  if (encoding === 'base64' && typeof rest.body === 'string') {
+    const bytes = bytesOf(rest.body)
+    return { result: { ...rest, body: bytes }, transfer: [bytes.buffer as ArrayBuffer] }
+  }
+  return { result: rest, transfer: [] }
+}

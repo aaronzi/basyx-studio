@@ -23,10 +23,11 @@ for (const name of await readdir(examples)) {
     continue
   }
   execFileSync('pnpm', ['exec', 'vite', 'build', '--logLevel', 'warn'], { cwd: directory, stdio: 'inherit', shell: process.platform === 'win32' })
-  // The UI build lands in dist/ui/; backend files keep their folder.
+  // The UI build lands in dist/ui/; backend files and the OpenAPI documents
+  // of connections (ADR 0047) keep their folder.
   const result = await packApp({
     project: directory,
-    include: existsSync(join(directory, 'backend')) ? ['backend'] : [],
+    include: ['backend', 'api'].filter(folder => existsSync(join(directory, folder))),
     output: join(output, `${name}.zip`),
   })
   if (!result.file) {

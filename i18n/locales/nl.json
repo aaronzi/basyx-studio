@@ -242,6 +242,9 @@
     "connection_unavailable": "De dienst kon niet worden bereikt.",
     "connection_error": "De dienst heeft een fout gemeld.",
     "connection_request_refused": "Studio verstuurt dit verzoek niet.",
+    "connection_not_bound": "Geen verbinding van deze infrastructuur is aan de app gekoppeld.",
+    "connection_operation_not_declared": "De app heeft deze bewerking niet opgegeven.",
+    "connection_busy": "Er lopen te veel aanroepen naar deze dienst. Probeer het zo opnieuw.",
     "timeseries_invalid": "De tijdreeks kan niet worden gelezen.",
     "external_file_unavailable": "Het externe bestand kon niet worden opgehaald.",
     "external_file_refused": "Studio haalt geen bestanden op van dit adres.",
@@ -406,7 +409,7 @@
     "probedAt": "Gecontroleerd {time}",
     "connections": {
       "title": "Verbindingen",
-      "help": "Diensten waarnaar inhoud van deze infrastructuur verwijst, maar die geen AAS-diensten zijn, zoals een tijdreeksdatabase. Studio bewaart hun inloggegevens en gebruikt ze alleen voor inhoud die uit deze infrastructuur is gelezen.",
+      "help": "Diensten waarnaar inhoud van deze infrastructuur verwijst, maar die geen AAS-diensten zijn, zoals een tijdreeksdatabase, en HTTP-diensten die apps aanroepen. Studio bewaart hun inloggegevens en gebruikt ze alleen voor inhoud uit deze infrastructuur en voor de apps die eraan gekoppeld zijn.",
       "unnamed": "Nieuwe verbinding",
       "add": "Verbinding toevoegen",
       "remove": "Verwijderen",
@@ -416,10 +419,12 @@
       "keyTaken": "Een andere verbinding heeft deze sleutel.",
       "type": "Type",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "HTTP-dienst voor apps"
       },
       "typeHints": {
-        "influxdb2": "Tijdreeksen van de LinkedSegments van Time Series Data-submodellen (Flux)."
+        "influxdb2": "Tijdreeksen van de LinkedSegments van Time Series Data-submodellen (Flux).",
+        "http": "Apps roepen de bewerkingen aan die ze in hun manifest opgeven, waar u ze hieronder koppelt. Studio verstuurt de verzoeken met deze inloggegevens."
       },
       "url": "URL",
       "urlHint": "Hoe Studio de dienst bereikt, bijv. in zijn containernetwerk.",
@@ -427,6 +432,14 @@
       "aliasesHint": "Andere adressen waaronder submodellen de dienst noemen. Studio neemt er nooit contact mee op.",
       "organization": "Organisatie",
       "organizationHint": "Vervangt de organisatie van de endpoints in submodellen. Laat leeg om die van hen te gebruiken.",
+      "apps": "Apps",
+      "appsHint": "App-verbindingen die deze dienst mogen aanroepen. Elke verbinding toont de bewerkingen die ze opgeeft; de app bereikt verder niets.",
+      "app": "App-ID",
+      "appConnection": "Verbinding van de app",
+      "addApp": "App koppelen",
+      "removeApp": "Koppeling verwijderen",
+      "appNotInstalled": "De app is niet geïnstalleerd of geeft deze verbinding niet op. De bewerkingen verschijnen zodra hij is geïnstalleerd.",
+      "appInvalid": "Voer een app-ID in, zoals org.example.app.",
       "scheme": "Authenticatie",
       "schemes": {
         "none": "Geen",
@@ -518,7 +531,8 @@
       "studio_ui_clipboard": "Tekst naar het klembord kopiëren wanneer je klikt",
       "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)",
       "studio_timeseries_read": "Tijdreeksen lezen, ook uit de databases van de verbindingen van de infrastructuur (apps die met Studio worden meegeleverd en ondertekende apps waaraan de implementatie dit verleent)",
-      "studio_ui_externalFiles": "Bestanden die de AAS bij andere hosts noemt in uw browser ophalen (die hosts zien uw adres)"
+      "studio_ui_externalFiles": "Bestanden die de AAS bij andere hosts noemt in uw browser ophalen (die hosts zien uw adres)",
+      "studio_connections": "Zijn diensten via Studio aanroepen, waar een beheerder zijn verbindingen koppelt"
     },
     "bundled": "Meegeleverd",
     "bundledHint": "Meegeleverd met Studio en samen ermee bijgewerkt.",
@@ -552,6 +566,11 @@
     "notGrantedHint": "Deze implementatie verleent de machtiging niet aan de uitgever van de app, dus aanroepen die haar nodig hebben worden geweigerd.",
     "permissionsRemoved": "Niet meer gevraagd: {list}",
     "originsRemoved": "Bereikt niet meer: {list}",
+    "connections": "Roept aan: {list}",
+    "operations": "{count} bewerking | {count} bewerkingen",
+    "connectionHint": "Verbinding {id}, met deze bewerkingen:",
+    "connectionsNote": "De app roept deze bewerkingen via Studio aan, alleen waar een beheerder zijn verbindingen koppelt aan een verbinding van een infrastructuur. De inloggegevens blijven bij Studio.",
+    "operationsRemoved": "Roept niet meer aan: {list}",
     "update": "Bijwerken",
     "confirmInstall": "Installeren",
     "updated": "{name} bijgewerkt naar {version}.",

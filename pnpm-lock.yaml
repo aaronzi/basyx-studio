@@ -675,6 +675,28 @@ importers:
         specifier: ^8.3.4
         version: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
 
+  examples/apps/work-orders:
+    dependencies:
+      '@basyx/studio-sdk':
+        specifier: workspace:*
+        version: link:../../../packages/studio-sdk
+      '@mdi/font':
+        specifier: 7.4.47
+        version: 7.4.47
+      vue:
+        specifier: ^3.5.44
+        version: 3.5.44(typescript@6.0.3)
+      vuetify:
+        specifier: ^4.2.6
+        version: 4.2.6(patch_hash=b38d9461aa6dd0e33f8dde3a31e3cc6edbb1acfc432894b391b1750f568c4687)(@floating-ui/dom@1.8.0)(typescript@6.0.3)(vue-i18n@11.4.13(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3))
+    devDependencies:
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.10
+        version: 6.0.10(vite@8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@26.6.4)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.105.2)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
+
   packages/model-viewer:
     dependencies:
       occt-import-js:

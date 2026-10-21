@@ -31,6 +31,8 @@ export interface ConnectionForm {
   stored: SecretSummary | null
   storedScheme: ConnectionAuthScheme | null
   organization: string
+  /** `http`: the app connections bound to it (ADR 0047), as edited; a cleared field may be null. */
+  apps: Array<{ app: string | null, connection: string | null }>
   testing: boolean
   testResult: ConnectionTestResult | null
   testError: unknown
@@ -60,6 +62,7 @@ export function emptyConnectionForm (): ConnectionForm {
     stored: null,
     storedScheme: null,
     organization: '',
+    apps: [],
     testing: false,
     testResult: null,
     testError: null,
@@ -97,6 +100,7 @@ export function connectionFormOf (connection: Connection, desktop: boolean): Con
     stored,
     storedScheme: auth.scheme,
     organization: connection.type === 'influxdb2' ? connection.settings.organization ?? '' : '',
+    apps: connection.type === 'http' ? connection.apps.map(binding => ({ ...binding })) : [],
   }
 }
 
@@ -133,14 +137,26 @@ function authInput (form: ConnectionForm, desktop: boolean): ConnectionAuthInput
 }
 
 export function connectionInputOf (form: ConnectionForm, desktop: boolean): ConnectionInput {
-  return {
+  const fields = {
     key: form.key.trim(),
-    type: form.type,
     url: form.url.trim(),
-    aliases: form.aliases.map(alias => alias.trim()).filter(Boolean),
     allowPrivateNetwork: form.allowPrivateNetwork,
     timeoutSeconds: form.timeoutSeconds.trim() ? Number(form.timeoutSeconds) : undefined,
     auth: authInput(form, desktop),
+  }
+  if (form.type === 'http') {
+    return {
+      ...fields,
+      type: 'http',
+      aliases: [],
+      settings: {},
+      apps: form.apps.map(binding => ({ app: (binding.app ?? '').trim(), connection: (binding.connection ?? '').trim() })).filter(binding => binding.app || binding.connection),
+    }
+  }
+  return {
+    ...fields,
+    type: form.type,
+    aliases: form.aliases.map(alias => alias.trim()).filter(Boolean),
     settings: form.organization.trim() ? { organization: form.organization.trim() } : {},
   }
 }

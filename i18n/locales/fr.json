@@ -242,6 +242,9 @@
     "connection_unavailable": "Le service n'a pas pu être joint.",
     "connection_error": "Le service a signalé une erreur.",
     "connection_request_refused": "Studio n'envoie pas cette requête.",
+    "connection_not_bound": "Aucune connexion de cette infrastructure n’est liée à l’application.",
+    "connection_operation_not_declared": "L’application n’a pas déclaré cette opération.",
+    "connection_busy": "Trop d’appels à ce service sont en cours. Réessayez dans un instant.",
     "timeseries_invalid": "La série temporelle ne peut pas être lue.",
     "external_file_unavailable": "Le fichier externe n'a pas pu être récupéré.",
     "external_file_refused": "Studio ne récupère pas de fichiers depuis cette adresse.",
@@ -406,7 +409,7 @@
     "probedAt": "Vérifié {time}",
     "connections": {
       "title": "Connexions",
-      "help": "Services auxquels renvoie le contenu de cette infrastructure mais qui ne sont pas des services AAS, comme une base de données de séries temporelles. Studio conserve leurs identifiants et ne les utilise que pour le contenu lu dans cette infrastructure.",
+      "help": "Services auxquels renvoie le contenu de cette infrastructure mais qui ne sont pas des services AAS, comme une base de séries temporelles, et services HTTP qu’appellent les applications. Studio conserve leurs identifiants et ne les utilise que pour le contenu lu dans cette infrastructure et pour les applications qui y sont liées.",
       "unnamed": "Nouvelle connexion",
       "add": "Ajouter une connexion",
       "remove": "Supprimer",
@@ -416,10 +419,12 @@
       "keyTaken": "Une autre connexion a cette clé.",
       "type": "Type",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "Service HTTP pour applications"
       },
       "typeHints": {
-        "influxdb2": "Séries temporelles des LinkedSegments des sous-modèles Time Series Data (Flux)."
+        "influxdb2": "Séries temporelles des LinkedSegments des sous-modèles Time Series Data (Flux).",
+        "http": "Les applications appellent les opérations déclarées dans leur manifeste, là où vous les liez ci-dessous. Studio envoie les requêtes avec ces identifiants."
       },
       "url": "URL",
       "urlHint": "Comment Studio joint le service, p. ex. dans son réseau de conteneurs.",
@@ -427,6 +432,14 @@
       "aliasesHint": "Autres adresses sous lesquelles les sous-modèles nomment le service. Studio ne les contacte jamais.",
       "organization": "Organisation",
       "organizationHint": "Remplace l'organisation des points d'accès dans les sous-modèles. Laissez vide pour utiliser la leur.",
+      "apps": "Applications",
+      "appsHint": "Connexions d’applications autorisées à appeler ce service. Chacune liste les opérations qu’elle déclare ; l’application n’atteint rien d’autre.",
+      "app": "ID de l’application",
+      "appConnection": "Connexion de l’application",
+      "addApp": "Lier une application",
+      "removeApp": "Supprimer la liaison",
+      "appNotInstalled": "L’application n’est pas installée ou ne déclare pas cette connexion. Ses opérations s’affichent une fois installée.",
+      "appInvalid": "Saisissez un ID d’application comme org.example.app.",
       "scheme": "Authentification",
       "schemes": {
         "none": "Aucune",
@@ -518,7 +531,8 @@
       "studio_ui_clipboard": "Copier du texte dans le presse-papiers lorsque vous cliquez",
       "studio_containers": "Démarrer, arrêter, exporter et supprimer des instances BaSyx locales sur Docker ou Podman (applications fournies avec Studio uniquement)",
       "studio_timeseries_read": "Lire des séries temporelles, y compris depuis les bases de données des connexions de l’infrastructure (apps livrées avec Studio et apps signées auxquelles le déploiement l’accorde)",
-      "studio_ui_externalFiles": "Récupérer dans votre navigateur des fichiers que l'AAS désigne sur d'autres hôtes (ces hôtes voient votre adresse)"
+      "studio_ui_externalFiles": "Récupérer dans votre navigateur des fichiers que l'AAS désigne sur d'autres hôtes (ces hôtes voient votre adresse)",
+      "studio_connections": "Appeler ses services via Studio, là où un administrateur lie ses connexions"
     },
     "bundled": "Incluse",
     "bundledHint": "Livrée avec Studio et mise à jour avec lui.",
@@ -552,6 +566,11 @@
     "notGrantedHint": "Ce déploiement n’accorde pas cette autorisation à l’éditeur de l’app ; les appels qui en ont besoin sont refusés.",
     "permissionsRemoved": "Plus demandé : {list}",
     "originsRemoved": "N’accède plus à : {list}",
+    "connections": "Appelle : {list}",
+    "operations": "{count} opération | {count} opérations",
+    "connectionHint": "Connexion {id}, avec ces opérations :",
+    "connectionsNote": "L’application appelle ces opérations via Studio, uniquement là où un administrateur lie ses connexions à une connexion d’une infrastructure. Les identifiants restent dans Studio.",
+    "operationsRemoved": "N’appelle plus : {list}",
     "update": "Mettre à jour",
     "confirmInstall": "Installer",
     "updated": "{name} mise à jour vers {version}.",

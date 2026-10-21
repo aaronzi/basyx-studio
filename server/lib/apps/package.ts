@@ -1,11 +1,12 @@
-import type { DeploymentMode } from '#shared/contract'
+import type { AppConnectionSummary, DeploymentMode } from '#shared/contract'
 import type { Violation } from '../problem'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { createHash } from 'node:crypto'
-import { appArchiveLimits, contentTypeOf, isArchiveLitter, maxManifestBytes } from '@basyx/studio-app-kit/manifest'
+import { appArchiveLimits, checkConnectionApis, contentTypeOf, isArchiveLitter, maxManifestBytes } from '@basyx/studio-app-kit/manifest'
 import { unzipSync } from 'fflate'
 import { StudioProblem } from '../problem'
 import { inspectArchive } from '../workspaces/archive'
+import { connectionSummaries } from './connections'
 import { checkCompatibility, checkManifestConsistency, manifestFileName, parseManifest } from './manifest'
 
 // The package limits, file types and litter rules are shared with the app
@@ -28,6 +29,8 @@ export interface AppPackage {
   /** `sha256:<hex>` of the archive as uploaded. */
   digest: string
   files: AppPackageFile[]
+  /** The declared connections with their operations (ADR 0047). */
+  connections: AppConnectionSummary[]
 }
 
 function summary (findings: Violation[]): string {
@@ -99,6 +102,12 @@ export function readAppPackage (bytes: Uint8Array, deploymentMode: DeploymentMod
     throw rejected([...findings, ...parsed.findings])
   }
   findings.push(...checkManifestConsistency(parsed.manifest, new Set(files.map(file => file.path))))
+  const decoder = new TextDecoder('utf-8', { fatal: false })
+  const apis = checkConnectionApis(parsed.manifest, path => {
+    const file = files.find(candidate => candidate.path === path)
+    return file ? decoder.decode(file.content) : undefined
+  })
+  findings.push(...apis.findings)
   if (findings.length > 0) {
     throw rejected(findings)
   }
@@ -108,5 +117,5 @@ export function readAppPackage (bytes: Uint8Array, deploymentMode: DeploymentMod
     throw new StudioProblem('app_incompatible', summary(incompatible), { violations: incompatible })
   }
 
-  return { manifest: parsed.manifest, digest: `sha256:${sha256Hex(bytes)}`, files }
+  return { manifest: parsed.manifest, digest: `sha256:${sha256Hex(bytes)}`, files, connections: connectionSummaries(parsed.manifest, apis.apis) }
 }

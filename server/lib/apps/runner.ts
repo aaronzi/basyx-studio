@@ -92,13 +92,44 @@ const write = message => (queue = queue.then(async () => {
   }
 }))
 for (const level of ['log', 'info', 'debug', 'warn']) console[level] = (...args) => console.error(...args)
+// studio.connections.call carries bytes as base64 over HTTP (ADR 0047); backends see Uint8Arrays.
+const toBase64 = bytes => {
+  let text = ''
+  for (let index = 0; index < bytes.length; index += 0x8000) text += String.fromCharCode(...bytes.subarray(index, index + 0x8000))
+  return btoa(text)
+}
+const fromBase64 = base64 => Uint8Array.from(atob(base64), char => char.charCodeAt(0))
+const isRecord = value => typeof value === 'object' && value !== null && !Array.isArray(value)
+const binary = value => value instanceof Uint8Array ? value : (value instanceof ArrayBuffer ? new Uint8Array(value) : null)
+const fileBytes = file => isRecord(file) ? binary(file.bytes) : null
+// Only a binary body and the bytes of multipart file parts change; a JSON body with a files property passes as it is.
+function encodeCall (params) {
+  const body = params?.body
+  const bytes = binary(body)
+  if (bytes) return { ...params, body: toBase64(bytes), encoding: 'base64' }
+  const files = isRecord(body) && isRecord(body.files) ? body.files : null
+  if (!files || !Object.values(files).some(fileBytes)) return params
+  const encoded = Object.fromEntries(Object.entries(files).map(([name, file]) => {
+    const content = fileBytes(file)
+    if (!content) return [name, file]
+    const { bytes: _bytes, ...part } = file
+    return [name, { ...part, base64: toBase64(content) }]
+  }))
+  return { ...params, body: { ...body, files: encoded } }
+}
+function decodeResult (result) {
+  if (result?.encoding !== 'base64') return result
+  const { encoding, ...rest } = result
+  return { ...rest, body: fromBase64(rest.body) }
+}
 function studioFor (token) {
   return {
     async call (method, params) {
+      const connections = method === 'studio.connections.call'
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { authorization: 'Bearer ' + token, 'content-type': 'application/json' },
-        body: JSON.stringify({ method, params: params ?? {} }),
+        body: JSON.stringify({ method, params: (connections ? encodeCall(params) : params) ?? {} }),
       })
       const body = await response.json().catch(() => ({}))
       if (!response.ok) {
@@ -106,7 +137,7 @@ function studioFor (token) {
         error.problem = body
         throw error
       }
-      return body.result
+      return connections ? decodeResult(body.result) : body.result
     },
   }
 }

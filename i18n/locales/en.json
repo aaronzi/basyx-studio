@@ -322,6 +322,9 @@
     "connection_unavailable": "The service could not be reached.",
     "connection_error": "The service reported an error.",
     "connection_request_refused": "Studio does not send this request.",
+    "connection_not_bound": "No connection of this infrastructure is bound to the app.",
+    "connection_operation_not_declared": "The app did not declare this operation.",
+    "connection_busy": "Too many calls to this service are in progress. Try again shortly.",
     "timeseries_invalid": "The time series cannot be read.",
     "external_file_unavailable": "The external file could not be fetched.",
     "external_file_refused": "Studio does not fetch files from this address.",
@@ -494,7 +497,7 @@
     },
     "connections": {
       "title": "Connections",
-      "help": "Services that content of this infrastructure refers to but that are not AAS services, such as a time series database. Studio keeps their credentials and uses them only for content read from this infrastructure.",
+      "help": "Services that content of this infrastructure refers to but that are not AAS services, such as a time series database, and HTTP services that apps call. Studio keeps their credentials and uses them only for content read from this infrastructure and for the apps bound to them.",
       "unnamed": "New connection",
       "add": "Add connection",
       "remove": "Remove",
@@ -504,10 +507,12 @@
       "keyTaken": "Another connection has this key.",
       "type": "Type",
       "types": {
-        "influxdb2": "InfluxDB 2"
+        "influxdb2": "InfluxDB 2",
+        "http": "HTTP service for apps"
       },
       "typeHints": {
-        "influxdb2": "Time series of the LinkedSegments of Time Series Data submodels (Flux)."
+        "influxdb2": "Time series of the LinkedSegments of Time Series Data submodels (Flux).",
+        "http": "Apps call the operations they declare in their manifest, where you bind them below. Studio sends the requests with these credentials."
       },
       "url": "URL",
       "urlHint": "How Studio reaches the service, e.g. in its container network.",
@@ -515,6 +520,14 @@
       "aliasesHint": "Other addresses under which submodels name the service. Studio never contacts them.",
       "organization": "Organization",
       "organizationHint": "Replaces the organization of the endpoints in submodels. Leave empty to use theirs.",
+      "apps": "Apps",
+      "appsHint": "App connections that may call this service. Each lists the operations it declares; the app reaches nothing else.",
+      "app": "App ID",
+      "appConnection": "Connection of the app",
+      "addApp": "Bind app",
+      "removeApp": "Remove binding",
+      "appNotInstalled": "The app is not installed, or declares no such connection. Its operations are shown once it is installed.",
+      "appInvalid": "Enter an app ID such as org.example.app.",
       "scheme": "Authentication",
       "schemes": {
         "none": "None",
@@ -606,7 +619,8 @@
       "studio_ui_clipboard": "Copy text to your clipboard when you click",
       "studio_containers": "Start, stop, export and delete local BaSyx instances on Docker or Podman (apps shipped with Studio only)",
       "studio_timeseries_read": "Read time series, also from the databases of the infrastructure's connections (apps shipped with Studio, and signed apps the deployment grants it)",
-      "studio_ui_externalFiles": "Fetch files that the AAS names at other hosts, in your browser (those hosts see your address)"
+      "studio_ui_externalFiles": "Fetch files that the AAS names at other hosts, in your browser (those hosts see your address)",
+      "studio_connections": "Call its services through Studio, where an administrator binds its connections"
     },
     "bundled": "Included",
     "bundledHint": "Shipped with Studio and kept up to date with it.",
@@ -652,6 +666,11 @@
     "notGrantedHint": "This deployment does not grant the permission to the app's publisher, so calls that need it are refused.",
     "permissionsRemoved": "No longer requested: {list}",
     "originsRemoved": "No longer reaches: {list}",
+    "connections": "Calls: {list}",
+    "operations": "{count} operation | {count} operations",
+    "connectionHint": "Connection {id}, with these operations:",
+    "connectionsNote": "The app calls these operations through Studio, only where an administrator binds its connections to a connection of an infrastructure. The credentials stay with Studio.",
+    "operationsRemoved": "No longer calls: {list}",
     "update": "Update",
     "confirmInstall": "Install",
     "updated": "Updated {name} to {version}."

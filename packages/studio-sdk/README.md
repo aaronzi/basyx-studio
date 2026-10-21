@@ -35,6 +35,7 @@ runs the app, whatever the package version.
 | 0.1.1 | 0.1.3: `sandbox.frameOrigins`, `connectOrigins`, `imageOrigins`, `mediaOrigins`; module `layout` | next release |
 | 0.1.2 | 0.1.4: `ui.openShell`; `timeseries.read` with `anchor: 'latest'` for LinkedSegments | next release |
 | 0.1.3 | 0.1.5: structural writes (`aas.createShell`, `createSubmodel`, `putSubmodel`, `addElement`, `putElement`, `deleteElement`, `deleteSubmodel`, `deleteShell`), `aas.putAttachment`, `aas.getSubmodelSnapshot`, `structureRevision` on element snapshots; `memoryAas` in `testing` | next release |
+| 0.1.4 | 0.1.6: `connections`, `studio.connections.call`, permission `studio.connections` | next release |
 | 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
 
 A new app API minor version (new methods) is a new minor version of the
@@ -96,6 +97,7 @@ user menu; show the target's name yourself if the page needs it.
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
 | `studio.ui.externalFiles` | `ui.readExternalFile`: files that elements name at other hosts, fetched by Studio's page; those hosts see the user's address |
 | `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it; Studio app API 0.1.2 |
+| `studio.connections` | `connections.call`: call the declared operations of the app's `connections`, where an administrator binds them to a connection of the target's infrastructure ([ADR 0047](../../docs/adr/0047-http-connections-for-apps.md)); Studio app API 0.1.6 |
 
 ## UI
 
@@ -315,6 +317,84 @@ or media from elsewhere declares their origins (Studio app API 0.1.3,
   instead.
 - Studio refuses origins that cover its own origin or the apps origin.
 
+### HTTP connections
+
+An app that calls its own services, or APIs with keys, declares them as
+`connections`, each with an OpenAPI document in the package and the
+operations it calls (Studio app API 0.1.6,
+[ADR 0047](../../docs/adr/0047-http-connections-for-apps.md)). Studio sends
+the requests from its server, to the URL and with the credentials that an
+administrator configures on an infrastructure. The browser and the app never
+see either.
+
+```json
+"studioApi": "^0.1.6",
+"permissions": ["studio.aas.read", "studio.connections"],
+"connections": [{
+  "id": "orders",
+  "title": { "en": "Work-order service" },
+  "api": "api/work-orders.openapi.json",
+  "operations": ["listOrders", "createOrder", "getOrder", "updateOrder", "addPhoto"]
+}]
+```
+
+```ts
+const answer = await studio.connections.call({
+  connection: 'orders',
+  operation: 'listOrders',
+  query: { asset: 'urn:example:asset:pump-1', status: ['open'] },
+})
+// { status: 200, contentType: 'application/json', etag: null, location: null, body: [ … ] }
+
+const current = await studio.connections.call({ connection: 'orders', operation: 'getOrder', path: { orderId: '7' } })
+await studio.connections.call({
+  connection: 'orders',
+  operation: 'updateOrder',
+  path: { orderId: '7' },
+  headers: { 'If-Match': current.etag! },
+  body: { status: 'done' },
+})
+```
+
+- `api` is an OpenAPI 3.0 or 3.1 document in JSON, in the package, with only
+  local references (`#/…`); bundle documents that refer to other files.
+  `servers` and `security` are ignored. `operations` lists the
+  `operationId`s the app calls; the others stay unreachable.
+- `studio-app pack` and `verify` check the document as Studio's upload does:
+  the listed operations exist once, parameters are `path`, `query` or `header`
+  parameters with primitive values or arrays of them in the default styles,
+  no header Studio sets itself, no body with `GET`, and schemas that compile.
+- `call({ connection, operation, path?, query?, headers?, contentType?, body? })`:
+  Studio fills the path template one segment per value, sends declared query
+  and header parameters only, validates them and JSON bodies against the
+  document's schemas, and uses the operation's method. Array parameters take
+  arrays. Properties marked `readOnly` are not required in request bodies.
+- `body` is a JSON value for JSON media types, a string for text, `{ fields }`
+  for `application/x-www-form-urlencoded`, `{ fields, files }` for
+  `multipart/form-data` (`files: { file: { fileName, contentType, bytes } }`)
+  and a `Uint8Array` for anything else. `contentType` picks one of the
+  operation's request media types; the default is the first. Up to 8 MiB.
+- The result has the service's `status`, `contentType`, `etag`, `location`
+  and `body`: a JSON value, a string, a `Uint8Array`, or `null` when empty.
+  Every status is a result, so show the service's problem details yourself.
+  `location` is relative to the connection's URL, like the operations'
+  paths (`/orders/7`), or `null` when the service points elsewhere.
+- Studio refuses the call (`StudioError`) when the manifest does not declare
+  the operation (`connection_operation_not_declared`), when no connection of
+  the target's infrastructure binds the app's connection
+  (`connection_not_bound`, also on desktop workspaces and outside a target),
+  when the user cannot open the infrastructure, when a value does not match
+  (`invalid_request` with `violations`), with four calls of the page to the
+  connection in flight (`connection_busy`), on redirects
+  (`connection_request_refused`) and when the service cannot be reached
+  (`connection_unavailable`, without the service's address). Studio audits
+  every call and every refusal.
+- The install dialog lists the operations as method and path; an update that
+  adds operations or changes their method or path asks again.
+- `sandbox.connectOrigins` remains for keyless public data the browser reads
+  itself; anything with a secret, a URL that differs per deployment, the
+  user's identity or calls that must be audited is a connection.
+
 With an origin of its own, the app's frame also has `localStorage`, IndexedDB
 and cookies. They belong to the installation and the browser profile, not to
 the user or the target, and Studio does not clear them on sign-out. Keep
@@ -367,6 +447,12 @@ studio.calls // every call the app made
 - Structural writes and attachments are refused outside edit mode
   (`app_edit_mode_required`), and attachments above 8 MiB, as Studio refuses
   them; `setContext({ mode: 'edit' })` switches.
+- `connectionsHandler({ orders: { listOrders: ({ query }) => ({ body: [] }) } })`
+  answers `studio.connections.call` with functions per connection and
+  operation, as the manifest declares them. A function returns the parts of
+  the answer that differ from `{ status: 200, etag: null, location: null }`
+  and the body's media type; other connections are refused as unbound, other
+  operations as undeclared.
 
 `memoryAas({ shells, submodels })` keeps AAS content in memory and provides
 handlers for the reads, `setElementValue`, the structural writes,
@@ -410,7 +496,9 @@ export async function summarize (params, { studio }) {
 The UI calls it with `studio.backend.call('summarize', params)`. The backend
 runs in Deno with no file, environment, subprocess or network access other
 than Studio's capability endpoint, with the rights of the user who made the
-call.
+call. It reaches the app's services through its connections, with the same
+target and user (`studio.call('studio.connections.call', { … })`, bodies as
+`Uint8Array` as in the UI).
 
 ## Examples
 

@@ -2,6 +2,7 @@ import type { MethodName, Methods } from '@basyx/studio-sdk/protocol'
 import { editModeMethods, permissions, protocolVersion, putAttachmentMaxBytes, sandboxOriginKinds, stackFileKinds } from '@basyx/studio-sdk/protocol'
 import { z } from 'zod'
 import { displayBreakpoints } from '../overview'
+import { connectionCallParamsSchema } from './connections'
 import { engineHostSchema, stackComponentIdSchema, stackSpecSchema } from './containers'
 import { langStringSchema, listQuerySchema } from './target'
 import { timeSeriesReadParamsSchema } from './timeseries'
@@ -37,6 +38,24 @@ const appSandboxSchema = z.object({
   imageOrigins: z.array(z.string()),
   mediaOrigins: z.array(z.string()),
 })
+
+/** An operation an app connection declares, as the consent and binding dialogs show it (ADR 0047). */
+export const appConnectionOperationSchema = z.object({
+  operationId: z.string(),
+  method: z.string(),
+  path: z.string(),
+  summary: z.string().nullable(),
+})
+export type AppConnectionOperation = z.infer<typeof appConnectionOperationSchema>
+
+/** A connection of an app's manifest with its declared operations (ADR 0047). */
+export const appConnectionSummarySchema = z.object({
+  id: z.string(),
+  title: localizedTextSchema,
+  description: localizedTextSchema.nullable(),
+  operations: z.array(appConnectionOperationSchema),
+})
+export type AppConnectionSummary = z.infer<typeof appConnectionSummarySchema>
 
 export const appInstallationSchema = z.object({
   id: z.string(),
@@ -74,6 +93,8 @@ export const appInstallationSchema = z.object({
    * only for bundled apps and publishers the trust store grants `remoteCode`.
    */
   remoteCode: z.boolean(),
+  /** The HTTP services it calls through Studio, each with its operations; called only where an administrator binds them (ADR 0047). */
+  connections: z.array(appConnectionSummarySchema),
   submodelViews: z.number().int(),
   modules: z.number().int(),
   backend: z.boolean(),
@@ -87,7 +108,7 @@ export type AppInstallation = z.infer<typeof appInstallationSchema>
  * for the consent dialog. Nothing is stored.
  */
 export const appPackageInspectionSchema = appInstallationSchema
-  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, remoteCode: true, submodelViews: true, modules: true, backend: true })
+  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, remoteCode: true, connections: true, submodelViews: true, modules: true, backend: true })
   .extend({
     trust: z.enum(['signed', 'unsigned']),
     /** The installation this package updates in place, and what changes; `null` for a new installation. */
@@ -102,6 +123,13 @@ export const appPackageInspectionSchema = appInstallationSchema
       /** Declared origins the update adds and removes, per kind (ADR 0045). Added ones need the confirmation. */
       originsAdded: z.array(z.object({ kind: sandboxOriginKindSchema, origin: z.string() })),
       originsRemoved: z.array(z.object({ kind: sandboxOriginKindSchema, origin: z.string() })),
+      /**
+       * Operations the update adds to its connections, also those of a new
+       * connection or with a changed method or path (ADR 0047). They need the
+       * confirmation; bindings keep applying to them.
+       */
+      operationsAdded: z.array(z.object({ connection: z.string(), operationId: z.string() })),
+      operationsRemoved: z.array(z.object({ connection: z.string(), operationId: z.string() })),
       backendAdded: z.boolean(),
     }).nullable(),
   })
@@ -321,6 +349,8 @@ export const appMethodParamsSchemas = {
   'studio.containers.exportStack': z.object({ stackId, fileHandle: fileHandleSchema }).strict(),
   'studio.containers.importStack': z.object({ fileHandle: fileHandleSchema }).strict(),
   'studio.timeseries.read': timeSeriesReadParamsSchema,
+  // The HTTP binding of the call, with bytes as base64 (ADR 0047).
+  'studio.connections.call': connectionCallParamsSchema,
 } satisfies Record<MethodName, z.ZodType>
 
 export type AppMethodParams<M extends MethodName> = Methods[M]['params']
