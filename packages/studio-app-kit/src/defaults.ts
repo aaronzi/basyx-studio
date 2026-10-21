@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults } from './vuetify-defaults.ts'
+import { buttonGroupDefaults, fieldDefaults, fullscreenDefaults, menuDefaults } from './vuetify-defaults.ts'
 
 // Vuetify defaults of Studio's apps (ADR 0023, ADR 0043). They follow
 // Studio's look: a view renders flat inside the card Studio gives it (an
@@ -12,6 +12,8 @@ export const appDefaults = {
   VApp: { class: 'bg-transparent' },
   VViewCard: { flat: true, border: false, rounded: 0, color: 'transparent' },
   VCard: { flat: true, border: true, rounded: 'lg' },
+  // A view that fills the window, e.g. a preview opened without Studio's header.
+  ...fullscreenDefaults,
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text', density: 'comfortable' },
   VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none', density: 'comfortable' },
   VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none', density: 'comfortable' },
@@ -20,6 +22,8 @@ export const appDefaults = {
   VChip: { label: true, size: 'small', variant: 'tonal' },
   VList: { density: 'compact', bgColor: 'transparent' },
   VListItem: { rounded: 'lg' },
+  // Menus as in Studio.
+  ...menuDefaults,
   VAlert: { border: 'start', variant: 'tonal' },
   VProgressLinear: { indeterminate: true, color: 'primary' },
 } as const

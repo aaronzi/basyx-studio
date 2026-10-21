@@ -20,12 +20,53 @@ export const fieldDefaults = {
  * Grouped buttons: a bordered, divided group of text buttons with square
  * inner corners. Templates use a bare <v-btn-toggle> (one choice of several)
  * or <v-btn-group> (related actions or menus) and style neither the group
- * nor its buttons; ESLint refuses it.
+ * nor its buttons; ESLint refuses it. An icon-only choice in a toggle is a
+ * <v-btn-toggle-icon> (alias of VBtn): the toggle hands its compact density
+ * to every v-btn, which squeezes an icon button to 28 px around a 24 px
+ * icon; the alias reads only its own defaults, which keep room around a
+ * smaller icon.
  */
 
 export const buttonGroupDefaults = {
   VBtnToggle: { density: 'compact', rounded: 'lg', color: 'primary', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
   VBtnGroup: { density: 'compact', rounded: 'lg', border: true, divided: true, variant: 'text', VBtn: { rounded: false } },
+  // As the group's own buttons (the group sets height, flat and the rest).
+  VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
+} as const
+
+/*
+ * Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
+ * Items are inset evenly (pa-1) with a smaller radius (4 px) than the menu
+ * card (8 px), so their highlight follows the card's corners. Lists are
+ * transparent elsewhere; the menus of selects, comboboxes and autocompletes
+ * have no card around their list, so it brings the surface. Every menu looks
+ * the same, with or without a card around its list: a bare list brings the
+ * card's border, radius and shadow itself; inside a card (as Studio's
+ * account menu) the card has them. Templates use a bare <v-list> of
+ * <v-list-item>s in a <v-menu> and style neither; ESLint refuses it.
+ */
+export const menuDefaults = {
+  VMenu: {
+    VCard: { flat: false, VList: { border: false, rounded: 0, elevation: 0 } },
+    VList: { density: 'compact', slim: true, bgColor: 'surface', class: 'pa-1 text-body-medium', border: true, rounded: 'lg', elevation: 1 },
+    VListItem: { minHeight: 36, rounded: true },
+    // A menu's search is its header: lower than a dialog's or the command palette's.
+    VTextField: { density: 'compact' },
+  },
+} as const
+
+/** Props that style a menu's list or items; the menu defaults above set them, never a template. */
+export const menuStyleProps = ['density', 'slim', 'bg-color', 'border', 'rounded', 'elevation', 'min-height', 'nav'] as const
+
+/*
+ * Full-screen surfaces: the card of a full-screen dialog, or an app's view
+ * that fills the window (a preview opened with `header: false`), runs edge
+ * to edge, so it has no border and no radius. Use <v-card-fullscreen>
+ * (alias of VCard) for it, never a plain <v-card>, which brings a card's
+ * border and radius; ESLint refuses a <v-card> in a full-screen <v-dialog>.
+ */
+export const fullscreenDefaults = {
+  VCardFullscreen: { flat: true, border: false, rounded: 0 },
 } as const
 
 /** Props that style a group; set them in the defaults above, never in a template. */

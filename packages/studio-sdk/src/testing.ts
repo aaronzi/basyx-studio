@@ -92,6 +92,7 @@ export function testContext (patch: Partial<AppContext> = {}): AppContext {
     subPath: '',
     mode: 'view',
     fullscreen: false,
+    fullscreenOpen: false,
     viewState: '',
     locale: 'en',
     theme: testTheme(),

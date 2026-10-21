@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
+import { buttonGroupDefaults, fieldDefaults, fullscreenDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
 
@@ -66,10 +66,8 @@ export default defineVuetifyConfiguration({
     // A further action beside the main one, e.g. on the left of a dialog's
     // actions: bordered and filled, as in the BaSyx AAS Web UI and shadcn.
     VBtnSecondary: 'VBtn',
-    // An icon-only button in a v-btn-toggle. The toggle hands its compact
-    // density to every v-btn, which squeezes an icon button to 28 px around a
-    // 24 px icon; an alias only reads its own defaults, so this one keeps room
-    // around a smaller icon.
+    // An icon-only choice in a v-btn-toggle; its defaults are shared with
+    // the apps (@basyx/studio-app-kit/vuetify-defaults).
     VBtnToggleIcon: 'VBtn',
     // A small icon action in a compact header, e.g. of an Overview widget or
     // a value tile: comfortable density keeps the header one line high.
@@ -103,13 +101,12 @@ export default defineVuetifyConfiguration({
     VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none' },
     // One bordered group, divided between its buttons. Only the group is
     // rounded: the buttons' own rounding (VBtn above) would show at the dividers.
-    // VBtnToggle and VBtnGroup, shared with the bundled apps.
+    // VBtnToggle, VBtnGroup and VBtnToggleIcon, shared with the bundled apps.
     ...buttonGroupDefaults,
-    // As the toggle's own buttons (VBtnGroup sets height, flat and the rest).
-    VBtnToggleIcon: { color: 'primary', variant: 'text', flat: true, height: 'auto', rounded: false, density: 'comfortable', VIcon: { size: 'small' } },
     VBtnWidgetIcon: { variant: 'text', rounded: 'lg', density: 'comfortable', size: 'small' },
     VCard: { flat: true, border: true, rounded: 'lg' },
-    VCardFullscreen: { flat: true, border: false, rounded: 0 },
+    // Full-screen surfaces, as in the apps: no border, no radius.
+    ...fullscreenDefaults,
     VCardHeader: { class: 'bg-card-header' },
     VCardPane: {
       flat: true,
@@ -129,21 +126,8 @@ export default defineVuetifyConfiguration({
       VFileInput: { density: 'compact' },
       VTextarea: { density: 'compact' },
     },
-    // Menus are dense, as in shadcn: compact rows, slim icons, body-sized text.
-    // Items are inset evenly (pa-1) with a smaller radius (4 px) than the
-    // menu card (8 px), so their highlight follows the card's corners. Lists
-    // are transparent elsewhere (below); the menus of selects, comboboxes and
-    // autocompletes have no card around their list, so it brings the surface.
-    // Every menu looks the same, with or without a card around its list: a
-    // bare list brings the card's border, radius and shadow itself; inside a
-    // card (as the account menu) the card has them.
-    VMenu: {
-      VCard: { flat: false, VList: { border: false, rounded: 0, elevation: 0 } },
-      VList: { density: 'compact', slim: true, bgColor: 'surface', class: 'pa-1 text-body-medium', border: true, rounded: 'lg', elevation: 1 },
-      VListItem: { minHeight: 36, rounded: true },
-      // A menu's search is its header: lower than a dialog's or the command palette's.
-      VTextField: { density: 'compact' },
-    },
+    // Menus as in the apps (@basyx/studio-app-kit/vuetify-defaults).
+    ...menuDefaults,
     // Compact lists throughout: more rows on screen, as in the BaSyx Web UI and shadcn.
     VList: { color: 'primary', density: 'compact', bgColor: 'transparent' },
     VListItem: { rounded: 'lg', VBtn: { size: 'small' } },

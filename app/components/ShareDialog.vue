@@ -20,8 +20,8 @@
 
           <v-col cols="12" sm="auto">
             <v-btn-toggle v-model="subjectType" mandatory>
-              <v-btn :aria-label="t('share.user')" icon="mdi-account-outline" value="user" />
-              <v-btn :aria-label="t('share.group')" icon="mdi-account-group-outline" value="group" />
+              <v-btn-toggle-icon v-tooltip="t('share.user')" :aria-label="t('share.user')" icon="mdi-account-outline" value="user" />
+              <v-btn-toggle-icon v-tooltip="t('share.group')" :aria-label="t('share.group')" icon="mdi-account-group-outline" value="group" />
             </v-btn-toggle>
           </v-col>
 

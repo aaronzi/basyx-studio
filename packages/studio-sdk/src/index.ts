@@ -67,9 +67,16 @@ export class StudioClient {
     readExternalFile: (submodelId: string, idShortPath: string) => this.call('studio.ui.readExternalFile', { submodelId, idShortPath }),
     /**
      * Opens this view again in a full-screen dialog; `context.fullscreen` is
-     * true there, and `context.viewState` is `state` (Studio ≥ 0.1.1).
+     * true there, and `context.viewState` is `state` (Studio ≥ 0.1.1). With
+     * `{ header: false }` the frame shows over the dimmed page without
+     * Studio's header; close it with `closeFullscreen` (Studio ≥ 0.1.7).
      */
-    openFullscreen: (state?: string) => this.call('studio.ui.openFullscreen', state === undefined ? {} : { state }),
+    openFullscreen: (state?: string, options: { header?: boolean } = {}) => this.call('studio.ui.openFullscreen', {
+      ...(state === undefined ? {} : { state }),
+      ...(options.header === undefined ? {} : { header: options.header }),
+    }),
+    /** Closes the full-screen dialog this view runs in (Studio ≥ 0.1.7). */
+    closeFullscreen: () => this.call('studio.ui.closeFullscreen', {}),
     /** Opens a target in Studio (needs studio.ui.navigation). */
     openTarget: (targetId: string) => this.call('studio.ui.openTarget', { targetId }),
     /**

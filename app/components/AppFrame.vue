@@ -32,25 +32,36 @@
     />
 
     <!-- The same view again, filling the window (studio.ui.openFullscreen):
-         a second frame, so the embedded one keeps its size and state. -->
-    <v-dialog v-if="!fullscreen" v-model="fullscreenOpen" fullscreen>
-      <v-card-fullscreen class="d-flex flex-column" height="100%">
-        <v-toolbar class="flex-shrink-0" color="transparent" density="compact" :title="label(contribution.title)">
-          <template #append>
-            <v-btn :aria-label="t('common.close')" data-test="app-fullscreen-close" icon="mdi-close" @click="fullscreenOpen = false" />
-          </template>
-        </v-toolbar>
+         a second frame, so the embedded one keeps its size and state. Without
+         Studio's header, the frame alone shows over the dimmed page, e.g. a
+         file preview, and closes itself (studio.ui.closeFullscreen). -->
+    <v-dialog
+      v-if="!nested"
+      v-model="fullscreenOpen"
+      fullscreen
+      :opacity="fullscreenHeader ? undefined : 0.84"
+    >
+      <v-card-fullscreen class="d-flex flex-column" :color="fullscreenHeader ? undefined : 'transparent'" data-test="app-fullscreen" height="100%">
+        <template v-if="fullscreenHeader">
+          <v-toolbar class="flex-shrink-0" color="transparent" density="compact" :title="label(contribution.title)">
+            <template #append>
+              <v-btn :aria-label="t('common.close')" data-test="app-fullscreen-close" icon="mdi-close" @click="fullscreenOpen = false" />
+            </template>
+          </v-toolbar>
 
-        <v-divider />
+          <v-divider />
+        </template>
 
         <app-frame
           :contribution="contribution"
           fullscreen
+          :nested="fullscreen"
           :shell-id="shellId"
           :sub-path="subPath"
           :submodel="submodel"
           :target="target"
           :view-state="fullscreenState"
+          @close-fullscreen="fullscreenOpen = false"
         />
       </v-card-fullscreen>
     </v-dialog>
@@ -76,8 +87,10 @@
     subPath?: string
     /** Size the frame to the app's content (`studio.ui.setHeight`) instead of filling the container. */
     fit?: boolean
-    /** The frame inside the full-screen dialog; it cannot open another one. */
+    /** The frame inside a full-screen dialog; it may open one more, without Studio's header. */
     fullscreen?: boolean
+    /** The frame of such a second dialog; it opens no further one. */
+    nested?: boolean
     /** In that dialog, the state the embedded view passed to `studio.ui.openFullscreen`. */
     viewState?: string
   }>()
@@ -85,6 +98,8 @@
     'navigate': [subPath: string]
     /** The app's content height (`studio.ui.setHeight`), for a container that sizes itself to it. */
     'content-height': [height: number]
+    /** The app closed the full-screen dialog it runs in (`studio.ui.closeFullscreen`). */
+    'close-fullscreen': []
   }>()
 
   const { t, locale } = useI18n()
@@ -114,6 +129,7 @@
     subPath: props.subPath ?? '',
     mode: ui.mode,
     fullscreen: props.fullscreen ?? false,
+    fullscreenOpen: fullscreenOpen.value,
     viewState: props.viewState ?? '',
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },
@@ -123,8 +139,15 @@
   const fullscreenOpen = ref(false)
   /** What the view handed to `studio.ui.openFullscreen`, for the frame in the dialog. */
   const fullscreenState = ref('')
-  function openFullscreen (state = '') {
+  /** Whether the dialog shows Studio's header with the view's title and a close button. */
+  const fullscreenHeader = ref(true)
+  function openFullscreen (state = '', header = true) {
+    // Inside a full-screen dialog, only a header-less one opens above it.
+    if (props.fullscreen && header) {
+      return
+    }
     fullscreenState.value = state
+    fullscreenHeader.value = header
     fullscreenOpen.value = true
   }
   /** Seconds an app may take to connect before the frame offers a retry. */
@@ -178,7 +201,8 @@
     targetId: props.target?.id ?? null,
     context: () => context.value,
     onNavigate: subPath => emit('navigate', subPath),
-    onOpenFullscreen: props.fullscreen ? undefined : openFullscreen,
+    onOpenFullscreen: props.nested ? undefined : openFullscreen,
+    onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
   })
   watch(height, value => {
     if (value !== null) {

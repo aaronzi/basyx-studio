@@ -1,7 +1,7 @@
 import vuetify from 'eslint-config-vuetify'
 import withNuxt from './.nuxt/eslint.config.mjs'
 import { appDefaults } from './packages/studio-app-kit/src/defaults.ts'
-import { buttonGroupStyleProps } from './packages/studio-app-kit/src/vuetify-defaults.ts'
+import { buttonGroupStyleProps, menuStyleProps } from './packages/studio-app-kit/src/vuetify-defaults.ts'
 import vuetifyConfig from './vuetify.config.ts'
 
 // VAppBar -> v-app-bar, maxWidth -> max-width
@@ -37,6 +37,37 @@ const styledButtonGroups = ['v-btn-toggle', 'v-btn-group'].flatMap(element => bu
   message: `\`${key}\` on <${element}>: grouped buttons get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
 })))
 
+/**
+ * Icon-only choices in a toggle are <v-btn-toggle-icon>: a plain <v-btn icon>
+ * takes the toggle's compact density and squeezes its icon (see AGENTS.md).
+ */
+const iconButtonsInToggles = ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `VElement[rawName='v-btn-toggle'] VElement[rawName='v-btn'] > VStartTag > VAttribute[${attribute}='icon']`,
+  message: 'An icon-only button in <v-btn-toggle> is <v-btn-toggle-icon>, which keeps room around its icon (see AGENTS.md).',
+}))
+
+/**
+ * Menus look the same everywhere (the app kit's vuetify-defaults.ts): a bare
+ * <v-list> of <v-list-item>s in a <v-menu>, never styled in a template.
+ */
+const menuLists = {
+  'v-list': `VElement[rawName='v-menu'] > VElement[rawName='v-list']`,
+  'v-list-item': `VElement[rawName='v-menu'] > VElement[rawName='v-list'] VElement[rawName='v-list-item']`,
+}
+const styledMenus = Object.entries(menuLists).flatMap(([element, path]) => menuStyleProps.flatMap(prop => ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `${path} > VStartTag > VAttribute[${attribute}='${prop}']`,
+  message: `\`${prop}\` on <${element}> in a <v-menu>: menus get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
+}))))
+
+/**
+ * A full-screen dialog runs edge to edge: its card is <v-card-fullscreen>,
+ * without border and radius, never a plain <v-card> (see AGENTS.md).
+ */
+const cardsInFullscreenDialogs = ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `VElement[rawName='v-dialog']:has(VStartTag > VAttribute[${attribute}='fullscreen']) > VElement[rawName='v-card']`,
+  message: 'A full-screen <v-dialog> holds a <v-card-fullscreen>, which has no border or radius (see AGENTS.md).',
+}))
+
 export default withNuxt(
   vuetify({
     ts: true,
@@ -59,6 +90,13 @@ export default withNuxt(
       argument: 'style',
       message: 'Use Vuetify props or utility classes instead of inline styles.',
     }],
+  },
+}).append({
+  // Toggles and menus as Studio and the bundled apps share them; example apps
+  // bring their own defaults (examples/apps/shared/vuetify.ts).
+  files: ['app/**/*.vue', 'apps/**/*.vue'],
+  rules: {
+    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles, ...styledMenus, ...cardsInFullscreenDialogs],
   },
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only

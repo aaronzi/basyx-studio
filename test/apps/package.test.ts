@@ -3,6 +3,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { studioAppApiVersion } from '@basyx/studio-sdk/protocol'
 import { strToU8, zipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { readAppPackage } from '~~/server/lib/apps/package'
@@ -110,7 +111,7 @@ describe('readAppPackage', () => {
   it('refuses apps for another Studio app API or runtime', () => {
     const api = rejection(zipApp(manifestOf({ studioApi: '^2.0.0' })))
     expect(api.code).toBe('app_incompatible')
-    expect(api.violations).toEqual([{ path: 'studio-app.json#studioApi', message: 'requires Studio app API ^2.0.0; this Studio provides 0.1.5' }])
+    expect(api.violations).toEqual([{ path: 'studio-app.json#studioApi', message: `requires Studio app API ^2.0.0; this Studio provides ${studioAppApiVersion}` }])
 
     expect(rejection(zipApp(manifestOf({ studioApi: 'not a range' }))).code).toBe('app_incompatible')
     expect(rejection(zipApp(manifestOf({ runtimes: ['desktop'] })), 'hosted').violations).toEqual([
