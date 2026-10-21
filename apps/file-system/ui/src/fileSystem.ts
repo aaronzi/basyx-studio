@@ -18,6 +18,9 @@ export const folderSemanticId = 'https://basyx.org/submodels/Folder'
 
 export type Entry = FolderEntry | FileEntry
 
+/** What the menu of a folder or file offers. */
+export type EntryAction = 'open' | 'download' | 'rename' | 'move' | 'delete'
+
 interface EntryBase {
   /** The idShortPath in the submodel. */
   path: string
@@ -254,34 +257,84 @@ export function previewKind (contentType: string): PreviewKind {
   return textTypes.test(type) ? 'text' : 'none'
 }
 
-/** An MDI icon for an entry. */
-export function iconOf (entry: Entry, open = false): string {
+/** The entry's icon, as the Web UI's plugin shows it. */
+export function iconOf (entry: Entry): string {
   if (entry.kind === 'folder') {
-    return open ? 'mdi-folder-open-outline' : 'mdi-folder-outline'
+    return 'mdi-folder'
   }
   if (entry.external) {
-    return 'mdi-file-link-outline'
+    return 'mdi-file-link'
   }
   switch (previewKind(entry.contentType)) {
     case 'image': {
-      return 'mdi-file-image-outline'
+      return 'mdi-image'
     }
     case 'pdf': {
       return 'mdi-file-pdf-box'
     }
     case 'video': {
-      return 'mdi-file-video-outline'
+      return 'mdi-video'
     }
     case 'audio': {
-      return 'mdi-file-music-outline'
+      return 'mdi-music'
     }
     case 'text': {
-      return 'mdi-file-document-outline'
+      return 'mdi-file-document'
     }
     default: {
-      return 'mdi-file-outline'
+      return 'mdi-file'
     }
   }
+}
+
+/** The colour of the entry's icon, as the Web UI's plugin shows it. */
+export function iconColorOf (entry: Entry): string {
+  if (entry.kind === 'folder') {
+    return 'yellow-darken-2'
+  }
+  switch (previewKind(entry.contentType)) {
+    case 'image': {
+      return 'blue-darken-2'
+    }
+    case 'pdf': {
+      return 'red'
+    }
+    case 'video': {
+      return 'orange-darken-1'
+    }
+    default: {
+      return 'grey'
+    }
+  }
+}
+
+/** The entries in a folder (`''` for the top level), folders first. */
+export function childrenAt (entries: Entry[], folder: string): Entry[] {
+  if (!folder) {
+    return entries
+  }
+  const entry = findEntry(entries, folder)
+  return entry?.kind === 'folder' ? entry.children : []
+}
+
+/** The folders from the top level down to `folder`, for breadcrumbs. */
+export function trail (entries: Entry[], folder: string): FolderEntry[] {
+  const path: FolderEntry[] = []
+  let level = entries
+  for (const idShort of folder ? folder.split('.') : []) {
+    const next = level.find((entry): entry is FolderEntry => entry.kind === 'folder' && entry.idShort === idShort)
+    if (!next) {
+      break
+    }
+    path.push(next)
+    level = next.children
+  }
+  return path
+}
+
+/** The folder that holds `path`; `''` for the top level. */
+export function parentOf (path: string): string {
+  return path.includes('.') ? path.slice(0, path.lastIndexOf('.')) : ''
 }
 
 /** A size in bytes for people, e.g. `1.4 MB`. */

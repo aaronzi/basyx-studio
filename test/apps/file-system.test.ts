@@ -3,7 +3,7 @@ import type { JsonObject } from '@basyx/studio-sdk'
 import { putAttachmentMaxBytes } from '@basyx/studio-sdk'
 import { createTestStudio, memoryAas } from '@basyx/studio-sdk/testing'
 import { describe, expect, it } from 'vitest'
-import { fileIdShort, findEntry, flatten, newFolder, previewKind, readFileSystem, renamed } from '../../apps/file-system/ui/src/fileSystem'
+import { childrenAt, fileIdShort, findEntry, flatten, iconColorOf, iconOf, newFolder, parentOf, previewKind, readFileSystem, renamed, trail } from '../../apps/file-system/ui/src/fileSystem'
 import { FileSystemWriter, TooLargeError } from '../../apps/file-system/ui/src/operations'
 
 // The bundled FileSystem view (external apps plan X3): reading the
@@ -58,6 +58,21 @@ describe('reading a FileSystem submodel', () => {
     // The display name follows the locale, then English.
     expect(readFileSystem(webUiSubmodel(), 'de-saar')[0]!.name).toBe('Handbücher')
     expect(flatten(entries)).toHaveLength(6)
+  })
+
+  it('navigates folders as the gallery does: their content, the breadcrumbs and the way up', () => {
+    const entries = readFileSystem(webUiSubmodel(), 'en')
+    expect(childrenAt(entries, '').map(entry => entry.name)).toEqual(['Manuals', 'photo.png', 'spec.pdf', 'zeta.txt'])
+    expect(childrenAt(entries, 'FOLDER_1700000000000').map(entry => entry.name)).toEqual(['Old', 'Guide v2.pdf'])
+    expect(childrenAt(entries, 'missing')).toEqual([])
+    expect(trail(entries, 'FOLDER_1700000000000.FOLDER_1700000000001').map(entry => entry.name)).toEqual(['Manuals', 'Old'])
+    expect(parentOf('FOLDER_1700000000000.FOLDER_1700000000001')).toBe('FOLDER_1700000000000')
+    expect(parentOf('FOLDER_1700000000000')).toBe('')
+    // Icons and colours as in the Web UI.
+    expect(['Manuals', 'photo.png', 'spec.pdf', 'zeta.txt'].map(name => {
+      const entry = entries.find(candidate => candidate.name === name)!
+      return [iconOf(entry), iconColorOf(entry)]
+    })).toEqual([['mdi-folder', 'yellow-darken-2'], ['mdi-image', 'blue-darken-2'], ['mdi-file-link', 'red'], ['mdi-file-document', 'grey']])
   })
 
   it('names uploads as the Web UI does, as valid and unique idShorts', () => {

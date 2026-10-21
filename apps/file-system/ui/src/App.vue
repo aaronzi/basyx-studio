@@ -1,7 +1,57 @@
 <template>
   <v-app>
-    <!-- Studio's card shows the view's title. In Studio's full-screen dialog, the card fills the frame. -->
+    <!-- Studio's card shows the view's title; in Studio's full-screen dialog, the card fills the frame. -->
     <v-view-card :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">
+      <v-toolbar class="pe-2" color="transparent" density="comfortable">
+        <!-- Selection actions, as in the Web UI -->
+        <v-sheet
+          v-if="selected.size > 0"
+          border
+          class="d-flex align-center ms-3"
+          data-test="selection"
+          rounded="xl"
+        >
+          <v-btn
+            :aria-label="t('fs.clearSelection')"
+            data-test="clear-selection"
+            icon="mdi-close"
+            size="small"
+            @click="selected = new Set()"
+          />
+
+          <span class="text-title-small mx-2">{{ t('fs.selected', { count: selected.size }) }}</span>
+
+          <v-btn
+            :aria-label="t('fs.move')"
+            data-test="move-selected"
+            icon="mdi-folder-move"
+            size="small"
+            @click="startDialog('move', selectedEntries)"
+          />
+
+          <v-btn
+            :aria-label="t('fs.delete')"
+            data-test="delete-selected"
+            icon="mdi-delete"
+            size="small"
+            @click="startDialog('delete', selectedEntries)"
+          />
+        </v-sheet>
+
+        <v-toolbar-title v-else data-test="title">{{ view === 'grid' ? t('fs.gallery') : t('fs.explorer') }}</v-toolbar-title>
+
+        <v-spacer />
+
+        <v-btn-toggle v-model="view" class="me-3" mandatory>
+          <v-btn :aria-label="t('fs.gallery')" data-test="view-grid" icon="mdi-view-grid" value="grid" />
+          <v-btn :aria-label="t('fs.explorer')" data-test="view-list" icon="mdi-view-list" value="list" />
+        </v-btn-toggle>
+
+        <new-menu v-if="canEdit" @create-folder="startDialog('newFolder')" @upload="startDialog('upload')" />
+      </v-toolbar>
+
+      <v-divider />
+
       <v-progress-linear v-if="loading" />
 
       <v-alert
@@ -12,226 +62,264 @@
         type="error"
       />
 
-      <template v-else>
-        <div class="d-flex align-center flex-wrap ga-2 px-4 pb-2">
-          <span class="text-body-2 text-medium-emphasis" data-test="counts">{{ t('fs.counts', counts) }}</span>
-
-          <v-spacer />
-
-          <template v-if="canEdit">
-            <v-btn-primary
-              data-test="upload"
-              :disabled="busy !== null"
-              prepend-icon="mdi-upload"
-              :text="t('fs.upload')"
-              @click="fileInput?.click()"
-            />
-
-            <v-btn-secondary
-              data-test="new-folder"
-              :disabled="busy !== null"
-              prepend-icon="mdi-folder-plus-outline"
-              :text="t('fs.newFolder')"
-              @click="startForm('newFolder')"
-            />
-
-            <input
-              ref="fileInput"
-              class="d-none"
-              data-test="file-input"
-              multiple
-              type="file"
-              @change="onFilesChosen"
-            >
-          </template>
-        </div>
-
-        <v-alert
-          v-if="notice"
-          class="mx-4 mb-2"
-          closable
-          data-test="notice"
-          :text="notice.text"
-          :type="notice.type"
-          @click:close="notice = null"
-        />
-
-        <div v-if="busy" class="mx-4 mb-2" data-test="busy">
-          <p class="text-body-2 mb-1">{{ busy }}</p>
-          <v-progress-linear />
-        </div>
-
-        <!-- Changes are made in place: the view is sized to its content, so a dialog would not fit. -->
-        <v-sheet
-          v-if="form"
-          border
-          class="mx-4 mb-2 pa-3"
-          data-test="form"
-          rounded="lg"
-        >
-          <template v-if="form.kind === 'newFolder' || form.kind === 'rename'">
-            <v-text-field
-              v-model="form.name"
-              autofocus
-              data-test="name-field"
-              :label="t('fs.name')"
-              :rules="[value => Boolean(value?.trim()) || t('fs.nameRequired')]"
-              @keydown.enter="submitForm"
-            />
-          </template>
-
-          <v-select
-            v-else-if="form.kind === 'move'"
-            v-model="form.target"
-            data-test="move-target"
-            :items="moveTargets"
-            :label="t('fs.moveTo')"
+      <!-- The overlays are contained in this area; it does not scroll itself, so they stay in view. -->
+      <v-sheet
+        v-else
+        class="position-relative"
+        :class="fullscreen ? 'flex-grow-1 overflow-hidden' : undefined"
+        color="transparent"
+        :height="fullscreen ? undefined : 560"
+        @dragleave="onAreaDragLeave"
+        @dragover="onAreaDragOver"
+        @drop="onAreaDrop"
+      >
+        <div class="h-100 overflow-y-auto pa-4">
+          <v-alert
+            v-if="notice"
+            class="mb-3"
+            closable
+            data-test="notice"
+            :text="notice.text"
+            :type="notice.type"
+            @click:close="notice = null"
           />
 
-          <p v-else class="text-body-2" data-test="delete-question">
-            {{ form.entry?.kind === 'folder' ? t('fs.deleteFolder', { name: form.entry.name }) : t('fs.deleteFile', { name: form.entry?.name ?? '' }) }}
-          </p>
+          <!-- Breadcrumbs with "up", as in the Web UI -->
+          <v-list-item border class="pa-0 mb-3" data-test="breadcrumbs">
+            <template #prepend>
+              <v-btn
+                :aria-label="t('fs.up')"
+                class="ma-2"
+                data-test="up"
+                density="compact"
+                :disabled="!folder"
+                icon="mdi-chevron-up"
+                @click="openFolder(parentOf(folder))"
+              />
 
-          <div class="d-flex justify-end ga-2 mt-2">
-            <v-btn data-test="form-cancel" :text="t('fs.cancel')" @click="form = null" />
-
-            <v-btn-primary
-              :color="form.kind === 'delete' ? 'error' : undefined"
-              data-test="form-submit"
-              :disabled="!formValid"
-              :text="submitText"
-              @click="submitForm"
-            />
-          </div>
-        </v-sheet>
-
-        <v-row :class="fullscreen ? 'flex-grow-1 overflow-hidden' : undefined" no-gutters>
-          <v-col :class="fullscreen ? 'h-100 overflow-y-auto' : undefined" cols="12" md="5">
-            <v-treeview
-              v-if="items.length > 0"
-              v-model:activated="activated"
-              v-model:opened="opened"
-              activatable
-              :class="fullscreen ? undefined : 'overflow-y-auto'"
-              color="primary"
-              data-test="tree"
-              density="compact"
-              item-value="id"
-              :items="items"
-              :max-height="fullscreen ? undefined : 480"
-            >
-              <template #prepend="{ item, isOpen }">
-                <v-icon :icon="iconOf(item.entry, isOpen)" />
-              </template>
-            </v-treeview>
-
-            <v-card-text v-else class="text-medium-emphasis" data-test="empty">
-              {{ t('fs.empty') }} <template v-if="canEdit">{{ t('fs.emptyEdit') }}</template>
-            </v-card-text>
-          </v-col>
-
-          <v-col :class="fullscreen ? 'h-100 overflow-y-auto' : undefined" cols="12" md="7">
-            <template v-if="selected">
-              <v-card-item :prepend-icon="iconOf(selected)">
-                <v-card-title class="text-body-1" data-test="selected-name">{{ selected.name }}</v-card-title>
-                <v-card-subtitle data-test="selected-details">{{ details }}</v-card-subtitle>
-
-                <template #append>
-                  <div class="d-flex flex-wrap ga-1">
-                    <template v-if="selected.kind === 'file' && !selected.external">
-                      <v-btn
-                        :aria-label="t('fs.open')"
-                        data-test="open-file"
-                        icon="mdi-open-in-new"
-                        @click="openFile(selected, false)"
-                      />
-
-                      <v-btn
-                        :aria-label="t('fs.download')"
-                        data-test="download-file"
-                        icon="mdi-download"
-                        @click="openFile(selected, true)"
-                      />
-                    </template>
-
-                    <template v-if="canEdit">
-                      <v-btn
-                        :aria-label="t('fs.rename')"
-                        data-test="rename"
-                        :disabled="busy !== null"
-                        icon="mdi-pencil-outline"
-                        @click="startForm('rename', selected)"
-                      />
-
-                      <v-btn
-                        :aria-label="t('fs.move')"
-                        data-test="move"
-                        :disabled="busy !== null"
-                        icon="mdi-folder-move-outline"
-                        @click="startForm('move', selected)"
-                      />
-
-                      <v-btn
-                        :aria-label="t('fs.delete')"
-                        color="error"
-                        data-test="delete"
-                        :disabled="busy !== null"
-                        icon="mdi-delete-outline"
-                        @click="startForm('delete', selected)"
-                      />
-                    </template>
-                  </div>
-                </template>
-              </v-card-item>
-
-              <v-card-text>
-                <file-preview
-                  v-if="selected.kind === 'file'"
-                  :client="client"
-                  :file="selected"
-                  :fullscreen="fullscreen"
-                  :locale="locale"
-                  :submodel-id="submodelId"
-                  @loaded="size = $event"
-                />
-
-                <v-list v-else-if="selected.children.length > 0" data-test="folder-content">
-                  <v-list-item
-                    v-for="child in selected.children"
-                    :key="child.path"
-                    :prepend-icon="iconOf(child)"
-                    :title="child.name"
-                    @click="select(child.path)"
-                  />
-                </v-list>
-
-                <p v-else class="text-medium-emphasis">{{ t('fs.folderEmpty') }}</p>
-              </v-card-text>
+              <v-divider vertical />
             </template>
 
-            <v-card-text v-else class="text-medium-emphasis" data-test="select-hint">{{ t('fs.select') }}</v-card-text>
-          </v-col>
-        </v-row>
-      </template>
+            <v-breadcrumbs class="pa-0 ms-2" divider="/" :items="breadcrumbs">
+              <template #item="{ item, index }">
+                <v-breadcrumbs-item :data-test="`crumb-${index}`" :disabled="item.disabled" @click="openFolder(breadcrumbs[index]!.value)">{{ item.title }}</v-breadcrumbs-item>
+              </template>
+            </v-breadcrumbs>
+          </v-list-item>
+
+          <gallery-view
+            v-if="view === 'grid'"
+            :drop-target="dropTarget"
+            :editable="canEdit"
+            :entries="entries"
+            :folder="folder"
+            :selected="selected"
+            :thumbnails="thumbnails"
+            @action="onAction"
+            @create-folder="startDialog('newFolder')"
+            @drag-leave="onDragLeave"
+            @drag-over="onDragOver"
+            @drag-start="onDragStart"
+            @drop="onDrop"
+            @open="openFolder"
+            @preview="preview"
+            @toggle="toggle"
+            @upload="startDialog('upload')"
+          />
+
+          <list-view
+            v-else
+            :drop-target="dropTarget"
+            :editable="canEdit"
+            :entries="entries"
+            :folder="folder"
+            :selected="selected"
+            @action="onAction"
+            @drag-leave="onDragLeave"
+            @drag-over="onDragOver"
+            @drag-start="onDragStart"
+            @drop="onDrop"
+            @open="openFolder"
+            @preview="preview"
+            @toggle="toggle"
+            @toggle-all="toggleAll"
+          />
+        </div>
+
+        <!-- Files dragged in from the computer -->
+        <v-overlay
+          class="align-center justify-center"
+          contained
+          data-test="drop-zone"
+          :model-value="externalDrag"
+          :opacity="0.1"
+          persistent
+          scrim="primary"
+        >
+          <v-sheet class="pa-5" color="primary" rounded="lg">
+            <v-empty-state icon="mdi-upload" :title="t('fs.dropHere')" />
+          </v-sheet>
+        </v-overlay>
+
+        <!-- Progress of uploads, moves and deletes -->
+        <v-overlay class="align-center justify-center" contained :model-value="progress !== null" persistent>
+          <v-card v-if="progress" class="pa-6" data-test="progress" min-width="350">
+            <v-card-title class="text-center">{{ progress.title }}</v-card-title>
+
+            <v-card-text>
+              <div class="text-center mb-2">
+                <span class="text-title-large">{{ progress.current }}</span>
+                <span class="text-body-large"> / {{ progress.total }}</span>
+              </div>
+
+              <v-progress-linear height="20" :indeterminate="false" :model-value="(progress.current / Math.max(progress.total, 1)) * 100" rounded>
+                <strong>{{ Math.round((progress.current / Math.max(progress.total, 1)) * 100) }}%</strong>
+              </v-progress-linear>
+            </v-card-text>
+          </v-card>
+        </v-overlay>
+
+        <!-- The Web UI's dialogs, inside the view: Studio sizes the view's frame to its content. -->
+        <v-overlay class="align-center justify-center" contained :model-value="dialog !== null" @update:model-value="dialog = null">
+          <v-card v-if="dialog" data-test="dialog" max-width="600" min-width="360">
+            <v-card-title data-test="dialog-title">{{ dialogTitle }}</v-card-title>
+            <v-divider />
+
+            <v-card-text>
+              <v-text-field
+                v-if="dialog.kind === 'newFolder' || dialog.kind === 'rename'"
+                v-model="dialog.name"
+                autofocus
+                data-test="name-field"
+                :label="t('fs.name')"
+                :rules="[(value: string) => Boolean(value?.trim()) || t('fs.nameRequired')]"
+                @keydown.enter="submitDialog"
+              />
+
+              <v-file-input
+                v-else-if="dialog.kind === 'upload'"
+                v-model="dialog.files"
+                data-test="file-input"
+                :label="t('fs.selectFiles')"
+                multiple
+                prepend-icon=""
+                prepend-inner-icon="mdi-paperclip"
+              />
+
+              <v-select
+                v-else-if="dialog.kind === 'move'"
+                v-model="dialog.target"
+                data-test="move-target"
+                :items="moveTargets"
+                :label="t('fs.moveTo')"
+              />
+
+              <template v-else>
+                <p class="text-body-medium mb-2" data-test="delete-text">{{ deleteText }}</p>
+
+                <v-list v-if="dialog.entries.length > 1" class="pa-0" max-height="200">
+                  <v-list-item v-for="entry in dialog.entries" :key="entry.path" class="px-0" :title="entry.name">
+                    <template #prepend>
+                      <v-icon :color="iconColorOf(entry)" :icon="iconOf(entry)" size="small" />
+                    </template>
+                  </v-list-item>
+                </v-list>
+              </template>
+            </v-card-text>
+
+            <v-divider />
+
+            <v-card-actions>
+              <v-spacer />
+              <v-btn data-test="dialog-cancel" :text="t('fs.cancel')" @click="dialog = null" />
+
+              <v-btn-primary
+                :color="dialog.kind === 'delete' ? 'error' : undefined"
+                data-test="dialog-submit"
+                :disabled="!dialogValid"
+                :text="submitText"
+                @click="submitDialog"
+              />
+            </v-card-actions>
+          </v-card>
+        </v-overlay>
+      </v-sheet>
     </v-view-card>
+
+    <!-- The Web UI's preview: in Studio's full-screen dialog, over the file explorer. -->
+    <v-overlay
+      v-if="fullscreen"
+      content-class="d-flex w-100 h-100"
+      :model-value="previewed !== null"
+      :opacity="0.9"
+      @update:model-value="previewPath = null"
+    >
+      <v-card
+        v-if="previewed"
+        class="d-flex flex-column h-100 w-100"
+        color="transparent"
+        data-test="preview"
+        theme="dark"
+      >
+        <v-toolbar class="ps-3" color="transparent">
+          <v-icon :color="iconColorOf(previewed)" :icon="iconOf(previewed)" />
+          <v-toolbar-title class="text-title-medium text-white" data-test="preview-name">{{ previewed.name }}</v-toolbar-title>
+          <v-spacer />
+
+          <template v-if="!previewed.external">
+            <v-btn
+              :aria-label="t('fs.open')"
+              color="white"
+              data-test="preview-open"
+              icon="mdi-open-in-new"
+              @click="openFile(previewed, false)"
+            />
+
+            <v-btn :aria-label="t('fs.download')" color="white" icon="mdi-download" @click="openFile(previewed, true)" />
+          </template>
+
+          <v-btn
+            :aria-label="t('preview.close')"
+            color="white"
+            data-test="preview-close"
+            icon="mdi-close"
+            @click="previewPath = null"
+          />
+        </v-toolbar>
+
+        <file-preview
+          :client="client"
+          :file="previewed"
+          :locale="locale"
+          :submodel-id="submodelId"
+          @close="previewPath = null"
+          @download="openFile(previewed, true)"
+        />
+      </v-card>
+    </v-overlay>
   </v-app>
 </template>
 
 <script lang="ts" setup>
-  import type { Entry } from './fileSystem'
+  import type { Entry, EntryAction, FileEntry } from './fileSystem'
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
-  import { StudioError } from '@basyx/studio-sdk'
-  import { computed, onMounted, ref } from 'vue'
+  import { putAttachmentMaxBytes, StudioError } from '@basyx/studio-sdk'
+  import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import FilePreview from './FilePreview.vue'
-  import { findEntry, flatten, folders, formatSize, iconOf, isWithin, readFileSystem } from './fileSystem'
+  import { childrenAt, findEntry, folders, iconColorOf, iconOf, isWithin, parentOf, previewKind, readFileSystem, trail } from './fileSystem'
+  import GalleryView from './GalleryView.vue'
   import { provideI18n } from './i18n'
+  import ListView from './ListView.vue'
+  import NewMenu from './NewMenu.vue'
   import { FileSystemWriter, TooLargeError } from './operations'
 
   // The FileSystem submodel (https://basyx.org/FileSystem/FileSystem/0/1) as
-  // folders and files, with a preview of the selected file, as the BaSyx AAS
-  // Web UI's FileSystem plugin shows it. In Studio's edit mode, files are
-  // uploaded, and files and folders created, renamed, moved and deleted
-  // (Studio app API 0.1.5, ADR 0049).
+  // the BaSyx AAS Web UI's FileSystem plugin shows it: a gallery or a list of
+  // the current folder with breadcrumbs, and a full-screen preview. In
+  // Studio's edit mode, files are uploaded (also by dropping them on the
+  // view), folders created, and files and folders selected, renamed, moved
+  // (also by dragging them onto a folder) and deleted (Studio app API 0.1.5,
+  // ADR 0049).
 
   const props = defineProps<{ client: StudioClient }>()
   const { t, locale } = provideI18n(props.client)
@@ -243,70 +331,143 @@
   const submodelId = computed(() => context.value.submodel!.id)
   const writer = computed(() => new FileSystemWriter(props.client, submodelId.value))
 
+  /** What the full-screen dialog opens with: the folder, and the file to preview. */
+  interface ViewState { folder?: string, preview?: string }
+  function initialState (): ViewState {
+    try {
+      const state = JSON.parse(context.value.viewState || '{}') as ViewState
+      return typeof state === 'object' && state ? state : {}
+    } catch {
+      return {}
+    }
+  }
+  const state = initialState()
+
   const loading = ref(true)
   const loadError = ref<string | null>(null)
   const submodel = ref<JsonObject | null>(null)
   const notice = ref<{ type: 'success' | 'error' | 'warning', text: string } | null>(null)
-  /** What is being changed, shown above a progress bar; `null` when idle. */
-  const busy = ref<string | null>(null)
-  const size = ref<number | null>(null)
-  const fileInput = ref<HTMLInputElement | null>(null)
+  const progress = ref<{ title: string, current: number, total: number } | null>(null)
 
-  const entries = computed(() => submodel.value ? readFileSystem(submodel.value, locale.value) : [])
-  interface TreeItem { id: string, title: string, entry: Entry, children?: TreeItem[] }
-  function toItem (entry: Entry): TreeItem {
-    return entry.kind === 'folder' && entry.children.length > 0
-      ? { id: entry.path, title: entry.name, entry, children: entry.children.map(child => toItem(child)) }
-      : { id: entry.path, title: entry.name, entry }
-  }
-  const items = computed(() => entries.value.map(entry => toItem(entry)))
-  const counts = computed(() => {
-    const all = flatten(entries.value)
-    return { folders: all.filter(entry => entry.kind === 'folder').length, files: all.filter(entry => entry.kind === 'file').length }
+  const view = ref<'grid' | 'list'>(storedView())
+  const folder = ref(state.folder ?? '')
+  const previewPath = ref<string | null>(state.preview ?? null)
+  const selected = ref<Set<string>>(new Set())
+
+  const tree = computed(() => submodel.value ? readFileSystem(submodel.value, locale.value) : [])
+  const entries = computed(() => childrenAt(tree.value, folder.value))
+  const selectedEntries = computed(() => entries.value.filter(entry => selected.value.has(entry.path)))
+  const previewed = computed(() => {
+    const entry = previewPath.value ? findEntry(tree.value, previewPath.value) : null
+    return entry?.kind === 'file' ? entry : null
   })
+  const breadcrumbs = computed(() => [
+    { title: t('fs.root'), value: '', disabled: !folder.value },
+    ...trail(tree.value, folder.value).map(entry => ({ title: entry.name, value: entry.path, disabled: entry.path === folder.value })),
+  ])
 
-  const activated = ref<string[]>([])
-  const opened = ref<string[]>([])
-  const selectedPath = computed(() => activated.value[0] ?? null)
-  const selected = computed(() => selectedPath.value ? findEntry(entries.value, selectedPath.value) : null)
-  /** Where uploads and new folders go: the selected folder, or the selected file's folder. */
-  const currentFolder = computed(() => selected.value ? (selected.value.kind === 'folder' ? selected.value.path : selected.value.parent) : '')
-
-  const details = computed(() => {
-    const entry = selected.value
-    if (!entry) {
-      return ''
+  /** The view the user chose last; the frame may have no storage. */
+  function storedView (): 'grid' | 'list' {
+    try {
+      return localStorage.getItem('fileSystemViewMode') === 'list' ? 'list' : 'grid'
+    } catch {
+      return 'grid'
     }
-    if (entry.kind === 'folder') {
-      const inside = flatten(entry.children)
-      return t('fs.counts', { folders: inside.filter(child => child.kind === 'folder').length, files: inside.filter(child => child.kind === 'file').length })
-    }
-    return [entry.contentType, size.value === null ? null : formatSize(size.value, locale.value)].filter(Boolean).join(' · ')
-  })
-
-  function select (path: string) {
-    size.value = null
-    activated.value = [path]
-    // Its folders open, so it shows in the tree.
-    const parents = path.split('.').slice(0, -1).map((_, index, parts) => parts.slice(0, index + 1).join('.'))
-    opened.value = [...new Set([...opened.value, ...parents])]
   }
+  watch(view, value => {
+    try {
+      localStorage.setItem('fileSystemViewMode', value)
+    } catch {
+      // Without storage, the choice lasts as long as the view.
+    }
+  })
 
   async function load () {
     try {
       submodel.value = await props.client.aas.getSubmodel(submodelId.value)
       loadError.value = null
-      if (selectedPath.value && !findEntry(entries.value, selectedPath.value)) {
-        activated.value = []
-      } else if (selectedPath.value) {
-        select(selectedPath.value)
+      // A folder that went away: show the nearest one that is left.
+      while (folder.value && findEntry(tree.value, folder.value)?.kind !== 'folder') {
+        folder.value = parentOf(folder.value)
       }
+      selected.value = new Set([...selected.value].filter(path => findEntry(tree.value, path)))
     } catch (error_) {
       loadError.value = error_ instanceof StudioError ? error_.message : t('fs.loadFailed')
     } finally {
       loading.value = false
     }
   }
+
+  function openFolder (path: string) {
+    folder.value = path
+    selected.value = new Set()
+  }
+
+  /** Previews a file: here in the full-screen dialog, else by opening it. */
+  function preview (entry: FileEntry) {
+    if (fullscreen.value) {
+      previewPath.value = entry.path
+    } else {
+      void props.client.ui.openFullscreen(JSON.stringify({ folder: folder.value, preview: entry.path } satisfies ViewState))
+    }
+  }
+
+  function openFile (entry: FileEntry, download: boolean) {
+    void props.client.ui.openFile(submodelId.value, entry.path, download).catch((error_: unknown) => {
+      notice.value = { type: 'error', text: describe(error_) }
+    })
+  }
+
+  function toggle (entry: Entry) {
+    const next = new Set(selected.value)
+    if (next.has(entry.path)) {
+      next.delete(entry.path)
+    } else {
+      next.add(entry.path)
+    }
+    selected.value = next
+  }
+
+  function toggleAll () {
+    selected.value = entries.value.every(entry => selected.value.has(entry.path)) ? new Set() : new Set(entries.value.map(entry => entry.path))
+  }
+
+  // Leaving edit mode ends a selection and closes what changes files.
+  watch(canEdit, editable => {
+    if (!editable) {
+      selected.value = new Set()
+      dialog.value = null
+    }
+  })
+
+  // Thumbnails of the folder's images, read through Studio as the Web UI reads them.
+  const thumbnails = ref<Record<string, string>>({})
+  const thumbnailKeys = new Map<string, string>()
+  watch(entries, async current => {
+    for (const entry of current) {
+      if (entry.kind !== 'file' || entry.external || previewKind(entry.contentType) !== 'image') {
+        continue
+      }
+      const key = JSON.stringify(entry.element.value ?? null)
+      if (thumbnailKeys.get(entry.path) === key) {
+        continue
+      }
+      thumbnailKeys.set(entry.path, key)
+      try {
+        const content = await props.client.ui.readFile(submodelId.value, entry.path)
+        const previous = thumbnails.value[entry.path]
+        thumbnails.value = { ...thumbnails.value, [entry.path]: URL.createObjectURL(new Blob([content.bytes as BlobPart], { type: content.contentType || entry.contentType })) }
+        if (previous) {
+          URL.revokeObjectURL(previous)
+        }
+      } catch {
+        // No thumbnail: the card shows the image icon.
+      }
+    }
+  }, { immediate: true })
+  onBeforeUnmount(() => {
+    for (const url of Object.values(thumbnails.value)) URL.revokeObjectURL(url)
+  })
 
   function describe (cause: unknown): string {
     if (cause instanceof TooLargeError) {
@@ -334,76 +495,155 @@
     }
   }
 
-  /** Runs a change and reloads; a failure is shown, and the view shows the current state. */
-  async function change (label: string, work: () => Promise<string | null>, done: () => string) {
+  /**
+   * Runs a change on several entries one after the other with a progress
+   * card, then reloads. A failure stops the rest; the view shows what is
+   * there now.
+   */
+  async function change<T> (title: string, items: T[], work: (item: T) => Promise<void>, done: (count: number) => string) {
     notice.value = null
-    busy.value = label
+    progress.value = { title, current: 0, total: items.length }
+    let count = 0
     try {
-      const path = await work()
-      notice.value = { type: 'success', text: done() }
-      if (path !== null) {
-        select(path)
+      for (const item of items) {
+        progress.value = { title, current: count + 1, total: items.length }
+        await work(item)
+        count++
       }
+      notice.value = { type: 'success', text: done(count) }
     } catch (error_) {
-      notice.value = { type: 'error', text: describe(error_) }
+      notice.value = { type: count > 0 ? 'warning' : 'error', text: count > 0 ? `${done(count)} ${describe(error_)}` : describe(error_) }
     } finally {
-      busy.value = null
+      progress.value = null
+      selected.value = new Set()
       await load()
     }
   }
 
-  async function onFilesChosen (event: Event) {
-    const input = event.target as HTMLInputElement
-    const files = [...input.files ?? []]
-    input.value = ''
-    const folder = currentFolder.value
-    let uploaded = 0
-    let last: string | null = null
-    await change(t('fs.upload'), async () => {
-      for (const [index, file] of files.entries()) {
-        busy.value = t('fs.uploading', { current: index + 1, total: files.length, name: file.name })
-        last = await writer.value.upload(folder, { name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
-        uploaded++
-      }
-      return last
-    }, () => t('fs.uploaded', { count: uploaded }))
-    if (notice.value?.type === 'error' && uploaded > 0) {
-      notice.value = { type: 'warning', text: `${t('fs.uploaded', { count: uploaded })} ${notice.value.text}` }
+  async function upload (files: File[], into = folder.value) {
+    const tooLarge = files.find(file => file.size > putAttachmentMaxBytes)
+    if (tooLarge) {
+      notice.value = { type: 'error', text: t('fs.tooLarge', { name: tooLarge.name }) }
+      return
+    }
+    await change(t('fs.uploading'), files, async file => {
+      await writer.value.upload(into, { name: file.name, type: file.type, bytes: new Uint8Array(await file.arrayBuffer()) })
+    }, count => t('fs.uploaded', { count }))
+  }
+
+  async function move (items: Entry[], target: string) {
+    const movable = items.filter(entry => entry.parent !== target && !(entry.kind === 'folder' && isWithin(target, entry.path)))
+    if (movable.length === 0) {
+      return
+    }
+    await change(t('fs.moving'), movable, async entry => {
+      await writer.value.move(entry, target)
+    }, count => t('fs.moved', { count }))
+  }
+
+  // Dialogs: new folder, upload, rename, move and delete.
+  type DialogKind = 'newFolder' | 'upload' | 'rename' | 'move' | 'delete'
+  const dialog = ref<{ kind: DialogKind, entries: Entry[], name: string, files: File[], target: string } | null>(null)
+
+  function startDialog (kind: DialogKind, items: Entry[] = []) {
+    const first = items[0]
+    dialog.value = {
+      kind,
+      entries: items,
+      name: kind === 'newFolder' ? t('fs.defaultFolderName') : (first?.name ?? ''),
+      files: [],
+      target: first ? first.parent : folder.value,
     }
   }
 
-  type FormKind = 'newFolder' | 'rename' | 'move' | 'delete'
-  const form = ref<{ kind: FormKind, entry: Entry | null, name: string, target: string } | null>(null)
-
-  function startForm (kind: FormKind, entry: Entry | null = null) {
-    form.value = { kind, entry, name: kind === 'newFolder' ? t('fs.defaultFolderName') : (entry?.name ?? ''), target: entry?.parent ?? '' }
+  function onAction (entry: Entry, action: EntryAction | 'moveUp') {
+    switch (action) {
+      case 'open':
+      case 'download': {
+        if (entry.kind === 'file') {
+          openFile(entry, action === 'download')
+        }
+        break
+      }
+      case 'moveUp': {
+        void move([entry], parentOf(entry.parent))
+        break
+      }
+      default: {
+        startDialog(action, [entry])
+      }
+    }
   }
 
-  /** Folders an entry can move to: not where it is, not into itself. */
-  const moveTargets = computed(() => {
-    const entry = form.value?.entry
-    const targets = [{ title: t('fs.topLevel'), value: '' }, ...folders(entries.value).map(folder => ({ title: `${'— '.repeat(folder.path.split('.').length - 1)}${folder.name}`, value: folder.path }))]
-    return targets.filter(target => !entry || (entry.kind !== 'folder' || !isWithin(target.value, entry.path)))
+  const dialogTitle = computed(() => {
+    const current = dialog.value
+    const name = current?.entries[0]?.name ?? ''
+    switch (current?.kind) {
+      case 'newFolder': {
+        return t('fs.createFolder')
+      }
+      case 'upload': {
+        return t('fs.uploadFiles')
+      }
+      case 'rename': {
+        return t('fs.renameTitle', { name })
+      }
+      case 'move': {
+        return current.entries.length > 1 ? t('fs.moveManyTitle', { count: current.entries.length }) : t('fs.moveTitle', { name })
+      }
+      case 'delete': {
+        if (current.entries.length > 1) {
+          return t('fs.deleteManyTitle', { count: current.entries.length })
+        }
+        return current.entries[0]?.kind === 'folder' ? t('fs.deleteFolderTitle', { name }) : t('fs.deleteFileTitle', { name })
+      }
+      default: {
+        return ''
+      }
+    }
   })
 
-  const formValid = computed(() => {
-    const current = form.value
-    if (!current) {
-      return false
+  const deleteText = computed(() => {
+    const items = dialog.value?.entries ?? []
+    if (items.length > 1) {
+      return t('fs.deleteManyText')
     }
-    if (current.kind === 'newFolder' || current.kind === 'rename') {
-      return current.name.trim().length > 0
+    return items[0]?.kind === 'folder' ? t('fs.deleteFolderText') : t('fs.deleteFileText')
+  })
+
+  /** Folders the dialog's entries can move to: not into themselves. */
+  const moveTargets = computed(() => {
+    const moving = dialog.value?.entries ?? []
+    const targets = [{ title: t('fs.root'), value: '' }, ...folders(tree.value).map(entry => ({ title: `${'— '.repeat(entry.path.split('.').length - 1)}${entry.name}`, value: entry.path }))]
+    return targets.filter(target => moving.every(entry => entry.kind !== 'folder' || !isWithin(target.value, entry.path)))
+  })
+
+  const dialogValid = computed(() => {
+    const current = dialog.value
+    switch (current?.kind) {
+      case 'newFolder':
+      case 'rename': {
+        return current.name.trim().length > 0
+      }
+      case 'upload': {
+        return current.files.length > 0
+      }
+      case 'move': {
+        return current.entries.some(entry => entry.parent !== current.target)
+      }
+      default: {
+        return current !== null
+      }
     }
-    if (current.kind === 'move') {
-      return current.target !== current.entry?.parent
-    }
-    return true
   })
 
   const submitText = computed(() => {
-    switch (form.value?.kind) {
+    switch (dialog.value?.kind) {
       case 'newFolder': {
         return t('fs.create')
+      }
+      case 'upload': {
+        return t('fs.upload')
       }
       case 'move': {
         return t('fs.move')
@@ -417,47 +657,122 @@
     }
   })
 
-  async function submitForm () {
-    const current = form.value
-    if (!current || !formValid.value) {
+  async function submitDialog () {
+    const current = dialog.value
+    if (!current || !dialogValid.value) {
       return
     }
-    form.value = null
+    dialog.value = null
     const name = current.name.trim()
-    const entry = current.entry
     switch (current.kind) {
       case 'newFolder': {
-        const folder = currentFolder.value
-        await change(t('fs.newFolder'), () => writer.value.createFolder(folder, name), () => t('fs.created', { name }))
+        const into = folder.value
+        await change(t('fs.createFolder'), [name], async folderName => {
+          await writer.value.createFolder(into, folderName)
+        }, () => t('fs.created', { name }))
+        break
+      }
+      case 'upload': {
+        await upload(current.files)
         break
       }
       case 'rename': {
-        await change(t('fs.rename'), async () => {
-          await writer.value.rename(entry!, name, locale.value)
-          return entry!.path
+        await change(t('fs.rename'), current.entries, async entry => {
+          await writer.value.rename(entry, name, locale.value)
         }, () => t('fs.renamed', { name }))
         break
       }
       case 'move': {
-        await change(t('fs.moving', { name: entry!.name }), () => writer.value.move(entry!, current.target), () => t('fs.moved', { name: entry!.name }))
+        await move(current.entries, current.target)
         break
       }
       case 'delete': {
-        await change(t('fs.delete'), async () => {
-          await writer.value.delete(entry!)
-          activated.value = []
-          return null
-        }, () => t('fs.deleted', { name: entry!.name }))
+        await change(t('fs.deleting'), current.entries, async entry => {
+          await writer.value.delete(entry)
+        }, count => t('fs.deleted', { count }))
         break
       }
     }
   }
 
-  function openFile (entry: Entry, download: boolean) {
-    void props.client.ui.openFile(submodelId.value, entry.path, download).catch((error_: unknown) => {
-      notice.value = { type: 'error', text: describe(error_) }
-    })
+  // Drag and drop, as in the Web UI: entries onto a folder (or `...`) move
+  // there; files from the computer onto the view upload into the folder.
+  const dragType = 'application/x-basyx-file-system'
+  const dragging = ref<Entry[]>([])
+  const dropTarget = ref<string | null>(null)
+  const externalDrag = ref(false)
+
+  function onDragStart (entry: Entry, event: DragEvent) {
+    if (!canEdit.value || !event.dataTransfer) {
+      return
+    }
+    dragging.value = selected.value.has(entry.path) ? selectedEntries.value : [entry]
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData(dragType, JSON.stringify(dragging.value.map(item => item.path)))
   }
 
-  onMounted(load)
+  function canDropOn (target: string): boolean {
+    return dragging.value.some(entry => entry.parent !== target) && dragging.value.every(entry => entry.kind !== 'folder' || !isWithin(target, entry.path))
+  }
+
+  function onDragOver (target: string, event: DragEvent) {
+    if (canDropOn(target)) {
+      event.preventDefault()
+      event.stopPropagation()
+      dropTarget.value = target
+    }
+  }
+
+  function onDragLeave (target: string) {
+    if (dropTarget.value === target) {
+      dropTarget.value = null
+    }
+  }
+
+  function onDrop (target: string, event: DragEvent) {
+    if (!canDropOn(target)) {
+      return
+    }
+    event.preventDefault()
+    event.stopPropagation()
+    const items = dragging.value
+    endDrag()
+    void move(items, target)
+  }
+
+  function endDrag () {
+    dragging.value = []
+    dropTarget.value = null
+    externalDrag.value = false
+  }
+
+  function onAreaDragOver (event: DragEvent) {
+    if (canEdit.value && dragging.value.length === 0 && event.dataTransfer?.types.includes('Files')) {
+      event.preventDefault()
+      externalDrag.value = true
+    }
+  }
+
+  function onAreaDragLeave (event: DragEvent) {
+    const area = event.currentTarget as HTMLElement
+    if (!(event.relatedTarget instanceof Node) || !area.contains(event.relatedTarget)) {
+      externalDrag.value = false
+    }
+  }
+
+  function onAreaDrop (event: DragEvent) {
+    const files = [...event.dataTransfer?.files ?? []]
+    const external = externalDrag.value
+    endDrag()
+    if (canEdit.value && external && files.length > 0) {
+      event.preventDefault()
+      void upload(files)
+    }
+  }
+
+  onMounted(() => {
+    window.addEventListener('dragend', endDrag)
+    void load()
+  })
+  onBeforeUnmount(() => window.removeEventListener('dragend', endDrag))
 </script>

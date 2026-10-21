@@ -41,9 +41,9 @@ function filesFrame (page: Page): FrameLocator {
   return page.frameLocator('iframe[title="App: Files"]')
 }
 
-/** Clicks into the app once its frame stopped growing and moving: a click into a frame the Overview is still placing can be lost. */
-async function click (page: Page, name: string | RegExp, role: 'button' | 'treeitem' | 'option' = 'button') {
-  const target = filesFrame(page).getByRole(role, { name }).first()
+/** Clicks in the app once its frame stopped moving: a click into a frame the Overview is still placing can be lost. */
+async function click (page: Page, selector: string, options: { hasText?: string | RegExp } = {}) {
+  const target = filesFrame(page).locator(selector, options).first()
   await expect(target).toBeVisible({ timeout: 30_000 })
   await waitUntilSettled(page.locator('iframe[title="App: Files"]'))
   await target.click()
@@ -51,6 +51,11 @@ async function click (page: Page, name: string | RegExp, role: 'button' | 'treei
 
 async function expectNotice (page: Page, text: string | RegExp) {
   await expect(filesFrame(page).locator('[data-test="notice"]')).toContainText(text, { timeout: 30_000 })
+}
+
+/** The card of a folder or file in the gallery. */
+function card (page: Page, kind: 'folder' | 'file', name: string) {
+  return filesFrame(page).locator(`[data-test="${kind}-card"]`, { hasText: name })
 }
 
 test.beforeAll(async ({ browser }) => {
@@ -81,68 +86,80 @@ test.afterAll(async ({ browser }) => {
   await page.close()
 })
 
-test('manages files and folders in edit mode and previews them', async ({ page }) => {
+test('manages files and folders as the Web UI does, in edit mode, and previews them', async ({ page }) => {
   test.setTimeout(120_000)
   await signIn(page, 'studio-admin')
   await page.goto(`/targets/${targetId}/shells/${key(shellId)}?tab=overview`)
   const frame = filesFrame(page)
-  await expect(frame.locator('[data-test="empty"]')).toContainText('no files or folders', { timeout: 30_000 })
+  await expect(frame.locator('[data-test="empty"]')).toContainText('No files or folders', { timeout: 30_000 })
   // View mode offers no changes.
-  await expect(frame.locator('[data-test="upload"]')).toHaveCount(0)
+  await expect(frame.locator('[data-test="new"]')).toHaveCount(0)
 
+  // New → Upload files, as in the Web UI.
   await setMode(page, 'Edit')
-  await expect(frame.locator('[data-test="upload"]')).toBeVisible()
-  await frame.locator('[data-test="file-input"]').setInputFiles([
+  await click(page, '[data-test="new"]')
+  await click(page, '[data-test="upload"]')
+  await frame.locator('[data-test="file-input"] input[type="file"]').setInputFiles([
     { name: 'readme.txt', mimeType: 'text/plain', buffer: Buffer.from('Hello from the Files app') },
     { name: 'Manual.pdf', mimeType: 'application/pdf', buffer: pdf('Operating manual') },
     { name: 'photo.png', mimeType: 'image/png', buffer: png },
   ])
+  await click(page, '[data-test="dialog-submit"]')
   await expectNotice(page, 'Uploaded: 3')
-  await expect(frame.locator('[data-test="counts"]')).toHaveText('Folders: 0 · Files: 3')
+  await expect(frame.locator('[data-test="file-card"]')).toHaveCount(3)
+  // Images get a thumbnail.
+  await expect(card(page, 'file', 'photo.png').locator('img')).toBeVisible()
 
-  // Previews: text, an image and a PDF drawn by PDF.js.
-  await click(page, 'readme.txt', 'treeitem')
-  await expect(frame.locator('[data-test="text-preview"]')).toHaveText('Hello from the Files app')
-  await click(page, 'photo.png', 'treeitem')
-  await expect(frame.locator('[data-test="image-preview"] img')).toBeVisible()
-  await click(page, 'Manual.pdf', 'treeitem')
-  await expect(frame.locator('[data-test="pdf-preview"] canvas')).toBeVisible()
-  await expect(frame.locator('[data-test="pdf-preview"]')).not.toContainText('could not be shown')
-  await expect.poll(() => frame.locator('[data-test="pdf-preview"] canvas').evaluate((canvas: HTMLCanvasElement) => {
+  // A file opens in Studio's full-screen dialog, previewed there: the PDF drawn by PDF.js.
+  await card(page, 'file', 'Manual.pdf').locator('.v-card-item').click()
+  const dialog = page.frameLocator('.v-dialog iframe[title="App: Files"]')
+  await expect(dialog.locator('[data-test="preview-name"]')).toHaveText('Manual.pdf', { timeout: 30_000 })
+  await expect.poll(() => dialog.locator('[data-test="pdf-preview"] canvas').evaluate((canvas: HTMLCanvasElement) => {
     // Some pixel of the page is not white: the text was drawn.
     const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
     return canvas.width > 0 && data.some((value, index) => index % 4 !== 3 && value < 200)
   }), { timeout: 30_000 }).toBe(true)
+  // The preview fades in over the explorer; close it once it is there.
+  await page.waitForTimeout(500)
+  await dialog.locator('[data-test="preview-close"]').click()
+  await expect(dialog.locator('[data-test="preview"]')).toBeHidden()
+  await dialog.locator('[data-test="file-card"]', { hasText: 'readme.txt' }).locator('.v-card-item').click()
+  await expect(dialog.locator('[data-test="text-preview"]')).toHaveText('Hello from the Files app')
+  await page.locator('[data-test="app-fullscreen-close"]').click()
+  await expect(page.locator('.v-dialog iframe[title="App: Files"]')).toHaveCount(0)
 
-  // A folder, with the file moved into it.
-  await click(page, 'New folder')
+  // New → Create folder.
+  await click(page, '[data-test="new"]')
+  await click(page, '[data-test="create-folder"]')
   await frame.locator('[data-test="name-field"] input').fill('Manuals')
-  await click(page, 'Create')
+  await click(page, '[data-test="dialog-submit"]')
   await expectNotice(page, 'Folder Manuals created.')
-  await click(page, 'Manual.pdf', 'treeitem')
-  await click(page, 'Move')
-  await frame.locator('[data-test="move-target"]').click()
-  await click(page, 'Manuals', 'option')
-  await click(page, /^Move$/)
-  await expectNotice(page, 'Manual.pdf moved.')
-  await expect(frame.locator('[data-test="selected-name"]')).toHaveText('Manual.pdf')
-  await expect(frame.locator('[data-test="pdf-preview"] canvas')).toBeVisible()
+
+  // Dragging a file onto a folder moves it there, with its content.
+  await waitUntilSettled(page.locator('iframe[title="App: Files"]'))
+  await card(page, 'file', 'Manual.pdf').dragTo(card(page, 'folder', 'Manuals'))
+  await expectNotice(page, 'Moved: 1')
+  await expect(frame.locator('[data-test="file-card"]')).toHaveCount(2)
 
   // The folder is renamed by its display name; its file keeps its content.
-  await click(page, 'Manuals', 'treeitem')
-  await click(page, 'Rename')
+  await card(page, 'folder', 'Manuals').locator('[data-test="entry-menu"]').click()
+  await click(page, '[data-test="menu-rename"]')
   await frame.locator('[data-test="name-field"] input').fill('Handbooks')
-  await click(page, 'Save')
+  await click(page, '[data-test="dialog-submit"]')
   await expectNotice(page, 'Renamed to Handbooks.')
-  await expect(frame.locator('[data-test="folder-content"]')).toContainText('Manual.pdf')
+  await click(page, '[data-test="folder-card"]', { hasText: 'Handbooks' })
+  await expect(frame.locator('[data-test="breadcrumbs"]')).toContainText('Files/Handbooks')
+  await expect(card(page, 'file', 'Manual.pdf')).toBeVisible()
+  await click(page, '[data-test="up"]')
 
-  // Deleting a file asks first.
-  await click(page, 'readme.txt', 'treeitem')
-  await click(page, 'Delete')
-  await expect(frame.locator('[data-test="delete-question"]')).toHaveText('Delete readme.txt?')
-  await click(page, /^Delete$/)
-  await expectNotice(page, 'readme.txt deleted.')
-  await expect(frame.locator('[data-test="counts"]')).toHaveText('Folders: 1 · Files: 2')
+  // In the list view, deleting a file asks first.
+  await click(page, '[data-test="view-list"]')
+  await frame.locator('tr', { hasText: 'readme.txt' }).locator('[data-test="delete"]').click()
+  await expect(frame.locator('[data-test="dialog-title"]')).toHaveText('Delete the file readme.txt?')
+  await click(page, '[data-test="dialog-submit"]')
+  await expectNotice(page, 'Deleted: 1')
+  await expect(frame.locator('[data-test="list-entry"]')).toHaveCount(2)
+  await click(page, '[data-test="view-grid"]')
 
   // The submodel as the Web UI's FileSystem plugin reads it.
   const submodel = await (await (await studioApi(page)).get(`/targets/${targetId}/submodels/${key(submodelId)}?content=full`)).json() as { submodel: { submodelElements: Array<Record<string, unknown>> } }
