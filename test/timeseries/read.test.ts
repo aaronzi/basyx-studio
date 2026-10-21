@@ -10,7 +10,7 @@ import { checkFluxQuery, interpolateFlux } from '~~/server/lib/timeseries/flux'
 import { readTimeSeries, reducePoints } from '~~/server/lib/timeseries/read'
 import { parseTime } from '~~/server/lib/timeseries/segments'
 import { maxTimeSeriesRangeMs, timeSeriesReadParamsSchema } from '#shared/contract'
-import { airQualityConceptDescription, influxAirQualityMultiTable, influxHeader, timeSeriesSubmodel } from './fixtures'
+import { airQualityConceptDescription, influxAirQualityMultiTable, influxHeader, linkedQuery, timeSeriesSubmodel } from './fixtures'
 
 const connection: Connection = {
   key: 'influx',
@@ -252,21 +252,30 @@ describe('LinkedSegment', () => {
 })
 
 /**
- * A fake InfluxDB over `points` (epoch ms) of the field `AirQuality`: it
- * honours the query's range (stop left out, as Flux does) and, for
- * `aggregateWindow`, reports the mean of each window at its stop, clamped
- * to the range, as InfluxDB does by default.
+ * A fake InfluxDB over points (epoch ms) by field (`AirQuality` for a plain
+ * list): it honours the query's range (stop left out, as Flux does) and its
+ * filter on `_field`, and, for `aggregateWindow`, reports each window at its
+ * stop, clamped to the range, as InfluxDB does by default, or at its start
+ * with `timeSrc: "_start"`.
  */
-function fakeInflux (points: number[]) {
+function fakeInflux (data: number[] | Record<string, number[]>) {
+  const fields = Array.isArray(data) ? { AirQuality: data } : data
   return fakeClient(query => {
     const range = /range\(start: (\S+), stop: (\S+)\)/.exec(query)!
     const [startMs, stopMs] = [Date.parse(range[1]!), Date.parse(range[2]!)]
-    const inRange = points.filter(time => time >= startMs && time < stopMs)
-    const every = /aggregateWindow\(every: (\d+)ms/.exec(query)
-    const rows = every
-      ? [...new Set(inRange.map(time => Math.min((Math.floor(time / Number(every[1])) + 1) * Number(every[1]), stopMs)))].map(time => [time, 1])
-      : inRange.map(time => [time, 1])
-    return [influxHeader, ...rows.map(([time, value]) => `,_result,0,${range[1]},${range[2]},${new Date(time!).toISOString()},${value},AirQuality,m,h,`)].join('\n')
+    const every = Number(/aggregateWindow\(every: (\d+)ms/.exec(query)?.[1] ?? 0)
+    const fromStart = query.includes('timeSrc: "_start"')
+    const wanted = /_field"\] == "(\w+)"/.exec(query)?.[1]
+    const rows = Object.entries(fields).filter(([field]) => !wanted || field === wanted).flatMap(([field, points]) => {
+      const inRange = points.filter(time => time >= startMs && time < stopMs)
+      const times = every
+        ? [...new Set(inRange.map(time => fromStart
+            ? Math.max(Math.floor(time / every) * every, startMs)
+            : Math.min((Math.floor(time / every) + 1) * every, stopMs)))]
+        : inRange
+      return times.map(time => `,_result,0,${range[1]},${range[2]},${new Date(time).toISOString()},1,${field},m,h,`)
+    })
+    return [influxHeader, ...rows].join('\n')
   })
 }
 
@@ -308,12 +317,31 @@ describe('LinkedSegment with anchor: latest', () => {
     const { result } = await read(client)
     const window = hour / 360
     const rangeStop = Date.parse(result.range.stop)
+    // The range ends after the window that holds the last point, at most one more window later.
     expect(rangeStop).toBeGreaterThanOrEqual(last)
-    expect(rangeStop - last).toBeLessThanOrEqual(window)
+    expect(rangeStop - last).toBeLessThanOrEqual(2 * window)
     expect(Date.parse(result.range.stop) - Date.parse(result.range.start)).toBe(hour)
-    // The window that holds the last point is shown, at its stop; 10 s windows over 2,500 s of points.
-    expect(result.series[0]!.points.at(-1)![0]).toBe(rangeStop)
+    // That window is shown, at its stop; 10 s windows over 2,500 s of points.
+    const shown = result.series[0]!.points.at(-1)![0]
+    expect(shown).toBeGreaterThanOrEqual(last)
+    expect(shown - last).toBeLessThanOrEqual(window)
     expect(result.series[0]!.points.length).toBeGreaterThanOrEqual(250)
+  })
+
+  it('keeps the window that holds the latest point when the query reports windows by their start', async () => {
+    const point = Date.parse('2026-05-20T11:58:55Z')
+    const { client } = fakeInflux([point])
+    const { result } = await read(client, `${linkedQuery.replace('fn: mean)', 'fn: mean, timeSrc: "_start")')}`)
+    expect(result.range.stop).toBe('2026-05-20T11:59:00.000Z')
+    expect(result.series[0]!.points).toEqual([[Date.parse('2026-05-20T11:58:50Z'), 1]])
+  })
+
+  it('looks only at the selected series of a query without a value placeholder', async () => {
+    const latest = Date.parse('2026-05-20T10:00:00Z')
+    const { client } = fakeInflux({ AirQuality: [latest - 60_000, latest], Other: [Date.parse('2026-05-20T11:59:00Z')] })
+    const { result } = await read(client, 'from(bucket: "basyx") |> range(start: v.timeRangeStart, stop: v.timeRangeStop)')
+    expect(result.range).toEqual({ start: '2026-05-20T09:00:00.000Z', stop: '2026-05-20T10:00:00.000Z' })
+    expect(result.series[0]!.points.map(([time]) => time)).toEqual([latest - 60_000, latest])
   })
 
   it('reads current data with one query', async () => {

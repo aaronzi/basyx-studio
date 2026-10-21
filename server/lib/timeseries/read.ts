@@ -140,11 +140,16 @@ function seriesFor (tables: Map<string, RawPoint[]>, value: string, perValue: bo
 /** How much further back each search for the latest point of a LinkedSegment looks than the one before. */
 const latestSearchFactor = 8
 
-/** The latest time with a numeric value among a query's tables, or `null`. */
-function latestTime (tables: Map<string, RawPoint[]>[]): number | null {
+/** The selected series among the answers to a read's queries, as the result picks them. */
+function selectedSeries (tables: Map<string, RawPoint[]>[], values: string[], perValue: boolean): Array<RawPoint[] | undefined> {
+  return values.map((value, index) => seriesFor(tables[perValue ? index : 0]!, value, perValue))
+}
+
+/** The latest time with a numeric value among the selected series, or `null`. */
+function latestTime (series: Array<RawPoint[] | undefined>): number | null {
   let latest: number | null = null
-  for (const points of tables.flatMap(table => [...table.values()])) {
-    for (const point of points) {
+  for (const points of series) {
+    for (const point of points ?? []) {
       const time = parseTime(point.time)
       if (time !== null && Number.isFinite(point.value) && (latest === null || time > latest)) {
         latest = time
@@ -155,14 +160,15 @@ function latestTime (tables: Map<string, RawPoint[]>[]): number | null {
 }
 
 /**
- * The latest point of a LinkedSegment before `stopMs` (T1 of the external
- * apps plan), found with the segment's own query for earlier ranges: first
- * the range as given, then ranges reaching further back, up to the longest
- * range a read may span. A query that aggregates by `v.windowPeriod` reports
- * a window, so the search narrows down to the window it found until the
- * window is no longer than the read's own (`windowMs`).
+ * The latest point of a LinkedSegment's selected series before `stopMs` (T1
+ * of the external apps plan), found with the segment's own query for
+ * earlier ranges: first the range as given, then ranges reaching further
+ * back, up to the longest range a read may span. A query that aggregates by
+ * `v.windowPeriod` reports a window, at its start or its stop (`timeSrc`),
+ * so the search narrows down to the window it found until the window is no
+ * longer than the read's own (`windowMs`); `precisionMs` is that window.
  */
-async function latestBefore (stopMs: number, spanMs: number, windowed: boolean, run: (range: Range) => Promise<Map<string, RawPoint[]>[]>): Promise<number | null> {
+async function latestBefore (stopMs: number, spanMs: number, windowed: boolean, run: (range: Range) => Promise<Array<RawPoint[] | undefined>>): Promise<{ latest: number, precisionMs: number } | null> {
   const windowMs = windowPeriodMs({ startMs: stopMs - spanMs, stopMs })
   let searched = 0
   let found: { latest: number, precisionMs: number } | null = null
@@ -183,7 +189,7 @@ async function latestBefore (stopMs: number, spanMs: number, windowed: boolean, 
     }
     found = { latest, precisionMs: windowed ? windowPeriodMs(range) : 0 }
   }
-  return found?.latest ?? null
+  return found
 }
 
 function isoRange (range: Range): FluxRange {
@@ -247,19 +253,23 @@ async function linkedSeries (
   if (requested.anchor === 'latest') {
     const spanMs = range.stopMs - range.startMs
     const windowed = usesWindowPeriod(query)
-    const latest = await latestBefore(range.stopMs, spanMs, windowed, run)
-    if (latest !== null) {
-      range = { startMs: latest - spanMs, stopMs: latest }
-      // Flux's range leaves out its stop: a query of points reads up to just
-      // after the latest one; a query of windows found the stop of the last window.
-      queryRange = windowed ? range : { ...range, stopMs: latest + 1 }
+    const found = await latestBefore(range.stopMs, spanMs, windowed, async searchRange => selectedSeries(await run(searchRange), values, perValue))
+    if (found) {
+      // A query of windows may report the window that holds the latest point
+      // by its start, so the range ends at the window's end; a query of
+      // points reads up to just after the latest one, as Flux's range leaves
+      // out its stop.
+      const stopMs = windowed ? Math.min(found.latest + found.precisionMs, range.stopMs) : found.latest
+      range = { startMs: stopMs - spanMs, stopMs }
+      queryRange = windowed ? range : { ...range, stopMs: stopMs + 1 }
     }
   }
   const tables = await run(queryRange)
 
   const series: RawSeries = new Map()
+  const selected = selectedSeries(tables, values, perValue)
   for (const [index, value] of values.entries()) {
-    const found = seriesFor(tables[perValue ? index : 0]!, value, perValue)
+    const found = selected[index]
     if (!found) {
       warnings.push({ code: 'value_missing', params: { value } })
     }

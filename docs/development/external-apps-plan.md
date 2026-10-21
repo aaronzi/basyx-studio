@@ -130,7 +130,7 @@ Decided on 2026-10-20.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
-| T1 | Latest values | `anchor: 'latest'` also works for LinkedSegments: the InfluxDB adapter asks for the last point per series before the range end and moves the range to it, within the Flux guard. *Done (app API 0.1.4):* Studio sends the segment's own query for earlier ranges (the range as given, then eight times as far back at each step, up to five years) and, for a query that aggregates by `v.windowPeriod`, narrows down to a window no longer than the read's own. Only the range variables change and every query is checked, so Studio sends no Flux of its own. The latest point of all selected series counts; without any, the range stays as given. The result's range is the range read (ADR 0040). The bundled Time Series Data app anchors relative ranges of LinkedSegments too. |
+| T1 | Latest values | `anchor: 'latest'` also works for LinkedSegments: the InfluxDB adapter asks for the last point per series before the range end and moves the range to it, within the Flux guard. *Done (app API 0.1.4):* Studio sends the segment's own query for earlier ranges (the range as given, then eight times as far back at each step, up to five years) and, for a query that aggregates by `v.windowPeriod`, narrows down to a window no longer than the read's own; the range ends at that window's end, whether the query reports windows by their start or their stop. Only the range variables change and every query is checked, so Studio sends no Flux of its own. The latest point of the selected series counts, not of other series a query without `{{y-value}}` returns; without any, the range stays as given. The result's range is the range read (ADR 0040). The bundled Time Series Data app anchors relative ranges of LinkedSegments too. |
 | T2 | Time series for installed apps | `studio.timeseries.read` is allowed for apps whose trust-store entry grants it (U7). The time series plan's "installed apps with an install warning" is covered by the consent step (U6). |
 
 ### Pilot decisions
@@ -185,7 +185,7 @@ Decided on 2026-10-20.
 
 | Item | Status | Evidence |
 | --- | --- | --- |
-| T1 | Done | `server/lib/timeseries/read.ts`. Unit tests against a fake InfluxDB that honours ranges and windows: points days before the range, windows narrowed down, current data in one query, no data after five years back, the latest point of several series, the Flux check before anything is sent. The time series example's smoke test reads an hour ending tomorrow and gets the hour before the sensor's latest point |
+| T1 | Done | `server/lib/timeseries/read.ts`. Unit tests against a fake InfluxDB that honours ranges and windows: points days before the range, windows narrowed down, current data in one query, no data after five years back, the latest point of several series, windows reported by their start, series that were not selected, the Flux check before anything is sent. The time series example's smoke test reads an hour ending tomorrow and gets the hour before the sensor's latest point |
 | X2 | Done | `studio.ui.openShell` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkShellToOpen`), the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`openedShells`). Unit tests for the shell and submodel check, authorization and the test Studio |
 
 ## Relation to MVP-7

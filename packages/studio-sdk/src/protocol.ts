@@ -210,8 +210,8 @@ export interface TimeSeriesReadParams {
    * or ExternalSegment its latest point; for a LinkedSegment (app API 0.1.4)
    * its latest point before `stop`, which Studio finds with the segment's own
    * query (it must take its range from `v.timeRangeStart` and
-   * `v.timeRangeStop`), or the end of the query's last window when it
-   * aggregates by `v.windowPeriod`. Without any point, the range stays as
+   * `v.timeRangeStop`), or the end of the window that holds it when the
+   * query aggregates by `v.windowPeriod`. Without any point, the range stays as
    * given. The result's `range` is the range read.
    */
   range: { start: string, stop: string, anchor?: 'fixed' | 'latest' }
