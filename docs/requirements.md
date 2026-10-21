@@ -83,6 +83,8 @@ Priority terms follow this meaning:
 | APP-022 | Must | Installed apps shall be updatable in place. An update shall keep the installation's identity, so links and audit records stay valid, and shall need the same publisher's signature or the deployment's configuration. Changed permissions shall be confirmed before the update. |
 | APP-023 | Must | The SDK and the helpers for building, packaging, and signing apps shall be published as versioned packages, so apps can be built outside Studio's repository. |
 | APP-024 | Should | A module shall be able to fill the page without Studio's page header, breadcrumbs and card, beside Studio's navigation and below its app bar. The default shall remain Studio's standard page. |
+| APP-025 | Should | An app shall be able to declare settings that an administrator sets per installation and per infrastructure. Studio shall validate the values and pass them to the app. Settings shall not carry secrets. |
+| APP-026 | Could | An app shall be able to show the submodel views of other installed apps, which run with their own permissions and the user's rights. |
 
 ## Standalone app products
 
