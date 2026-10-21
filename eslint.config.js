@@ -59,6 +59,15 @@ const styledMenus = Object.entries(menuLists).flatMap(([element, path]) => menuS
   message: `\`${prop}\` on <${element}> in a <v-menu>: menus get their look from @basyx/studio-app-kit/vuetify-defaults; remove it (see AGENTS.md).`,
 }))))
 
+/**
+ * A full-screen dialog runs edge to edge: its card is <v-card-fullscreen>,
+ * without border and radius, never a plain <v-card> (see AGENTS.md).
+ */
+const cardsInFullscreenDialogs = ['key.name', 'key.argument.name'].map(attribute => ({
+  selector: `VElement[rawName='v-dialog']:has(VStartTag > VAttribute[${attribute}='fullscreen']) > VElement[rawName='v-card']`,
+  message: 'A full-screen <v-dialog> holds a <v-card-fullscreen>, which has no border or radius (see AGENTS.md).',
+}))
+
 export default withNuxt(
   vuetify({
     ts: true,
@@ -87,7 +96,7 @@ export default withNuxt(
   // bring their own defaults (examples/apps/shared/vuetify.ts).
   files: ['app/**/*.vue', 'apps/**/*.vue'],
   rules: {
-    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles, ...styledMenus],
+    'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles, ...styledMenus, ...cardsInFullscreenDialogs],
   },
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only

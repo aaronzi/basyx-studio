@@ -1,4 +1,4 @@
-import { buttonGroupDefaults, fieldDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
+import { buttonGroupDefaults, fieldDefaults, fullscreenDefaults, menuDefaults } from '@basyx/studio-app-kit/vuetify-defaults'
 import { defineVuetifyConfiguration } from 'vuetify-nuxt-module/custom-configuration'
 import { themeColors, withOnColors } from './shared/appearance.ts'
 
@@ -105,7 +105,8 @@ export default defineVuetifyConfiguration({
     ...buttonGroupDefaults,
     VBtnWidgetIcon: { variant: 'text', rounded: 'lg', density: 'comfortable', size: 'small' },
     VCard: { flat: true, border: true, rounded: 'lg' },
-    VCardFullscreen: { flat: true, border: false, rounded: 0 },
+    // Full-screen surfaces, as in the apps: no border, no radius.
+    ...fullscreenDefaults,
     VCardHeader: { class: 'bg-card-header' },
     VCardPane: {
       flat: true,

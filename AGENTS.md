@@ -32,8 +32,11 @@
   (`prepend-icon`, `title`, `subtitle`). Do not style the list or its items
   (`density`, `slim`, `bg-color`, `border`, `rounded`, `elevation`,
   `min-height`, `nav`); the menu defaults give them their compact look.
+- Full-screen dialogs, and app views that fill the window, run edge to
+  edge: their surface is `<v-card-fullscreen>`, never a `<v-card>`, so it
+  has no border and no radius.
 - A look that Studio and the bundled apps share (fields, button groups,
-  toggle icons, menus) is defined once in
+  toggle icons, menus, full-screen surfaces) is defined once in
   `packages/studio-app-kit/src/vuetify-defaults.ts` and spread into both
   `vuetify.config.ts` and the kit's `defaults.ts`. When you add or change
   such a default in `vuetify.config.ts`, check whether apps use the same

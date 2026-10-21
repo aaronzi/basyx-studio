@@ -1,7 +1,7 @@
 <template>
   <v-app>
     <!-- A frame Studio opened for a preview shows only the preview, over the dimmed page. -->
-    <v-card
+    <v-card-fullscreen
       v-if="previewMode"
       class="d-flex flex-column"
       color="transparent"
@@ -55,7 +55,7 @@
           <v-empty-state data-test="preview-error" icon="mdi-alert-circle" :text="loadError ?? t('preview.gone')" :title="t('preview.failedTitle')" />
         </v-sheet>
       </div>
-    </v-card>
+    </v-card-fullscreen>
 
     <!-- Studio's card shows the view's title; in Studio's full-screen dialog, the card fills the frame. -->
     <v-view-card v-else :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">

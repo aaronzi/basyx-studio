@@ -35,7 +35,7 @@ export async function mountApp (app: Component, components: Record<string, Compo
     components: { ...components, VBtn, VBtnGroup, VBtnToggle, VCard },
     // `v-tooltip` as Studio uses it, e.g. on icon-only buttons.
     directives: { Tooltip },
-    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VBtnToggleIcon: VBtn, VViewCard: VCard },
+    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VBtnToggleIcon: VBtn, VCardFullscreen: VCard, VViewCard: VCard },
     defaults: appDefaults,
     icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
   })

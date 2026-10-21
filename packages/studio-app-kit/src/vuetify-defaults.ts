@@ -58,5 +58,16 @@ export const menuDefaults = {
 /** Props that style a menu's list or items; the menu defaults above set them, never a template. */
 export const menuStyleProps = ['density', 'slim', 'bg-color', 'border', 'rounded', 'elevation', 'min-height', 'nav'] as const
 
+/*
+ * Full-screen surfaces: the card of a full-screen dialog, or an app's view
+ * that fills the window (a preview opened with `header: false`), runs edge
+ * to edge, so it has no border and no radius. Use <v-card-fullscreen>
+ * (alias of VCard) for it, never a plain <v-card>, which brings a card's
+ * border and radius; ESLint refuses a <v-card> in a full-screen <v-dialog>.
+ */
+export const fullscreenDefaults = {
+  VCardFullscreen: { flat: true, border: false, rounded: 0 },
+} as const
+
 /** Props that style a group; set them in the defaults above, never in a template. */
 export const buttonGroupStyleProps = ['variant', 'color', 'base-color', 'density', 'rounded', 'tile', 'border', 'divided', 'elevation', 'size'] as const
