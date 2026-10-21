@@ -215,6 +215,11 @@
           :security-mode="model.mode"
         />
 
+        <v-divider />
+        <div class="text-title-small">{{ t('admin.appSettings.title') }}</div>
+
+        <InfrastructureAppSettings v-model="model.apps" :readonly="readonly" />
+
         <ProblemAlert v-if="error" :error="error" />
 
         <ul v-if="violations.length > 0" class="text-body-small my-0">
@@ -232,9 +237,11 @@
 
 <script lang="ts" setup>
   import type { EndpointType, Infrastructure, InfrastructureInput, InfrastructureTemplate, ListSource, SecurityMode, SyncSettings } from '#shared/contract'
+  import type { InfrastructureAppSettingsForm } from '~/utils/app-settings'
   import type { ConnectionForm } from '~/utils/connections'
   import { defaultSyncSettings, endpointTypes, infrastructureTemplates, maxClientCertificateLength, securityModes, serviceUrl, syncModes, templateRules } from '#shared/contract'
   import { StudioApiError } from '~/composables/useStudioApi'
+  import { copySettingValues, settingValuesOf } from '~/utils/app-settings'
 
   const props = defineProps<{ existing: Infrastructure | null, readonly?: boolean }>()
   const emit = defineEmits<{ saved: [Infrastructure] }>()
@@ -242,6 +249,7 @@
 
   const { t, locale } = useI18n()
   const api = useStudioApi()
+  const invalidate = useInvalidate()
   const session = useSessionStore()
 
   const form = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
@@ -270,6 +278,7 @@
       certificatePassphraseRef: '',
       removeCertificate: false,
       connections: [] as ConnectionForm[],
+      apps: [] as InfrastructureAppSettingsForm[],
     }
   }
   const model = ref(emptyModel())
@@ -294,6 +303,7 @@
         allowPrivateNetwork: existing.allowPrivateNetwork,
         mode: existing.security.mode,
         connections: existing.connections.map(connection => connectionFormOf(connection, session.isDesktop)),
+        apps: existing.apps.map(entry => ({ app: entry.app, values: copySettingValues(entry.settings) })),
       })
       if (existing.security.mode !== 'unsecured') {
         Object.assign(model.value, {
@@ -409,6 +419,8 @@
       clientCertificate: await certificateInput(),
       allowPrivateNetwork: m.allowPrivateNetwork,
       connections: m.connections.map(connection => connectionInputOf(connection, session.isDesktop)),
+      // Entries without values are left out; those of apps that are not installed stay.
+      apps: m.apps.map(entry => ({ app: entry.app, settings: settingValuesOf(entry.values) })).filter(entry => Object.keys(entry.settings).length > 0),
     }
   }
 
@@ -429,6 +441,8 @@
         })
         : await api<Infrastructure>('/infrastructures', { method: 'POST', body })
       emit('saved', saved)
+      // Open app frames read their settings and bindings again (ADR 0048).
+      void invalidate(['app-context'])
       open.value = false
     } catch (error_) {
       error.value = error_
