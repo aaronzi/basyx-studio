@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.8'
+export const studioAppApiVersion = '0.1.9'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -67,6 +67,12 @@ export interface AppManifest {
    * holds the URL and the credentials.
    */
   connections?: AppConnection[]
+  /**
+   * Values an administrator sets per installation or per infrastructure,
+   * which the app reads from `context.settings` (Studio app API 0.1.9,
+   * ADR 0048). Not for secrets: they reach every browser that opens the app.
+   */
+  settings?: AppSetting[]
   contributes: {
     submodelViews?: SubmodelViewContribution[]
     modules?: ModuleContribution[]
@@ -114,6 +120,37 @@ export interface AppConnection {
   /** The `operationId`s of that document the app calls; others stay unreachable. */
   operations: string[]
 }
+
+/** The types a setting may have (ADR 0048). */
+export const appSettingTypes = ['string', 'number', 'boolean', 'stringList'] as const
+export type AppSettingType = (typeof appSettingTypes)[number]
+
+/** A setting's value: a string, a finite number, a boolean, or a list of strings. */
+export type AppSettingValue = string | number | boolean | string[]
+
+/**
+ * A value an administrator sets for the app (ADR 0048). `installation`
+ * settings have one value per installation; `infrastructure` settings may
+ * have one per infrastructure too, which wins over the installation's.
+ */
+export interface AppSetting {
+  /** The key in `context.settings`, e.g. `assetTypes`. */
+  key: string
+  type: AppSettingType
+  title: LocalizedText
+  description?: LocalizedText
+  /** The allowed values of a `string`, or of the items of a `stringList`. */
+  enum?: string[]
+  /** Used when no value is set; of the setting's type. */
+  default?: AppSettingValue
+  /** Marked in Studio's forms; the app still gets `null` without a value. Default `false`. */
+  required?: boolean
+  /** Where values are set. Default `installation`. */
+  scope?: 'installation' | 'infrastructure'
+}
+
+/** The most settings a manifest declares, and the limits of their values. */
+export const appSettingLimits = { settings: 32, stringLength: 2000, listItems: 100, enumValues: 100 } as const
 
 /** The lists of third-party origins in a manifest's `sandbox` (ADR 0045). */
 export const sandboxOriginKinds = ['frameOrigins', 'connectOrigins', 'imageOrigins', 'mediaOrigins'] as const
@@ -195,6 +232,19 @@ export interface AppContext {
   viewState: string
   locale: string
   theme: ThemeTokens
+  /**
+   * The value of every setting the manifest declares, for this target: the
+   * infrastructure's value, else the installation's, else the default, else
+   * `null` (Studio app API 0.1.9, ADR 0048; absent before).
+   */
+  settings?: Record<string, AppSettingValue | null>
+  /**
+   * Per connection the manifest declares, whether the target's infrastructure
+   * binds it (ADR 0047), so the app can say "not configured" before calling.
+   * Workspaces and frames without a target bind nothing. Calls still check
+   * the binding (Studio app API 0.1.9; absent before).
+   */
+  connections?: Record<string, { bound: boolean }>
 }
 
 export type ConcurrencyMode = 'strong' | 'best_effort'

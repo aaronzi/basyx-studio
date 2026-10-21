@@ -168,7 +168,7 @@ studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
   manifest schema, unique contribution IDs and routes, entries that exist,
   the backend permission, the format of `sandbox` origins, an app API range
   that includes every field the manifest uses (`^0.1.3` for origins and
-  `layout`, `^0.1.6` for `connections`), the app API range against the
+  `layout`, `^0.1.6` for `connections`, `^0.1.9` for `settings`), the app API range against the
   installed `@basyx/studio-sdk`, file types and archive limits (20 MiB,
   50 MiB expanded, 2,000 entries).
 - For `connections` ([ADR 0047](../../docs/adr/0047-http-connections-for-apps.md)),
@@ -181,6 +181,13 @@ studio-app verify <package.zip> [--key signing.pub] [--signature <file>]
   it in Vite's `public` folder; `api` names its package path. `pack` and
   `verify` print a note that the connections need an administrator's
   binding.
+- For `settings` ([ADR 0048](../../docs/adr/0048-app-settings-and-connection-status.md)),
+  they check unique keys, `enum` only on `string` and `stringList`, and
+  defaults the setting accepts, and note required settings without a
+  default. `checkSettingValue(setting, value)` and
+  `checkSettingValues(manifest, values, { path, scope })` of
+  `@basyx/studio-app-kit/manifest` are the checks Studio applies to every
+  value it stores.
   Studio's server imports the same code. The runtime, origins that cover the
   deployment's own, and the trust store's `remoteCode` grant for
   `connectOrigins` with `webAssembly` or `workers` are checked at install

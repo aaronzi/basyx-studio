@@ -1,6 +1,6 @@
 {
   "name": "@basyx/model-viewer",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "3D viewer of STL, OBJ, glTF, IFC and STEP files for BaSyx Studio and its apps",
   "license": "MIT",
   "repository": {
