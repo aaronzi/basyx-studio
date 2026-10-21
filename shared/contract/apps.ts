@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { displayBreakpoints } from '../overview'
 import { connectionCallParamsSchema } from './connections'
 import { engineHostSchema, stackComponentIdSchema, stackSpecSchema } from './containers'
+import { appSettingSummarySchema, appSettingValuesSchema } from './settings'
 import { langStringSchema, listQuerySchema } from './target'
 import { timeSeriesReadParamsSchema } from './timeseries'
 import { fileHandleSchema } from './workspace'
@@ -95,6 +96,10 @@ export const appInstallationSchema = z.object({
   remoteCode: z.boolean(),
   /** The HTTP services it calls through Studio, each with its operations; called only where an administrator binds them (ADR 0047). */
   connections: z.array(appConnectionSummarySchema),
+  /** The settings it declares (ADR 0048). */
+  settings: z.array(appSettingSummarySchema),
+  /** The values set for this installation; infrastructures may set their own for `infrastructure` settings. */
+  settingValues: appSettingValuesSchema,
   submodelViews: z.number().int(),
   modules: z.number().int(),
   backend: z.boolean(),
@@ -108,7 +113,7 @@ export type AppInstallation = z.infer<typeof appInstallationSchema>
  * for the consent dialog. Nothing is stored.
  */
 export const appPackageInspectionSchema = appInstallationSchema
-  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, remoteCode: true, connections: true, submodelViews: true, modules: true, backend: true })
+  .pick({ appId: true, version: true, title: true, description: true, publisher: true, digest: true, verifiedPublisher: true, keyFingerprint: true, permissions: true, grantedPermissions: true, sandbox: true, remoteCode: true, connections: true, settings: true, submodelViews: true, modules: true, backend: true })
   .extend({
     trust: z.enum(['signed', 'unsigned']),
     /** The installation this package updates in place, and what changes; `null` for a new installation. */
@@ -130,6 +135,16 @@ export const appPackageInspectionSchema = appInstallationSchema
        */
       operationsAdded: z.array(z.object({ connection: z.string(), operationId: z.string() })),
       operationsRemoved: z.array(z.object({ connection: z.string(), operationId: z.string() })),
+      /**
+       * Settings the update adds, removes, and changes in type, allowed
+       * values or scope (ADR 0048), and the keys of installation values it
+       * drops because their setting no longer accepts them. Settings grant
+       * nothing, so they are shown, not consented to separately.
+       */
+      settingsAdded: z.array(z.string()),
+      settingsRemoved: z.array(z.string()),
+      settingsChanged: z.array(z.string()),
+      valuesDropped: z.array(z.string()),
       backendAdded: z.boolean(),
     }).nullable(),
   })

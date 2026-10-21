@@ -64,6 +64,13 @@
       "when": 1792491228740,
       "tag": "0008_app_trust",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792594067392,
+      "tag": "0009_app_settings",
+      "breakpoints": true
     }
   ]
 }

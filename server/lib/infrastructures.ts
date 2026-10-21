@@ -9,6 +9,7 @@ import { readFile } from 'node:fs/promises'
 import { and, asc, eq, inArray, isNotNull, sql } from 'drizzle-orm'
 import { infrastructureInputSchema } from '#shared/contract'
 import { infrastructures } from '../database/schema'
+import { changedApps, requireValidAppSettings } from './apps/settings'
 import { recordAudit } from './audit'
 import { ConfigurationError } from './config'
 import { readSecretReference, storeConnections } from './connections/secrets'
@@ -49,6 +50,7 @@ export function toInfrastructure (record: InfrastructureRecord): Infrastructure 
     clientCertificate: record.clientCertificate,
     allowPrivateNetwork: record.allowPrivateNetwork,
     connections: record.connections,
+    apps: record.appSettings,
     managed: Boolean(record.managedKey),
     revision: record.revision,
     createdAt: record.createdAt.toISOString(),
@@ -496,6 +498,7 @@ export function requireChangeable (deps: StudioDeps, record: Pick<Infrastructure
 export async function createInfrastructure (deps: StudioDeps, actor: Actor, raw: unknown, requestId: string): Promise<InfrastructureRecord> {
   requireEditable(deps)
   const input = parseInput(deps, raw)
+  await requireValidAppSettings(deps, input.apps)
   await validateUrls(input)
   const { security, secretCiphertext } = resolveSecurityInput(deps, input.security, undefined)
   const { identity, ...certificate } = await resolveCertificateInput(deps, input.clientCertificate, undefined)
@@ -516,10 +519,11 @@ export async function createInfrastructure (deps: StudioDeps, actor: Actor, raw:
     secretCiphertext,
     ...certificate,
     ...connections,
+    appSettings: input.apps,
     allowPrivateNetwork: input.allowPrivateNetwork,
     createdBy: actor.subject,
   }).returning()
-  await recordAudit(deps, { action: 'infrastructure.create', outcome: 'success', requestId, actorSubject: actor.subject, targetId: record!.id })
+  await recordAudit(deps, { action: 'infrastructure.create', outcome: 'success', requestId, actorSubject: actor.subject, targetId: record!.id, details: appSettingsDetails([], input.apps) })
   return record!
 }
 
@@ -535,6 +539,7 @@ export async function updateInfrastructure (
   const previous = await getInfrastructure(deps, id)
   requireUnmanaged(previous)
   const input = parseInput(deps, raw)
+  await requireValidAppSettings(deps, input.apps)
   await validateUrls(input)
   const { security, secretCiphertext } = resolveSecurityInput(deps, input.security, previous)
   const { identity, ...certificate } = await resolveCertificateInput(deps, input.clientCertificate, previous)
@@ -554,6 +559,7 @@ export async function updateInfrastructure (
     secretCiphertext,
     ...certificate,
     ...connections,
+    appSettings: input.apps,
     allowPrivateNetwork: input.allowPrivateNetwork,
     revision: expectedRevision + 1,
     updatedAt: new Date(),
@@ -563,8 +569,14 @@ export async function updateInfrastructure (
   }
   forgetOidcClients()
   forgetClientCertificates(id)
-  await recordAudit(deps, { action: 'infrastructure.update', outcome: 'success', requestId, actorSubject: actor.subject, targetId: id })
+  await recordAudit(deps, { action: 'infrastructure.update', outcome: 'success', requestId, actorSubject: actor.subject, targetId: id, details: appSettingsDetails(previous.appSettings, input.apps) })
   return record
+}
+
+/** The apps whose settings values a save changed, for its audit record (ADR 0048); never the values. */
+function appSettingsDetails (before: InfrastructureRecord['appSettings'], after: InfrastructureRecord['appSettings']): Record<string, unknown> {
+  const apps = changedApps(before, after)
+  return apps.length > 0 ? { appSettings: apps } : {}
 }
 
 export async function deleteInfrastructure (deps: StudioDeps, actor: Actor, id: string, requestId: string): Promise<void> {
@@ -587,6 +599,8 @@ export async function deleteInfrastructure (deps: StudioDeps, actor: Actor, id: 
  */
 async function checkDeclared (deps: StudioDeps, raw: unknown) {
   const input = parseInput(deps, raw)
+  // Against the apps installed now; at startup, the managed and bundled ones are installed first.
+  await requireValidAppSettings(deps, input.apps)
   for (const [label, url] of urlsOf(input)) {
     const reason = rejectUrl(new URL(url))
     if (reason) {
@@ -651,6 +665,7 @@ export async function reconcileManagedInfrastructures (deps: StudioDeps, declare
           secretCiphertext,
           ...certificate,
           ...connections,
+          appSettings: input.apps,
           allowPrivateNetwork: input.allowPrivateNetwork,
           managedKey: entry.key,
           managedDigest: digest,

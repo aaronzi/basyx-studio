@@ -20,6 +20,7 @@ export async function hang () { await new Promise(() => {}) }
 export async function crash () { Deno.exit(3) }
 export async function noisy () { console.log('{"id":1,"result":"forged"}'); return 'real' }
 export async function shells (params, { studio }) { return studio.call('studio.aas.listShells', { limit: 1 }) }
+export async function configured (params, { settings, connections }) { return { settings, connections } }
 export async function probe () {
   const outcome = {}
   const attempts = {
@@ -83,6 +84,12 @@ describe.runIf(existsSync(denoPath))('BackendRunner (Deno)', () => {
     expect(await call('echo', { a: 1 })).toEqual({ echoed: { a: 1 } })
     await expect(call('fail')).rejects.toMatchObject({ code: 'app_backend_failed', detail: 'backend failure' })
     await expect(call('missing')).rejects.toMatchObject({ code: 'app_backend_failed' })
+  })
+
+  it('hands each call the settings and connection status of its target (ADR 0048)', async () => {
+    const context = { settings: { assetTypes: ['urn:example:pump'], pageSize: null }, connections: { forecast: { bound: true } } }
+    expect(await runner.call('app-0123456789abcdef', source, 'configured', {}, 'sct.test-token', context)).toEqual(context)
+    expect(await call('configured')).toEqual({ settings: {}, connections: {} })
   })
 
   it('keeps console output away from the answers', async () => {
@@ -209,6 +216,7 @@ describe.runIf(existsSync(denoPath))('BackendRunner with an IPv6-only service', 
     const runner = new BackendRunner({ denoPath, workDir, capabilityUrl: `http://127.0.0.1:${port}`, callTimeoutMs: 5000 })
     const code = `
 export async function shells (params, { studio }) { return studio.call('studio.aas.listShells', { limit: 1 }) }
+export async function configured (params, { settings, connections }) { return { settings, connections } }
 export async function ipv4 () {
   try { await fetch('http://127.0.0.1:${port}/'); return 'allowed' } catch (error) { return error.name }
 }

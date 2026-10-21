@@ -1,4 +1,4 @@
-import type { ClientCertificateSummary, Connection, EndpointInput, InfrastructureTemplate, ListSource, Preferences, SecuritySummary, ServiceProfiles, StackComponentId, StackSpec, SyncSettings } from '#shared/contract'
+import type { AppSettingValues, ClientCertificateSummary, Connection, EndpointInput, InfrastructureAppSettings, InfrastructureTemplate, ListSource, Preferences, SecuritySummary, ServiceProfiles, StackComponentId, StackSpec, SyncSettings } from '#shared/contract'
 import type { AppManifest } from '@basyx/studio-sdk/protocol'
 import { boolean, customType, index, integer, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
@@ -32,6 +32,8 @@ export const infrastructures = pgTable('infrastructures', {
   connections: jsonb('connections').$type<Connection[]>().notNull().default([]),
   /** Encrypted map from connection key to its desktop `stored` secrets; never returned by the API. */
   connectionSecretsCiphertext: text('connection_secrets_ciphertext'),
+  /** Values of apps' `infrastructure` settings, by app ID (ADR 0048). */
+  appSettings: jsonb('app_settings').$type<InfrastructureAppSettings[]>().notNull().default([]),
   /** Key of the entry in the deployment's infrastructure file; `null` for infrastructures made in Studio. */
   managedKey: text('managed_key').unique(),
   /** HMAC of the declared entry, so an unchanged entry is not written again at startup. */
@@ -124,6 +126,8 @@ export const appInstallations = pgTable('app_installations', {
   bundled: boolean('bundled').notNull().default(false),
   /** Installed from STUDIO_APP_PACKAGES at startup; not changed or uninstalled in the UI. */
   managed: boolean('managed').notNull().default(false),
+  /** The values an administrator set for the installation's settings (ADR 0048); kept by updates where they still fit. */
+  settings: jsonb('settings').$type<AppSettingValues>().notNull().default({}),
   installedBy: text('installed_by').notNull(),
   installedAt: timestamp('installed_at', { withTimezone: true }).notNull().defaultNow(),
 }, table => [uniqueIndex('app_installations_app_id_idx').on(table.appId)])

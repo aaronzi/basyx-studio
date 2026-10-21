@@ -16,6 +16,7 @@ import { StudioProblem } from '../problem'
 import { installationConnections } from './connections'
 import { readAppPackage, sha256Hex } from './package'
 import { checkSandbox } from './sandbox'
+import { keptValues, settingChanges, settingSummaries } from './settings'
 import { installationTrust, verifyPackageSignature } from './trust'
 
 export type AppInstallationRecord = typeof appInstallations.$inferSelect
@@ -84,13 +85,19 @@ export function sourceOf (signer: VerifiedSignature | null, unsigned: AppTrustLe
 
 /**
  * Writes a new installation, or replaces the package of an existing one in
- * place: its ID stays, so frames, deep links and audit records stay valid.
- * Blobs no installation uses any more are removed.
+ * place: its ID stays, so frames, deep links and audit records stay valid,
+ * and so do the values of settings that the new version still accepts
+ * (ADR 0048). Blobs no installation uses any more are removed.
  */
 export async function writeInstallation (tx: Transaction, id: string, existing: boolean, pkg: AppPackage, source: InstallationSource): Promise<AppInstallationRecord> {
   const values = { appId: pkg.manifest.id, version: pkg.manifest.version, digest: pkg.digest, manifest: pkg.manifest, ...source, installedAt: new Date() }
+  let settings = {}
+  if (existing) {
+    const [current] = await tx.select({ settings: appInstallations.settings }).from(appInstallations).where(eq(appInstallations.id, id))
+    settings = keptValues(pkg.manifest, current?.settings ?? {}).kept
+  }
   const [record] = existing
-    ? await tx.update(appInstallations).set(values).where(eq(appInstallations.id, id)).returning()
+    ? await tx.update(appInstallations).set({ ...values, settings }).where(eq(appInstallations.id, id)).returning()
     : await tx.insert(appInstallations).values({ id, ...values }).returning()
   if (existing) {
     await tx.delete(appFiles).where(eq(appFiles.installationId, id))
@@ -194,6 +201,7 @@ export async function inspectAppPackage (deps: StudioDeps, bytes: Uint8Array, si
       originsAdded: sandboxOriginKinds.flatMap(kind => summary.sandbox[kind].filter(origin => !before.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
       originsRemoved: sandboxOriginKinds.flatMap(kind => before.sandbox[kind].filter(origin => !summary.sandbox[kind].includes(origin)).map(origin => ({ kind, origin }))),
       ...operationChanges(await installationConnections(deps, existing), pkg.connections),
+      ...settingChanges(existing.manifest, manifest, existing.settings),
       backendAdded: summary.backend && !before.backend,
     }
   }
@@ -256,6 +264,7 @@ export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Ar
     return writeInstallation(tx, id, existing !== null, pkg, source)
   })
 
+  const dropped = existing ? keptValues(record.manifest, existing.settings).dropped : []
   await recordAudit(deps, {
     action: existing ? 'app.update' : 'app.install',
     outcome: 'success',
@@ -271,6 +280,8 @@ export async function installApp (deps: StudioDeps, actor: Actor, bytes: Uint8Ar
       keyFingerprint: record.keyFingerprint,
       permissions: record.manifest.permissions,
       ...(existing ? { previousVersion: existing.version, previousDigest: existing.digest } : {}),
+      // Installation values the new version no longer accepts (ADR 0048).
+      ...(dropped.length > 0 ? { settingsDropped: dropped } : {}),
     },
   })
   return { record, previous: existing }
@@ -442,7 +453,7 @@ export async function listAppFilePaths (deps: Pick<StudioDeps, 'db'>, installati
   return rows.map(row => row.path)
 }
 
-type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'remoteCode' | 'submodelViews' | 'modules' | 'backend'>
+type ManifestSummary = Pick<AppInstallation, 'appId' | 'version' | 'title' | 'description' | 'publisher' | 'permissions' | 'sandbox' | 'remoteCode' | 'settings' | 'submodelViews' | 'modules' | 'backend'>
 
 /** An installation as the API returns it, with its connections' operations (ADR 0047). */
 export async function describeInstallation (deps: Pick<StudioDeps, 'db' | 'config'>, record: AppInstallationRecord): Promise<AppInstallation> {
@@ -459,6 +470,7 @@ function manifestSummary (manifest: AppManifest): ManifestSummary {
     permissions: manifest.permissions,
     sandbox: { webAssembly: manifest.sandbox?.webAssembly ?? false, workers: manifest.sandbox?.workers ?? false, ...sandboxOrigins(manifest) },
     remoteCode: needsRemoteCodeGrant(manifest),
+    settings: settingSummaries(manifest),
     submodelViews: manifest.contributes.submodelViews?.length ?? 0,
     modules: manifest.contributes.modules?.length ?? 0,
     backend: Boolean(manifest.backend),
@@ -481,6 +493,7 @@ export function toAppInstallation (record: AppInstallationRecord, trustStore: Tr
     revoked: trust.revoked,
     bundled: record.bundled,
     managed: record.managed,
+    settingValues: record.settings,
     grantedPermissions: trust.granted.filter((permission: AppPermission) => record.manifest.permissions.includes(permission)),
     installedAt: record.installedAt.toISOString(),
     installedBy: record.installedBy,

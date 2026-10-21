@@ -120,6 +120,13 @@ async function initialize (): Promise<StudioRuntime> {
       console.info(`[studio] applied database migrations: ${applied.join(', ')}`)
     }
     const deps: StudioDeps = { config, db: handle.db, cipher: new SecretCipher(config.dataKey) }
+    if (config.apps.baseUrl) {
+      // Managed packages first: they take precedence over bundled apps with the same ID.
+      // Apps before infrastructures: declared settings values are checked against them (ADR 0048).
+      await installManagedPackages(deps)
+      await installBundledApps(deps)
+      await reportRevokedApps(deps)
+    }
     const declared = await reconcileManagedInfrastructures(deps, parseInfrastructureSources(config.managedInfrastructures))
     for (const change of ['created', 'updated', 'removed'] as const) {
       if (declared[change].length > 0) {
@@ -128,12 +135,6 @@ async function initialize (): Promise<StudioRuntime> {
     }
     if (config.deploymentMode === 'desktop') {
       await ensureDesktopSession(deps)
-    }
-    if (config.apps.baseUrl) {
-      // Managed packages first: they take precedence over bundled apps with the same ID.
-      await installManagedPackages(deps)
-      await installBundledApps(deps)
-      await reportRevokedApps(deps)
     }
     let workspaces: WorkspaceManager | null = null
     let inspector: WorkspaceWorkerClient | null = null

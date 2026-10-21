@@ -1,0 +1,2 @@
+ALTER TABLE "app_installations" ADD COLUMN "settings" jsonb DEFAULT '{}'::jsonb NOT NULL;--> statement-breakpoint
+ALTER TABLE "infrastructures" ADD COLUMN "app_settings" jsonb DEFAULT '[]'::jsonb NOT NULL;

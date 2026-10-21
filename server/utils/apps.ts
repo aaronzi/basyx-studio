@@ -7,10 +7,13 @@ import type { Methods } from '@basyx/studio-sdk/protocol'
 import type { RequestEvent } from 'nuxt/server'
 import { appMethodParamsSchemas } from '#shared/contract'
 import { authorizeAppCall, checkShellToOpen, executeAasMethod, isAasMethod, isContainerMethod, isWriteMethod, requireInstalledRevision } from '../lib/apps/calls'
+import { userTargetContext } from '../lib/apps/settings'
 import { listAppFilePaths, readAppFiles } from '../lib/apps/store'
 import { issueCapabilityToken } from '../lib/apps/tokens'
 import { recordAudit } from '../lib/audit'
+import { getInfrastructure } from '../lib/infrastructures'
 import { StudioProblem } from '../lib/problem'
+import { isWorkspaceId } from '../lib/workspaces/manager'
 import { performConnectionCall } from './connections'
 import { performContainerMethod } from './containers'
 import { requestIdOf } from './handler'
@@ -212,8 +215,12 @@ async function callBackend (studio: StudioRuntime, call: AppCall, params: { meth
     targetId: call.targetId,
     mode: call.mode,
   })
+  // The backend sees the settings and connection status of the frame's
+  // target, as the frame does, and only for a user who may open it (ADR 0048).
+  const record = call.targetId && !isWorkspaceId(call.targetId) ? await getInfrastructure(studio, call.targetId) : null
+  const context = await userTargetContext(studio.broker, call.actor.sessionId, installation, record)
   return studio.backends.call(installation.id, async () => {
     const paths = (await listAppFilePaths(studio, installation.id)).filter(path => backendModule.test(path))
     return { installationId: installation.id, appId: installation.appId, entry: backend.entry, files: await readAppFiles(studio, installation.id, paths) }
-  }, params.method, params.params, token)
+  }, params.method, params.params, token, context)
 }
