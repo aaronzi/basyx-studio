@@ -55,7 +55,9 @@
     "conflict": "Someone else changed the files in the meantime. The view shows the current state; try again.",
     "editMode": "Switch to edit mode to change files.",
     "forbidden": "You are not permitted to change these files, or this Studio deployment does not allow uploads.",
-    "loadFailed": "The files could not be read."
+    "loadFailed": "The files could not be read.",
+    "expand": "Expand {name}",
+    "collapse": "Collapse {name}"
   },
   "preview": {
     "close": "Close the preview",

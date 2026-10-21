@@ -55,7 +55,9 @@
     "conflict": "Quelqu’un d’autre a modifié les fichiers entre-temps. La vue affiche l’état actuel ; réessayez.",
     "editMode": "Passez en mode édition pour modifier les fichiers.",
     "forbidden": "Vous n’êtes pas autorisé à modifier ces fichiers, ou cette installation de Studio n’autorise pas les téléversements.",
-    "loadFailed": "Les fichiers n’ont pas pu être lus."
+    "loadFailed": "Les fichiers n’ont pas pu être lus.",
+    "expand": "Déplier {name}",
+    "collapse": "Replier {name}"
   },
   "preview": {
     "close": "Fermer l’aperçu",

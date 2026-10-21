@@ -55,7 +55,9 @@
     "conflict": "在此期间其他人更改了这些文件。视图显示的是当前状态；请重试。",
     "editMode": "请切换到编辑模式以更改文件。",
     "forbidden": "您无权更改这些文件，或此 Studio 部署不允许上传。",
-    "loadFailed": "无法读取这些文件。"
+    "loadFailed": "无法读取这些文件。",
+    "expand": "展开 {name}",
+    "collapse": "折叠 {name}"
   },
   "preview": {
     "close": "关闭预览",

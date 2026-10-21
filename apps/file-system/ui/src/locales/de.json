@@ -55,7 +55,9 @@
     "conflict": "Jemand anderes hat die Dateien inzwischen geändert. Die Ansicht zeigt den aktuellen Stand; versuchen Sie es erneut.",
     "editMode": "Wechseln Sie in den Bearbeitungsmodus, um Dateien zu ändern.",
     "forbidden": "Sie dürfen diese Dateien nicht ändern, oder diese Studio-Installation erlaubt keine Uploads.",
-    "loadFailed": "Die Dateien konnten nicht gelesen werden."
+    "loadFailed": "Die Dateien konnten nicht gelesen werden.",
+    "expand": "{name} aufklappen",
+    "collapse": "{name} zuklappen"
   },
   "preview": {
     "close": "Vorschau schließen",

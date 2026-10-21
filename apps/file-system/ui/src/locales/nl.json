@@ -55,7 +55,9 @@
     "conflict": "Iemand anders heeft de bestanden intussen gewijzigd. De weergave toont de huidige stand; probeer het opnieuw.",
     "editMode": "Schakel over naar de bewerkmodus om bestanden te wijzigen.",
     "forbidden": "U mag deze bestanden niet wijzigen, of deze Studio-installatie staat geen uploads toe.",
-    "loadFailed": "De bestanden konden niet worden gelezen."
+    "loadFailed": "De bestanden konden niet worden gelezen.",
+    "expand": "{name} uitklappen",
+    "collapse": "{name} inklappen"
   },
   "preview": {
     "close": "Voorbeeld sluiten",

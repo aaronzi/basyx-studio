@@ -175,8 +175,16 @@ test('manages files and folders as the Web UI does, in edit mode, and previews t
   await expect(card(page, 'file', 'Manual.pdf')).toBeVisible()
   await click(page, '[data-test="up"]')
 
-  // In the list view, deleting a file asks first.
+  // In the list view, a folder expands in place, as in a Finder list.
   await click(page, '[data-test="view-list"]')
+  await expect(frame.locator('[data-test="list-entry"]')).toHaveCount(3)
+  await frame.locator('tr', { hasText: 'Handbooks' }).locator('[data-test="expand"]').click()
+  await expect(frame.locator('[data-test="list-entry"]')).toHaveCount(4)
+  await expect(frame.locator('tr', { hasText: 'Manual.pdf' })).toBeVisible()
+  await frame.locator('tr', { hasText: 'Handbooks' }).locator('[data-test="expand"]').click()
+  await expect(frame.locator('[data-test="list-entry"]')).toHaveCount(3)
+
+  // Deleting a file asks first.
   await frame.locator('tr', { hasText: 'readme.txt' }).locator('[data-test="delete"]').click()
   await expect(frame.locator('[data-test="dialog-title"]')).toHaveText('Delete the file readme.txt?')
   await click(page, '[data-test="dialog-submit"]')

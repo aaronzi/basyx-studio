@@ -55,7 +55,9 @@
     "conflict": "Otra persona ha cambiado los archivos entretanto. La vista muestra el estado actual; vuelva a intentarlo.",
     "editMode": "Cambie al modo de edición para modificar archivos.",
     "forbidden": "No tiene permiso para modificar estos archivos, o esta instalación de Studio no permite subir archivos.",
-    "loadFailed": "No se han podido leer los archivos."
+    "loadFailed": "No se han podido leer los archivos.",
+    "expand": "Expandir {name}",
+    "collapse": "Contraer {name}"
   },
   "preview": {
     "close": "Cerrar la vista previa",

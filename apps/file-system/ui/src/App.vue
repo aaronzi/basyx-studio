@@ -322,7 +322,7 @@
   import { putAttachmentMaxBytes, StudioError } from '@basyx/studio-sdk'
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
   import FilePreview from './FilePreview.vue'
-  import { childrenAt, findEntry, folders, iconColorOf, iconOf, isWithin, parentOf, previewKind, readFileSystem, trail } from './fileSystem'
+  import { childrenAt, findEntry, flatten, folders, iconColorOf, iconOf, isWithin, parentOf, previewKind, readFileSystem, trail } from './fileSystem'
   import GalleryView from './GalleryView.vue'
   import { provideI18n } from './i18n'
   import ListView from './ListView.vue'
@@ -374,7 +374,9 @@
 
   const tree = computed(() => submodel.value ? readFileSystem(submodel.value, locale.value) : [])
   const entries = computed(() => childrenAt(tree.value, folder.value))
-  const selectedEntries = computed(() => entries.value.filter(entry => selected.value.has(entry.path)))
+  /** The selected entries, also in folders expanded in the list; inside a selected folder, only the folder. */
+  const selectedEntries = computed(() => flatten(tree.value).filter(entry => selected.value.has(entry.path)
+    && ![...selected.value].some(path => path !== entry.path && isWithin(entry.path, path))))
   const previewed = computed(() => {
     const entry = previewPath ? findEntry(tree.value, previewPath) : null
     return entry?.kind === 'file' ? entry : null
