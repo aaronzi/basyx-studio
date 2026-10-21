@@ -249,7 +249,8 @@
     "app_signer_not_allowed": "Le signataire ne peut pas publier ni mettre à jour cette app.",
     "app_revoked": "Ce déploiement ne fait plus confiance à cette app.",
     "app_sandbox_not_granted": "L’éditeur ne peut pas publier d’apps qui exécutent du code venant d’ailleurs que leur paquet.",
-    "app_outdated": "L’app a été mise à jour. Rechargez-la pour utiliser la nouvelle version."
+    "app_outdated": "L’app a été mise à jour. Rechargez-la pour utiliser la nouvelle version.",
+    "app_edit_mode_required": "Passez en mode édition pour que l’app puisse modifier le contenu."
   },
   "admin": {
     "title": "Infrastructures",

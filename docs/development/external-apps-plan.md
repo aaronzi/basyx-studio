@@ -78,7 +78,8 @@ shipped as its own image. As a Studio app, it needs neither.
     range only, with no "latest" anchor;
   - the app CSP has `connect-src` and `img-src` for the app's own files and
     `frame-src 'none'` (`server/lib/apps/csp.ts`);
-  - no structural writes, no attachment uploads.
+  - no structural writes, no attachment uploads (added in phase E,
+    [ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md)).
 
 ## What the pilot needs
 
@@ -178,7 +179,7 @@ Decided on 2026-10-20.
 | B | Packages P1–P6: build, app kit, `studio-app` command, test transport, release workflow, the tarball example. Bundled apps move to the kit. | The packages are on npm with provenance. An app in an empty repository builds, packs and runs in a plain dev server against the test transport. All bundled apps work unchanged. |
 | C | Signatures, trust and updates U1–U9, with the migration and the consent dialog | A signed package installs without developer mode and updates in place with the same installation ID. A package signed by an unknown key, or by a key outside its app ID pattern, is refused. Removing the key revokes the app. |
 | D | Pilot, read-only: the pilot's repository builds against the published packages; its pages that only read AAS run in the test transport and in Studio; its CI packs and signs. Runs in parallel with C as soon as B is done. | The read-only pages run in a Studio started from the Compose example, from a signed package built outside this repository |
-| E | Capabilities: MVP-7 K1–K9 (HTTP connections), A1 and A2 (structural writes and attachments), T1 and T2, `studio.ui.openShell` (X2), and the bundled FileSystem view (X3) | The pilot calls its third-party API through a connection and shows charts from `studio.timeseries.read` instead of embedded dashboards. Files are managed in the FileSystem view on Studio's shell page. No credential reaches the browser. |
+| E | Capabilities: MVP-7 K1–K9 (HTTP connections), A1 and A2 (structural writes and attachments; done, [ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md), app API 0.1.5), T1 and T2, `studio.ui.openShell` (X2), and the bundled FileSystem view (X3) | The pilot calls its third-party API through a connection and shows charts from `studio.timeseries.read` instead of embedded dashboards. Files are managed in the FileSystem view on Studio's shell page. No credential reaches the browser. |
 | F | Report: what the pilot still misses, and the end of the forked web UI image | A follow-up plan lists the remaining gaps |
 
 ### Phase E status
@@ -186,6 +187,7 @@ Decided on 2026-10-20.
 | Item | Status | Evidence |
 | --- | --- | --- |
 | T1 | Done | `server/lib/timeseries/read.ts`. Unit tests against a fake InfluxDB that honours ranges and windows: points days before the range, windows narrowed down, current data in one query, no data after five years back, the latest point of several series, windows reported by their start, series that were not selected, the Flux check before anything is sent. The time series example's smoke test reads an hour ending tomorrow and gets the hour before the sensor's latest point |
+| A1, A2 | Done | [ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md), app API 0.1.5: `server/lib/apps/calls.ts`, `server/utils/apps.ts`, `PUT /app-calls/attachment`, the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`memoryAas`). One contract per method on a workspace (with the undo log) and on the live test environment (with registry and discovery sync); a web e2e through the bridge, refused in view mode |
 | X2 | Done | `studio.ui.openShell` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkShellToOpen`), the host bridge, the SDK client and `@basyx/studio-sdk/testing` (`openedShells`). Unit tests for the shell and submodel check, authorization and the test Studio |
 
 ## Relation to MVP-7
@@ -196,7 +198,8 @@ This plan runs before the rest of MVP-7 and takes parts of it:
   MVP-7, because D4 raises the app API with MVP-7's new methods.
 - **M2** (managed packages) moves to phase C, because signed uploads, updates
   and managed packages share one install path.
-- **K1–K9, A1, A2** are done in phase E, in MVP-7's form.
+- **K1–K9, A1, A2** are done in phase E, in MVP-7's form. A1 and A2 are
+  implemented with ADR 0049.
 - **`studio.ui.openShell`** from M6 is done in phase E for full Studio (X2).
   Its single-app behaviour (`STUDIO_APP_STUDIO_PAGES`) stays with MVP-7.
 - **MVP-7 phase G**, "port an existing multi-service AAS application outside

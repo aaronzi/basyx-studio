@@ -69,7 +69,7 @@ Requires broad Node.js, native-addon, subprocess, device, or filesystem access. 
 
 Apps use `@basyx/studio-sdk` capabilities rather than host implementation objects. Initial capability families are:
 
-- `studio.aas`: query, mutate, invoke operations, observe active target
+- `studio.aas`: query, mutate, invoke operations, observe active target; structural writes and attachment uploads run the editor's code paths and only in Studio's edit mode, which Studio's server checks ([ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md))
 - `studio.files`: pick, open, save, and bounded streams
 - `studio.http`: permission-controlled requests to declared origins
 - `studio.ui`: notifications, commands, panels, and context

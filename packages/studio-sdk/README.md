@@ -34,6 +34,7 @@ runs the app, whatever the package version.
 | 0.1.0 | 0.1.2 | 0.1.0 |
 | 0.1.1 | 0.1.3: `sandbox.frameOrigins`, `connectOrigins`, `imageOrigins`, `mediaOrigins`; module `layout` | next release |
 | 0.1.2 | 0.1.4: `ui.openShell`; `timeseries.read` with `anchor: 'latest'` for LinkedSegments | next release |
+| 0.1.3 | 0.1.5: structural writes (`aas.createShell`, `createSubmodel`, `putSubmodel`, `addElement`, `putElement`, `deleteElement`, `deleteSubmodel`, `deleteShell`), `aas.putAttachment`, `aas.getSubmodelSnapshot`, `structureRevision` on element snapshots; `memoryAas` in `testing` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -41,7 +42,9 @@ that existing apps do not need (new optional methods or manifest fields) are
 app API patch versions, so that a manifest's `^0.1.0` still matches a newer
 Studio, and patch versions of the packages. A manifest that uses a newer
 field declares the version that brought it, e.g. `^0.1.3`; `studio-app pack`
-reports it otherwise.
+reports it otherwise. An app that calls a newer method declares its version
+too, e.g. `^0.1.5` for structural writes: an older Studio refuses the call as
+an unknown method.
 
 ## Manifest
 
@@ -85,8 +88,8 @@ user menu; show the target's name yourself if the page needs it.
 
 | Permission | Allows |
 | --- | --- |
-| `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
-| `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before) |
+| `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getSubmodelSnapshot`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
+| `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before); in edit mode, structural writes and attachments (Studio app API 0.1.5, see [Changing structure and files](#changing-structure-and-files)) |
 | `studio.ui.notifications` | `ui.notify` |
 | `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
@@ -175,6 +178,78 @@ JavaScript `eval`); `workers` allows dedicated workers started from `blob:`
 URLs, since the frame's origin may be opaque: create a `blob:` module that
 imports the bundled worker script by its absolute URL. Both still load and
 fetch only the app's own files, and the Apps page shows them.
+
+### Changing structure and files
+
+With `studio.aas.write`, an app changes the structure of the active target
+the way Studio's editor does (Studio app API 0.1.5, so declare
+`"studioApi": "^0.1.5"`). Studio carries these out only in edit mode: its
+server refuses them with `app_edit_mode_required` while `context.mode` is
+`view`, whatever the app shows. A backend's calls count in the mode of the
+frame call that started it.
+
+| Method | Based on |
+| --- | --- |
+| `aas.createShell({ shell, submodels? })` | — (fails with `identifier_conflict` if an `id` exists) |
+| `aas.createSubmodel({ submodel, shellId? })` | — (with `shellId`, the shell references the new submodel) |
+| `aas.putSubmodel({ submodelId, submodel, revision })` | `revision` of `getSubmodelSnapshot` |
+| `aas.addElement({ submodelId, parentPath?, element, index?, structureRevision })` | `structureRevision` of the parent: of `getElement` for a container, of `getSubmodelSnapshot` for the top level |
+| `aas.putElement({ submodelId, idShortPath, element, revision })` | the element's `revision`; a new idShort renames it, a container keeps its children |
+| `aas.deleteElement({ submodelId, idShortPath, revision })` | the element's `revision` |
+| `aas.deleteSubmodel({ submodelId, removeReferences? })` | — |
+| `aas.deleteShell({ shellId, deleteSubmodels? })` | — |
+| `aas.putAttachment({ submodelId, idShortPath, fileName, contentType, data, revision })` | the File element's `revision`; up to 8 MiB (`putAttachmentMaxBytes`) |
+
+- Shells and submodels without `id` get one by the infrastructure's
+  identifier scheme. Submodels are written first, then the shell, then the
+  registries and discovery where Studio keeps them in step; `steps` says
+  what each step did, and a failure stops the later ones (`partial_write`
+  lists them).
+- Studio verifies the content with AAS Core. Findings fail the call with
+  `validation_failed` and `violations`. A sibling with the same idShort is
+  `idshort_conflict`; a changed parent is `structure_conflict`, a changed
+  element or submodel `revision_conflict`: read again and retry or tell the
+  user. An empty collection has no `value` (not `[]`).
+- Element results carry `idShortPath`, the path after the write, and
+  `structureRevision` for containers, so a series of writes needs no reads in
+  between.
+- `putAttachment` takes the bytes as an `ArrayBuffer` or typed array; Studio's
+  page sends them, so the frame needs no network access. Studio's switch for
+  uploads (`STUDIO_ALLOW_UPLOADS`) and its upload limit apply. To move a file,
+  read it (`ui.readFile`), add the File element at the new place, put the
+  content there and delete the old element: the content belongs to the
+  element.
+- Rename files and folders by their `displayName`, not their idShort. BaSyx
+  Go keeps a File's content at its idShort path: changing the idShort of a
+  File, or of a collection that contains one, drops the content
+  ([basyx-go-components#772](https://github.com/eclipse-basyx/basyx-go-components/issues/772)).
+- On a desktop workspace every write is an entry in the undo log; Studio
+  refreshes its own views after each one. The audit log records the app, the
+  method and what it changed, never the content.
+
+```ts
+const files = studio.context.submodel!.id
+const top = await studio.aas.getSubmodelSnapshot(files)
+const folder = await studio.aas.addElement({
+  submodelId: files,
+  element: { modelType: 'SubmodelElementCollection', idShort: 'Manuals' },
+  structureRevision: top.structureRevision,
+})
+const file = await studio.aas.addElement({
+  submodelId: files,
+  parentPath: folder.idShortPath,
+  element: { modelType: 'File', idShort: 'Guide', contentType: picked.type },
+  structureRevision: folder.structureRevision!,
+})
+await studio.aas.putAttachment({
+  submodelId: files,
+  idShortPath: file.idShortPath,
+  fileName: picked.name,
+  contentType: picked.type,
+  data: await picked.arrayBuffer(),
+  revision: file.revision,
+})
+```
 
 ### Third-party origins
 
@@ -275,6 +350,21 @@ studio.calls // every call the app made
 - Parameters and results are copied as a MessagePort copies them, a method
   without a handler is refused (`unsupported_operation`), and an error a
   handler throws reaches the app as a `StudioError`.
+- Structural writes and attachments are refused outside edit mode
+  (`app_edit_mode_required`), and attachments above 8 MiB, as Studio refuses
+  them; `setContext({ mode: 'edit' })` switches.
+
+`memoryAas({ shells, submodels })` keeps AAS content in memory and provides
+handlers for the reads, `setElementValue`, the structural writes,
+`putAttachment` and `ui.readFile`, with revisions and the conflicts Studio
+reports. It does not verify content with AAS Core or keep registries.
+
+```ts
+const aas = memoryAas({ submodels: [fileSystem] })
+const studio = createTestStudio({ handlers: { ...aas.handlers }, context: { mode: 'edit', submodel: { id: fileSystem.id, semanticId: null } } })
+aas.setFile(fileSystem.id, 'Manual', { bytes, contentType: 'application/pdf' })
+aas.submodels // the content after the app's writes
+```
 
 `StudioClient` sits on a `Transport` (`call`, `onContext`, `close`):
 `connect()` creates the MessagePort transport of `studio-sdk/0`

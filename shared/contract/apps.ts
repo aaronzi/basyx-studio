@@ -1,5 +1,5 @@
 import type { MethodName, Methods } from '@basyx/studio-sdk/protocol'
-import { permissions, protocolVersion, sandboxOriginKinds, stackFileKinds } from '@basyx/studio-sdk/protocol'
+import { editModeMethods, permissions, protocolVersion, putAttachmentMaxBytes, sandboxOriginKinds, stackFileKinds } from '@basyx/studio-sdk/protocol'
 import { z } from 'zod'
 import { displayBreakpoints } from '../overview'
 import { engineHostSchema, stackComponentIdSchema, stackSpecSchema } from './containers'
@@ -223,6 +223,25 @@ export function externalFileUrl (element: unknown): string | null {
 
 const stackId = z.string().regex(/^[\w-]{1,64}$/)
 const idShortPath = z.string().min(1).max(4000)
+const revision = z.string().min(1).max(200)
+/** AAS content as JSON (a shell, submodel or element); Studio verifies it with AAS Core before writing. */
+const aasJson = z.record(z.string(), z.unknown())
+
+/**
+ * The bytes of `studio.aas.putAttachment`, as the frame sends them (an
+ * `ArrayBuffer` or a typed array) and as Studio's page forwards them; up to
+ * `putAttachmentMaxBytes`.
+ */
+const attachmentData = z.union([z.instanceof(ArrayBuffer), z.instanceof(Uint8Array)])
+  .transform(data => data instanceof Uint8Array ? data : new Uint8Array(data))
+  .refine(data => data.byteLength > 0, 'must not be empty')
+  .refine(data => data.byteLength <= putAttachmentMaxBytes, `must be at most ${putAttachmentMaxBytes / 1024 / 1024} MiB`)
+
+/** A media type without parameters, in lower case, as Studio stores it with a File's content. */
+const mediaType = z.string().min(1).max(200).transform(value => value.split(';', 1)[0]!.trim().toLowerCase()).pipe(z.string().regex(/^[a-z]+\/[\w.+-]+$/, 'must be a media type such as image/png'))
+
+/** A file name without directories, as the attachment route takes it. */
+const fileName = z.string().min(1).max(255).refine(name => !/[/\\\0]/.test(name), 'must not contain / or \\')
 
 /** Parameters of every capability method; anything else is rejected. */
 export const appMethodParamsSchemas = {
@@ -251,8 +270,24 @@ export const appMethodParamsSchemas = {
       z.string().max(1_000_000).nullable(),
       z.array(langStringSchema.extend({ language: z.string().min(1).max(64), text: z.string().max(1_000_000) })).max(200),
     ]),
-    revision: z.string().min(1).max(200),
+    revision,
   }).strict(),
+  'studio.aas.getSubmodelSnapshot': z.object({ submodelId: identifier }).strict(),
+  'studio.aas.createShell': z.object({ shell: aasJson, submodels: z.array(aasJson).max(50).default([]) }).strict(),
+  'studio.aas.createSubmodel': z.object({ submodel: aasJson, shellId: identifier.optional() }).strict(),
+  'studio.aas.putSubmodel': z.object({ submodelId: identifier, submodel: aasJson, revision }).strict(),
+  'studio.aas.addElement': z.object({
+    submodelId: identifier,
+    parentPath: idShortPath.optional(),
+    element: aasJson,
+    index: z.number().int().min(0).optional(),
+    structureRevision: revision,
+  }).strict(),
+  'studio.aas.putElement': z.object({ submodelId: identifier, idShortPath, element: aasJson, revision }).strict(),
+  'studio.aas.deleteElement': z.object({ submodelId: identifier, idShortPath, revision }).strict(),
+  'studio.aas.deleteSubmodel': z.object({ submodelId: identifier, removeReferences: z.boolean().default(false) }).strict(),
+  'studio.aas.deleteShell': z.object({ shellId: identifier, deleteSubmodels: z.boolean().default(false) }).strict(),
+  'studio.aas.putAttachment': z.object({ submodelId: identifier, idShortPath, fileName, contentType: mediaType, data: attachmentData, revision }).strict(),
   'studio.backend.call': z.object({
     method: z.string().regex(/^[A-Z]\w{0,63}$/i, 'must be the name of an exported function'),
     params: z.unknown().optional(),
@@ -289,6 +324,9 @@ export const appMethodParamsSchemas = {
 
 export type AppMethodParams<M extends MethodName> = Methods[M]['params']
 
+/** Methods that change AAS content; Studio's page refreshes its own views after them. */
+export const studioAppWriteMethods: ReadonlySet<MethodName> = new Set<MethodName>(['studio.aas.setElementValue', ...editModeMethods])
+
 export const appMethodNameSchema = z.enum(Object.keys(appMethodParamsSchemas) as [MethodName, ...MethodName[]])
 
 /** A capability call from the host bridge (session) or a backend app (capability token). */
@@ -305,14 +343,38 @@ export const appCallInputSchema = z.object({
   targetId: z.string().max(200).nullable().optional(),
   /** The shell the frame shows, if any; some infrastructures reach submodels only through it. */
   shellId: z.string().max(4000).nullable().optional(),
+  /**
+   * Studio's mode on the page that hosts the frame. Structural writes and
+   * attachments need `edit` (MVP-7 A1); for a backend, the mode of the call
+   * that started it counts, which its capability token carries.
+   */
+  mode: z.enum(['view', 'edit']).optional(),
   method: appMethodNameSchema,
   params: z.unknown(),
 })
 export type AppCallInput = z.infer<typeof appCallInputSchema>
+
+/**
+ * `PUT /app-calls/attachment`: `studio.aas.putAttachment` from the host
+ * bridge. The body is the file, its media type the `Content-Type`; the rest
+ * of the call is in the query, so the bytes cross no JSON.
+ */
+export const appAttachmentQuerySchema = z.object({
+  installationId: z.string().min(1).max(64),
+  digest: z.string().max(80).optional(),
+  targetId: z.string().min(1).max(200),
+  shellId: z.string().max(4000).optional(),
+  mode: z.enum(['view', 'edit']),
+  submodelId: identifier,
+  idShortPath,
+  fileName,
+  revision,
+})
+export type AppAttachmentQuery = z.infer<typeof appAttachmentQuerySchema>
 
 export const appCallResultSchema = z.object({
   result: z.unknown(),
 })
 export type AppCallResult = z.infer<typeof appCallResultSchema>
 
-export { type AppContext, type MethodName as AppMethodName, protocolVersion as appProtocol, methodPermissions, readFileMaxBytes } from '@basyx/studio-sdk/protocol'
+export { type AppContext, type MethodName as AppMethodName, protocolVersion as appProtocol, editModeMethods, methodPermissions, putAttachmentMaxBytes, readFileMaxBytes } from '@basyx/studio-sdk/protocol'

@@ -6,10 +6,13 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.4'
+export const studioAppApiVersion = '0.1.5'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
+
+/** The largest file `studio.aas.putAttachment` takes per call (8 MiB, Studio app API 0.1.5). */
+export const putAttachmentMaxBytes = 8 * 1024 * 1024
 
 export const permissions = [
   'studio.aas.read',
@@ -157,9 +160,41 @@ export type ConcurrencyMode = 'strong' | 'best_effort'
 
 export interface ElementSnapshot {
   value: JsonObject
-  /** Opaque revision; pass it unchanged to `setElementValue`. */
+  /** Opaque revision; pass it unchanged to `setElementValue`, `putElement`, `deleteElement` or `putAttachment`. */
   revision: string
   concurrency: ConcurrencyMode
+  /**
+   * Opaque revision of a container's children (their idShorts, types and
+   * order); pass it to `addElement` below this element. `null` for elements
+   * without children (Studio app API 0.1.5; absent before).
+   */
+  structureRevision?: string | null
+}
+
+/** An element after a structural write, at its path after the write (a rename changes it). */
+export interface ElementWriteResult extends ElementSnapshot {
+  idShortPath: string
+}
+
+/** A whole submodel with the revisions that writes to it are based on (Studio app API 0.1.5). */
+export interface SubmodelSnapshot {
+  submodel: JsonObject
+  /** Opaque revision of the whole submodel; pass it to `putSubmodel`. */
+  revision: string
+  /** Opaque revision of its top-level elements; pass it to `addElement` without `parentPath`. */
+  structureRevision: string
+}
+
+/**
+ * One step of a write over several resources, e.g. a new submodel, the shell,
+ * or a descriptor that Studio keeps in step in a registry. A failed step stops
+ * the later ones.
+ */
+export interface WriteStep {
+  resource: 'submodel' | 'shell' | 'submodelReference' | 'shellDescriptor' | 'submodelDescriptor' | 'assetLinks'
+  id: string
+  outcome: 'written' | 'removed' | 'failed' | 'skipped'
+  detail?: string
 }
 
 /** The content of a File element (`studio.ui.readFile`). */
@@ -420,6 +455,50 @@ export interface Methods {
     params: { submodelId: string, idShortPath: string, value: ElementValue, revision: string }
     result: ElementSnapshot
   }
+  // Structural writes and attachments (MVP-7 A1, A2; Studio app API 0.1.5).
+  // They need studio.aas.write and Studio's edit mode, which Studio checks
+  // on its server; AAS Core findings come back as `validation_failed` with
+  // `violations`.
+  /** A submodel with the revisions `putSubmodel` and top-level `addElement` are based on. */
+  'studio.aas.getSubmodelSnapshot': { params: { submodelId: string }, result: SubmodelSnapshot }
+  /**
+   * Creates a shell, and new submodels that it references. Without `id`,
+   * Studio generates identifiers by the infrastructure's scheme. Submodels
+   * are written first, then the shell, then registries and discovery.
+   */
+  'studio.aas.createShell': { params: { shell: JsonObject, submodels?: JsonObject[] }, result: { shell: JsonObject, steps: WriteStep[] } }
+  /** Creates a submodel; with `shellId`, the shell gets a reference to it. */
+  'studio.aas.createSubmodel': { params: { submodel: JsonObject, shellId?: string }, result: { submodelId: string, steps: WriteStep[] } }
+  /** Replaces a whole submodel, based on the `revision` of `getSubmodelSnapshot`; its `id` cannot change. */
+  'studio.aas.putSubmodel': { params: { submodelId: string, submodel: JsonObject, revision: string }, result: SubmodelSnapshot }
+  /**
+   * Adds an element below `parentPath` (the top level without it) at `index`
+   * (appended without it), based on the parent's `structureRevision`.
+   */
+  'studio.aas.addElement': {
+    params: { submodelId: string, parentPath?: string, element: JsonObject, index?: number, structureRevision: string }
+    result: ElementWriteResult
+  }
+  /**
+   * Replaces an element with its edited version, based on its `revision`. A
+   * new idShort renames it; a container keeps its children.
+   */
+  'studio.aas.putElement': { params: { submodelId: string, idShortPath: string, element: JsonObject, revision: string }, result: ElementWriteResult }
+  /** Deletes an element with its children, based on its `revision`. */
+  'studio.aas.deleteElement': { params: { submodelId: string, idShortPath: string, revision: string }, result: null }
+  /** Deletes a submodel; with `removeReferences`, shells that reference it lose the reference first. */
+  'studio.aas.deleteSubmodel': { params: { submodelId: string, removeReferences?: boolean }, result: { steps: WriteStep[] } }
+  /** Deletes a shell; with `deleteSubmodels`, also the submodels it references. */
+  'studio.aas.deleteShell': { params: { shellId: string, deleteSubmodels?: boolean }, result: { steps: WriteStep[] } }
+  /**
+   * Replaces the content of a File element, based on its `revision`; up to
+   * `putAttachmentMaxBytes`. Studio's page sends the bytes, so the frame
+   * needs no network access. Not available to backends.
+   */
+  'studio.aas.putAttachment': {
+    params: { submodelId: string, idShortPath: string, fileName: string, contentType: string, data: ArrayBuffer | Uint8Array, revision: string }
+    result: ElementSnapshot
+  }
   'studio.backend.call': { params: { method: string, params?: unknown }, result: unknown }
   /** Opens a target in Studio. */
   'studio.ui.openTarget': { params: { targetId: string }, result: null }
@@ -488,6 +567,16 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.aas.getSubmodel': 'studio.aas.read',
   'studio.aas.getElement': 'studio.aas.read',
   'studio.aas.setElementValue': 'studio.aas.write',
+  'studio.aas.getSubmodelSnapshot': 'studio.aas.read',
+  'studio.aas.createShell': 'studio.aas.write',
+  'studio.aas.createSubmodel': 'studio.aas.write',
+  'studio.aas.putSubmodel': 'studio.aas.write',
+  'studio.aas.addElement': 'studio.aas.write',
+  'studio.aas.putElement': 'studio.aas.write',
+  'studio.aas.deleteElement': 'studio.aas.write',
+  'studio.aas.deleteSubmodel': 'studio.aas.write',
+  'studio.aas.deleteShell': 'studio.aas.write',
+  'studio.aas.putAttachment': 'studio.aas.write',
   'studio.backend.call': 'studio.backend',
   'studio.ui.openTarget': 'studio.ui.navigation',
   'studio.ui.openShell': 'studio.ui.navigation',
@@ -514,6 +603,23 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.timeseries.read': 'studio.timeseries.read',
 }
 
+/**
+ * Methods that Studio carries out only while it is in edit mode
+ * (`context.mode === 'edit'`); otherwise they fail with
+ * `app_edit_mode_required`. Studio checks this on its server (MVP-7 A1).
+ */
+export const editModeMethods: readonly MethodName[] = [
+  'studio.aas.createShell',
+  'studio.aas.createSubmodel',
+  'studio.aas.putSubmodel',
+  'studio.aas.addElement',
+  'studio.aas.putElement',
+  'studio.aas.deleteElement',
+  'studio.aas.deleteSubmodel',
+  'studio.aas.deleteShell',
+  'studio.aas.putAttachment',
+]
+
 /** A failed call, in the shape of Studio's problem details. */
 export interface Problem {
   code: string
@@ -522,6 +628,8 @@ export interface Problem {
   detail?: string
   retryable: boolean
   violations?: { path: string, message: string }[]
+  /** What a write over several resources did, step by step (`partial_write`). */
+  steps?: WriteStep[]
 }
 
 // Messages. The frame posts `hello` to its parent; Studio answers with

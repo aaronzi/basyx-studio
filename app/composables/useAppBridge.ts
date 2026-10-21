@@ -1,7 +1,7 @@
 import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ElementDetail, Problem } from '#shared/contract'
 import type { Ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
-import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, externalFileUrl, readFileMaxBytes } from '#shared/contract'
+import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, externalFileUrl, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
 import { StudioApiError } from '~/composables/useStudioApi'
 import { resourceKey } from '~/utils/aas'
 
@@ -107,10 +107,14 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       if (activationMethods.has(method.data) && !activated) {
         throw hostProblem('forbidden', 'Call this from a click or key press in the app.', 403)
       }
-      const { result } = await api<AppCallResult>('/app-calls', {
-        method: 'POST',
-        body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: options.context().shell?.id ?? null, method: method.data, params },
-      })
+      const context = options.context()
+      const { result } = method.data === 'studio.aas.putAttachment'
+        ? await putAttachment(params, contribution)
+        : await api<AppCallResult>('/app-calls', {
+            method: 'POST',
+            // Studio's mode goes with every call: its server refuses structural writes outside edit mode (MVP-7 A1).
+            body: { installationId: contribution.installationId, digest: digest ?? undefined, targetId: options.targetId, shellId: context.shell?.id ?? null, mode: context.mode, method: method.data, params },
+          })
       const replaced = await carryOut(method.data, params, contribution)
       respond({ type: 'response', id, result: replaced ? replaced.result : result }, replaced?.transfer)
     } catch (error) {
@@ -121,6 +125,37 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       }
       respond({ type: 'error', id, problem })
     }
+  }
+
+  /**
+   * Sends an attachment the frame handed over (MVP-7 A2): the bytes go to
+   * Studio's API as the body, the rest of the call in the query, so the
+   * server authorizes and audits it like any other call.
+   */
+  async function putAttachment (params: unknown, contribution: AppContributionInfo): Promise<AppCallResult> {
+    if (!options.targetId) {
+      throw hostProblem('invalid_request', 'This app frame is not bound to a target.', 400)
+    }
+    const parsed = appMethodParamsSchemas['studio.aas.putAttachment'].safeParse(params)
+    if (!parsed.success) {
+      const violations = parsed.error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message }))
+      throw new StudioApiError({ type: 'about:blank', title: 'Invalid parameters for studio.aas.putAttachment.', status: 400, code: 'invalid_request', requestId: '', retryable: false, violations })
+    }
+    const { data, contentType, ...call } = parsed.data
+    const context = options.context()
+    return api<AppCallResult>('/app-calls/attachment', {
+      method: 'PUT',
+      query: {
+        ...call,
+        installationId: contribution.installationId,
+        digest: digest ?? undefined,
+        targetId: options.targetId,
+        shellId: context.shell?.id ?? undefined,
+        mode: context.mode,
+      },
+      headers: { 'Content-Type': contentType },
+      body: new Blob([data as BlobPart], { type: contentType }),
+    })
   }
 
   /**
@@ -209,13 +244,14 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         const { kind, suggestedName } = appMethodParamsSchemas['studio.containers.pickFiles'].parse(params)
         return { result: { files: await desktop.chooseStackFiles(kind, suggestedName) } }
       }
-      case 'studio.aas.setElementValue': {
-        if (options.targetId) {
-          // Studio's own views show the new value, and a workspace its unsaved state.
-          void queryCache.invalidateQueries({ key: ['targets', options.targetId], exact: true })
-          void queryCache.invalidateQueries({ key: ['targets', options.targetId, 'details'] })
-        }
-        break
+    }
+    if (studioAppWriteMethods.has(method) && options.targetId) {
+      // Studio's own views show the change, and a workspace its unsaved state.
+      // Structural writes also change trees, lists and references.
+      const structural = method !== 'studio.aas.setElementValue' && method !== 'studio.aas.putAttachment'
+      void queryCache.invalidateQueries({ key: ['targets', options.targetId], exact: !structural })
+      if (!structural) {
+        void queryCache.invalidateQueries({ key: ['targets', options.targetId, 'details'] })
       }
     }
     return null

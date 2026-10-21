@@ -10,7 +10,7 @@ import { manifestOf } from './support'
 
 describe('capability tokens', () => {
   const key = capabilityTokenKey(randomBytes(32))
-  const claims = { installationId: 'app-0123456789abcdef', digest: 'sha256:0123', sessionId: 'session', targetId: 'target' }
+  const claims = { installationId: 'app-0123456789abcdef', digest: 'sha256:0123', sessionId: 'session', targetId: 'target', mode: 'edit' as const }
 
   it('round-trips the claims until the token expires', () => {
     const now = Date.now()
@@ -60,6 +60,21 @@ describe('app call authorization', () => {
     expect(code(() => authorizeAppCall(installation, 'studio.timeseries.read', 'backend', emptyTrustStore))).toBe('unsupported_operation')
   })
 
+  it('runs structural writes only in edit mode, and attachments only from Studio\'s page (MVP-7 A1, A2)', () => {
+    const writer = { ...installation, manifest: manifestOf({ permissions: ['studio.aas.read', 'studio.aas.write'] }) } as AppInstallationRecord
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.addElement', 'host', emptyTrustStore, 'view'))).toBe('app_edit_mode_required')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.addElement', 'host', emptyTrustStore))).toBe('app_edit_mode_required')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.addElement', 'host', emptyTrustStore, 'edit'))).toBe('allowed')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.deleteShell', 'backend', emptyTrustStore, 'view'))).toBe('app_edit_mode_required')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.deleteShell', 'backend', emptyTrustStore, 'edit'))).toBe('allowed')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.putAttachment', 'backend', emptyTrustStore, 'edit'))).toBe('unsupported_operation')
+    // Value edits and reads keep working as before.
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.setElementValue', 'host', emptyTrustStore, 'view'))).toBe('allowed')
+    expect(code(() => authorizeAppCall(writer, 'studio.aas.getSubmodelSnapshot', 'host', emptyTrustStore, 'view'))).toBe('allowed')
+    // The permission is checked first.
+    expect(code(() => authorizeAppCall(installation, 'studio.aas.addElement', 'host', emptyTrustStore, 'edit'))).toBe('app_permission_not_declared')
+  })
+
   it('reserves time series reads for the apps shipped with Studio (ADR 0040)', () => {
     const manifest = manifestOf({ permissions: ['studio.aas.read', 'studio.timeseries.read'] })
     const installed = { ...installation, manifest, bundled: false } as AppInstallationRecord
@@ -70,6 +85,9 @@ describe('app call authorization', () => {
 })
 
 describe('AAS capability methods', () => {
+  const noSync = async () => ({ registry: false, submodelRegistry: false, discovery: false })
+  const callContext = (target: AasTarget) => ({ target, idScheme: { type: 'iri', prefix: 'https://example.com/ids/' } as const, syncPlan: noSync })
+
   function fakeTarget (): AasTarget {
     return {
       capabilities: { write: true, persistence: 'immediate' },
@@ -93,29 +111,29 @@ describe('AAS capability methods', () => {
 
   it('maps target results to SDK shapes', async () => {
     const target = fakeTarget()
-    expect(await executeAasMethod(target, 'studio.aas.listShells', {})).toEqual({
+    expect(await executeAasMethod(callContext(target), 'studio.aas.listShells', {})).toEqual({
       items: [{ id: 'urn:shell', idShort: 'Shell', displayName: [], assetKind: null, globalAssetId: null }],
       page: { nextCursor: null, hasMore: false },
     })
-    expect(await executeAasMethod(target, 'studio.aas.listSubmodels', { shellId: 'urn:shell' })).toEqual({
+    expect(await executeAasMethod(callContext(target), 'studio.aas.listSubmodels', { shellId: 'urn:shell' })).toEqual({
       items: [
         { id: 'urn:sm:1', idShort: 'Nameplate', semanticId: 'urn:semantic', status: 'available' },
         { id: 'urn:sm:2', idShort: null, semanticId: null, status: 'forbidden' },
       ],
     })
-    expect(await executeAasMethod(target, 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: 'Contact.Phone[0]' }))
-      .toEqual({ value: { modelType: 'Property', value: 'a' }, revision: 'h.abc', concurrency: 'strong' })
+    expect(await executeAasMethod(callContext(target), 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: 'Contact.Phone[0]' }))
+      .toEqual({ value: { modelType: 'Property', value: 'a' }, revision: 'h.abc', concurrency: 'strong', structureRevision: null })
     expect(target.element).toHaveBeenCalledWith('urn:sm:1', 'Contact.Phone[0]')
   })
 
   it('writes with the revision and refuses operation variables', async () => {
     const target = fakeTarget()
-    await executeAasMethod(target, 'studio.aas.setElementValue', { submodelId: 'urn:sm:1', idShortPath: 'Serial', value: 'b', revision: 'h.abc' })
+    await executeAasMethod(callContext(target), 'studio.aas.setElementValue', { submodelId: 'urn:sm:1', idShortPath: 'Serial', value: 'b', revision: 'h.abc' })
     expect(target.setElementValue).toHaveBeenCalledWith('urn:sm:1', 'Serial', 'b', 'h.abc')
-    await expect(executeAasMethod(target, 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: 'Calibrate@input.Offset' }))
+    await expect(executeAasMethod(callContext(target), 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: 'Calibrate@input.Offset' }))
       .rejects
       .toMatchObject({ code: 'unsupported_operation' })
-    await expect(executeAasMethod(target, 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: '../x' }))
+    await expect(executeAasMethod(callContext(target), 'studio.aas.getElement', { submodelId: 'urn:sm:1', idShortPath: '../x' }))
       .rejects
       .toMatchObject({ code: 'invalid_request' })
   })

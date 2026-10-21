@@ -64,6 +64,8 @@ export const problemCodes = [
   'app_sandbox_not_granted',
   /** The calling frame or backend runs an older version of the app than the installed one; reload it. */
   'app_outdated',
+  /** A structural write or attachment upload of an app outside Studio's edit mode (MVP-7 A1). */
+  'app_edit_mode_required',
   'app_not_found',
   'app_permission_not_declared',
   'app_backend_unavailable',

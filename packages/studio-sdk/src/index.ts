@@ -34,6 +34,23 @@ export class StudioClient {
     getSubmodel: (submodelId: string) => this.call('studio.aas.getSubmodel', { submodelId }),
     getElement: (submodelId: string, idShortPath: string) => this.call('studio.aas.getElement', { submodelId, idShortPath }),
     setElementValue: (params: Methods['studio.aas.setElementValue']['params']) => this.call('studio.aas.setElementValue', params),
+    // Structural writes and attachments (needs studio.aas.write and Studio's
+    // edit mode; Studio ≥ 0.1.5).
+    /** A submodel with the revisions for `putSubmodel` and top-level `addElement`. */
+    getSubmodelSnapshot: (submodelId: string) => this.call('studio.aas.getSubmodelSnapshot', { submodelId }),
+    /** Creates a shell and new submodels it references; identifiers left out are generated. */
+    createShell: (params: Methods['studio.aas.createShell']['params']) => this.call('studio.aas.createShell', params),
+    /** Creates a submodel; with `shellId`, the shell references it. */
+    createSubmodel: (params: Methods['studio.aas.createSubmodel']['params']) => this.call('studio.aas.createSubmodel', params),
+    putSubmodel: (params: Methods['studio.aas.putSubmodel']['params']) => this.call('studio.aas.putSubmodel', params),
+    addElement: (params: Methods['studio.aas.addElement']['params']) => this.call('studio.aas.addElement', params),
+    /** Replaces an element; a new idShort renames it, and a container keeps its children. */
+    putElement: (params: Methods['studio.aas.putElement']['params']) => this.call('studio.aas.putElement', params),
+    deleteElement: (params: Methods['studio.aas.deleteElement']['params']) => this.call('studio.aas.deleteElement', params),
+    deleteSubmodel: (params: Methods['studio.aas.deleteSubmodel']['params']) => this.call('studio.aas.deleteSubmodel', params),
+    deleteShell: (params: Methods['studio.aas.deleteShell']['params']) => this.call('studio.aas.deleteShell', params),
+    /** Replaces a File element's content, up to `putAttachmentMaxBytes`; e.g. `{ ..., fileName: file.name, contentType: file.type, data: await file.arrayBuffer() }`. */
+    putAttachment: (params: Methods['studio.aas.putAttachment']['params']) => this.call('studio.aas.putAttachment', params),
   }
 
   readonly ui = {

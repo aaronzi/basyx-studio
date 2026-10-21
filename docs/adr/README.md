@@ -26,8 +26,8 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0015](0015-desktop-native-bridge-and-file-grants.md) | Accepted | Two-call preload bridge; single-use file grants from the Electron main process |
 | [0016](0016-app-manifest-and-packages.md) | Accepted, amended by 0044 | Versioned JSON Schema manifest; packages checked completely and stored content-addressed |
 | [0017](0017-app-origin-and-content-security-policy.md) | Accepted, amended by 0045 | Sandboxed frames on a separate apps origin or `studio-app:` protocol, strict CSP |
-| [0018](0018-capability-bridge-and-authorization.md) | Accepted | `studio-sdk/0` MessagePort bridge; manifest permissions plus the user's own rights |
-| [0019](0019-backend-app-runner.md) | Accepted | Deno process per backend, deny-by-default, short-lived capability tokens |
+| [0018](0018-capability-bridge-and-authorization.md) | Accepted, amended by 0049 | `studio-sdk/0` MessagePort bridge; manifest permissions plus the user's own rights |
+| [0019](0019-backend-app-runner.md) | Accepted, amended by 0049 | Deno process per backend, deny-by-default, short-lived capability tokens |
 | [0020](0020-infrastructure-templates-registries-and-sync.md) | Accepted | Infrastructure templates, registry resolution under the base-URL rule, sync after writes |
 | [0021](0021-feature-detection-from-service-profiles.md) | Accepted | Optional features from the stored `/description` profiles, never from probing |
 | [0022](0022-basyx-go-endpoints-outside-the-sdk.md) | Accepted | The SDK for standard endpoints; a guarded raw layer for BaSyx Go-specific ones |
@@ -54,6 +54,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0043](0043-published-sdk-and-app-kit.md) | Proposed | `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer` on npm with provenance; a test transport; the `studio-app` command |
 | [0044](0044-app-package-signatures-trust-store-and-updates.md) | Proposed | cosign-compatible package signatures, a trust store of publisher keys per app ID, in-place updates with consent, managed packages |
 | [0045](0045-app-origins-embeds-and-full-page-modules.md) | Proposed | One origin per app installation; declared frame, connect, image and media origins; full-page modules |
+| [0049](0049-structural-writes-and-attachments-for-apps.md) | Proposed | Structural writes and attachment uploads for apps on the editor's paths; edit mode checked on the server |
 
 ## Template
 
