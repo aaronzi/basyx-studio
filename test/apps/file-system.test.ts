@@ -170,6 +170,52 @@ describe('changing files', () => {
     expect((aas.submodels[0]!.submodelElements as JsonObject[]).map(element => element.idShort)).toEqual(expect.arrayContaining(['PreviewCollection', 'Note']))
   })
 
+  it('keeps the source of a move that changed while it was copied, and removes the copy', async () => {
+    const aas = memoryAas({ submodels: [webUiSubmodel()] })
+    aas.setFile(submodelId, 'FOLDER_1700000000000.Guide', { bytes: new TextEncoder().encode('%PDF-guide'), contentType: 'application/pdf' })
+    let inserted = false
+    const studio = createTestStudio({
+      context: { mode: 'edit', submodel: { id: submodelId, semanticId: null } },
+      handlers: {
+        ...aas.handlers,
+        // Someone else adds a file to the source folder while its content is copied.
+        'studio.aas.putAttachment': async (params, test) => {
+          const result = await aas.handlers['studio.aas.putAttachment']!(params, test)
+          if (!inserted) {
+            inserted = true
+            const folder = (aas.submodels[0]!.submodelElements as JsonObject[]).find(element => element.idShort === 'FOLDER_1700000000000')!
+            ;(folder.value as JsonObject[]).push({ modelType: 'File', idShort: 'Concurrent', contentType: 'text/plain' })
+          }
+          return result
+        },
+      },
+    })
+    const writer = new FileSystemWriter(studio.client, submodelId)
+    const target = await writer.createFolder('', 'Archive')
+    const manuals = findEntry(readFileSystem(aas.submodels[0]!, 'en'), 'FOLDER_1700000000000')!
+    await expect(writer.move(manuals, target)).rejects.toMatchObject({ code: 'revision_conflict' })
+    // The source is whole, with the file added meanwhile, and no half copy is left.
+    const after = readFileSystem(aas.submodels[0]!, 'en')
+    expect((findEntry(after, 'FOLDER_1700000000000') as FolderEntry).children.map(child => child.idShort)).toEqual(expect.arrayContaining(['Guide', 'Concurrent']))
+    expect((findEntry(after, target) as FolderEntry).children).toEqual([])
+  })
+
+  it('moves what a folder holds now, not what the view showed', async () => {
+    const { aas, studio, writer, entries, read } = setup()
+    const manuals = findEntry(entries(), 'FOLDER_1700000000000')!
+    // A file added after the view read the folder, with content of its own.
+    const folder = await studio.client.aas.getElement(submodelId, 'FOLDER_1700000000000')
+    await studio.client.aas.addElement({ submodelId, parentPath: 'FOLDER_1700000000000', element: { modelType: 'File', idShort: 'Late', contentType: 'text/plain' }, structureRevision: folder.structureRevision! })
+    aas.setFile(submodelId, 'FOLDER_1700000000000.Late', { bytes: new TextEncoder().encode('late'), contentType: 'text/plain' })
+    const target = await writer.createFolder('', 'Archive')
+    const moved = await writer.move(manuals, target)
+    // Its content is read and uploaded again: on BaSyx Go, content belongs to an element's path (ADR 0049).
+    expect(studio.calls).toContainEqual({ method: 'studio.ui.readFile', params: { submodelId, idShortPath: 'FOLDER_1700000000000.Late' } })
+    expect(studio.calls.some(call => call.method === 'studio.aas.putAttachment' && (call.params as { idShortPath: string }).idShortPath === `${moved}.Late`)).toBe(true)
+    expect(await read(`${moved}.Late`)).toBe('late')
+    expect(await read(`${moved}.Guide`)).toBe('%PDF-guide')
+  })
+
   it('deletes files and folders, based on their current revision', async () => {
     const { writer, entries } = setup()
     await writer.delete(findEntry(entries(), 'FOLDER_1700000000000')!)

@@ -124,26 +124,32 @@ function byName (a: Entry, b: Entry): number {
   return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
 }
 
+/**
+ * The folder or file an element of a FileSystem submodel is, under `parent`;
+ * `null` for other elements, which the view does not show.
+ */
+export function entryOf (element: JsonObject, parent: string, locale: string): Entry | null {
+  if (typeof element?.idShort !== 'string') {
+    return null
+  }
+  const path = childPath(parent, element.idShort)
+  if (isFolder(element)) {
+    return { kind: 'folder', path, idShort: element.idShort, parent, element, name: displayName(element, locale) ?? element.idShort, children: entriesOf(element.value, path, locale) }
+  }
+  if (element.modelType === 'File') {
+    const contentType = typeof element.contentType === 'string' ? element.contentType : ''
+    const stored = storedName(element.value)
+    const fileName = stored && stored.includes('.') ? stored : `${element.idShort}.${extensionOf(contentType)}`
+    return { kind: 'file', path, idShort: element.idShort, parent, element, name: displayName(element, locale) ?? fileName, contentType, external: externalAddress(element.value), fileName }
+  }
+  return null
+}
+
 function entriesOf (elements: unknown, parent: string, locale: string): Entry[] {
   if (!Array.isArray(elements)) {
     return []
   }
-  const entries: Entry[] = []
-  for (const element of elements as JsonObject[]) {
-    if (typeof element?.idShort !== 'string') {
-      continue
-    }
-    const path = childPath(parent, element.idShort)
-    if (isFolder(element)) {
-      entries.push({ kind: 'folder', path, idShort: element.idShort, parent, element, name: displayName(element, locale) ?? element.idShort, children: entriesOf(element.value, path, locale) })
-    } else if (element.modelType === 'File') {
-      const contentType = typeof element.contentType === 'string' ? element.contentType : ''
-      const stored = storedName(element.value)
-      const fileName = stored && stored.includes('.') ? stored : `${element.idShort}.${extensionOf(contentType)}`
-      entries.push({ kind: 'file', path, idShort: element.idShort, parent, element, name: displayName(element, locale) ?? fileName, contentType, external: externalAddress(element.value), fileName })
-    }
-  }
-  return entries.toSorted(byName)
+  return (elements as JsonObject[]).map(element => entryOf(element, parent, locale)).filter((entry): entry is Entry => entry !== null).toSorted(byName)
 }
 
 /** The folders and files of a FileSystem submodel, as a tree. */
