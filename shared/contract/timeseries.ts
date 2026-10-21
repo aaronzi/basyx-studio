@@ -31,9 +31,10 @@ export const timeSeriesRangeSchema = z.object({
   start: dateTimeSchema,
   stop: dateTimeSchema,
   /**
-   * `latest` moves the range so that it ends at the latest point of the data
-   * (InternalSegment and ExternalSegment), as the BaSyx AAS Web UI does for
-   * relative ranges; `fixed` keeps it.
+   * `latest` moves the range so that it ends at the latest point of the data,
+   * as the BaSyx AAS Web UI does for relative ranges of InternalSegments and
+   * ExternalSegments; for a LinkedSegment, the latest point before `stop`
+   * (external apps plan T1). `fixed` keeps it.
    */
   anchor: z.enum(['fixed', 'latest']).default('fixed'),
 }).strict().superRefine((range, context) => {

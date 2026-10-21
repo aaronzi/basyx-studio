@@ -169,6 +169,16 @@ export interface FluxRange {
   stop: string
 }
 
+/** The `v.windowPeriod` of a range: about 360 windows. */
+export function fluxWindowPeriodMs (range: FluxRange): number {
+  return Math.max(1, Math.round((Date.parse(range.stop) - Date.parse(range.start)) / pointsPerGraph))
+}
+
+/** Whether the query aggregates by `v.windowPeriod`, so that its times are those of windows, not of points. */
+export function usesWindowPeriod (query: string): boolean {
+  return /\bv\.windowPeriod\b/.test(query)
+}
+
 /**
  * Sets the dashboard variables of the BaSyx AAS Web UI: every `{{y-value}}`
  * becomes the value's record idShort (checked to be an idShort, so it cannot
@@ -176,8 +186,7 @@ export interface FluxRange {
  * `v.windowPeriod` a period that gives about 360 points.
  */
 export function interpolateFlux (query: string, value: string | null, range: FluxRange): string {
-  const durationMs = Date.parse(range.stop) - Date.parse(range.start)
-  const windowPeriodMs = Math.max(1, Math.round(durationMs / pointsPerGraph))
+  const windowPeriodMs = fluxWindowPeriodMs(range)
   const withValue = value === null ? query : query.replaceAll('{{y-value}}', value)
   return withValue
     .replaceAll(/\bv\.timeRangeStart\b/g, new Date(range.start).toISOString())

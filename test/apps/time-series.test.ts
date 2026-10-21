@@ -365,16 +365,12 @@ describe('reading through studio.timeseries.read', () => {
   const segments = findSegments(createSubmodel())
   const internal = segments.find(segment => segment.kind === 'InternalSegment')!
   const linked = segments.find(segment => segment.kind === 'LinkedSegment')!
-  const external = segments.find(segment => segment.kind === 'ExternalSegment')!
   const relative: TimeRangeSelection = { mode: 'relative', value: 1, unit: 'minutes' }
   const absolute: TimeRangeSelection = { mode: 'absolute', start: '2026-05-13T18:00:00.000Z', stop: '2026-05-13T19:00:00.000Z' }
 
-  it('anchors relative ranges of Internal and External segments at the latest point', () => {
-    expect(rangeAnchor(internal.kind, relative)).toBe('latest')
-    expect(rangeAnchor(external.kind, relative)).toBe('latest')
-    expect(rangeAnchor(linked.kind, relative)).toBe('fixed')
-    expect(rangeAnchor(internal.kind, absolute)).toBe('fixed')
-    expect(rangeAnchor(external.kind, absolute)).toBe('fixed')
+  it('anchors relative ranges of every segment kind at the latest point', () => {
+    expect(rangeAnchor(relative)).toBe('latest')
+    expect(rangeAnchor(absolute)).toBe('fixed')
   })
 
   it('names the segment, records and the resolved range', () => {
@@ -384,10 +380,10 @@ describe('reading through studio.timeseries.read', () => {
       segment: 'LinkedSegment',
       time: 'Time',
       values: ['AirQuality', 'rpm'],
-      range: { start: '2026-05-13T19:15:00.000Z', stop: '2026-05-13T19:16:00.000Z', anchor: 'fixed' },
+      range: { start: '2026-05-13T19:15:00.000Z', stop: '2026-05-13T19:16:00.000Z', anchor: 'latest' },
     })
-    expect(readParams({ submodelId: 'urn:sm', segment: internal, time: 'Time', values: ['rpm'], selection: relative, now, maxPoints: 100 })).toMatchObject({
-      range: { anchor: 'latest' },
+    expect(readParams({ submodelId: 'urn:sm', segment: internal, time: 'Time', values: ['rpm'], selection: absolute, now, maxPoints: 100 })).toMatchObject({
+      range: { anchor: 'fixed' },
       maxPoints: 100,
     })
   })

@@ -258,6 +258,7 @@ export const appMethodParamsSchemas = {
     params: z.unknown().optional(),
   }).strict(),
   'studio.ui.openTarget': z.object({ targetId: z.string().min(1).max(200) }).strict(),
+  'studio.ui.openShell': z.object({ shellId: identifier, submodelId: identifier.optional() }).strict(),
   'studio.ui.openExternal': z.object({ url: z.url({ protocol: /^https?$/ }).max(2000).refine(isExternalUrl, 'must be an https URL, or an http URL of this computer') }).strict(),
   'studio.ui.copyText': z.object({ text: z.string().max(10_000) }).strict(),
   'studio.containers.listEngines': z.object({}).strict(),

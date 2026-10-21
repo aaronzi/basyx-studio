@@ -75,6 +75,15 @@ describe('createTestStudio', () => {
     await expect(studio.client.call('studio.ui.getContext', {})).resolves.toMatchObject({ subPath: 'shells/1' })
   })
 
+  it('records the shells an app opens', async () => {
+    const studio = createTestStudio({ permissions: ['studio.ui.navigation'] })
+    await studio.client.ui.openShell('urn:example:aas:1')
+    await studio.client.ui.openShell('urn:example:aas:1', { submodelId: 'urn:example:sm:bom' })
+    expect(studio.openedShells).toEqual([{ shellId: 'urn:example:aas:1' }, { shellId: 'urn:example:aas:1', submodelId: 'urn:example:sm:bom' }])
+    expect(studio.calls.map(call => call.method)).toEqual(['studio.ui.openShell', 'studio.ui.openShell'])
+    await expect(createTestStudio({ permissions: [] }).client.ui.openShell('urn:example:aas:1')).rejects.toMatchObject({ code: 'app_permission_not_declared' })
+  })
+
   it('sends a changed context to the app', () => {
     const studio = createTestStudio()
     studio.setContext({ theme: { dark: true, colors: {} } })

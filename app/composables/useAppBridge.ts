@@ -20,8 +20,12 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
   return new StudioApiError({ type: 'about:blank', title, status, code, requestId: '', retryable: false })
 }
 
-/** Methods that act outside the app's frame and so need a click or key press in it just before. */
-const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal'])
+/**
+ * Methods that act outside the app's frame and so need a click or key press
+ * in it just before: `openShell` leaves the app's page, which only the user
+ * should decide, not a timer or a page load.
+ */
+const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell'])
 
 function problemOf (error: unknown): Problem {
   if (error instanceof StudioApiError && error.problem) {
@@ -173,6 +177,19 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       }
       case 'studio.ui.openTarget': {
         await navigateTo(`/targets/${encodeURIComponent(appMethodParamsSchemas['studio.ui.openTarget'].parse(params).targetId)}`)
+        break
+      }
+      case 'studio.ui.openShell': {
+        // Studio checked that the user can read the shell. The selected
+        // submodel opens in its view, or in its details without one. Not
+        // awaited, so that the app gets its answer before the page leaves it.
+        if (options.targetId) {
+          const { shellId, submodelId } = appMethodParamsSchemas['studio.ui.openShell'].parse(params)
+          void navigateTo({
+            path: `/targets/${encodeURIComponent(options.targetId)}/shells/${resourceKey(shellId)}`,
+            query: submodelId === undefined ? {} : { submodel: resourceKey(submodelId), mode: 'visualization' },
+          })
+        }
         break
       }
       case 'studio.ui.openExternal': {

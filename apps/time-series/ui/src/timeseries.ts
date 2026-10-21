@@ -81,11 +81,12 @@ export function defaultSelection (segments: Segment[], records: TimeSeriesRecord
 }
 
 /**
- * Relative ranges of Internal and External segments end at the latest data
- * point, as in the Web UI; LinkedSegments and absolute ranges are read as given.
+ * Relative ranges end at the latest data point, as the Web UI does for
+ * Internal and External segments; Studio does it for LinkedSegments too.
+ * Absolute ranges are read as given.
  */
-export function rangeAnchor (kind: SegmentKind, selection: TimeRangeSelection): 'fixed' | 'latest' {
-  return selection.mode === 'relative' && kind !== 'LinkedSegment' ? 'latest' : 'fixed'
+export function rangeAnchor (selection: TimeRangeSelection): 'fixed' | 'latest' {
+  return selection.mode === 'relative' ? 'latest' : 'fixed'
 }
 
 export interface ReadRequest {
@@ -106,7 +107,7 @@ export function readParams (request: ReadRequest): TimeSeriesReadParams {
     segment: request.segment.idShort,
     time: request.time,
     values: [...request.values],
-    range: { start: range.start, stop: range.stop, anchor: rangeAnchor(request.segment.kind, request.selection) },
+    range: { start: range.start, stop: range.stop, anchor: rangeAnchor(request.selection) },
     ...(request.maxPoints ? { maxPoints: request.maxPoints } : {}),
   }
 }

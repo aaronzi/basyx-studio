@@ -33,6 +33,7 @@ runs the app, whatever the package version.
 | --- | --- | --- |
 | 0.1.0 | 0.1.2 | 0.1.0 |
 | 0.1.1 | 0.1.3: `sandbox.frameOrigins`, `connectOrigins`, `imageOrigins`, `mediaOrigins`; module `layout` | next release |
+| 0.1.2 | 0.1.4: `ui.openShell`; `timeseries.read` with `anchor: 'latest'` for LinkedSegments | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -87,10 +88,10 @@ user menu; show the target's name yourself if the page needs it.
 | `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
 | `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before) |
 | `studio.ui.notifications` | `ui.notify` |
-| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes) |
+| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
 | `studio.ui.externalFiles` | `ui.readExternalFile`: files that elements name at other hosts, fetched by Studio's page; those hosts see the user's address |
-| `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio; Studio app API 0.1.2 |
+| `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it; Studio app API 0.1.2 |
 
 ## UI
 
@@ -142,6 +143,19 @@ whose value is such an address, or a Property such as IDTA 02026's
 the address from the element itself and fetches the file in the user's
 browser without credentials or referrer; the host must allow it (CORS).
 Otherwise the call fails with `external_file_unavailable`.
+
+`ui.openShell(shellId, { submodelId? })` opens Studio's page of a shell of
+the active target in the same tab (permission `studio.ui.navigation`, Studio
+app API 0.1.4). There, Studio's submodel views and those of the installed
+apps show the shell's submodels, e.g. a bill of material or documents, so an
+app does not need to build them again. With `submodelId`, a submodel the
+shell references is selected and shown in its view, or in its details when
+no view fits. Call it from a click (or key press) in the app, as
+`openExternal`. Studio reads the shell as the user before it leaves the app:
+a shell the user cannot read, or a submodel the shell does not reference, is
+refused with Studio's problem, and the app stays. Going back in the history
+returns to the app. It works the same in the desktop app, also for AASX
+files.
 
 `ui.openFullscreen(state?)` opens the view again in a full-screen dialog,
 as a new frame. Pass what the user has selected as `state` (a string, up to
@@ -255,8 +269,9 @@ studio.calls // every call the app made
 - `context` replaces parts of `testContext()`: a module on a writable target
   named "Test target", in view mode, English and Studio's light theme.
 - Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
-  (moves `context.subPath` and sends the new context) and `notify`
-  (recorded in `studio.notifications`). Handlers replace them.
+  (moves `context.subPath` and sends the new context), `notify` (recorded
+  in `studio.notifications`) and `openShell` (recorded in
+  `studio.openedShells`). Handlers replace them.
 - Parameters and results are copied as a MessagePort copies them, a method
   without a handler is refused (`unsupported_operation`), and an error a
   handler throws reaches the app as a `StudioError`.
