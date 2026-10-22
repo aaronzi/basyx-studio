@@ -73,33 +73,7 @@
          one, which stays as it is underneath until the dialog closes. -->
     <v-dialog v-if="!fullscreen" v-model="viewOpen" fullscreen>
       <v-card-fullscreen v-if="openedView" class="d-flex flex-column" data-test="app-view-dialog" height="100%">
-        <v-toolbar class="flex-shrink-0" :title="label(openedView.view.title)">
-          <template #append>
-            <span class="text-body-small text-medium-emphasis text-truncate d-none d-sm-inline">{{ t('overview.reason', { app: label(openedView.view.appTitle), submodel: openedView.submodel.idShort ?? openedView.submodel.id }) }}</span>
-
-            <v-chip
-              v-if="openedView.view.unsigned"
-              class="ms-2"
-              color="warning"
-              size="x-small"
-              :text="t('apps.unsigned')"
-            />
-
-            <v-btn :aria-label="t('common.close')" data-test="app-view-close" icon="mdi-close" @click="viewOpen = false" />
-          </template>
-        </v-toolbar>
-
-        <v-divider />
-
-        <app-frame
-          :key="`${openedView.view.installationId}:${openedView.view.id}:${openedView.submodel.id}`"
-          :contribution="openedView.view"
-          fullscreen
-          :shell-id="openedView.shellId"
-          :submodel="{ id: openedView.submodel.id, semanticId: openedView.submodel.semanticId }"
-          :target="target"
-          @close-fullscreen="viewOpen = false"
-        />
+        <AppOpenedView :opened="openedView" :target="target" @close="viewOpen = false" />
       </v-card-fullscreen>
     </v-dialog>
   </div>

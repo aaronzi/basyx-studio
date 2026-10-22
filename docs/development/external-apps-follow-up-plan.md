@@ -223,7 +223,7 @@ none), settings may be `required`, and `enum` also applies to the items of a
 | Item | Status | Evidence |
 | --- | --- | --- |
 | A (ADR 0051) | Proposed | [ADR 0051](../adr/0051-views-of-other-apps.md) decides E1–E4 |
-| E1 | Done | App API 0.1.10, packages 0.1.9: `studio.ui.openView` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkViewToOpen`, `viewToOpen`), the host bridge and `AppFrame.vue` (Studio's dialog), the SDK client and `@basyx/studio-sdk/testing` (`openedViews`). Unit tests for the choice of view, the submodel and shell checks, authorization and the test Studio; the Shell Explorer example shows submodels in their views, and the hosted apps e2e test opens the Digital Nameplate view from it and returns to the same page |
+| E1 | Done | App API 0.1.10, packages 0.1.9: `studio.ui.openView` in the protocol, `shared/contract/apps.ts`, `server/utils/apps.ts` (`checkViewToOpen`, `viewToOpen`), the host bridge and `AppFrame.vue` (Studio's dialog), the SDK client and `@basyx/studio-sdk/testing` (`openedViews`). Unit tests for the choice of view, the submodel and shell checks, authorization and the test Studio; the Shell Explorer example shows submodels in their views, and says so above its list when none fits. The hosted apps e2e tests open the Digital Nameplate view from it and return to the same page, and keep an opened view in step with an update of its app |
 | E2 | Decided | ADR 0051: `studio.ui.embedView`, read-only, with an origin per installation only; built next |
 | E3 | Decided | ADR 0051: no chart component in the app kit |
 | E4 | Decided | ADR 0051: nothing for embeds that need a sign-in |
