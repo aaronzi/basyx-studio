@@ -374,6 +374,11 @@ await studio.connections.call({
 })
 ```
 
+- `id` is 1 to 63 lowercase letters, digits and hyphens, starting with a
+  letter or digit (`weather-api`, not `weatherApi`): the administrator binds
+  the connection by this ID, and `studio-app pack` refuses any other.
+  `connectionIdPattern` and `connectionIdRule` of
+  `@basyx/studio-sdk/protocol` give the rule.
 - `api` is an OpenAPI 3.0 or 3.1 document in JSON, in the package, with only
   local references (`#/…`); bundle documents that refer to other files.
   `servers` and `security` are ignored. `operations` lists the
