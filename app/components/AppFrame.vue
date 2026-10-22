@@ -240,6 +240,7 @@
     onOpenFullscreen: props.nested ? undefined : openFullscreen,
     onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
     onOpenView: props.fullscreen ? undefined : openView,
+    shownView: () => viewOpen.value ? openedView.value : null,
   })
   watch(height, value => {
     if (value !== null) {

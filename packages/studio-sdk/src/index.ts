@@ -235,7 +235,8 @@ export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
   const embed = new URLSearchParams(location.search).get(embedTokenParameter)
   const host = embed ? window.top! : window.parent
   return new Promise((resolve, reject) => {
-    const hello: HelloMessage = embed ? { protocol: protocolVersion, type: 'hello', embed } : { protocol: protocolVersion, type: 'hello' }
+    const instance = embed ? [...crypto.getRandomValues(new Uint8Array(12))].map(byte => byte.toString(16).padStart(2, '0')).join('') : ''
+    const hello: HelloMessage = embed ? { protocol: protocolVersion, type: 'hello', embed, instance } : { protocol: protocolVersion, type: 'hello' }
     // The frame does not know Studio's origin (and may have an opaque one
     // itself); the hello carries no data but the embed token, which only
     // Studio's page acts on, and the reply is checked by its source.

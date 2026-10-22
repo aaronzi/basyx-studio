@@ -7,6 +7,9 @@
   "studioApi": "^0.1.11",
   "runtimes": ["hosted", "desktop"],
   "permissions": ["studio.aas.read", "studio.aas.write", "studio.ui.navigation"],
+  "settings": [
+    { "key": "probeLabel", "type": "string", "title": { "en": "Probe label" }, "default": "from the probe" }
+  ],
   "contributes": {
     "submodelViews": [
       { "id": "probe", "title": { "en": "Embed probe" }, "entry": "ui/index.html", "semanticIds": ["urn:studio:test:e2e:embed-probe"] }

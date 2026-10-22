@@ -234,11 +234,16 @@ const { url } = await client.ui.embedView(timeSeries.id, { shellId })
   page itself, with the token in its URL; your app never holds its
   connection or permissions and cannot reach into its document. Keep the
   frame's origin: no `sandbox` attribute.
-- An embedded view is read-only: `context.embedded` is `true`, `mode` is
-  always `view`, and Studio refuses its writes and the methods that need a
-  click (`forbidden`), because your page decides what lies over the frame.
-  Its full-screen button opens it in Studio's dialog, where it runs as
-  usual. Studio does not tell your app the view's content height.
+- An embedded view is read-only, because your page decides what lies over
+  the frame: `context.embedded` is `true`, `mode` is always `view`, and it
+  may call only reads (the `aas` reads, `timeseries.read`, `ui.readFile`,
+  `ui.readExternalFile`) and `ui.notify`. Studio refuses everything else
+  with `forbidden`, also its backend and its connections. Its full-screen
+  button opens it in Studio's dialog, where it runs as usual, and its
+  `context.fullscreenOpen` is `true` until that closes. Studio does not tell
+  your app the view's content height.
+- The view gets its own app's settings and connection status, not yours.
+  When its app is updated, Studio loads it again with the new package.
 - The URL is valid for an hour: ask for a new one each time you create the
   frame. Studio embeds the views shipped with it and views whose manifest
   declares `"studioApi": "^0.1.11"` or later, since only those were built

@@ -7,6 +7,9 @@
   "studioApi": "^0.1.11",
   "runtimes": ["hosted", "desktop"],
   "permissions": ["studio.ui.navigation"],
+  "settings": [
+    { "key": "embedderLabel", "type": "string", "title": { "en": "Embedder label" }, "default": "from the embedder" }
+  ],
   "contributes": {
     "modules": [
       { "id": "embedder", "title": { "en": "View embedder" }, "entry": "ui/index.html", "route": "embedder", "context": "target", "layout": "fullPage" }

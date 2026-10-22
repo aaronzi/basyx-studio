@@ -1,9 +1,12 @@
 import type { Page, TestInfo } from '@playwright/test'
 import type { Server } from 'node:http'
+import { readFile } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { join } from 'node:path'
 import { expect, test } from '@playwright/test'
+import { strToU8, zipSync } from 'fflate'
 import { fixturesDirectory, zipDirectory } from '../../apps/support'
+import { waitUntilSettled } from '../web/support'
 
 // One origin per installation, declared third-party origins and full-page
 // modules (ADR 0045), and views of other apps embedded in an app's page
@@ -223,6 +226,17 @@ test.afterEach(async ({ page }) => {
   }
 })
 
+/** The embed probe (test/apps/fixtures/embed-probe) in another version, for an update in place. */
+async function embedProbe (version: string): Promise<Uint8Array> {
+  const directory = join(fixturesDirectory, 'embed-probe')
+  const text = (path: string) => readFile(join(directory, path), 'utf8')
+  return zipSync({
+    'studio-app.json': strToU8((await text('studio-app.json')).replace('"version": "1.0.0"', `"version": "${version}"`)),
+    'ui/index.html': strToU8(await text('ui/index.html')),
+    'ui/probe.js': strToU8((await text('ui/probe.js')).replace(`const version = '1.0.0'`, `const version = '${version}'`)),
+  })
+}
+
 test('embeds other apps\' views read-only in an app\'s page, connected to Studio only (ADR 0051)', async ({ page, request }, info) => {
   test.setTimeout(120_000)
   const targetId = await createEmbedShell(page)
@@ -252,17 +266,25 @@ test('embeds other apps\' views read-only in an app\'s page, connected to Studio
   await expect(timeSeries.getByText('InternalSegment').first()).toBeVisible({ timeout: 30_000 })
   await expect(timeSeries.getByRole('button', { name: 'Fetch data' })).toBeVisible()
 
-  // The probe view is connected to Studio, read-only: it reads, but cannot write or act outside.
+  // The probe view is connected to Studio once, though it repeats its hello,
+  // with its own app's settings, read-only: it reads, but cannot write, act
+  // outside its frame, or write further away through a backend or a connection.
   const probe = embedder.frameLocator('iframe[title="probe"]')
   await expect(probe.locator('body[data-done="true"]')).toBeAttached({ timeout: 30_000 })
   expect(JSON.parse(await probe.locator('#results').textContent() ?? '{}')).toEqual({
+    version: '1.0.0',
     embedded: true,
     mode: 'view',
     submodel: `${embedShell}:probe`,
+    settings: { probeLabel: 'from the probe' },
     read: 'allowed',
     write: 'forbidden',
     openExternal: 'forbidden',
+    backend: 'forbidden',
+    connection: 'forbidden',
   })
+  await probe.getByRole('button', { name: 'Read again' }).click()
+  await expect(probe.locator('#again-result')).toHaveText('1: allowed')
 
   // Only the view's entry with Studio's token may be framed by the app's origin.
   const embedderOrigin = `http://${embedderId}.apps.localhost:3400`
@@ -277,12 +299,31 @@ test('embeds other apps\' views read-only in an app\'s page, connected to Studio
   expect(await ancestors(`${url.pathname.replace('index.html', 'probe.js')}${url.search}`)).not.toContain(embedderOrigin)
   expect(await ancestors(`${url.pathname}?studio-embed=sev.forged.mac`)).not.toContain(embedderOrigin)
 
-  // Full screen opens the view in Studio's dialog, where it runs as usual again.
+  // Full screen opens the view in Studio's dialog, where it runs as usual
+  // again; the embedded view sees context.fullscreenOpen until it closes.
+  await expect(probe.locator('#fullscreen-open')).toHaveText('false')
   await probe.getByRole('button', { name: 'Full screen' }).click()
   const dialog = page.locator('[data-test="app-view-dialog"]')
   const inDialog = dialog.frameLocator('iframe[title="App: Embed probe"]')
   await expect(inDialog.locator('body[data-done="true"]')).toBeAttached({ timeout: 30_000 })
-  expect(JSON.parse(await inDialog.locator('#results').textContent() ?? '{}')).toMatchObject({ embedded: false, write: 'allowed' })
+  expect(JSON.parse(await inDialog.locator('#results').textContent() ?? '{}')).toMatchObject({ embedded: false, write: 'allowed', settings: { probeLabel: 'from the probe' } })
+  await expect(probe.locator('#fullscreen-open')).toHaveText('true')
+  await waitUntilSettled(dialog.locator('iframe[title="App: Embed probe"]'))
   await dialog.locator('[data-test="app-view-close"]').click()
   await expect(dialog).toBeHidden()
+  await expect(probe.locator('#fullscreen-open')).toHaveText('false')
+  // A click while the dialog's scrim still fades would land on it.
+  await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(0)
+
+  // An update in place of the probe's app: its next call is refused as
+  // outdated, and Studio loads the embedded view again, with the new package.
+  // The view's own click event: what lies over the frame is not the point here.
+  const updated = await api.install(await embedProbe('1.0.1'))
+  expect(updated.status(), await updated.text()).toBe(200)
+  await probe.locator('#again').dispatchEvent('click')
+  await expect(probe.locator('#results')).toContainText('"version": "1.0.1"', { timeout: 30_000 })
+  await expect(probe.locator('body[data-done="true"]')).toBeAttached({ timeout: 30_000 })
+  expect(JSON.parse(await probe.locator('#results').textContent() ?? '{}')).toMatchObject({ version: '1.0.1', embedded: true, read: 'allowed', write: 'forbidden' })
+  await probe.locator('#again').dispatchEvent('click')
+  await expect(probe.locator('#again-result')).toHaveText('1: allowed')
 })

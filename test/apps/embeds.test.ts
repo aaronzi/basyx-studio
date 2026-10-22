@@ -20,6 +20,11 @@ describe('embed tokens', () => {
     expect(verifyEmbedToken(key, token, now + embedTokenTtlMs)).toBeNull()
   })
 
+  it('are unique, also for the same view, embedding app and moment', () => {
+    const now = Date.now()
+    expect(issueEmbedToken(key, claims, now)).not.toBe(issueEmbedToken(key, claims, now))
+  })
+
   it('are refused when signed with another key, altered or malformed', () => {
     const token = issueEmbedToken(key, claims)
     expect(verifyEmbedToken(embedTokenKey(randomBytes(32)), token)).toBeNull()

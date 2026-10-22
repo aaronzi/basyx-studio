@@ -1,4 +1,4 @@
-import type { AppCallResult, AppContext, AppContributionInfo, AppMethodName, ConnectionCallWireResult, ElementDetail, EmbeddedView, OpenedView, Problem } from '#shared/contract'
+import type { AppCallResult, AppContext, AppContributionInfo, AppContributions, AppMethodName, AppTargetContext, ConnectionCallWireResult, ElementDetail, EmbeddedView, OpenedView, Problem } from '#shared/contract'
 import type { Ref } from 'vue'
 import { useQueryCache } from '@pinia/colada'
 import { appHelloSchema, appMethodNameSchema, appMethodParamsSchemas, appProtocol, appRequestMessageSchema, decodeConnectionResult, embeddedViewSchema, encodeConnectionCall, externalFileUrl, openedViewSchema, readFileMaxBytes, studioAppWriteMethods } from '#shared/contract'
@@ -26,6 +26,8 @@ export interface AppBridgeOptions {
    * (`studio.ui.openFullscreen`), with its state.
    */
   onOpenView?: (view: OpenedView, state?: string) => void
+  /** The view that dialog shows while it is open, the very object passed to `onOpenView`; `null` otherwise. */
+  shownView?: () => OpenedView | null
 }
 
 /** A refusal of the host itself, in the shape of Studio's problems. */
@@ -42,18 +44,38 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
 const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell', 'studio.ui.openView'])
 
 /**
- * What a view embedded in an app's page may not do (ADR 0051): the app
- * around it decides where it is and what lies over it, so it could steer
- * clicks into it. It is read-only, and nothing it does acts outside it.
+ * What a view embedded in an app's page may call through Studio (ADR 0051):
+ * reads, and notifications labelled with its app. The app around it decides
+ * where it is and what lies over it, so it could steer clicks into it; so
+ * nothing else, not even what could write further away, such as its
+ * backend or its connections' operations. `getContext`, `setHeight` and the
+ * full-screen methods are answered by the page itself.
  */
-const embeddedRefused = new Set<AppMethodName>([
-  ...activationMethods,
-  ...studioAppWriteMethods,
-  'studio.ui.openFile',
-  'studio.ui.navigate',
-  'studio.ui.openTarget',
-  'studio.ui.embedView',
+const embeddedAllowed = new Set<AppMethodName>([
+  'studio.aas.listShells',
+  'studio.aas.getShell',
+  'studio.aas.listSubmodels',
+  'studio.aas.getSubmodel',
+  'studio.aas.getSubmodelSnapshot',
+  'studio.aas.getElement',
+  'studio.timeseries.read',
+  'studio.ui.readFile',
+  'studio.ui.readExternalFile',
+  'studio.ui.notify',
 ])
+
+/** A view that the frame's app embedded, by its embed token (ADR 0051). */
+interface Embed {
+  view: EmbeddedView
+  channel: Channel | null
+  /** The document connected, or connecting, by the random `instance` of its hello. */
+  instance: string | null
+  /** The dialog Studio opened for the view's `openFullscreen`, the object passed to `onOpenView`. */
+  fullscreen: OpenedView | null
+}
+
+/** Settings and connection status when the view's own could not be read: none. */
+const noTargetContext: AppTargetContext = { settings: {}, connections: {} }
 
 /**
  * A connection to a document: the frame's own, or a view that the frame's
@@ -66,7 +88,9 @@ interface Channel {
   digest: string | null
   context: () => AppContext
   /** The embedded view, or `null` for the frame's own document. */
-  embedded: EmbeddedView | null
+  embedded: Embed | null
+  /** The embedded view's window, to load it again after an update of its app. */
+  source: Window | null
   /** The context last sent, to send only changes. */
   lastContext: string
 }
@@ -114,22 +138,27 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
 
   let main: Channel | null = null
   /** Views the frame's app embedded, by their embed token. */
-  const embeds = new Map<string, { view: EmbeddedView, channel: Channel | null }>()
+  const embeds = new Map<string, Embed>()
   let handedOut = false
   let loads = 0
   let reloading = false
 
-  function openChannel (contribution: AppContributionInfo, digest: string | null, context: () => AppContext, embedded: EmbeddedView | null): { channel: Channel, remote: MessagePort } {
+  function openChannel (contribution: AppContributionInfo, digest: string | null, context: () => AppContext, embedded: Embed | null = null, source: Window | null = null): { channel: Channel, remote: MessagePort } {
     const { port1, port2 } = new MessageChannel()
-    const channel: Channel = { port: port1, contribution, digest, context, embedded, lastContext: JSON.stringify(context()) }
+    const channel: Channel = { port: port1, contribution, digest, context, embedded, source, lastContext: JSON.stringify(context()) }
     port1.addEventListener('message', event => void onRequest(channel, event))
     port1.start()
     return { channel, remote: port2 }
   }
 
-  /** The context of an embedded view: the frame's target, theme and language, its own submodel, and always `view` mode. */
-  function embeddedContext (embedded: EmbeddedView): AppContext {
-    const { view, submodel, shellId } = embedded
+  /**
+   * The context of an embedded view: the frame's target, theme and language;
+   * its own submodel, and its own app's settings and connection status
+   * (ADR 0048); always `view` mode; `fullscreenOpen` while Studio's dialog
+   * shows the view's own `openFullscreen`.
+   */
+  function embeddedContext (embed: Embed, targetContext: AppTargetContext): AppContext {
+    const { view, submodel, shellId } = embed.view
     return {
       ...options.context(),
       installationId: view.installationId,
@@ -140,9 +169,11 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       subPath: '',
       mode: 'view',
       fullscreen: false,
-      fullscreenOpen: false,
+      fullscreenOpen: embed.fullscreen !== null && options.shownView?.() === embed.fullscreen,
       viewState: '',
       embedded: true,
+      settings: targetContext.settings,
+      connections: targetContext.connections,
     }
   }
 
@@ -163,7 +194,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       return
     }
     if (channel.embedded) {
-      const answered = answerEmbedded(channel.embedded, method.data, params)
+      const answered = answerEmbedded(channel.embedded, channel.contribution, method.data, params)
       if (answered) {
         respond(answered.problem ? { type: 'error', id, problem: answered.problem } : { type: 'response', id, result: null })
         return
@@ -223,10 +254,19 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     } catch (error) {
       const problem = problemOf(error)
       if (problem.code === 'app_outdated') {
-        // The app was updated in place: new contributions reload the frame.
-        void queryCache.invalidateQueries({ key: ['app-contributions'] })
+        reloadOutdated(channel)
       }
       respond({ type: 'error', id, problem })
+    }
+  }
+
+  /** The app was updated in place: new contributions reload the frame (ADR 0044). */
+  function reloadOutdated (channel: Channel) {
+    void queryCache.invalidateQueries({ key: ['app-contributions'] })
+    // An embedded view is in the app's page, not in a frame of Studio's:
+    // load it again, and its hello connects the new package (ADR 0051).
+    if (channel.embedded && channel.source) {
+      channel.source.location.replace(channel.embedded.view.url)
     }
   }
 
@@ -341,7 +381,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         // The app gets the frame URL; the view connects to this page itself
         // with the token in it, never through the app (ADR 0051).
         const embedded = embeddedViewSchema.parse(result)
-        embeds.set(embedded.token, { view: embedded, channel: null })
+        embeds.set(embedded.token, { view: embedded, channel: null, instance: null, fullscreen: null })
         return { result: { url: embedded.url } }
       }
       case 'studio.ui.openExternal': {
@@ -378,7 +418,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
    * Answers what an embedded view asks of the page itself, and refuses what
    * it may not do (ADR 0051); `null` for calls that go to Studio as usual.
    */
-  function answerEmbedded (embedded: EmbeddedView, method: AppMethodName, params: unknown): { problem: Problem | null } | null {
+  function answerEmbedded (embed: Embed, contribution: AppContributionInfo, method: AppMethodName, params: unknown): { problem: Problem | null } | null {
     switch (method) {
       case 'studio.ui.setHeight':
       case 'studio.ui.closeFullscreen': {
@@ -387,12 +427,18 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       }
       case 'studio.ui.openFullscreen': {
         // In Studio's dialog, which Studio draws, the view runs as usual again.
+        // A frame that is itself in a dialog opens none.
+        if (!options.onOpenView) {
+          return { problem: problemOf(hostProblem('unsupported_operation', 'This view is shown in a dialog already; Studio opens no further one.', 422)) }
+        }
         const parsed = appMethodParamsSchemas['studio.ui.openFullscreen'].safeParse(params ?? {})
-        options.onOpenView?.({ view: embedded.view, submodel: embedded.submodel, shellId: embedded.shellId }, parsed.success ? parsed.data.state : undefined)
+        const { view } = embed
+        embed.fullscreen = { view: contribution.kind === 'submodelView' ? contribution : view.view, submodel: view.submodel, shellId: view.shellId }
+        options.onOpenView(embed.fullscreen, parsed.success ? parsed.data.state : undefined)
         return { problem: null }
       }
     }
-    if (embeddedRefused.has(method)) {
+    if (!embeddedAllowed.has(method)) {
       return { problem: problemOf(hostProblem('forbidden', 'A view in another app\'s page is read-only; open it in Studio to do this.', 403)) }
     }
     return null
@@ -412,17 +458,32 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
    * Connects a view that the frame's app embedded (ADR 0051): only with a
    * token this frame was given, from the view's own origin, and from a window
    * inside this frame. The port goes to the view's origin only, so the app
-   * around it never holds it. A view that loads again gets a new port.
+   * around it never holds it. The SDK repeats its hello until it is answered;
+   * one document (`instance`) gets one port, and a document that loads again
+   * gets a new one. Its app's settings and its current package are read
+   * first, so an update in place reaches the view when it loads again.
    */
-  function connectEmbedded (token: string, event: MessageEvent, own: Window) {
+  async function connectEmbedded (token: string, instance: string, event: MessageEvent, own: Window) {
     const embed = embeds.get(token)
     const source = event.source as Window | null
-    if (!embed || !main || !source || source === own || event.origin !== embed.view.view.frameOrigin || !isInside(source, own)) {
+    if (!embed || !main || !source || source === own || event.origin !== embed.view.view.frameOrigin || !isInside(source, own) || embed.instance === instance) {
       return
     }
+    embed.instance = instance
+    const { view, submodel } = embed.view
+    const [targetContext, current] = await Promise.all([
+      api<AppTargetContext>(`/app-installations/${view.installationId}/context`, { query: options.targetId ? { targetId: options.targetId } : {} }).catch(() => noTargetContext),
+      api<AppContributions>('/app-contributions', { query: { semanticId: submodel.semanticId } })
+        .then(contributions => contributions.submodelViews.find(entry => entry.installationId === view.installationId && entry.id === view.id) ?? null)
+        .catch(() => null),
+    ])
+    // Another document of the view, or the frame's own reload, came first.
+    if (embeds.get(token) !== embed || embed.instance !== instance) {
+      return
+    }
+    const contribution = current ?? view
     embed.channel?.port.close()
-    const { view } = embed
-    const { channel, remote } = openChannel(view.view, view.view.digest, () => embeddedContext(view), view)
+    const { channel, remote } = openChannel(contribution, contribution.digest, () => embeddedContext(embed, targetContext), embed, source)
     embed.channel = channel
     source.postMessage({ protocol: appProtocol, type: 'connect', context: channel.context() }, event.origin, [remote])
   }
@@ -437,7 +498,8 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       return
     }
     if (hello.data.embed !== undefined) {
-      connectEmbedded(hello.data.embed, event, window)
+      // Without an instance (not the SDK), only the first hello connects.
+      void connectEmbedded(hello.data.embed, hello.data.instance ?? '', event, window)
       return
     }
     // A queued hello from the previous document has the same WindowProxy.
@@ -449,7 +511,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       return
     }
     handedOut = true
-    const { channel, remote } = openChannel(options.contribution(), options.contribution().digest, options.context, null)
+    const { channel, remote } = openChannel(options.contribution(), options.contribution().digest, options.context)
     main = channel
     // An opaque origin cannot be named as target origin; the message goes to
     // this frame's window only. A frame with its own origin gets the port

@@ -1,5 +1,5 @@
 import type { AppInstallationRecord } from './store'
-import { createHmac, hkdfSync, timingSafeEqual } from 'node:crypto'
+import { createHmac, hkdfSync, randomBytes, timingSafeEqual } from 'node:crypto'
 import semver from 'semver'
 
 // Views of other apps inline in an app's page (`studio.ui.embedView`,
@@ -33,12 +33,18 @@ function sign (key: Buffer, payload: string): string {
   return createHmac('sha256', key).update(payload).digest('base64url')
 }
 
+/**
+ * Signs an embed token. Every token is unique: Studio's page knows an
+ * embedded view's submodel by its token, so two views of the same entry
+ * embedded at once must not share one.
+ */
 export function issueEmbedToken (key: Buffer, claims: Omit<EmbedClaims, 'expiresAt'>, now = Date.now()): string {
   const payload = Buffer.from(JSON.stringify({
     i: claims.installationId,
     p: claims.path,
     o: claims.embedderOrigin,
     e: now + embedTokenTtlMs,
+    n: randomBytes(8).toString('base64url'),
   })).toString('base64url')
   return `${embedTokenPrefix}${payload}.${sign(key, payload)}`
 }

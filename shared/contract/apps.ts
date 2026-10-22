@@ -255,6 +255,8 @@ export const appHelloSchema = z.object({
   type: z.literal('hello'),
   /** The embed token of a view inside another app's page (ADR 0051). */
   embed: z.string().max(2000).optional(),
+  /** Random per document of such a view, so that its repeated hellos get one port. */
+  instance: z.string().max(64).optional(),
 })
 
 export const appRequestMessageSchema = z.object({

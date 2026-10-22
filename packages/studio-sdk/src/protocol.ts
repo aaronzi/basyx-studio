@@ -845,6 +845,12 @@ export interface HelloMessage {
   type: 'hello'
   /** The embed token from the frame URL of a view inside another app's page (`studio.ui.embedView`). */
   embed?: string
+  /**
+   * With `embed`: random per document, so Studio gives the hellos that the
+   * SDK repeats until it is answered one port, and a document that loads
+   * again a new one.
+   */
+  instance?: string
 }
 
 /** The query parameter of an embedded view's frame URL that carries Studio's token. */
