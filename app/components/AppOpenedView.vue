@@ -24,6 +24,7 @@
     :shell-id="opened.shellId"
     :submodel="{ id: opened.submodel.id, semanticId: opened.submodel.semanticId }"
     :target="target"
+    :view-state="viewState"
     @close-fullscreen="emit('close')"
   />
 </template>
@@ -35,10 +36,12 @@
   // The view follows the installed apps as on the shell page: after an update
   // in place, the refetched contributions carry the new package's digest, and
   // the frame loads it (ADR 0044). Until they arrive, and should the app be
-  // gone, it is the view Studio's server picked.
+  // gone, it is the view Studio's server picked. A view embedded in an app's
+  // page opens itself here with the state it passed (ADR 0051).
   const props = defineProps<{
     opened: OpenedView
     target: Target | null
+    viewState?: string
   }>()
   const emit = defineEmits<{ close: [] }>()
 

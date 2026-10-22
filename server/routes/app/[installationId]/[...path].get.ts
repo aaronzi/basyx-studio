@@ -1,16 +1,20 @@
-import { createError, defineEventHandler, getRequestHost, getRouterParam } from 'nuxt/server'
+import { createError, defineEventHandler, getQuery, getRequestHost, getRouterParam } from 'nuxt/server'
 import { appContentSecurityPolicy } from '~~/server/lib/apps/csp'
-import { appBaseUrl, appsHostOf, coversStudioOrigin, hasInstallationOrigins } from '~~/server/lib/apps/origins'
+import { verifyEmbedToken } from '~~/server/lib/apps/embeds'
+import { appBaseUrl, appsHostOf, coversStudioOrigin, hasInstallationOrigins, installationOriginsSource } from '~~/server/lib/apps/origins'
 import { readAppFile } from '~~/server/lib/apps/store'
 import { allowedOrigins } from '~~/server/lib/urls'
 import { hasBrokerSecret } from '~~/server/utils/desktop'
 import { useStudio } from '~~/server/utils/studio'
+import { embedTokenParameter } from '#shared/contract'
 
 /**
  * Serves the files of installed apps (ADR 0017). Hosted, only on the apps
  * origin, and with one origin per installation only on the installation's
  * own (ADR 0045). On desktop, only to the Electron main process, which
- * serves them to the renderer under the `studio-app:` protocol.
+ * serves them to the renderer under the `studio-app:` protocol. A view's
+ * entry with Studio's embed token may be framed by the embedding app's
+ * origin as well (ADR 0051).
  */
 export default defineEventHandler(async event => {
   const studio = await useStudio()
@@ -25,12 +29,16 @@ export default defineEventHandler(async event => {
     throw createError({ status: 404, statusText: 'Not Found' })
   }
   const studioOrigins = allowedOrigins(studio.config.publicUrl, desktop)
+  const embedToken = getQuery(event)[embedTokenParameter]
+  const embed = typeof embedToken === 'string' && !desktop ? verifyEmbedToken(studio.embedKey, embedToken) : null
+  const frameAncestors = embed && embed.installationId === installationId && embed.path === path ? [...studioOrigins, embed.embedderOrigin] : studioOrigins
   const headers = event.res.headers
   headers.set('Content-Type', file.contentType)
-  headers.set('Content-Security-Policy', appContentSecurityPolicy(appBaseUrl(baseUrl!, installationId), studioOrigins, file.sandbox, {
+  headers.set('Content-Security-Policy', appContentSecurityPolicy(appBaseUrl(baseUrl!, installationId), frameAncestors, file.sandbox, {
     sameOrigin: hasInstallationOrigins(baseUrl!),
     // Refused at install; dropped here too, in case Studio's URLs changed since.
     excludeOrigin: entry => coversStudioOrigin(entry, studioOrigins, baseUrl),
+    viewOrigins: file.embedsViews && !desktop ? installationOriginsSource(baseUrl!) : null,
   }))
   headers.set('X-Content-Type-Options', 'nosniff')
   headers.set('Referrer-Policy', 'no-referrer')

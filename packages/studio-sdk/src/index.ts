@@ -10,7 +10,7 @@ import type {
   ThemeTokens,
 } from './protocol.ts'
 import type { Transport } from './transport.ts'
-import { protocolVersion } from './protocol.ts'
+import { embedTokenParameter, protocolVersion } from './protocol.ts'
 import { portTransport } from './transport.ts'
 
 export * from './protocol.ts'
@@ -102,6 +102,14 @@ export class StudioClient {
      * click handler.
      */
     openView: (submodelId: string, options: Omit<Methods['studio.ui.openView']['params'], 'submodelId'> = {}) => this.call('studio.ui.openView', { ...options, submodelId }),
+    /**
+     * The frame URL of the same view for an `<iframe>` in this app's page
+     * (needs studio.ui.navigation; Studio ≥ 0.1.11, with an origin per app).
+     * The view connects to Studio itself and is read-only there. Keep the
+     * frame's origin: no `sandbox` attribute. Ask for a new URL each time
+     * the frame is created; it is valid for an hour.
+     */
+    embedView: (submodelId: string, options: Omit<Methods['studio.ui.embedView']['params'], 'submodelId'> = {}) => this.call('studio.ui.embedView', { ...options, submodelId }),
     /**
      * Opens a URL in the system browser (needs studio.ui.navigation): https,
      * or http to this computer. Call it from a click handler.
@@ -222,11 +230,17 @@ export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
   if (window.parent === window) {
     return Promise.reject(new Error('A Studio app must run inside BaSyx Studio. Outside it, use createTestStudio() of @basyx/studio-sdk/testing.'))
   }
+  // A view inside another app's page (`studio.ui.embedView`) talks to
+  // Studio's page directly, never to the app around it (ADR 0051).
+  const embed = new URLSearchParams(location.search).get(embedTokenParameter)
+  const host = embed ? window.top! : window.parent
   return new Promise((resolve, reject) => {
-    const hello: HelloMessage = { protocol: protocolVersion, type: 'hello' }
+    const instance = embed ? [...crypto.getRandomValues(new Uint8Array(12))].map(byte => byte.toString(16).padStart(2, '0')).join('') : ''
+    const hello: HelloMessage = embed ? { protocol: protocolVersion, type: 'hello', embed, instance } : { protocol: protocolVersion, type: 'hello' }
     // The frame does not know Studio's origin (and may have an opaque one
-    // itself); the hello carries no data, and the reply is checked by its source.
-    const send = () => window.parent.postMessage(hello, '*')
+    // itself); the hello carries no data but the embed token, which only
+    // Studio's page acts on, and the reply is checked by its source.
+    const send = () => host.postMessage(hello, '*')
     const retry = setInterval(send, 250)
     const timeout = setTimeout(() => {
       cleanup()
@@ -234,7 +248,7 @@ export function connect (options: ConnectOptions = {}): Promise<StudioClient> {
     }, options.timeoutMs ?? 10_000)
     function onMessage (event: MessageEvent) {
       const message = event.data as Partial<ConnectMessage> | null
-      if (event.source !== window.parent || message?.protocol !== protocolVersion || message.type !== 'connect' || !event.ports[0] || !message.context) {
+      if (event.source !== host || message?.protocol !== protocolVersion || message.type !== 'connect' || !event.ports[0] || !message.context) {
         return
       }
       cleanup()

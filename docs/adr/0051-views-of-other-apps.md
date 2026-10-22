@@ -95,10 +95,9 @@ studio.ui.openView(submodelId: string, options?: { shellId?: string, appId?: str
 
 ### E2: `studio.ui.embedView` places a view in the app's page
 
-E2 is decided here and built in a second step:
-
 ```ts
 studio.ui.embedView(submodelId: string, options?: { shellId?: string, appId?: string, viewId?: string }): Promise<{ url: string }>
+// protocol: 'studio.ui.embedView': { params: { submodelId, shellId?, appId?, viewId? }, result: { url: string } }
 ```
 
 - **The same view, checks and permission** as `openView`; no click is needed,
@@ -117,7 +116,8 @@ studio.ui.embedView(submodelId: string, options?: { shellId?: string, appId?: st
 - **The URL** is the view's entry at its installation's origin with a token
   (`?studio-embed=…`) that Studio's server signs, like capability tokens
   (ADR 0019): the view installation, its entry, the embedding installation's
-  origin and an expiry of one hour. The server serves that document with
+  origin, an expiry of one hour and a random value, so that every embed has
+  a token of its own. The server serves that document with
   `frame-ancestors` of Studio's origin and the embedding app's origin; every
   other document keeps `frame-ancestors` of Studio's origin only. The
   embedding app's documents get the apps origin pattern
@@ -130,26 +130,42 @@ studio.ui.embedView(submodelId: string, options?: { shellId?: string, appId?: st
   view's origin, and its window is inside the embedding frame. It posts the
   port to the view's origin only. The embedding app never sees the port or
   the context, and cannot script the view's document, which has another
-  origin. A view that reloads says hello again with the same token and gets a
-  new port; the old one is closed. When the embedding frame reloads or is
-  removed, Studio closes the ports of its embedded views.
+  origin. The SDK repeats its hello until it is answered, and each hello
+  carries a random value per document (`instance`): one document gets one
+  port, and a document that loads again gets a new one, which closes the
+  old. Before it connects, Studio's page reads the view's current package
+  and its own app's settings and connection status on the target
+  (ADR 0048); the embedding app's never reach it. When the embedding frame
+  reloads or is removed, Studio closes the ports of its embedded views.
+- **Updates in place** (ADR 0044). When the view's app is updated, its next
+  call is refused as `app_outdated`, and Studio's page loads the embedded
+  view again at its URL; it connects with the new package. A URL older than
+  an hour does not load any more; the app asks for a new one.
 - **Embedded views are read-only.** The embedding app controls the frame's
   position, size, transparency and what lies over it, so it could steer the
   user's clicks into the view. Studio's page therefore gives an embedded view
-  `context.mode: 'view'` always, and refuses its writes (`setElementValue`,
-  structural writes, attachments) and the methods that need a click
-  (`openExternal`, `copyText`, `openShell`, `openView`) as well as
-  `embedView` (`forbidden`). Its reads work as its permissions allow.
-  `openFullscreen` opens the view in Studio's dialog, as `openView` does,
-  where it runs with Studio's mode again.
+  `context.mode: 'view'` and `context.embedded: true` always, and lets it
+  call only reads (`aas.listShells`, `getShell`, `listSubmodels`,
+  `getSubmodel`, `getSubmodelSnapshot`, `getElement`, `timeseries.read`,
+  `ui.readFile`, `ui.readExternalFile`) and `ui.notify`, as its permissions
+  allow. Everything else is refused with `forbidden`: writes, the methods
+  that need a click or act outside its frame, and those that could write
+  further away, its backend (`backend.call`) and its connections'
+  operations (`connections.call`). The list is an allowlist, so methods
+  added later stay refused until they are added to it. `openFullscreen`
+  opens the view in Studio's dialog, as `openView` does, where it runs with
+  Studio's mode again, and the embedded view's `context.fullscreenOpen` is
+  `true` until it closes; in a frame that is itself in a dialog, it is
+  refused with `unsupported_operation`. `setHeight` has no effect.
 - **What the embedding app learns:** the URL, whose host names the view's
   installation ID but not its app ID or data. It cannot read the view's
   pixels, document or messages.
 - **Views built for it.** Only an SDK that knows the token connects from
   inside another app; an older view would say hello to the embedding app,
-  which must not answer for Studio. Studio embeds views whose manifest's
-  `studioApi` excludes app API versions below the one that brings E2
-  (`unsupported_operation` otherwise); the bundled views declare it.
+  which must not answer for Studio. Studio embeds the views shipped with it,
+  which are built with the current SDK, and views whose manifest's
+  `studioApi` excludes app API versions below 0.1.11; it picks among those
+  as for `openView` (`unsupported_operation` when none fits).
 
 ### E3: no chart component in the app kit
 
@@ -178,7 +194,11 @@ popups (`allow-popups`) would each need their own decision on sandbox flags.
   `openedViews` and sets `context.fullscreenOpen`). An app that calls it
   declares `"studioApi": "^0.1.10"`; an older Studio refuses the call as an
   unknown method.
-- E2 takes the next app API patch version when it is built.
+- `embedView`, `context.embedded` and the hello's `embed` token are optional
+  additions too: the app API becomes **0.1.11**, and the packages
+  **0.1.10** (`@basyx/studio-sdk/testing` records embedded views in
+  `embeddedViews`). Embedding apps and embeddable views declare
+  `"studioApi": "^0.1.11"`.
 
 ## Consequences
 

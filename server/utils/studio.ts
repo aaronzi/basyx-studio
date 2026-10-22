@@ -4,6 +4,7 @@ import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { useRuntimeConfig } from 'nuxt/server'
 import { apiBasePath } from '#shared/contract'
+import { embedTokenKey } from '../lib/apps/embeds'
 import { reconcileManagedPackages } from '../lib/apps/packages'
 import { BackendRunner } from '../lib/apps/runner'
 import { installBundledApp, listInstallations, removeBundledApp } from '../lib/apps/store'
@@ -37,6 +38,8 @@ export interface StudioRuntime extends StudioDeps {
   backends: BackendRunner | null
   /** Signs the capability tokens of backend app calls. */
   capabilityKey: Buffer
+  /** Signs the frame URLs of views embedded in other apps' pages (ADR 0051). */
+  embedKey: Buffer
   /** Files the user chose in native dialogs for local BaSyx instances (desktop). */
   fileGrants: FileGrantStore
   /** Local BaSyx instances on Docker or Podman (ADR 0033); `null` when hosted. */
@@ -178,6 +181,7 @@ async function initialize (): Promise<StudioRuntime> {
       inspector,
       backends,
       capabilityKey: capabilityTokenKey(config.dataKey),
+      embedKey: embedTokenKey(config.dataKey),
       fileGrants,
       containers,
       close: async () => {

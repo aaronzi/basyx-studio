@@ -2,10 +2,11 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { defineConfig, devices } from '@playwright/test'
 
-// End-to-end tests of app origins (ADR 0045) in the hosted production build,
-// without the test environment: two Studios without login on PGlite, one
+// End-to-end tests of app origins (ADR 0045) and embedded views (ADR 0051)
+// in the hosted production build: two Studios without login on PGlite, one
 // with an origin per installation and one with a shared apps origin. Run
-// `pnpm build` first. The tests serve the "third-party" pages themselves.
+// `pnpm build` first. The tests serve the "third-party" pages themselves;
+// embedded views read the test environment's open BaSyx (pnpm testenv:up).
 const servers = [
   { name: 'installation-origins', port: 3400, appsUrl: 'http://{installation}.apps.localhost:3400' },
   { name: 'shared-origin', port: 3401, appsUrl: 'http://apps.localhost:3401' },
@@ -38,6 +39,8 @@ export default defineConfig({
       STUDIO_APPS_URL: server.appsUrl,
       // Loopback origins (embed.localhost) need developer mode.
       STUDIO_APPS_ALLOW_UNSIGNED: 'true',
+      // The test environment's open BaSyx on localhost (embedded views).
+      STUDIO_PRIVATE_NETWORK_TARGETS: 'allow',
     },
   })),
 })

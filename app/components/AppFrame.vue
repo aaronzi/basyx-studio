@@ -70,10 +70,11 @@
 
     <!-- Another app's view of a submodel (studio.ui.openView, ADR 0051): a
          frame with its own contribution, permissions and origin over this
-         one, which stays as it is underneath until the dialog closes. -->
+         one, which stays as it is underneath until the dialog closes. A
+         view embedded in this frame's page opens itself here as well. -->
     <v-dialog v-if="!fullscreen" v-model="viewOpen" fullscreen>
       <v-card-fullscreen v-if="openedView" class="d-flex flex-column" data-test="app-view-dialog" height="100%">
-        <AppOpenedView :opened="openedView" :target="target" @close="viewOpen = false" />
+        <AppOpenedView :opened="openedView" :target="target" :view-state="openedViewState" @close="viewOpen = false" />
       </v-card-fullscreen>
     </v-dialog>
   </div>
@@ -164,9 +165,12 @@
   const fullscreenOpen = ref(false)
   /** Another app's view this frame opened (`studio.ui.openView`), shown until the user closes it. */
   const openedView = shallowRef<OpenedView | null>(null)
+  /** The state a view embedded in this frame's page opens itself with (ADR 0051). */
+  const openedViewState = ref('')
   const viewOpen = ref(false)
-  function openView (view: OpenedView) {
+  function openView (view: OpenedView, state = '') {
     openedView.value = view
+    openedViewState.value = state
     viewOpen.value = true
   }
   /** What the view handed to `studio.ui.openFullscreen`, for the frame in the dialog. */
@@ -236,6 +240,7 @@
     onOpenFullscreen: props.nested ? undefined : openFullscreen,
     onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
     onOpenView: props.fullscreen ? undefined : openView,
+    shownView: () => viewOpen.value ? openedView.value : null,
   })
   watch(height, value => {
     if (value !== null) {

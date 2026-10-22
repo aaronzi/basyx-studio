@@ -41,6 +41,7 @@ runs the app, whatever the package version.
 | 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the model viewer (`./viewer/core`, `./vue/core`, `./ifc`, `./step`) | next release |
 | 0.1.8 | 0.1.9: `settings` in the manifest, `context.settings` and `context.connections`, `settings` and `connections` in a backend's context; `checkSettingValue` and `checkSettingValues` in the app kit | next release |
 | 0.1.9 | 0.1.10: `ui.openView`; `openedViews` in `testing` | next release |
+| 0.1.10 | 0.1.11: `ui.embedView`, `context.embedded`; `connect()` of views embedded in other apps' pages; `embeddedViews` in `testing` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -104,7 +105,7 @@ reaches it as `context.subPath` with `onContext`, as with every change.
 | `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getSubmodelSnapshot`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
 | `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before); in edit mode, structural writes and attachments (Studio app API 0.1.5, see [Changing structure and files](#changing-structure-and-files)) |
 | `studio.ui.notifications` | `ui.notify` |
-| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell; `ui.openView`: show a submodel in another app's view (Studio app API 0.1.10) |
+| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell; `ui.openView` and `ui.embedView`: show a submodel in another app's view, in Studio's dialog or in the app's page (Studio app API 0.1.10, 0.1.11) |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
 | `studio.ui.externalFiles` | `ui.readExternalFile`: files that elements name at other hosts, fetched by Studio's page; those hosts see the user's address |
 | `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it; Studio app API 0.1.2 |
@@ -212,6 +213,42 @@ await client.ui.openView(bom.id, { shellId }) // from a click handler
   submodel the user cannot read with the target's problem.
 - Call it from a click or key press in the app, as `openShell`. Frames in a
   full-screen dialog cannot open further views.
+
+`ui.embedView(submodelId, { shellId?, appId?, viewId? })` places the same
+view in the app's own page instead (Studio app API 0.1.11). It answers with
+the URL of the view's frame; the app creates the frame and gives it its size:
+
+```ts
+const { url } = await client.ui.embedView(timeSeries.id, { shellId })
+```
+
+```vue
+<iframe v-if="url" class="w-100 border-0" height="480" :src="url" title="Time series" />
+```
+
+- It works only where each app has an origin of its own
+  (`STUDIO_APPS_URL=https://{installation}.apps.example.org`, ADR 0045).
+  With one shared apps origin, and in the desktop app for now, it is refused
+  with `unsupported_operation`: use `openView` there.
+- The view runs at its own installation's origin and connects to Studio's
+  page itself, with the token in its URL; your app never holds its
+  connection or permissions and cannot reach into its document. Keep the
+  frame's origin: no `sandbox` attribute.
+- An embedded view is read-only, because your page decides what lies over
+  the frame: `context.embedded` is `true`, `mode` is always `view`, and it
+  may call only reads (the `aas` reads, `timeseries.read`, `ui.readFile`,
+  `ui.readExternalFile`) and `ui.notify`. Studio refuses everything else
+  with `forbidden`, also its backend and its connections. Its full-screen
+  button opens it in Studio's dialog, where it runs as usual, and its
+  `context.fullscreenOpen` is `true` until that closes. Studio does not tell
+  your app the view's content height.
+- The view gets its own app's settings and connection status, not yours.
+  When its app is updated, Studio loads it again with the new package.
+- The URL is valid for an hour: ask for a new one each time you create the
+  frame. Studio embeds the views shipped with it and views whose manifest
+  declares `"studioApi": "^0.1.11"` or later, since only those were built
+  with an SDK that connects from inside another app's page.
+- No click is needed, as on the Overview.
 
 `ui.openFullscreen(state?)` opens the view again in a full-screen dialog,
 as a new frame. Pass what the user has selected as `state` (a string, up to
@@ -567,11 +604,13 @@ studio.calls // every call the app made
 - Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
   (moves `context.subPath`, sends the new context and is recorded in
   `studio.navigations`), `notify` (recorded in `studio.notifications`),
-  `openShell` (recorded in `studio.openedShells`) and `openView` (recorded
-  in `studio.openedViews`; it sets `context.fullscreenOpen`, and
-  `setContext({ fullscreenOpen: false })` is the user closing the dialog).
-  Handlers replace them. `studio.back()` and `studio.forward()` move through
-  the sub-paths that `navigate` pushed, as the browser's buttons do.
+  `openShell` (recorded in `studio.openedShells`), `openView` (recorded in
+  `studio.openedViews`; it sets `context.fullscreenOpen`, and
+  `setContext({ fullscreenOpen: false })` is the user closing the dialog)
+  and `embedView` (recorded in `studio.embeddedViews`, with a URL that
+  shows nothing). Handlers replace them. `studio.back()` and
+  `studio.forward()` move through the sub-paths that `navigate` pushed, as
+  the browser's buttons do.
 - Parameters and results are copied as a MessagePort copies them, a method
   without a handler is refused (`unsupported_operation`), and an error a
   handler throws reaches the app as a `StudioError`.
