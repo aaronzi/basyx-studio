@@ -355,7 +355,10 @@ infrastructures:
   per infrastructure; apps call the connection of the infrastructure they run
   on. Calls of an app connection that no connection binds are refused with
   `connection_not_bound`. The binding names the app ID, so it survives
-  updates and may be written before the app is installed.
+  updates and may be written before the app is installed. Connection IDs are
+  1 to 63 lowercase letters, digits and hyphens, as manifests must declare
+  them; a binding with another ID fails the start like any invalid entry, and
+  the message names the app and the connection.
 - The app reaches only the operations it declares, as method and path of its
   OpenAPI document, below `url`. The *Apps* page and the infrastructure
   dialog list them. An update that adds operations, or moves one to another

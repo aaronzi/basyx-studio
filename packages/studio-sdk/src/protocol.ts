@@ -93,9 +93,19 @@ export interface AppSandbox {
   mediaOrigins?: string[]
 }
 
+/**
+ * The rule for the `id` of an app connection (ADR 0047), the one form that the
+ * manifest, `studio.connections.call` and the administrator's binding accept:
+ * kebab case such as `weather-api`, not `weatherApi`. Studio's connection
+ * keys follow it too. app-manifest.schema.json repeats the pattern for
+ * editors; a test keeps both the same.
+ */
+export const connectionIdPattern = /^[a-z0-9][a-z0-9-]{0,62}$/
+export const connectionIdRule = '1 to 63 lowercase letters, digits and hyphens, starting with a letter or digit'
+
 /** A service the app calls through Studio (ADR 0047). */
 export interface AppConnection {
-  /** Named in `studio.connections.call` and in the administrator's binding. */
+  /** Named in `studio.connections.call` and in the administrator's binding; matches `connectionIdPattern`. */
   id: string
   title: LocalizedText
   description?: LocalizedText

@@ -1,3 +1,4 @@
+import { connectionIdPattern, connectionIdRule } from '@basyx/studio-sdk/protocol'
 import { z } from 'zod'
 import { scopesSchema, secretInputSchema, secretSummarySchema } from './credentials'
 
@@ -44,7 +45,8 @@ export const connectionSecretFields = {
   delegatedUser: null,
 } as const satisfies Record<ConnectionAuthScheme, string | null>
 
-export const connectionKeySchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,62}$/, 'use 1 to 63 lowercase letters, digits and hyphens, starting with a letter or digit')
+/** Keys of connections and the `id`s of app connections share one rule, defined by the SDK. */
+export const connectionKeySchema = z.string().regex(connectionIdPattern, `use ${connectionIdRule}`)
 
 /** Headers Studio sets itself or that would change how the request is transported. */
 const reservedHeaders = new Set(['host', 'content-length', 'content-type', 'accept', 'transfer-encoding', 'connection', 'keep-alive', 'upgrade', 'te', 'trailer', 'expect', 'proxy-authorization', 'proxy-connection'])
@@ -115,11 +117,19 @@ export const influxdb2SettingsSchema = z.object({
 /** HTTP connections have no settings yet; the field keeps the shape of the type union. */
 export const httpSettingsSchema = z.object({}).strict()
 
-/** An app connection bound to an `http` connection (ADR 0047): an app ID and the `id` of a connection in its manifest. */
+/**
+ * An app connection bound to an `http` connection (ADR 0047): an app ID and
+ * the `id` of a connection in its manifest. A refused `connection` names the
+ * app, so a deployment's infrastructure file points at the binding to fix.
+ */
 export const connectionBindingSchema = z.object({
   app: z.string().max(128).regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID such as org.example.app'),
-  connection: connectionKeySchema,
-}).strict()
+  connection: z.string(),
+}).strict().superRefine((binding, context) => {
+  if (!connectionIdPattern.test(binding.connection)) {
+    context.addIssue({ code: 'custom', path: ['connection'], input: binding.connection, message: `app ${binding.app}, connection ${JSON.stringify(binding.connection)}: not an app connection ID; use ${connectionIdRule}` })
+  }
+})
 export type ConnectionBinding = z.infer<typeof connectionBindingSchema>
 
 /** The largest number of app connections bound to one connection. */

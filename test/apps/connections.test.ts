@@ -4,6 +4,8 @@ import type { DatabaseHandle } from '~~/server/lib/database/client'
 import type { Actor, StudioDeps } from '~~/server/lib/deps'
 import { randomBytes } from 'node:crypto'
 import { checkPackage } from '@basyx/studio-app-kit/package'
+import manifestSchema from '@basyx/studio-sdk/app-manifest.schema.json' with { type: 'json' }
+import { connectionIdPattern, connectionIdRule } from '@basyx/studio-sdk/protocol'
 import { connectionsHandler, createTestStudio } from '@basyx/studio-sdk/testing'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { authorizeAppCall } from '~~/server/lib/apps/calls'
@@ -14,6 +16,7 @@ import { SecretCipher } from '~~/server/lib/crypto/cipher'
 import { openDatabase } from '~~/server/lib/database/client'
 import { applyMigrations, loadMigrationsFromDirectory } from '~~/server/lib/database/migrate'
 import { StudioProblem } from '~~/server/lib/problem'
+import { connectionBindingSchema, connectionCallParamsSchema } from '#shared/contract'
 import { manifestOf, zipApp } from './support'
 
 // App connections in packages, consent and calls (ADR 0047).
@@ -64,6 +67,19 @@ describe('connections in packages', () => {
     expect(findings(packageOf(withConnections({}, ['getForecast', 'getAlerts'])))).toEqual(['studio-app.json#connections[0].operations[1]: names "getAlerts", which api/weather.json does not define'])
     expect(() => readAppPackage(packageOf(withConnections(), '{"openapi":"3.1.0","paths":{"/x":{"get":{"operationId":"getForecast","parameters":[{"name":"c","in":"cookie"}]}}}}'), 'hosted'))
       .toThrow(expect.objectContaining({ code: 'app_package_rejected' }))
+  })
+
+  it('need an ID that the administrator can bind, in every check', () => {
+    const camelCase = packageOf(withConnections({ connections: [{ id: 'weatherApi', title: { en: 'Weather' }, api: 'api/weather.json', operations: ['getForecast'] }] }))
+    expect(findings(camelCase)).toEqual([`studio-app.json#connections.0.id: must be ${connectionIdRule}, such as weather-api: the administrator's binding and studio.connections.call name the connection by this ID`])
+    expect(() => readAppPackage(camelCase, 'hosted')).toThrow(expect.objectContaining({ code: 'app_package_rejected' }))
+    // app-manifest.schema.json repeats the SDK's rule for editors.
+    expect(manifestSchema.$defs.connection.properties.id.pattern).toBe(connectionIdPattern.source)
+    for (const id of ['weather-api', 'weatherApi', 'weather_api', '-weather', 'w'.repeat(64)]) {
+      const binding = connectionBindingSchema.safeParse({ app: 'org.example.weather', connection: id }).success
+      expect(connectionCallParamsSchema.safeParse({ connection: id, operation: 'getForecast' }).success).toBe(binding)
+      expect(findings(packageOf(withConnections({ connections: [{ id, title: { en: 'Weather' }, api: 'api/weather.json', operations: ['getForecast'] }] }))).length === 0).toBe(binding)
+    }
   })
 })
 

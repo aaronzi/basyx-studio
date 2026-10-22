@@ -2,7 +2,7 @@ import type { ApiIndex, OperationValidators } from './openapi.ts'
 import type { AppManifest, SandboxOriginKind } from '@basyx/studio-sdk/protocol'
 import type { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js'
 import manifestSchema from '@basyx/studio-sdk/app-manifest.schema.json' with { type: 'json' }
-import { sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/protocol'
+import { connectionIdRule, sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/protocol'
 import addFormats from 'ajv-formats'
 import Ajv2020 from 'ajv/dist/2020.js'
 import semver from 'semver'
@@ -107,6 +107,8 @@ function describe (error: ErrorObject): Finding {
     message = `has the unknown property ${JSON.stringify(error.params.additionalProperty)}`
   } else if (error.keyword === 'pattern' && /^\/sandbox\/\w+Origins\/\d+$/.test(error.instancePath)) {
     message = 'must be an origin in lower case without a path: https://host[:port], optionally https://*.example.org, or http:// for localhost, names below .localhost or 127.0.0.1. IPv6 literals such as [::1] cannot be used in a Content Security Policy; use localhost'
+  } else if (error.keyword === 'pattern' && /^\/connections\/\d+\/id$/.test(error.instancePath)) {
+    message = `must be ${connectionIdRule}, such as weather-api: the administrator's binding and studio.connections.call name the connection by this ID`
   } else if (error.keyword === 'enum') {
     message = `must be one of ${(error.params.allowedValues as unknown[]).map(value => JSON.stringify(value)).join(', ')}`
   }

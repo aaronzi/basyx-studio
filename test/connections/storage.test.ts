@@ -185,6 +185,20 @@ infrastructures:
     expect(entry!.problems.join('; ')).toMatch(/connections\.0/)
   })
 
+  it('names the app and the connection of a binding that no manifest can declare, and fails the start', () => {
+    const bound = plant.replace('        allowPrivateNetwork: true\n', `        allowPrivateNetwork: true
+      - key: weather
+        type: http
+        url: https://weather.example.org
+        auth: { scheme: none }
+        apps:
+          - { app: org.example.weather, connection: weather-api }
+`)
+    expect(parseInfrastructureFile(bound, 'infrastructures.yaml')[0]!.input.connections[1]).toMatchObject({ apps: [{ app: 'org.example.weather', connection: 'weather-api' }] })
+    expect(() => parseInfrastructureFile(bound.replace('connection: weather-api', 'connection: weatherApi'), 'infrastructures.yaml'))
+      .toThrow('infrastructures.yaml: infrastructures[0] (plant).connections.1.apps.0.connection: app org.example.weather, connection "weatherApi": not an app connection ID; use 1 to 63 lowercase letters, digits and hyphens, starting with a letter or digit')
+  })
+
   it('exports references and leaves stored secrets out with a note', async () => {
     await reconcileManagedInfrastructures(deps, parseInfrastructureFile(plant, 'infrastructures.yaml'))
     const desktop = depsFor('desktop', handle.db)
