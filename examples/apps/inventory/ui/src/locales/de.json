@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "Inventar",
+    "pages": {
+      "overview": "Überblick",
+      "shells": "Verwaltungsschalen"
+    }
+  },
+  "overview": {
+    "counts": {
+      "shells": "Verwaltungsschalen",
+      "instances": "Instanzen",
+      "types": "Typen"
+    },
+    "loadedAt": "Gezählt am {date}"
+  },
+  "shells": {
+    "search": "Suchen",
+    "none": "Keine Verwaltungsschale passt.",
+    "more": "Nur die ersten {count} Verwaltungsschalen werden gezeigt."
+  },
+  "shell": {
+    "back": "Alle Verwaltungsschalen",
+    "submodels": {
+      "title": "Teilmodelle",
+      "none": "Die Verwaltungsschale hat keine Teilmodelle.",
+      "unavailable": "Nicht lesbar ({status})"
+    },
+    "models": {
+      "title": "IFC-Modelle",
+      "none": "Kein Teilmodell enthält ein IFC-Modell.",
+      "loading": "Das Modell wird geladen …",
+      "failed": "Das Modell konnte nicht gezeigt werden: {message}",
+      "triangles": "{count} Dreiecke"
+    }
+  }
+}

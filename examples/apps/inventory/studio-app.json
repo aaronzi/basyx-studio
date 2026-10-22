@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../packages/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.eclipse.basyx.examples.inventory",
+  "version": "0.1.0",
+  "publisher": { "name": "Eclipse BaSyx" },
+  "title": { "en": "Inventory", "de": "Inventar" },
+  "description": {
+    "en": "A full-page module with pages of its own: an overview of the target's shells, their list, and a page per shell with its submodels and IFC models.",
+    "de": "Ein ganzseitiges Modul mit eigenen Seiten: ein Überblick über die Verwaltungsschalen des Ziels, ihre Liste und eine Seite je Verwaltungsschale mit ihren Teilmodellen und IFC-Modellen."
+  },
+  "studioApi": "^0.1.8",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.ui.navigation"],
+  "sandbox": { "webAssembly": true, "workers": true },
+  "contributes": {
+    "modules": [
+      {
+        "id": "inventory",
+        "title": { "en": "Inventory", "de": "Inventar" },
+        "icon": "mdi-clipboard-list-outline",
+        "entry": "ui/index.html",
+        "route": "inventory",
+        "context": "target",
+        "layout": "fullPage"
+      }
+    ]
+  }
+}

@@ -1,7 +1,7 @@
 import type { AppContext, ConnectionCallParams, ConnectionCallResult, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
 import type { Transport } from './transport.ts'
 import { StudioClient } from './index.ts'
-import { editModeMethods, methodPermissions, protocolVersion, putAttachmentMaxBytes } from './protocol.ts'
+import { editModeMethods, permissions as knownPermissions, methodPermissions, protocolVersion, putAttachmentMaxBytes } from './protocol.ts'
 import { StudioError } from './transport.ts'
 
 export { memoryAas } from './memory-aas.ts'
@@ -27,13 +27,36 @@ export type TestHandler<M extends MethodName> = (params: Methods[M]['params'], s
 
 export type TestHandlers = { [M in MethodName]?: TestHandler<M> }
 
+/**
+ * The parts of an app manifest the test Studio reads, typed as a manifest
+ * imported from JSON is (`permissions: string[]`), so it needs no cast:
+ * `import manifest from '../studio-app.json'`.
+ */
+export interface TestManifest {
+  id: string
+  permissions: readonly string[]
+  connections?: readonly { id: string, operations: readonly string[] }[]
+  contributes?: {
+    modules?: readonly { id: string }[]
+    submodelViews?: readonly { id: string }[]
+  }
+}
+
 export interface TestStudioOptions {
   /** Replaces parts of the default context (see `testContext`). */
   context?: Partial<AppContext>
   /** Handlers by method; they replace the built-in ones for the same method. */
   handlers?: TestHandlers
   /**
-   * The app's declared permissions. When given, a call whose method needs
+   * The app's manifest. Calls are checked against its permissions and its
+   * connections' operations as Studio checks them, and the context names
+   * its ID and its first module (or submodel view). A permission Studio
+   * does not know fails `createTestStudio`.
+   */
+  manifest?: TestManifest
+  /**
+   * The app's declared permissions, or with `manifest` some of them, e.g.
+   * to test how the app behaves without one. A call whose method needs
    * another permission is refused as Studio refuses it.
    */
   permissions?: readonly Permission[]
@@ -190,9 +213,46 @@ export function connectionsHandler (connections: Record<string, Record<string, T
   }
 }
 
+/** The permissions a manifest declares; throws for one Studio does not know, as Studio's upload refuses it. */
+function permissionsOf (manifest: TestManifest, narrowed: readonly Permission[] | undefined): readonly Permission[] {
+  const unknown = manifest.permissions.filter(permission => !(knownPermissions as readonly string[]).includes(permission))
+  if (unknown.length > 0) {
+    throw new Error(`The manifest of ${manifest.id} declares permissions Studio does not know: ${unknown.join(', ')}.`)
+  }
+  const declared = manifest.permissions as readonly Permission[]
+  const undeclared = narrowed?.filter(permission => !declared.includes(permission)) ?? []
+  if (undeclared.length > 0) {
+    throw new Error(`permissions names ${undeclared.join(', ')}, which the manifest of ${manifest.id} does not declare.`)
+  }
+  return narrowed ?? declared
+}
+
+/** The context's app and contribution from a manifest: its first module, else its first submodel view. */
+function manifestContext (manifest: TestManifest): Partial<AppContext> {
+  const module = manifest.contributes?.modules?.[0]
+  if (module) {
+    return { appId: manifest.id, contribution: { kind: 'module', id: module.id } }
+  }
+  const view = manifest.contributes?.submodelViews?.[0]
+  return { appId: manifest.id, ...(view ? { contribution: { kind: 'submodelView', id: view.id } } : {}) }
+}
+
+/** Refuses a connection call the manifest does not declare, before any handler, as Studio does. */
+function checkConnectionCall (manifest: TestManifest, { connection, operation }: ConnectionCallParams): void {
+  const declared = manifest.connections?.find(item => item.id === connection)
+  if (!declared) {
+    throw studioError('connection_operation_not_declared', `${manifest.id} declares no connection ${connection}.`)
+  }
+  if (!declared.operations.includes(operation)) {
+    throw studioError('connection_operation_not_declared', `${manifest.id} does not declare the operation ${operation} of its connection ${connection}.`)
+  }
+}
+
 /** Creates a Studio in memory with a connected client. */
 export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
-  let context = testContext(options.context)
+  const { manifest } = options
+  const permissions = manifest ? permissionsOf(manifest, options.permissions) : options.permissions
+  let context = testContext({ ...(manifest ? manifestContext(manifest) : {}), ...options.context })
   let closed = false
   const calls: TestCall[] = []
   const notifications: TestNotification[] = []
@@ -240,12 +300,15 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     }
     const name = method as MethodName
     const permission = methodPermissions[name]
-    if (options.permissions && permission && !options.permissions.includes(permission)) {
+    if (permissions && permission && !permissions.includes(permission)) {
       throw studioError('app_permission_not_declared', `${method} needs the permission ${permission}, which ${context.appId} did not declare.`)
     }
     // Studio's server refuses these outside edit mode, whatever the app shows.
     if (editModeMethods.includes(name) && context.mode !== 'edit') {
       throw studioError('app_edit_mode_required', `${method} needs Studio's edit mode.`)
+    }
+    if (manifest && name === 'studio.connections.call') {
+      checkConnectionCall(manifest, params as ConnectionCallParams)
     }
     if (name === 'studio.aas.putAttachment') {
       const { data } = params as Methods['studio.aas.putAttachment']['params']

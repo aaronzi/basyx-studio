@@ -1,6 +1,6 @@
 <template>
   <div class="d-flex flex-column h-100">
-    <v-toolbar class="flex-shrink-0" color="transparent" density="compact">
+    <v-toolbar class="flex-shrink-0">
       <v-toolbar-title class="text-body-medium text-medium-emphasis">{{ label }}</v-toolbar-title>
 
       <template #append>

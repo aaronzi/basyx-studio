@@ -1,6 +1,6 @@
 {
   "name": "@basyx/model-viewer",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "3D viewer of STL, OBJ, glTF, IFC and STEP files for BaSyx Studio and its apps",
   "license": "MIT",
   "repository": {
@@ -14,7 +14,11 @@
   "exports": {
     ".": "./src/index.ts",
     "./viewer": "./src/viewer.ts",
-    "./vue": "./src/vue.ts"
+    "./viewer/core": "./src/viewer-core.ts",
+    "./vue": "./src/vue.ts",
+    "./vue/core": "./src/vue-core.ts",
+    "./ifc": "./src/ifc.ts",
+    "./step": "./src/step.ts"
   },
   "files": [
     "dist",
@@ -56,9 +60,25 @@
         "types": "./dist/viewer.d.ts",
         "default": "./dist/viewer.js"
       },
+      "./viewer/core": {
+        "types": "./dist/viewer-core.d.ts",
+        "default": "./dist/viewer-core.js"
+      },
       "./vue": {
         "types": "./dist/vue.d.ts",
         "default": "./dist/vue.js"
+      },
+      "./vue/core": {
+        "types": "./dist/vue-core.d.ts",
+        "default": "./dist/vue-core.js"
+      },
+      "./ifc": {
+        "types": "./dist/ifc.d.ts",
+        "default": "./dist/ifc.js"
+      },
+      "./step": {
+        "types": "./dist/step.d.ts",
+        "default": "./dist/step.js"
       }
     }
   }

@@ -30,21 +30,111 @@ aliases (`<v-btn-primary>`, `<v-btn-toggle-icon>` for icon-only choices in a
 `<v-view-card>`), the `v-tooltip` directive and icons, follows Studio's
 theme, mounts `App` into `#app` with the client as its `client` prop, and
 sizes the frame to the content. Pass `{ client }` to run on another client,
-e.g. the test Studio of `@basyx/studio-sdk/testing` in a dev server.
+e.g. the test Studio of `@basyx/studio-sdk/testing` in a dev server, and
+`{ setup: (app, client) => … }` to install plugins, e.g. a router, before
+the app mounts.
 
 | Entry | What |
 | --- | --- |
 | `@basyx/studio-app-kit` | `mountApp`, `loadSubmodel`, and the AAS helpers below |
 | `@basyx/studio-app-kit/aas` | Reading AAS JSON without Vue: `childrenOf`, `child`, `langText`, `textOf`, `humanize` |
-| `@basyx/studio-app-kit/i18n` | `provideI18n(client, en, translations)` and `useI18n()`: texts that follow Studio's locale, English as fallback |
+| `@basyx/studio-app-kit/i18n` | `provideI18n(client, base, translations, { baseLocale })` and `useI18n()`: texts that follow Studio's locale, the base catalog as fallback ([Texts](#texts)) |
+| `@basyx/studio-app-kit/router` | `createStudioHistory(client, { history })`: a Vue Router history over a module's sub-path ([Modules with pages](#modules-with-pages)) |
 | `@basyx/studio-app-kit/defaults` | The Vuetify defaults of `mountApp`, e.g. for lint rules |
-| `@basyx/studio-app-kit/vuetify-defaults` | The defaults Studio and its apps share (fields, button groups) |
+| `@basyx/studio-app-kit/vuetify-defaults` | The defaults Studio and its apps share (fields, button groups, menus, the app bar, drawers, toolbars and tabs) |
 | `@basyx/studio-app-kit/settings.scss` | Studio's Vuetify Sass settings |
 | `@basyx/studio-app-kit/vite` | The `studioApp()` Vite preset |
 | `@basyx/studio-app-kit/manifest`, `/package`, `/signature` | The checks, packing and signatures of `studio-app`, for Node; `manifest` also indexes and compiles the OpenAPI documents of `connections` (`checkConnectionApis`) |
 
 Views render flat inside the card Studio draws; build the UI from Vuetify
 components and utility classes, as Studio does.
+
+## Texts
+
+```ts
+import { provideI18n, useI18n } from '@basyx/studio-app-kit/i18n'
+import de from './locales/de.json'
+import en from './locales/en.json'
+
+// In the root component; `useI18n()` in the others.
+const { t, locale, formatLocale } = provideI18n(client, en, { de })
+t('shells.counts.instances') // nested keys, at any depth
+new Intl.NumberFormat(formatLocale.value).format(1234.5)
+```
+
+- The texts follow Studio's locale (`locale`): its catalog, then its
+  language's (Studio's German dialects such as `de-saar` use `de`), then the
+  base catalog. A missing key shows as the key.
+- The base catalog is English unless `{ baseLocale }` says otherwise: an app
+  whose first language is German passes
+  `provideI18n(client, de, { en }, { baseLocale: 'de' })`, and its texts fall
+  back to German.
+- `formatLocale` is the locale of the catalog the texts come from, as a BCP
+  47 tag (`de-saar` → `de`): format numbers and dates with it, with `Intl` or
+  Vuetify's locale, so they match the texts and not a language the app has no
+  texts in.
+- Catalogs nest to any depth (`section.group.key`); a translation has the
+  base catalog's keys, any of them missing (`PartialCatalog`). Two-level
+  catalogs stay valid.
+
+## Modules with pages
+
+A full-page module (`"layout": "fullPage"`,
+[ADR 0045](../../docs/adr/0045-app-origins-embeds-and-full-page-modules.md))
+fills the page below Studio's app bar and beside its rail. One with pages of
+its own uses Vue Router (`pnpm add vue-router`) on the module's sub-path:
+
+```ts
+import { mountApp } from '@basyx/studio-app-kit'
+import { createStudioHistory } from '@basyx/studio-app-kit/router'
+import { createRouter } from 'vue-router'
+
+await mountApp(App, components, {
+  setup: (app, client) => {
+    app.use(createRouter({
+      history: createStudioHistory(client, { history: 'push' }),
+      routes: [
+        { path: '/', component: OverviewPage },
+        { path: '/shells', component: ShellsPage },
+        { path: '/shells/:shell', component: ShellPage, props: true },
+      ],
+    }))
+  },
+})
+```
+
+- Route changes call `client.ui.navigate` (permission
+  `studio.ui.navigation`) with the route's path as the sub-path, so Studio's
+  URL names the page (`…/inventory/shells/<key>`) and a link to it opens it.
+  A sub-path Studio changes, e.g. a link opened in Studio, moves the router.
+  Studio gets one move at a time: of rapid route changes, it gets the
+  latest page once it reached the previous one.
+- Sub-paths are path segments of letters, digits and `-._~`: encode IDs in
+  routes, e.g. as base64url. Query and hash stay in the frame. Studio
+  refuses other sub-paths; the history logs the refusal.
+- With `{ history: 'push' }`, each new page is an entry in the browser's
+  history: back and forward move between the module's pages, and the
+  router follows. It needs Studio app API 0.1.8, so the manifest declares
+  `"studioApi": "^0.1.8"`. Without it, Studio replaces its entry, so back
+  leaves the module, as on older Studios.
+- A sandboxed frame cannot move the browser's history itself:
+  `router.back()` and `router.go()` move through the pages the module
+  visited and replace Studio's entry with that page.
+- Lay the module out with Vuetify's layout components and the kit's
+  defaults, which match Studio's (`layoutDefaults` in `./vuetify-defaults`):
+  a `<v-toolbar>` with the module's title and its pages as `<v-tabs>`, or a
+  `<v-navigation-drawer>` of its pages, in `<v-main>`. Do not add a second
+  `<v-app-bar>` or rail: Studio's stay above and beside the frame. Studio
+  shows no breadcrumbs above a full-page module, so show the target's name
+  where the app needs it (`context.target.name`).
+- The kit's defaults style these components (a flat, bordered app bar and
+  drawer; compact, transparent toolbars; tabs in the primary color); state
+  none of these props in a template. Studio's ESLint rules refuse restated
+  defaults in the apps it lints, e.g. with `restatedDefaults(appDefaults)`
+  of its `eslint.config.js`.
+
+[`examples/apps/inventory`](../../examples/apps/inventory) is a full-page
+module with three pages built this way.
 
 ## Vite
 

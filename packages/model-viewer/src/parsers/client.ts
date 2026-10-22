@@ -1,8 +1,5 @@
-import type { IfcElementInfo, MeshBatch, ProgressCallback } from '../types.ts'
+import type { IfcElementInfo, MeshBatch, ModelParser, ProgressCallback } from '../types.ts'
 import type { ParserRequest, ParserResponse, WorkerMessage } from './protocol.ts'
-import occtWasm from 'occt-import-js/dist/occt-import-js.wasm?url'
-import ifcWasm from 'web-ifc/web-ifc.wasm?url'
-import workerUrl from './parser.worker?worker&url'
 
 type Pending = {
   resolve: (value: any) => void
@@ -13,7 +10,7 @@ type Pending = {
 const absolute = (url: string) => new URL(url, document.baseURI).href
 
 /**
- * Runs the IFC and STEP parsers in a worker. The worker starts from a
+ * Runs a parser (IFC or STEP) in its worker. The worker starts from a
  * `blob:` URL that imports the bundled script, which also works in the
  * opaque origin of a sandboxed app frame. Where no worker can start, the
  * parsers run on the main thread.
@@ -24,15 +21,17 @@ export class ParserClient {
   #ready: Promise<(request: ParserRequest, transfer: Transferable[]) => void>
   #worker: Worker | null = null
   #blobUrl: string | null = null
+  readonly #parser: ModelParser
 
-  constructor () {
+  constructor (parser: ModelParser) {
+    this.#parser = parser
     this.#ready = this.#startWorker().catch(() => this.#startLocal())
   }
 
-  /** The triangles of an IFC or STEP file. The bytes are handed over, not copied. */
-  async parse (format: 'ifc' | 'step', bytes: Uint8Array, onProgress?: ProgressCallback): Promise<MeshBatch[]> {
-    const wasmUrl = absolute(format === 'ifc' ? ifcWasm : occtWasm)
-    return this.#call(id => ({ type: 'parse', id, format, bytes, wasmUrl }), [bytes.buffer as ArrayBuffer], onProgress)
+  /** The triangles of a file. The bytes are handed over, not copied. */
+  async parse (bytes: Uint8Array, onProgress?: ProgressCallback): Promise<MeshBatch[]> {
+    const wasmUrl = absolute(this.#parser.wasmUrl)
+    return this.#call(id => ({ type: 'parse', id, bytes, wasmUrl }), [bytes.buffer as ArrayBuffer], onProgress)
   }
 
   /** The properties of an element of the IFC model parsed last. */
@@ -89,7 +88,7 @@ export class ParserClient {
   /** Resolves once the worker answered, so nothing is handed to a worker that never started. */
   #startWorker (): Promise<(request: ParserRequest, transfer: Transferable[]) => void> {
     return new Promise((resolve, reject) => {
-      this.#blobUrl = URL.createObjectURL(new Blob([`import ${JSON.stringify(absolute(workerUrl))}`], { type: 'text/javascript' }))
+      this.#blobUrl = URL.createObjectURL(new Blob([`import ${JSON.stringify(absolute(this.#parser.workerUrl))}`], { type: 'text/javascript' }))
       const worker = new Worker(this.#blobUrl, { type: 'module' })
       this.#worker = worker
       worker.addEventListener('error', () => {
@@ -108,8 +107,8 @@ export class ParserClient {
 
   async #startLocal (): Promise<(request: ParserRequest) => void> {
     this.#worker = null
-    const { createParserHandler } = await import('./handler.ts')
-    const handle = createParserHandler(response => this.#receive(response))
+    const [{ createParserHandler }, open] = await Promise.all([import('./handler.ts'), this.#parser.open()])
+    const handle = createParserHandler(open, response => this.#receive(response))
     return request => void handle(request)
   }
 }

@@ -68,6 +68,14 @@ const cardsInFullscreenDialogs = ['key.name', 'key.argument.name'].map(attribute
   message: 'A full-screen <v-dialog> holds a <v-card-fullscreen>, which has no border or radius (see AGENTS.md).',
 }))
 
+/**
+ * Apps that mount with the app kit (`mountApp`): the apps shipped with
+ * Studio, and the example of a full-page module with pages, which shows the
+ * kit's layout defaults. Other example apps bring their own defaults
+ * (examples/apps/shared/vuetify.ts).
+ */
+const kitApps = ['apps/**/*.vue', 'examples/apps/inventory/**/*.vue']
+
 export default withNuxt(
   vuetify({
     ts: true,
@@ -92,16 +100,16 @@ export default withNuxt(
     }],
   },
 }).append({
-  // Toggles and menus as Studio and the bundled apps share them; example apps
-  // bring their own defaults (examples/apps/shared/vuetify.ts).
-  files: ['app/**/*.vue', 'apps/**/*.vue'],
+  // Toggles and menus as Studio and the apps on the app kit share them;
+  // other example apps bring their own defaults (examples/apps/shared/vuetify.ts).
+  files: ['app/**/*.vue', ...kitApps],
   rules: {
     'vue/no-restricted-syntax': ['error', ...iconButtonsInToggles, ...styledMenus, ...cardsInFullscreenDialogs],
   },
 }).append({
   // Apps (apps/, examples/apps/) create their own Vuetify instance, so only
   // Studio's own components are checked against vuetify.config.ts; the apps
-  // shipped with Studio are checked against the app kit's defaults below.
+  // on the app kit are checked against its defaults below.
   files: ['app/**/*.vue'],
   rules: {
     'vue/no-restricted-static-attribute': ['error',
@@ -116,7 +124,7 @@ export default withNuxt(
     ],
   },
 }).append({
-  files: ['apps/**/*.vue'],
+  files: kitApps,
   rules: {
     'vue/no-restricted-static-attribute': ['error',
       ...restatedDefaults(appDefaults, '@basyx/studio-app-kit/defaults'),
@@ -126,6 +134,7 @@ export default withNuxt(
 }).append({
   // Example apps bring their own defaults (examples/apps/shared/vuetify.ts).
   files: ['examples/apps/**/*.vue'],
+  ignores: kitApps,
   rules: {
     'vue/no-restricted-static-attribute': ['error', ...styledButtonGroups],
   },

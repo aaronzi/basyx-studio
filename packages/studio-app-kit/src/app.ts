@@ -1,5 +1,5 @@
 import type { JsonObject, StudioClient, ThemeTokens } from '@basyx/studio-sdk'
-import type { Component } from 'vue'
+import type { App, Component } from 'vue'
 import { connect, fitHeight } from '@basyx/studio-sdk'
 import { createApp } from 'vue'
 import { createVuetify } from 'vuetify'
@@ -22,6 +22,11 @@ export interface MountOptions {
    * `createTestStudio()` (`@basyx/studio-sdk/testing`) in a dev server.
    */
   client?: StudioClient | Promise<StudioClient>
+  /**
+   * Installs plugins before the app mounts, e.g. the router of a module
+   * with pages: `setup: (app, client) => app.use(createAppRouter(client))`.
+   */
+  setup?: (app: App, client: StudioClient) => void | Promise<void>
 }
 
 /**
@@ -47,7 +52,9 @@ export async function mountApp (app: Component, components: Record<string, Compo
   apply(client.context.theme)
   client.onContext(context => apply(context.theme))
   const root = document.querySelector<HTMLElement>('#app')!
-  createApp(app, { client }).use(vuetify).mount(root)
+  const instance = createApp(app, { client }).use(vuetify)
+  await options.setup?.(instance, client)
+  instance.mount(root)
   // The content, not the root: v-app is at least as tall as the frame, so a
   // frame sized to it could grow but never shrink to shorter content.
   fitHeight(client, root.querySelector<HTMLElement>('.v-application__wrap > *') ?? root)

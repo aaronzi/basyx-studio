@@ -1,0 +1,37 @@
+{
+  "app": {
+    "title": "Inventory",
+    "pages": {
+      "overview": "Overview",
+      "shells": "Shells"
+    }
+  },
+  "overview": {
+    "counts": {
+      "shells": "Shells",
+      "instances": "Instances",
+      "types": "Types"
+    },
+    "loadedAt": "Counted on {date}"
+  },
+  "shells": {
+    "search": "Search",
+    "none": "No shells match.",
+    "more": "Only the first {count} shells are shown."
+  },
+  "shell": {
+    "back": "All shells",
+    "submodels": {
+      "title": "Submodels",
+      "none": "The shell has no submodels.",
+      "unavailable": "Not readable ({status})"
+    },
+    "models": {
+      "title": "IFC models",
+      "none": "No submodel holds an IFC model.",
+      "loading": "Loading the model…",
+      "failed": "The model could not be shown: {message}",
+      "triangles": "{count} triangles"
+    }
+  }
+}

@@ -1,4 +1,4 @@
-import type { IfcElementInfo, IfcProperty, IfcPropertyGroup, MeshBatch, ProgressCallback } from '../types.ts'
+import type { IfcElementInfo, IfcProperty, IfcPropertyGroup, MeshBatch, OpenModel, ProgressCallback } from '../types.ts'
 import { IfcAPI } from 'web-ifc'
 
 // Reads IFC with web-ifc (MPL-2.0) in a worker: the triangles of every
@@ -140,6 +140,12 @@ export class IfcModel {
     }
     return reference as Record<string, any>
   }
+}
+
+/** Opens an IFC file for the viewer: its triangles, and its elements' properties on request. */
+export const openIfc: OpenModel = async (bytes, wasmUrl, onProgress) => {
+  const model = await IfcModel.open(bytes, wasmUrl)
+  return { meshes: model.meshes(onProgress), element: expressId => model.element(expressId), close: () => model.close() }
 }
 
 function merge (group: ColorGroup): MeshBatch {

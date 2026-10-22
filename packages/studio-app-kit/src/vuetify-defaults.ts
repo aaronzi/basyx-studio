@@ -59,7 +59,23 @@ export const menuDefaults = {
 export const menuStyleProps = ['density', 'slim', 'bg-color', 'border', 'rounded', 'elevation', 'min-height', 'nav'] as const
 
 /*
- * Full-screen surfaces: the card of a full-screen dialog, or an app's view
+ * The layout of a page: a flat app bar and drawers divided from the content
+ * by a border, as Studio's own; toolbars inside the page (a pane's or a
+ * module's bar of its pages) are compact and show the surface behind them;
+ * tabs in the primary color. A full-page module (ADR 0045) builds its pages
+ * from them and states none of these props.
+ */
+export const layoutDefaults = {
+  // The app bar is a VToolbar and would take the toolbars' transparency;
+  // `surface` is the background its own styles give it.
+  VAppBar: { flat: true, border: 'b', density: 'comfortable', color: 'surface' },
+  VNavigationDrawer: { border: 'e' },
+  VToolbar: { color: 'transparent', density: 'compact' },
+  VTabs: { color: 'primary', density: 'comfortable' },
+} as const
+
+/*
+ * Full-screen surfaces:the card of a full-screen dialog, or an app's view
  * that fills the window (a preview opened with `header: false`), runs edge
  * to edge, so it has no border and no radius. Use <v-card-fullscreen>
  * (alias of VCard) for it, never a plain <v-card>, which brings a card's

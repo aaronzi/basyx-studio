@@ -45,9 +45,11 @@ install the package on Studio's *Apps* page in developer mode
   connects to Studio; in `pnpm dev`, outside a frame, it uses
   `createDevStudio()` from `ui/src/dev.ts`, an in-memory Studio with
   fixtures, which production builds leave out.
-- The test Studio answers Studio's UI methods (`navigate` moves
-  `context.subPath`, so the shell page works as in Studio) and refuses
-  calls the manifest's permissions do not cover, as Studio does.
+- The test Studio is built from `studio-app.json` as imported
+  (`createTestStudio({ manifest })`): it answers Studio's UI methods
+  (`navigate` moves `context.subPath`, so the shell page works as in
+  Studio) and refuses calls the manifest's permissions do not cover, as
+  Studio does.
 - `vite.config.ts` uses the kit's `studioApp()` preset: `ui/` is built to
   `dist/ui/` with relative URLs, and Vuetify gets Studio's Sass settings,
   also in the dev server.

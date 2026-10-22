@@ -1,9 +1,9 @@
 import type { IfcElementInfo, MeshBatch } from '../types.ts'
 
-// Messages between the viewer and its parser worker.
+// Messages between the viewer and a parser worker.
 
 export type ParserRequest
-  = | { type: 'parse', id: number, format: 'ifc' | 'step', bytes: Uint8Array, wasmUrl: string }
+  = | { type: 'parse', id: number, bytes: Uint8Array, wasmUrl: string }
     | { type: 'element', id: number, expressId: number }
 
 export type ParserResponse

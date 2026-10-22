@@ -1,10 +1,12 @@
 import type { AppContext, JsonObject, ShellSummary, SubmodelSummary } from '@basyx/studio-sdk'
 import type { TestStudio } from '@basyx/studio-sdk/testing'
 import { createTestStudio, studioError } from '@basyx/studio-sdk/testing'
+import manifest from '../../studio-app.json'
 
 // A Studio in memory for `pnpm dev` and the unit tests: the app's data are
 // these fixtures, and the calls are checked against the manifest's
-// permissions as Studio checks them.
+// permissions as Studio checks them; the manifest also names the app and
+// its module in the context.
 
 const shells: ShellSummary[] = [
   { id: 'https://example.com/ids/aas/pump-01', idShort: 'Pump01', displayName: [{ language: 'en', text: 'Pump 01' }], assetKind: 'Instance', globalAssetId: 'https://example.com/ids/asset/pump-01' },
@@ -47,13 +49,11 @@ const contents: Record<string, JsonObject> = {
 
 export function createDevStudio (context: Partial<AppContext> = {}): TestStudio {
   return createTestStudio({
+    manifest,
     context: {
-      appId: 'org.example.studio.starter',
-      contribution: { kind: 'module', id: 'shells' },
       target: { id: 'demo', name: 'Demo target', write: false, persistence: 'immediate' },
       ...context,
     },
-    permissions: ['studio.aas.read', 'studio.ui.navigation'],
     handlers: {
       'studio.aas.listShells': ({ limit = 50 }) => ({ items: shells.slice(0, limit), page: { nextCursor: null, hasMore: shells.length > limit } }),
       'studio.aas.listSubmodels': ({ shellId }) => {
