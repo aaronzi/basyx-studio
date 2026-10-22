@@ -9,6 +9,9 @@ import type { HistoryState, RouterHistory } from 'vue-router'
 type NavigationCallback = Parameters<RouterHistory['listen']>[0]
 type NavigationInformation = Parameters<NavigationCallback>[2]
 
+/** How long a move Studio took waits for its context before the next one is sent anyway. */
+const confirmationTimeoutMs = 2000
+
 interface Entry {
   location: string
   state: HistoryState
@@ -48,25 +51,53 @@ export function createStudioHistory (client: StudioClient, options: StudioHistor
   const listeners = new Set<NavigationCallback>()
   const entries: Entry[] = [{ location: `/${client.context.subPath}`, state: {} }]
   let position = 0
-  /** Sub-paths sent to Studio whose context has not come back yet. */
-  const sent: string[] = []
+  // Studio gets one move at a time: its router cancels a move that a later
+  // one overtakes, so the contexts of rapid moves could not be told from a
+  // move of Studio's own. While one is pending, only the latest page counts.
+  /** The sub-path sent to Studio whose context has not come back yet. */
+  let pending: string | null = null
+  /** The page the router moved to while a move was pending, sent once Studio is there. */
+  let next: { subPath: string, push: boolean } | null = null
+  let timeout: ReturnType<typeof setTimeout> | undefined
 
   const current = () => entries[position]!
 
   /** Moves Studio to a location; `push` adds a history entry where the options allow it. */
   function send (location: string, push = false) {
     const subPath = subPathOf(location)
-    // Where Studio is, or will be once it answered.
-    if (subPath === (sent.at(-1) ?? client.context.subPath)) {
+    if (pending !== null) {
+      next = { subPath, push: push || (next?.push ?? false) }
       return
     }
-    sent.push(subPath)
+    if (subPath === client.context.subPath) {
+      return
+    }
+    pending = subPath
     // Without options for `replace`, so a Studio before app API 0.1.8 takes the call too.
     const navigation = push && options.history === 'push' ? client.ui.navigate(subPath, { history: 'push' }) : client.ui.navigate(subPath)
-    navigation.catch((error: unknown) => {
-      sent.splice(sent.indexOf(subPath), 1)
+    navigation.then(() => {
+      // Should Studio's context not follow, e.g. because its own navigation was aborted, go on.
+      if (pending === subPath) {
+        timeout = setTimeout(() => settle(subPath), confirmationTimeoutMs)
+      }
+    }, (error: unknown) => {
       console.error(`Studio refused the sub-path ${JSON.stringify(subPath)}:`, error)
+      settle(subPath)
     })
+  }
+
+  /** Studio is done with a move: it gets the latest page the router moved to meanwhile. */
+  function settle (subPath: string) {
+    if (pending !== subPath) {
+      return
+    }
+    clearTimeout(timeout)
+    pending = null
+    const queued = next
+    next = null
+    if (queued) {
+      send(`/${queued.subPath}`, queued.push)
+    }
   }
 
   /** Tells the router the page changed without it; `direction` is `''` where it is unknown. */
@@ -79,11 +110,16 @@ export function createStudioHistory (client: StudioClient, options: StudioHistor
 
   const stop = client.onContext(context => {
     const { subPath } = context
-    // The answer to a sub-path the router sent: the router is there already.
-    const answered = sent.indexOf(subPath)
-    if (answered !== -1) {
-      sent.splice(0, answered + 1)
-      return
+    if (pending !== null) {
+      // The answer to the router's move: the router is there, or further on.
+      if (subPath === pending) {
+        settle(subPath)
+        return
+      }
+      // Studio moved on its own before it answered, which cancels the router's move.
+      clearTimeout(timeout)
+      pending = null
+      next = null
     }
     if (subPath === subPathOf(current().location)) {
       return
@@ -142,6 +178,7 @@ export function createStudioHistory (client: StudioClient, options: StudioHistor
     // Links in the frame are handled by the router; Studio's URL is not the frame's.
     createHref: to => `#${to}`,
     destroy () {
+      clearTimeout(timeout)
       stop()
       listeners.clear()
     },

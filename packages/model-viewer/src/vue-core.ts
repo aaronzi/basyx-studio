@@ -34,6 +34,8 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
 
   let viewer: ModelViewer | null = null
   let ready: Promise<ModelViewer> | null = null
+  /** The container the viewer draws into. */
+  let host: HTMLElement | null = null
   let selection = 0
   let requests = 0
   let unmounted = false
@@ -43,8 +45,20 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
     if (unmounted || !container.value) {
       throw new Error('The viewer is not mounted.')
     }
-    viewer = new ModelViewer(container.value, { theme: theme(), onSelect, parsers: options.parsers })
+    host = container.value
+    viewer = new ModelViewer(host, { theme: theme(), onSelect, parsers: options.parsers })
     return viewer
+  }
+
+  /** Gives the renderer back, e.g. when its container left the page; the next load creates a viewer in the current one. */
+  function release (): void {
+    viewer?.dispose()
+    viewer = null
+    ready = null
+    host = null
+    selection++
+    selected.value = null
+    selecting.value = false
   }
 
   async function onSelect (expressId: number | null): Promise<void> {
@@ -94,6 +108,9 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
       return
     }
     try {
+      if (host && host !== container.value) {
+        release()
+      }
       ready ??= create()
       const current = await ready
       if (!latest()) {
@@ -124,10 +141,15 @@ export function useModelViewer (container: Ref<HTMLElement | null | undefined>, 
   }
 
   watch(theme, value => viewer?.setTheme(value), { deep: true })
+  // A re-rendered container, e.g. after a loading state replaced it: the old canvas is gone.
+  watch(container, element => {
+    if (host && element !== host) {
+      release()
+    }
+  })
   onBeforeUnmount(() => {
     unmounted = true
-    viewer?.dispose()
-    viewer = null
+    release()
   })
 
   return {

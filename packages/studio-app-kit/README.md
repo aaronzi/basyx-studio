@@ -107,6 +107,8 @@ await mountApp(App, components, {
   `studio.ui.navigation`) with the route's path as the sub-path, so Studio's
   URL names the page (`…/inventory/shells/<key>`) and a link to it opens it.
   A sub-path Studio changes, e.g. a link opened in Studio, moves the router.
+  Studio gets one move at a time: of rapid route changes, it gets the
+  latest page once it reached the previous one.
 - Sub-paths are path segments of letters, digits and `-._~`: encode IDs in
   routes, e.g. as base64url. Query and hash stay in the frame. Studio
   refuses other sub-paths; the history logs the refusal.

@@ -10,11 +10,17 @@ import { useModelViewer as useViewerCore } from '../../packages/model-viewer/src
 
 /** The parsers each viewer was created with. */
 const created: (readonly ModelParser[] | undefined)[] = []
+/** The container of each viewer, and whether it was disposed. */
+const viewers: { container: HTMLElement, disposed: boolean }[] = []
 
 vi.mock('../../packages/model-viewer/src/viewer-core', () => ({
   ModelViewer: class {
-    constructor (_container: HTMLElement, options: { parsers?: readonly ModelParser[] }) {
+    readonly #record: { container: HTMLElement, disposed: boolean }
+
+    constructor (container: HTMLElement, options: { parsers?: readonly ModelParser[] }) {
       created.push(options.parsers)
+      this.#record = { container, disposed: false }
+      viewers.push(this.#record)
     }
 
     async load (bytes: Uint8Array, format: string) {
@@ -22,7 +28,9 @@ vi.mock('../../packages/model-viewer/src/viewer-core', () => ({
     }
 
     setTheme () {}
-    dispose () {}
+    dispose () {
+      this.#record.disposed = true
+    }
   },
 }))
 
@@ -77,5 +85,25 @@ describe('the parsers of the viewer', () => {
     await useViewerCore(ref({} as HTMLElement), theme, { parsers: [ifcParser] }).load(async () => new Uint8Array(1), 'stl')
     await useViewerCore(ref({} as HTMLElement), theme).load(async () => new Uint8Array(1), 'stl')
     expect(created.map(parsers => parsers?.map(parser => parser.format))).toEqual([['ifc', 'step'], ['ifc'], undefined])
+  })
+})
+
+describe('a container that is rendered again', () => {
+  it('gets a new viewer, and the old one gives its renderer back', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    viewers.length = 0
+    const first = {} as HTMLElement
+    const second = {} as HTMLElement
+    const container = ref<HTMLElement | null>(first)
+    const viewer = useModelViewer(container, theme)
+    await viewer.load(async () => new Uint8Array(1), 'stl')
+    // A loading state removes the container, and the page renders a new one.
+    container.value = null
+    await flush()
+    expect(viewers).toEqual([{ container: first, disposed: true }])
+    container.value = second
+    await viewer.load(async () => new Uint8Array(2), 'stl')
+    expect(viewers).toEqual([{ container: first, disposed: true }, { container: second, disposed: false }])
+    expect(viewer.result.value?.triangles).toBe(2)
   })
 })

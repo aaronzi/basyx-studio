@@ -118,18 +118,80 @@ describe('createStudioHistory', () => {
     expect(studio.navigations.slice(1)).toEqual([{ subPath: 'b', history: 'push' }, { subPath: 'c', history: 'replace' }])
   })
 
-  it('keeps the latest location while Studio answers earlier ones', async () => {
+  it('sends one move at a time, and only the latest page of rapid moves', async () => {
     const studio = createTestStudio({ manifest })
-    const history = createStudioHistory(studio.client)
+    const history = createStudioHistory(studio.client, { history: 'push' })
     const listener = vi.fn()
     history.listen(listener)
-    for (const location of ['/a', '/b?view=list#top', '/a']) {
+    for (const location of ['/a', '/b?view=list#top', '/c', '/b']) {
       history.push(location)
     }
     await flush()
-    expect(history.location).toBe('/a')
-    expect(studio.context.subPath).toBe('a')
+    expect(history.location).toBe('/b')
+    expect(studio.context.subPath).toBe('b')
+    expect(studio.navigations).toEqual([{ subPath: 'a', history: 'push' }, { subPath: 'b', history: 'push' }])
     expect(listener).not.toHaveBeenCalled()
+  })
+
+  /** A Studio whose router, like Studio's, sends the context only for the move that is not overtaken. */
+  function coalescingStudio () {
+    let navigation: ReturnType<typeof setTimeout> | undefined
+    return createTestStudio({
+      manifest,
+      handlers: {
+        'studio.ui.navigate': ({ subPath }, studio) => {
+          clearTimeout(navigation)
+          navigation = setTimeout(() => studio.setContext({ subPath }), 5)
+          return null
+        },
+      },
+    })
+  }
+
+  it('follows Studio after rapid moves back to where they started (A → B → A)', async () => {
+    const studio = coalescingStudio()
+    const history = createStudioHistory(studio.client)
+    const listener = vi.fn()
+    history.listen(listener)
+    for (const location of ['/a', '/b', '/a']) {
+      history.push(location)
+    }
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect([history.location, studio.context.subPath]).toEqual(['/a', 'a'])
+    expect(listener).not.toHaveBeenCalled()
+    // A later move of Studio's own is not taken for an answer to the router.
+    studio.setContext({ subPath: 'b' })
+    expect(history.location).toBe('/b')
+    expect(listener).toHaveBeenCalledOnce()
+  })
+
+  it('lets Studio\'s own move win over a pending one', async () => {
+    const studio = coalescingStudio()
+    const history = createStudioHistory(studio.client)
+    for (const location of ['/a', '/b']) {
+      history.push(location)
+    }
+    studio.setContext({ subPath: 'c' })
+    expect(history.location).toBe('/c')
+    await new Promise(resolve => setTimeout(resolve, 20))
+    expect(studio.calls.filter(call => call.method === 'studio.ui.navigate')).toHaveLength(1)
+  })
+
+  it('goes on when Studio takes a move but its context never comes', async () => {
+    vi.useFakeTimers()
+    try {
+      const studio = createTestStudio({ manifest, handlers: { 'studio.ui.navigate': () => null } })
+      const history = createStudioHistory(studio.client)
+      for (const location of ['/a', '/b']) {
+        history.push(location)
+      }
+      await vi.advanceTimersByTimeAsync(0)
+      expect(studio.calls.map(call => call.params)).toEqual([{ subPath: 'a' }])
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(studio.calls.map(call => call.params)).toEqual([{ subPath: 'a' }, { subPath: 'b' }])
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('tells the router where Studio moved: back, forward or to a new page', async () => {
