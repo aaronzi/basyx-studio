@@ -10,6 +10,7 @@ import { editModeMethods, methodPermissions } from '#shared/contract'
 import { addSubmodel, createShell, createStandaloneSubmodel, deleteShellWithSubmodels, deleteSubmodelWithReferences } from '../aas/creation'
 import { childProperty, containerChildren, verifySubmodel } from '../aas/edits'
 import { parseLocator, splitAddressable } from '../aas/keys'
+import { firstKeyValue } from '../aas/outline'
 import { resolveSubmodelRefs } from '../aas/submodel-refs'
 import { StudioProblem } from '../problem'
 import { revisionOf, structureRevisionOf } from '../targets/revision'
@@ -110,6 +111,24 @@ export async function checkShellToOpen (target: AasTarget, params: Methods['stud
   if (params.submodelId !== undefined && !(await target.submodelIds(params.shellId)).includes(params.submodelId)) {
     throw new StudioProblem('target_resource_not_found', 'The shell does not reference this submodel.')
   }
+}
+
+/**
+ * Reads the submodel an app shows with `studio.ui.openView` (ADR 0051) as
+ * the user, for the semantic ID that picks the view, and checks that the
+ * shell, if named, references it. The target applies the user's rights, so
+ * a submodel they cannot read is refused before any view opens.
+ */
+export async function checkViewToOpen (target: AasTarget, params: Methods['studio.ui.openView']['params']): Promise<{ id: string, semanticId: string, idShort: string | null }> {
+  if (params.shellId !== undefined) {
+    await checkShellToOpen(target, { shellId: params.shellId, submodelId: params.submodelId })
+  }
+  const metadata = await target.submodelMetadata(params.submodelId)
+  const semanticId = firstKeyValue(metadata.semanticId)
+  if (semanticId === null) {
+    throw new StudioProblem('unsupported_operation', 'The submodel has no semantic ID, so no app has a view for it.')
+  }
+  return { id: params.submodelId, semanticId, idShort: typeof metadata.idShort === 'string' ? metadata.idShort : null }
 }
 
 /** The target of an AAS call, with what writes over several resources need (MVP-5 plan, W4, W5). */

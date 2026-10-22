@@ -40,6 +40,7 @@ runs the app, whatever the package version.
 | 0.1.6 | 0.1.8: `assetType` and `specificAssetIds` in `aas.listShells`; `ui.navigate(subPath, { history: 'push' })`; `navigations`, `back` and `forward` in `testing` | next release |
 | 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the model viewer (`./viewer/core`, `./vue/core`, `./ifc`, `./step`) | next release |
 | 0.1.8 | 0.1.9: `settings` in the manifest, `context.settings` and `context.connections`, `settings` and `connections` in a backend's context; `checkSettingValue` and `checkSettingValues` in the app kit | next release |
+| 0.1.9 | 0.1.10: `ui.openView`; `openedViews` in `testing` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -103,7 +104,7 @@ reaches it as `context.subPath` with `onContext`, as with every change.
 | `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getSubmodelSnapshot`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
 | `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before); in edit mode, structural writes and attachments (Studio app API 0.1.5, see [Changing structure and files](#changing-structure-and-files)) |
 | `studio.ui.notifications` | `ui.notify` |
-| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell |
+| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell; `ui.openView`: show a submodel in another app's view (Studio app API 0.1.10) |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
 | `studio.ui.externalFiles` | `ui.readExternalFile`: files that elements name at other hosts, fetched by Studio's page; those hosts see the user's address |
 | `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it; Studio app API 0.1.2 |
@@ -182,6 +183,35 @@ a shell the user cannot read, or a submodel the shell does not reference, is
 refused with Studio's problem, and the app stays. Going back in the history
 returns to the app. It works the same in the desktop app, also for AASX
 files.
+
+`ui.openView(submodelId, { shellId?, appId?, viewId? })` shows a submodel of
+the active target in the view of an installed app, in Studio's full-screen
+dialog over the app, e.g. a bill of material, files or a time series
+(permission `studio.ui.navigation`, Studio app API 0.1.10,
+[ADR 0051](../../docs/adr/0051-views-of-other-apps.md)). The app's page
+stays as it is underneath, and closing the dialog returns to it.
+
+```ts
+const bom = submodels.find(submodel => submodel.semanticId === 'https://admin-shell.io/idta/HierarchicalStructures/1/1/Submodel')
+await client.ui.openView(bom.id, { shellId }) // from a click handler
+```
+
+- Studio reads the submodel as the user and picks the view the shell's
+  Overview shows first for its semantic ID: the apps shipped with Studio,
+  then installed ones. `appId` picks that app's view, and `viewId` one of its
+  views by the ID in its manifest.
+- With `shellId`, the shell must reference the submodel, and the view sees it
+  as its shell; without, the view's `context.shell` is `null`.
+- The view runs in its own frame, with its own permissions and the user's
+  rights, as on the shell page, and in Studio's mode. Your app learns only
+  that it opened: `context.fullscreenOpen` is `true` until the user closes
+  the dialog, so reload what the view may have changed when it turns `false`.
+- No view for the submodel's semantic ID, or none of `appId`, is refused with
+  `unsupported_operation`; offer `ui.openShell` instead. A shell that does not
+  reference the submodel is refused with `target_resource_not_found`, a
+  submodel the user cannot read with the target's problem.
+- Call it from a click or key press in the app, as `openShell`. Frames in a
+  full-screen dialog cannot open further views.
 
 `ui.openFullscreen(state?)` opens the view again in a full-screen dialog,
 as a new frame. Pass what the user has selected as `state` (a string, up to
@@ -536,10 +566,12 @@ studio.calls // every call the app made
   manifest, it is the list the calls are checked against.
 - Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
   (moves `context.subPath`, sends the new context and is recorded in
-  `studio.navigations`), `notify` (recorded in `studio.notifications`) and
-  `openShell` (recorded in `studio.openedShells`). Handlers replace them.
-  `studio.back()` and `studio.forward()` move through the sub-paths that
-  `navigate` pushed, as the browser's buttons do.
+  `studio.navigations`), `notify` (recorded in `studio.notifications`),
+  `openShell` (recorded in `studio.openedShells`) and `openView` (recorded
+  in `studio.openedViews`; it sets `context.fullscreenOpen`, and
+  `setContext({ fullscreenOpen: false })` is the user closing the dialog).
+  Handlers replace them. `studio.back()` and `studio.forward()` move through
+  the sub-paths that `navigate` pushed, as the browser's buttons do.
 - Parameters and results are copied as a MessagePort copies them, a method
   without a handler is refused (`unsupported_operation`), and an error a
   handler throws reaches the app as a `StudioError`.

@@ -25,8 +25,8 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0014](0014-workspace-worker-and-package-engine.md) | Accepted | Supervised Workspace Worker process; aas-package3-typescript with archive checks |
 | [0015](0015-desktop-native-bridge-and-file-grants.md) | Accepted | Two-call preload bridge; single-use file grants from the Electron main process |
 | [0016](0016-app-manifest-and-packages.md) | Accepted, amended by 0044 | Versioned JSON Schema manifest; packages checked completely and stored content-addressed |
-| [0017](0017-app-origin-and-content-security-policy.md) | Accepted, amended by 0045 | Sandboxed frames on a separate apps origin or `studio-app:` protocol, strict CSP |
-| [0018](0018-capability-bridge-and-authorization.md) | Accepted, amended by 0049 | `studio-sdk/0` MessagePort bridge; manifest permissions plus the user's own rights |
+| [0017](0017-app-origin-and-content-security-policy.md) | Accepted, amended by 0045, 0051 | Sandboxed frames on a separate apps origin or `studio-app:` protocol, strict CSP |
+| [0018](0018-capability-bridge-and-authorization.md) | Accepted, amended by 0049, 0051 | `studio-sdk/0` MessagePort bridge; manifest permissions plus the user's own rights |
 | [0019](0019-backend-app-runner.md) | Accepted, amended by 0049 | Deno process per backend, deny-by-default, short-lived capability tokens |
 | [0020](0020-infrastructure-templates-registries-and-sync.md) | Accepted | Infrastructure templates, registry resolution under the base-URL rule, sync after writes |
 | [0021](0021-feature-detection-from-service-profiles.md) | Accepted | Optional features from the stored `/description` profiles, never from probing |
@@ -53,11 +53,12 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0042](0042-external-files-through-studio.md) | Proposed | Files that AAS content names at other hosts, fetched by Studio's server for origins the deployment lists |
 | [0043](0043-published-sdk-and-app-kit.md) | Proposed | `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer` on npm with provenance; a test transport; the `studio-app` command |
 | [0044](0044-app-package-signatures-trust-store-and-updates.md) | Proposed | cosign-compatible package signatures, a trust store of publisher keys per app ID, in-place updates with consent, managed packages |
-| [0045](0045-app-origins-embeds-and-full-page-modules.md) | Proposed | One origin per app installation; declared frame, connect, image and media origins; full-page modules |
+| [0045](0045-app-origins-embeds-and-full-page-modules.md) | Proposed, amended by 0051 | One origin per app installation; declared frame, connect, image and media origins; full-page modules |
 | [0047](0047-http-connections-for-apps.md) | Proposed | `http` connections bound to app connections; declared OpenAPI operations; `studio.connections.call`; token exchange for the signed-in user |
 | [0048](0048-app-settings-and-connection-status.md) | Proposed | Declared app settings per installation and per infrastructure (dialog, declared YAML), resolved into the context with each connection's `{ bound }`; not for secrets |
 | [0049](0049-structural-writes-and-attachments-for-apps.md) | Proposed | Structural writes and attachment uploads for apps on the editor's paths; edit mode checked on the server |
 | [0050](0050-pdfjs-for-the-file-system-view.md) | Proposed | PDF.js in the bundled FileSystem view for PDF previews, on the page, without worker or WebAssembly |
+| [0051](0051-views-of-other-apps.md) | Proposed | Other apps' submodel views in Studio's dialog (`studio.ui.openView`) and, with an origin per installation, read-only inline (`studio.ui.embedView`); no chart component in the app kit |
 
 ## Template
 

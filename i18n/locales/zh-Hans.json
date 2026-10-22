@@ -57,7 +57,7 @@
   },
   "home": {
     "title": "AAS 目标",
-    "subtitle": "选择一个基础设施，浏览其中的资产管理壳。",
+    "subtitle": "选择一个基础设施，浏览其中的管理壳。",
     "search": "搜索目标",
     "filters": {
       "state": "状态",
@@ -71,7 +71,7 @@
     "noTargetsAdmin": "添加一个基础设施即可开始。",
     "noTargetsUser": "请联系 Studio 管理员添加一个。",
     "addInfrastructure": "添加基础设施",
-    "subtitleCount": "从 {n} 个基础设施中选择一个，浏览其中的资产管理壳。",
+    "subtitleCount": "从 {n} 个基础设施中选择一个，浏览其中的管理壳。",
     "resetFilters": "重置搜索和筛选条件",
     "view": {
       "label": "视图",
@@ -536,7 +536,7 @@
       "studio_aas_read": "读取你有权访问的 AAS 数据",
       "studio_aas_write": "修改你有权修改的 AAS 值",
       "studio_ui_notifications": "显示通知",
-      "studio_ui_navigation": "更改其自身的页面地址、打开目标并在浏览器中打开链接",
+      "studio_ui_navigation": "更改其自身的页面地址、打开目标和管理壳、在其他应用的视图中显示子模型并在浏览器中打开链接",
       "studio_backend": "运行服务器端代码（隔离）",
       "studio_ui_clipboard": "点击时将文本复制到剪贴板",
       "studio_containers": "在 Docker 或 Podman 上启动、停止、导出和删除本地 BaSyx 实例（仅限 Studio 自带的应用）",
@@ -780,7 +780,7 @@
   },
   "viewer": {
     "headline": "选择要浏览的管理壳",
-    "title": "从列表中选择一个资产管理壳",
+    "title": "从列表中选择一个管理壳",
     "text": "浏览子模型、查看实时数值并下载文档。按 ⌘K 搜索整个目标。",
     "browse": "浏览管理壳",
     "search": "搜索",
@@ -1100,7 +1100,7 @@
   "welcome": {
     "overline": "欢迎使用",
     "tagline": "每个资产都有自己的故事。为它创建数字孪生。",
-    "keywords": "资产管理壳 · 工业 4.0 · 开源",
+    "keywords": "管理壳 · 工业 4.0 · 开源",
     "start": "进入 Studio",
     "dontShow": "启动时不再显示"
   },

@@ -72,7 +72,7 @@ Apps use `@basyx/studio-sdk` capabilities rather than host implementation object
 - `studio.aas`: query, mutate, invoke operations, observe active target; structural writes and attachment uploads run the editor's code paths and only in Studio's edit mode, which Studio's server checks ([ADR 0049](../adr/0049-structural-writes-and-attachments-for-apps.md))
 - `studio.files`: pick, open, save, and bounded streams
 - `studio.connections`: calls of declared OpenAPI operations through HTTP connections an administrator bound to the app; the URL and the credentials stay with Studio ([ADR 0047](../adr/0047-http-connections-for-apps.md)). It replaces the planned `studio.http` with free requests to declared origins
-- `studio.ui`: notifications, commands, panels, and context
+- `studio.ui`: notifications, commands, panels, and context; other apps' submodel views in Studio's dialog (`openView`), which keep their own frame, permissions and origin ([ADR 0051](../adr/0051-views-of-other-apps.md))
 - `studio.semantic`: active semantic index and applicability information
 - `studio.jobs`: start and observe bounded long-running app tasks
 - `studio.views`: contribute widget types and interact with scoped view context

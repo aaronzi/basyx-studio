@@ -232,6 +232,33 @@ test('adds module routes, nested routes and shell modules that follow the active
   await expect(page).toHaveURL(explorerUrl)
   await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
 
+  // studio.ui.openView (ADR 0051): the submodel in the bundled Digital
+  // Nameplate view, in Studio's dialog over the app, as its own frame; closing
+  // it returns to the same page of the app, which never left.
+  await frame.getByRole('button', { name: 'Show Nameplate in its view' }).click()
+  const dialog = page.locator('[data-test="app-view-dialog"]')
+  await expect(dialog.getByText('Digital Nameplate', { exact: true }).first()).toBeVisible()
+  await expect(dialog.locator('iframe[title="App: Digital Nameplate"]')).toBeVisible()
+  await expect(dialog.frameLocator('iframe[title="App: Digital Nameplate"]').getByText('Serial number').first()).toBeVisible()
+  await expect(page).toHaveURL(explorerUrl)
+  await dialog.locator('[data-test="app-view-close"]').click()
+  await expect(dialog).toBeHidden()
+  await expect(page).toHaveURL(explorerUrl)
+  await expect(frame.locator('[data-test="heading"]')).toHaveText(motorShell)
+
+  // No installed app has a view for the edge cases' submodel: the explorer
+  // says so above its list and offers the shell's page instead.
+  await page.goBack()
+  await frame.getByText('EdgeCasesShell', { exact: true }).click()
+  await expect(frame.locator('[data-test="heading"]')).toHaveText('urn:studio:test:aas:edge-cases')
+  await frame.getByRole('button', { name: 'Show EdgeCases in its view' }).click()
+  const notice = frame.locator('[data-test="notice"]')
+  await expect(notice).toContainText('No installed app shows this submodel in a view.')
+  await expect(frame.locator('[data-test="submodels"]')).toContainText('EdgeCases')
+  await expect(page.locator('[data-test="app-view-dialog"]')).toHaveCount(0)
+  await notice.getByRole('button', { name: 'Open in Studio' }).click()
+  await expect(page).toHaveURL(`/targets/${openTargetId}/shells/${key('urn:studio:test:aas:edge-cases')}?submodel=${key('urn:studio:test:sm:edge-cases')}&mode=visualization`)
+
   // A new target gets a new frame that sees only that target.
   await page.goto(`/targets/${securedTargetId}/apps/${installationId}/explorer`)
   await expect(frame.locator('[data-test="heading"]')).toHaveText('Shells of E2E apps secured (as Studio)')
@@ -243,6 +270,83 @@ test('adds module routes, nested routes and shell modules that follow the active
   await page.getByRole('link', { name: 'Shell summary' }).click()
   await expect(frame.locator('[data-test="heading"]')).toHaveText(`Submodels of ${securedShell}`)
   await expect(frame.locator('[data-test="submodels"]')).toContainText('Nameplate')
+})
+
+/** An app package from a manifest and files given as text. */
+function packageOf (manifest: Record<string, unknown>, files: Record<string, string>): Uint8Array {
+  return zipSync(Object.fromEntries([['studio-app.json', strToU8(JSON.stringify({ manifestVersion: 0, publisher: { name: 'Studio tests' }, runtimes: ['hosted', 'desktop'], ...manifest }))], ...Object.entries(files).map(([path, text]) => [path, strToU8(text)])]))
+}
+
+/** The bare `studio-sdk/0` handshake of the packages below; `onPort` gets the port. */
+const handshake = `parent.postMessage({ protocol: 'studio-sdk/0', type: 'hello' }, '*')
+addEventListener('message', event => {
+  if (event.source === parent && event.data?.type === 'connect' && event.ports[0]) {
+    event.ports[0].start()
+    onPort(event.ports[0])
+  }
+})`
+
+/** A view of nameplates in a given version; "Read" reads the submodel and shows the answer. */
+function updatedView (version: string): Uint8Array {
+  return packageOf({
+    id: 'org.example.updated-view',
+    version,
+    title: { en: 'Updated view' },
+    studioApi: '^0.1.0',
+    permissions: ['studio.aas.read'],
+    contributes: { submodelViews: [{ id: 'view', title: { en: 'Updated view' }, entry: 'ui/index.html', semanticIds: ['https://admin-shell.io/idta/nameplate/3/0/Nameplate'] }] },
+  }, {
+    'ui/index.html': `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Updated view</title><script type="module" src="./view.js"></script></head><body><p id="version">connecting</p><button type="button">Read</button><p id="answer"></p></body></html>`,
+    'ui/view.js': `function onPort (port) {
+  document.querySelector('#version').textContent = 'version ${version}'
+  port.addEventListener('message', event => {
+    if (event.data.type !== 'context') {
+      document.querySelector('#answer').textContent = event.data.type === 'error' ? event.data.problem.code : 'read'
+    }
+  })
+  document.querySelector('button').addEventListener('click', () => port.postMessage({ type: 'request', id: 1, method: 'studio.aas.getSubmodel', params: { submodelId: ${JSON.stringify(motorNameplate)} } }))
+}
+${handshake}`,
+  })
+}
+
+test('keeps a view opened in Studio\'s dialog in step with updates of its app (ADR 0051, ADR 0044)', async ({ page }) => {
+  const api = await studioApi(page)
+  const openerId = await installApp(page, packageOf({
+    id: 'org.example.view-opener',
+    version: '1.0.0',
+    title: { en: 'View opener' },
+    studioApi: '^0.1.10',
+    permissions: ['studio.ui.navigation'],
+    contributes: { modules: [{ id: 'opener', title: { en: 'View opener' }, entry: 'ui/index.html', route: 'opener', context: 'target' }] },
+  }, {
+    'ui/index.html': `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>View opener</title><script type="module" src="./opener.js"></script></head><body><button type="button">Open view</button></body></html>`,
+    'ui/opener.js': `function onPort (port) {
+  document.body.dataset.connected = 'true'
+  document.querySelector('button').addEventListener('click', () => port.postMessage({ type: 'request', id: 1, method: 'studio.ui.openView', params: { submodelId: ${JSON.stringify(motorNameplate)}, shellId: ${JSON.stringify(motorShell)}, appId: 'org.example.updated-view' } }))
+}
+${handshake}`,
+  }))
+  await installApp(page, updatedView('1.0.0'))
+
+  await page.goto(`/targets/${openTargetId}/apps/${openerId}/opener`)
+  const opener = appFrame(page, 'View opener')
+  await expect(opener.locator('body[data-connected="true"]')).toBeAttached()
+  await opener.getByRole('button', { name: 'Open view' }).click()
+  const dialog = page.locator('[data-test="app-view-dialog"]')
+  const view = dialog.frameLocator('iframe[title="App: Updated view"]')
+  await expect(view.locator('#version')).toHaveText('version 1.0.0')
+  // A click while the dialog still opens would land on its scrim.
+  await waitUntilSettled(dialog.locator('iframe[title="App: Updated view"]'))
+
+  // An update in place while the dialog is open: the view's next call is
+  // refused as outdated, and the dialog loads the new version.
+  const updated = await api.install(updatedView('1.0.1'))
+  expect(updated.status(), await updated.text()).toBe(200)
+  await view.getByRole('button', { name: 'Read' }).click()
+  await expect(view.locator('#version')).toHaveText('version 1.0.1', { timeout: 30_000 })
+  await view.getByRole('button', { name: 'Read' }).click()
+  await expect(view.locator('#answer')).toHaveText('read')
 })
 
 test('contains a hostile app and refuses what it did not declare (DoD 5, 6)', async ({ page }) => {

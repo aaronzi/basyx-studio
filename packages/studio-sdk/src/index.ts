@@ -93,6 +93,16 @@ export class StudioClient {
      */
     openShell: (shellId: string, options: { submodelId?: string } = {}) => this.call('studio.ui.openShell', options.submodelId === undefined ? { shellId } : { shellId, submodelId: options.submodelId }),
     /**
+     * Shows a submodel of the active target in another installed app's view,
+     * in Studio's full-screen dialog over this app, e.g. a bill of material
+     * or a time series: the view Studio would pick on the shell's Overview,
+     * or that of `appId` (and its `viewId`). `shellId` names the shell the
+     * submodel belongs to. `context.fullscreenOpen` is true until the user
+     * closes it (needs studio.ui.navigation; Studio ≥ 0.1.10). Call it from a
+     * click handler.
+     */
+    openView: (submodelId: string, options: Omit<Methods['studio.ui.openView']['params'], 'submodelId'> = {}) => this.call('studio.ui.openView', { ...options, submodelId }),
+    /**
      * Opens a URL in the system browser (needs studio.ui.navigation): https,
      * or http to this computer. Call it from a click handler.
      */

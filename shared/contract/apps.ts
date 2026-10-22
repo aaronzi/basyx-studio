@@ -224,6 +224,18 @@ export const appContributionsSchema = z.object({
 })
 export type AppContributions = z.infer<typeof appContributionsSchema>
 
+/**
+ * What Studio's server answers the host bridge for `studio.ui.openView`
+ * (ADR 0051): the view to show and what it shows. The app that asked gets
+ * `null`; only Studio's page learns which app's view it is.
+ */
+export const openedViewSchema = z.object({
+  view: submodelViewContributionSchema,
+  submodel: z.object({ id: z.string(), semanticId: z.string(), idShort: z.string().nullable() }),
+  shellId: z.string().nullable(),
+})
+export type OpenedView = z.infer<typeof openedViewSchema>
+
 // ---------------------------------------------------------------------------
 // Bridge messages from app frames (validated by the host renderer)
 
@@ -339,6 +351,12 @@ export const appMethodParamsSchemas = {
   }).strict(),
   'studio.ui.openTarget': z.object({ targetId: z.string().min(1).max(200) }).strict(),
   'studio.ui.openShell': z.object({ shellId: identifier, submodelId: identifier.optional() }).strict(),
+  'studio.ui.openView': z.object({
+    submodelId: identifier,
+    shellId: identifier.optional(),
+    appId: z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID').max(128).optional(),
+    viewId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'must be the ID of a submodel view').optional(),
+  }).strict().refine(view => view.viewId === undefined || view.appId !== undefined, { message: 'needs appId', path: ['viewId'] }),
   'studio.ui.openExternal': z.object({ url: z.url({ protocol: /^https?$/ }).max(2000).refine(isExternalUrl, 'must be an https URL, or an http URL of this computer') }).strict(),
   'studio.ui.copyText': z.object({ text: z.string().max(10_000) }).strict(),
   'studio.containers.listEngines': z.object({}).strict(),

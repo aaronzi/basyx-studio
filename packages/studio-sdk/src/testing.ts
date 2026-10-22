@@ -81,6 +81,8 @@ export interface TestNavigation {
   history: NonNullable<Methods['studio.ui.navigate']['params']['history']>
 }
 
+export type TestOpenedView = Methods['studio.ui.openView']['params']
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -100,6 +102,12 @@ export interface TestStudio {
    */
   back: () => boolean
   forward: () => boolean
+  /**
+   * The views the app opened with `studio.ui.openView`. Each sets
+   * `context.fullscreenOpen`; `setContext({ fullscreenOpen: false })` is the
+   * user closing the dialog.
+   */
+  readonly openedViews: TestOpenedView[]
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -276,6 +284,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   // The browser's history of the module's sub-paths.
   const entries = [context.subPath]
   let entry = 0
+  const openedViews: TestOpenedView[] = []
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -304,6 +313,11 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
     'studio.ui.openShell': shell => {
       openedShells.push(shell)
+      return null
+    },
+    'studio.ui.openView': view => {
+      openedViews.push(view)
+      setContext({ fullscreenOpen: true })
       return null
     },
   }
@@ -411,6 +425,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     navigations,
     back: () => go(-1),
     forward: () => go(1),
+    openedViews,
     setContext,
     close: () => transport.close(),
   }

@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.9'
+export const studioAppApiVersion = '0.1.10'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -217,10 +217,11 @@ export interface AppContext {
   /** Studio's mode: apps show edit controls only in `edit` (MVP-4). */
   mode: 'view' | 'edit'
   /**
-   * True while a full-screen dialog this view opened (`studio.ui.openFullscreen`)
-   * is open. It runs in a frame of its own, so a view reloads what it shows
-   * when this turns false again: the dialog may have changed it (Studio app
-   * API 0.1.7; absent before).
+   * True while a full-screen dialog this frame opened is open: its own view
+   * again (`studio.ui.openFullscreen`, Studio app API 0.1.7) or another
+   * app's view (`studio.ui.openView`, Studio app API 0.1.10). It runs in a
+   * frame of its own, so the app reloads what it shows when this turns false
+   * again: the dialog may have changed it (absent before 0.1.7).
    */
   fullscreenOpen?: boolean
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
@@ -677,6 +678,18 @@ export interface Methods {
    * refused, and Studio stays on the app (Studio app API 0.1.4).
    */
   'studio.ui.openShell': { params: { shellId: string, submodelId?: string }, result: null }
+  /**
+   * Shows a submodel of the active target in the submodel view of an
+   * installed app, in Studio's full-screen dialog over the app (ADR 0051).
+   * Studio picks the view as the shell's *Overview* would: by the submodel's
+   * semantic ID, the apps shipped with Studio first; `appId` (and `viewId`,
+   * the view's contribution ID) choose one app's view. With `shellId`, the
+   * shell must reference the submodel, and the view sees it as its shell.
+   * The view runs in its own frame with its own permissions and the user's
+   * rights; the app learns only that it opened (`context.fullscreenOpen`).
+   * Needs a click in the app just before (Studio app API 0.1.10).
+   */
+  'studio.ui.openView': { params: { submodelId: string, shellId?: string, appId?: string, viewId?: string }, result: null }
   /** Opens an http(s) URL in the system browser. */
   /** Needs a click in the app just before. Only https, or http to this computer (127.0.0.1, localhost, [::1]). */
   'studio.ui.openExternal': { params: { url: string }, result: null }
@@ -753,6 +766,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.backend.call': 'studio.backend',
   'studio.ui.openTarget': 'studio.ui.navigation',
   'studio.ui.openShell': 'studio.ui.navigation',
+  'studio.ui.openView': 'studio.ui.navigation',
   'studio.ui.openExternal': 'studio.ui.navigation',
   'studio.ui.copyText': 'studio.ui.clipboard',
   'studio.containers.listEngines': 'studio.containers',

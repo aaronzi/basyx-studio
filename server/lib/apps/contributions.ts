@@ -1,5 +1,6 @@
-import type { AppContributions } from '#shared/contract'
+import type { AppContributions, SubmodelViewContributionInfo } from '#shared/contract'
 import type { AppInstallationRecord } from './store'
+import { StudioProblem } from '../problem'
 import { appFileUrl, appFrameOrigin } from './origins'
 
 /**
@@ -52,4 +53,21 @@ export function contributionsFor (installations: AppInstallationRecord[], baseUr
     }
   }
   return result
+}
+
+/**
+ * The view `studio.ui.openView` shows for a submodel's semantic ID
+ * (ADR 0051): the one the shell's Overview shows first, so the apps shipped
+ * with Studio before installed ones, or the first view of the app `appId`,
+ * or its view `viewId`. Without one, the app is told so and can open the
+ * shell's page instead.
+ */
+export function viewToOpen (installations: AppInstallationRecord[], baseUrl: string, semanticId: string, choice: { appId?: string, viewId?: string } = {}): SubmodelViewContributionInfo {
+  const view = contributionsFor(installations, baseUrl, [semanticId]).submodelViews.toSorted((a, b) => Number(b.bundled) - Number(a.bundled)).find(view => (choice.appId === undefined || view.appId === choice.appId) && (choice.viewId === undefined || view.id === choice.viewId))
+  if (!view) {
+    throw new StudioProblem('unsupported_operation', choice.appId === undefined
+      ? 'No installed app has a view for this submodel.'
+      : `${choice.appId} is not installed, or has no such view for this submodel.`)
+  }
+  return view
 }
