@@ -39,6 +39,7 @@ runs the app, whatever the package version.
 | 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
 | 0.1.6 | 0.1.8: `assetType` and `specificAssetIds` in `aas.listShells`; `ui.navigate(subPath, { history: 'push' })`; `navigations`, `back` and `forward` in `testing` | next release |
 | 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the model viewer (`./viewer/core`, `./vue/core`, `./ifc`, `./step`) | next release |
+| 0.1.8 | 0.1.9: `settings` in the manifest, `context.settings` and `context.connections`, `settings` and `connections` in a backend's context; `checkSettingValue` and `checkSettingValues` in the app kit | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -419,6 +420,66 @@ await studio.connections.call({
   itself; anything with a secret, a URL that differs per deployment, the
   user's identity or calls that must be audited is a connection.
 
+- The app sees whether a connection is bound before it calls:
+  `context.connections` maps each declared connection ID to
+  `{ bound: boolean }` for the frame's target (Studio app API 0.1.9, see
+  [Settings](#settings)). Show "not configured" instead of calling; a call
+  still checks the binding.
+
+### Settings
+
+What differs between deployments, such as the asset types an app lists, the
+semantic IDs or idShorts it reads, or the IDs it sends to a service, belongs
+in `settings`, not in the build (Studio app API 0.1.9,
+[ADR 0048](../../docs/adr/0048-app-settings-and-connection-status.md)). An
+administrator sets the values; the app reads them from its context.
+
+```json
+"studioApi": "^0.1.9",
+"settings": [
+  { "key": "assetTypes", "type": "stringList", "scope": "infrastructure", "required": true, "title": { "en": "Asset types" } },
+  { "key": "units", "type": "string", "enum": ["metric", "imperial"], "default": "metric", "title": { "en": "Units" } },
+  { "key": "pageSize", "type": "number", "default": 25, "title": { "en": "Shells per page" } }
+]
+```
+
+```ts
+const { assetTypes, pageSize } = studio.context.settings ?? {}
+if (!Array.isArray(assetTypes) || assetTypes.length === 0) {
+  // show "not configured": an administrator sets the asset types
+}
+studio.onContext(context => reload(context.settings)) // another target, other values
+
+if (studio.context.connections?.forecast?.bound === false) {
+  // show "not configured" instead of calling studio.connections.call
+}
+```
+
+- Up to 32 settings. `key` is an identifier (`assetTypes`), `type` is
+  `string`, `number`, `boolean` or `stringList`; `enum` lists the allowed
+  values of a `string` or of the items of a `stringList`; `default` has the
+  setting's type. Strings have at most 2,000 characters, lists 100 items.
+- `scope: "installation"` (the default) has one value per installation, set
+  on the *Apps* page. `scope: "infrastructure"` may also have one per
+  infrastructure, set in the infrastructure's dialog or in the deployment's
+  declared YAML (`apps: [{ app, settings }]`), which wins over the
+  installation's. Workspaces use the installation's values.
+- `context.settings` has every declared key: the infrastructure's value,
+  else the installation's, else the default, else `null`. `required: true`
+  marks a setting in Studio's forms; the app still gets `null` until a value
+  is set, so handle it.
+- Studio refuses values of the wrong type when they are saved. An update
+  drops installation values its settings no longer accept; the update dialog
+  lists added, removed and changed settings. Settings are not permissions and
+  need no consent.
+- **Settings are not for secrets.** Administrators, exports and every
+  browser that opens the app see them. Keys, tokens and passwords belong in
+  [connections](#http-connections), whose credentials stay on Studio's
+  server.
+- `studio-app pack` and `verify` check the declarations: unique keys, `enum`
+  only for texts, defaults that fit, and `^0.1.9`.
+- Both fields are absent from the context of an older Studio.
+
 With an origin of its own, the app's frame also has `localStorage`, IndexedDB
 and cookies. They belong to the installation and the browser profile, not to
 the user or the target, and Studio does not clear them on sign-out. Keep
@@ -468,7 +529,8 @@ studio.calls // every call the app made
   manifest does not declare (`app_permission_not_declared`), and a
   connection or operation it does not declare (`connection_operation_not_declared`),
   before any handler. The context names the manifest's ID and its first
-  module, else its first submodel view. A permission Studio does not know
+  module, else its first submodel view; its settings have their defaults,
+  and its connections are bound. A permission Studio does not know
   fails `createTestStudio`, as it fails Studio's upload. `permissions`
   narrows the manifest's, e.g. to test the app without one; without a
   manifest, it is the list the calls are checked against.
@@ -489,7 +551,10 @@ studio.calls // every call the app made
   operation, as the manifest declares them. A function returns the parts of
   the answer that differ from `{ status: 200, etag: null, location: null }`
   and the body's media type; other connections are refused as unbound, other
-  operations as undeclared.
+  operations as undeclared. So is a connection that the context marks
+  `{ bound: false }`.
+- Without `manifest`, `testContext()` has no settings and no connections; pass them, or other values, as
+  `context: { settings: { assetTypes: ['urn:example:type:pump'] }, connections: { forecast: { bound: false } } }`.
 
 `memoryAas({ shells, submodels })` keeps AAS content in memory and provides
 handlers for the reads, `setElementValue`, the structural writes,
@@ -524,11 +589,14 @@ Declare `"backend": { "runtime": "deno", "entry": "backend/main.js" }` and the
 
 ```js
 /** @type {import('@basyx/studio-sdk/backend').BackendHandler} */
-export async function summarize (params, { studio }) {
-  const page = await studio.call('studio.aas.listShells', { limit: 100 })
+export async function summarize (params, { studio, settings }) {
+  const page = await studio.call('studio.aas.listShells', { limit: settings.pageSize ?? 100 })
   return { shells: page.items.length }
 }
 ```
+
+`settings` and `connections` are those of the call's target, as in the UI's
+context (Studio app API 0.1.9).
 
 The UI calls it with `studio.backend.call('summarize', params)`. The backend
 runs in Deno with no file, environment, subprocess or network access other

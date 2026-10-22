@@ -577,6 +577,16 @@
       },
       "required": "Required",
       "httpUrl": "Enter an http(s) URL."
+    },
+    "appSettings": {
+      "title": "App settings",
+      "help": "Values of the installed apps on this infrastructure. They win over the values on the Apps page; an empty field uses that value or the app's default. Not for secrets: keys and tokens belong in connections.",
+      "count": "{count} value | {count} values",
+      "noApps": "No installed app has settings per infrastructure.",
+      "notInstalled": "Not installed; values kept: {list}",
+      "remove": "Remove the values",
+      "obsoleteDropped": "The installed versions no longer set these values per infrastructure, so they are removed when you save: {list}",
+      "obsoleteIgnored": "The installed versions no longer set these values per infrastructure, so Studio ignores them: {list}"
     }
   },
   "apps": {
@@ -673,7 +683,45 @@
     "operationsRemoved": "No longer calls: {list}",
     "update": "Update",
     "confirmInstall": "Install",
-    "updated": "Updated {name} to {version}."
+    "updated": "Updated {name} to {version}.",
+    "settings": {
+      "edit": "Settings",
+      "title": "Settings of {name}",
+      "help": "Values set here apply wherever the app runs, unless an infrastructure sets its own for a setting that allows it. Settings are not for secrets: the app and the browsers of its users see them.",
+      "save": "Save",
+      "list": "Settings: {list}",
+      "missing": "Needs settings",
+      "missingHint": "Required without a value: {list}. Infrastructures may set some of them.",
+      "required": "Required",
+      "perInfrastructure": "Infrastructures may set their own value",
+      "fallback": "Without a value: {value}",
+      "replaces": "Replaces: {value}",
+      "none": "none",
+      "empty": "empty",
+      "yes": "Yes",
+      "no": "No",
+      "declared": "Settings",
+      "changed": "Changed",
+      "removed": "Settings removed: {list}",
+      "dropped": "Values dropped, because the new version does not accept them: {list}",
+      "types": {
+        "string": "Text",
+        "number": "Number",
+        "boolean": "Yes or no",
+        "stringList": "List of texts"
+      },
+      "scopes": {
+        "installation": "per installation",
+        "infrastructure": "per installation and infrastructure"
+      },
+      "invalid": {
+        "text": "Enter at most 2,000 characters",
+        "number": "Enter a number",
+        "boolean": "Choose yes or no",
+        "list": "Enter at most 100 entries of at most 2,000 characters",
+        "enum": "Allowed: {values}"
+      }
+    }
   },
   "nav": {
     "targets": "AAS targets",

@@ -16,10 +16,12 @@
     <v-progress-linear v-else-if="!connected" />
 
     <!-- Created only on the client, after the bridge listens: a frame in
-         server-rendered HTML would load before hydration. Hidden until the
-         app connects, so its blank (white) page does not flash in dark mode. -->
+         server-rendered HTML would load before hydration, and after the
+         target's settings arrived, so the first context has them (ADR 0048).
+         Hidden until the app connects, so its blank (white) page does not
+         flash in dark mode. -->
     <iframe
-      v-if="mounted"
+      v-if="mounted && targetContext.status.value !== 'pending'"
       :key="attempt"
       ref="frame"
       :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1', connected ? undefined : 'opacity-0']"
@@ -69,8 +71,9 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AppContext, AppContributionInfo, Target } from '#shared/contract'
+  import type { AppContext, AppContributionInfo, AppTargetContext, Target } from '#shared/contract'
   import type { AppStartProblem } from '~/utils/app-start'
+  import { useQuery } from '@pinia/colada'
   import { useTheme } from 'vuetify'
   import { appProtocol } from '#shared/contract'
 
@@ -103,6 +106,7 @@
   }>()
 
   const { t, locale } = useI18n()
+  const api = useStudioApi()
   const theme = useTheme()
   const ui = useUiStore()
   const label = useLocalizedLabel()
@@ -110,6 +114,16 @@
 
   const themeColors = computed(() => Object.fromEntries(Object.entries(theme.current.value.colors)
     .filter((entry): entry is [string, string] => typeof entry[1] === 'string')))
+
+  // The app's settings and connection status on this target (ADR 0048).
+  // Without them (an error), the app sees no values and no bindings.
+  const targetContext = useQuery({
+    key: () => ['app-context', props.contribution.installationId, props.target?.id ?? ''],
+    query: ({ signal }) => api<AppTargetContext>(`/app-installations/${props.contribution.installationId}/context`, {
+      query: props.target ? { targetId: props.target.id } : {},
+      signal,
+    }),
+  })
 
   const context = computed<AppContext>(() => ({
     protocol: appProtocol,
@@ -133,6 +147,8 @@
     viewState: props.viewState ?? '',
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },
+    settings: targetContext.data.value?.settings ?? {},
+    connections: targetContext.data.value?.connections ?? {},
   }))
 
   const mounted = ref(false)

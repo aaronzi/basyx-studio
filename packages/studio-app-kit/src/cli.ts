@@ -46,6 +46,10 @@ function notes (manifest: AppManifest): void {
   for (const connection of manifest.connections ?? []) {
     console.info(`  Note: the connection ${connection.id} (${connection.operations.length === 1 ? '1 operation' : `${connection.operations.length} operations`}) is called only where an administrator binds it to a connection of an infrastructure (ADR 0047).`)
   }
+  const required = (manifest.settings ?? []).filter(setting => setting.required && setting.default === undefined)
+  if (required.length > 0) {
+    console.info(`  Note: ${required.map(setting => setting.key).join(', ')} ${required.length === 1 ? 'has' : 'have'} no default; the app gets null until an administrator sets a value (ADR 0048).`)
+  }
 }
 
 function fail (message: string): never {

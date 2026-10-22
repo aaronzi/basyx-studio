@@ -1,4 +1,4 @@
-import type { AppContext, ConnectionCallParams, ConnectionCallResult, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
+import type { AppContext, AppSettingValue, ConnectionCallParams, ConnectionCallResult, MethodName, Methods, Permission, Problem, ThemeTokens } from './protocol.ts'
 import type { Transport } from './transport.ts'
 import { StudioClient } from './index.ts'
 import { editModeMethods, permissions as knownPermissions, methodPermissions, protocolVersion, putAttachmentMaxBytes } from './protocol.ts'
@@ -36,6 +36,7 @@ export interface TestManifest {
   id: string
   permissions: readonly string[]
   connections?: readonly { id: string, operations: readonly string[] }[]
+  settings?: readonly { key: string, default?: unknown }[]
   contributes?: {
     modules?: readonly { id: string }[]
     submodelViews?: readonly { id: string }[]
@@ -50,8 +51,9 @@ export interface TestStudioOptions {
   /**
    * The app's manifest. Calls are checked against its permissions and its
    * connections' operations as Studio checks them, and the context names
-   * its ID and its first module (or submodel view). A permission Studio
-   * does not know fails `createTestStudio`.
+   * its ID and its first module (or submodel view), has its settings'
+   * defaults and its connections bound. A permission Studio does not know
+   * fails `createTestStudio`.
    */
   manifest?: TestManifest
   /**
@@ -114,7 +116,8 @@ export function testTheme (dark = false): ThemeTokens {
 /**
  * A context with `patch` applied: a module (`main`) on a writable target
  * named "Test target", without shell or submodel, in view mode, in English
- * and Studio's light theme.
+ * and Studio's light theme, without settings or connections. Pass the app's
+ * settings and connection status as `settings` and `connections`.
  */
 export function testContext (patch: Partial<AppContext> = {}): AppContext {
   return {
@@ -132,6 +135,8 @@ export function testContext (patch: Partial<AppContext> = {}): AppContext {
     viewState: '',
     locale: 'en',
     theme: testTheme(),
+    settings: {},
+    connections: {},
     ...patch,
   }
 }
@@ -182,8 +187,9 @@ function contentTypeOf (body: unknown): string | null {
  * functions per connection ID and `operationId`, as the app's manifest
  * declares them. A connection without functions is refused as an unbound one
  * is (`connection_not_bound`), an operation without a function as an
- * undeclared one (`connection_operation_not_declared`). Answers default to
- * status 200 with the body's media type and no `etag` or `location`.
+ * undeclared one (`connection_operation_not_declared`). So is a connection
+ * that the context marks `{ bound: false }`. Answers default to status 200
+ * with the body's media type and no `etag` or `location`.
  *
  *   handlers: {
  *     'studio.connections.call': connectionsHandler({
@@ -194,7 +200,7 @@ function contentTypeOf (body: unknown): string | null {
 export function connectionsHandler (connections: Record<string, Record<string, TestOperation>>): TestHandler<'studio.connections.call'> {
   return async ({ connection, operation, ...request }, studio) => {
     const operations = Object.hasOwn(connections, connection) ? connections[connection]! : undefined
-    if (!operations) {
+    if (!operations || studio.context.connections?.[connection]?.bound === false) {
       throw studioError('connection_not_bound', `No connection of the target's infrastructure is bound to ${connection}.`)
     }
     const handler = Object.hasOwn(operations, operation) ? operations[operation] : undefined
@@ -227,14 +233,23 @@ function permissionsOf (manifest: TestManifest, narrowed: readonly Permission[] 
   return narrowed ?? declared
 }
 
-/** The context's app and contribution from a manifest: its first module, else its first submodel view. */
+/**
+ * The context's app and contribution from a manifest: its first module, else
+ * its first submodel view. Its settings have their defaults, as on an
+ * infrastructure without values (ADR 0048), and its connections are bound.
+ */
 function manifestContext (manifest: TestManifest): Partial<AppContext> {
+  const declared = {
+    appId: manifest.id,
+    settings: Object.fromEntries((manifest.settings ?? []).map(setting => [setting.key, (setting.default ?? null) as AppSettingValue | null])),
+    connections: Object.fromEntries((manifest.connections ?? []).map(connection => [connection.id, { bound: true }])),
+  }
   const module = manifest.contributes?.modules?.[0]
   if (module) {
-    return { appId: manifest.id, contribution: { kind: 'module', id: module.id } }
+    return { ...declared, contribution: { kind: 'module', id: module.id } }
   }
   const view = manifest.contributes?.submodelViews?.[0]
-  return { appId: manifest.id, ...(view ? { contribution: { kind: 'submodelView', id: view.id } } : {}) }
+  return { ...declared, ...(view ? { contribution: { kind: 'submodelView', id: view.id } } : {}) }
 }
 
 /** Refuses a connection call the manifest does not declare, before any handler, as Studio does. */

@@ -16,6 +16,12 @@ export interface BackendSource {
   files: Map<string, Uint8Array>
 }
 
+/** What a backend's handler gets next to `studio` for one call: the app's settings and connection status for its target (ADR 0048). */
+export interface BackendCallContext {
+  settings: Record<string, unknown>
+  connections: Record<string, { bound: boolean }>
+}
+
 export interface BackendRunnerOptions {
   denoPath: string
   /** Directory for extracted backends and Deno's cache. */
@@ -150,7 +156,8 @@ async function handle (line) {
     return
   }
   try {
-    const result = await handler(message.params, { studio: studioFor(message.token) })
+    // Settings and connection status for the call's target (ADR 0048).
+    const result = await handler(message.params, { studio: studioFor(message.token), settings: message.context?.settings ?? {}, connections: message.context?.connections ?? {} })
     await write({ id: message.id, result: result ?? null })
   } catch (error) {
     await write({ id: message.id, error: { code: error?.problem?.code ?? 'error', message: String(error?.message ?? error).slice(0, 1000) } })
@@ -281,7 +288,7 @@ class BackendProcess {
     return this.#exited || this.#killed
   }
 
-  call (method: string, params: unknown, token: string): Promise<unknown> {
+  call (method: string, params: unknown, token: string, context: BackendCallContext): Promise<unknown> {
     const id = this.#nextId++
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -290,7 +297,7 @@ class BackendProcess {
         this.kill()
       }, this.options.callTimeoutMs)
       this.#pending.set(id, { resolve, reject, timer })
-      this.#child.stdin.write(`${JSON.stringify({ id, method, params: params ?? null, token })}\n`)
+      this.#child.stdin.write(`${JSON.stringify({ id, method, params: params ?? null, token, context })}\n`)
     })
   }
 
@@ -341,10 +348,10 @@ export class BackendRunner {
     return this.#processes.get(installationId)?.process.pid
   }
 
-  async call (installationId: string, load: () => Promise<BackendSource>, method: string, params: unknown, token: string): Promise<unknown> {
+  async call (installationId: string, load: () => Promise<BackendSource>, method: string, params: unknown, token: string, context?: BackendCallContext): Promise<unknown> {
     const process = await this.#ensure(installationId, load)
     this.#touch(installationId)
-    return process.call(method, params, token)
+    return process.call(method, params, token, context ?? { settings: {}, connections: {} })
   }
 
   /**

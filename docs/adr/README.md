@@ -55,6 +55,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0044](0044-app-package-signatures-trust-store-and-updates.md) | Proposed | cosign-compatible package signatures, a trust store of publisher keys per app ID, in-place updates with consent, managed packages |
 | [0045](0045-app-origins-embeds-and-full-page-modules.md) | Proposed | One origin per app installation; declared frame, connect, image and media origins; full-page modules |
 | [0047](0047-http-connections-for-apps.md) | Proposed | `http` connections bound to app connections; declared OpenAPI operations; `studio.connections.call`; token exchange for the signed-in user |
+| [0048](0048-app-settings-and-connection-status.md) | Proposed | Declared app settings per installation and per infrastructure (dialog, declared YAML), resolved into the context with each connection's `{ bound }`; not for secrets |
 | [0049](0049-structural-writes-and-attachments-for-apps.md) | Proposed | Structural writes and attachment uploads for apps on the editor's paths; edit mode checked on the server |
 | [0050](0050-pdfjs-for-the-file-system-view.md) | Proposed | PDF.js in the bundled FileSystem view for PDF previews, on the page, without worker or WebAssembly |
 

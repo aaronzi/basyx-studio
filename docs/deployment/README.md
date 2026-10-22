@@ -415,6 +415,53 @@ when the API needs a credential or the user's identity, when its URL differs
 per deployment or is only reachable from Studio's network, or when calls must
 be audited.
 
+## App settings
+
+Apps may declare settings: values such as the asset types they list or the
+IDs they send to a service, which differ between deployments and
+infrastructures ([ADR 0048](../adr/0048-app-settings-and-connection-status.md)).
+One signed package then serves all of them without a rebuild.
+
+- **Per installation:** *Apps* → the app's *Settings* button. The values apply
+  wherever the app runs, also on desktop workspaces.
+- **Per infrastructure:** for settings the app declares with
+  `scope: infrastructure`, in the infrastructure's dialog under *App settings*,
+  or in the declared file next to the connections:
+
+  ```yaml
+  infrastructures:
+    - key: plant-north
+      name: Plant North
+      # endpoints, security, connections as above
+      apps:
+        - app: org.example.asset-board
+          settings:
+            assetTypes: [https://example.org/types/pump, https://example.org/types/valve]
+            serialIdName: plantSerial
+  ```
+
+  An infrastructure's value wins over the installation's, which wins over the
+  app's default. Up to 50 apps per infrastructure, each once; the entry may
+  name an app that is not installed yet.
+- Studio checks the values against the installed app's manifest: undeclared
+  keys, keys of `installation` settings and values of the wrong type are
+  refused when saved, in the dialog, on import and in the declared file. The
+  managed and bundled apps are installed before the declared infrastructures
+  are applied, so a declared value of the wrong type stops the start. Values
+  for apps that are not installed are kept and checked when the app is
+  installed.
+- An update drops installation values its settings no longer accept, and
+  lists added, removed and changed settings in its dialog. Infrastructure
+  values a new version does not accept are ignored, and the dialog marks
+  them.
+- Settings are **not for secrets**: they are stored in plain text, exported
+  with the infrastructures, and sent to every browser that opens the app.
+  Keys and tokens belong in `http` connections.
+- `app.settings.update` is audited with the keys that changed; changes on an
+  infrastructure are part of `infrastructure.update`.
+- An app also sees whether each of its connections is bound on the current
+  infrastructure, so it can say "not configured" before it calls.
+
 ## Signed apps
 
 Apps are installed from ZIP packages. A package signed by a publisher the

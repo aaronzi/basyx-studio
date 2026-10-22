@@ -125,6 +125,10 @@ describe('signed installs and in-place updates', () => {
       originsRemoved: [],
       operationsAdded: [],
       operationsRemoved: [],
+      settingsAdded: [],
+      settingsRemoved: [],
+      settingsChanged: [],
+      valuesDropped: [],
       backendAdded: false,
     })
 

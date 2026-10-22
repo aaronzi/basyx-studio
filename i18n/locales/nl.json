@@ -489,6 +489,16 @@
       },
       "required": "Verplicht",
       "httpUrl": "Voer een http(s)-URL in."
+    },
+    "appSettings": {
+      "title": "App-instellingen",
+      "help": "Waarden van de geïnstalleerde apps op deze infrastructuur. Ze gaan voor de waarden op de pagina Apps; een leeg veld gebruikt die waarde of de standaardwaarde van de app. Niet voor geheimen: sleutels en tokens horen bij verbindingen.",
+      "count": "{count} waarde | {count} waarden",
+      "noApps": "Geen geïnstalleerde app heeft instellingen per infrastructuur.",
+      "notInstalled": "Niet geïnstalleerd; waarden blijven behouden: {list}",
+      "remove": "Waarden verwijderen",
+      "obsoleteDropped": "De geïnstalleerde versies stellen deze waarden niet meer per infrastructuur in; ze worden bij het opslaan verwijderd: {list}",
+      "obsoleteIgnored": "De geïnstalleerde versies stellen deze waarden niet meer per infrastructuur in; Studio negeert ze: {list}"
     }
   },
   "apps": {
@@ -582,7 +592,45 @@
     },
     "remoteCode": "Mag code uitvoeren die ze van deze origins laadt (WebAssembly of workers)",
     "egressNote": "Je browser maakt rechtstreeks contact met deze origins. Ze zien je adres en wat je bekijkt, en de app kan ze gegevens sturen die ze leest, in verzoeken en in URL’s.",
-    "framesOpaque": "Deze Studio levert alle apps vanaf één origin. Ingesloten pagina’s draaien daar zonder cookies of opslag, en veel blijven leeg."
+    "framesOpaque": "Deze Studio levert alle apps vanaf één origin. Ingesloten pagina’s draaien daar zonder cookies of opslag, en veel blijven leeg.",
+    "settings": {
+      "edit": "Instellingen",
+      "title": "Instellingen van {name}",
+      "help": "Waarden die hier zijn ingesteld, gelden overal waar de app draait, tenzij een infrastructuur een eigen waarde instelt voor een instelling die dat toestaat. Instellingen zijn niet voor geheimen: de app en de browsers van zijn gebruikers zien ze.",
+      "save": "Opslaan",
+      "list": "Instellingen: {list}",
+      "missing": "Instellingen ontbreken",
+      "missingHint": "Verplicht zonder waarde: {list}. Infrastructuren kunnen enkele ervan instellen.",
+      "required": "Verplicht",
+      "perInfrastructure": "Infrastructuren kunnen een eigen waarde instellen",
+      "fallback": "Zonder waarde: {value}",
+      "replaces": "Vervangt: {value}",
+      "none": "geen",
+      "empty": "leeg",
+      "yes": "Ja",
+      "no": "Nee",
+      "declared": "Instellingen",
+      "changed": "Gewijzigd",
+      "removed": "Verwijderde instellingen: {list}",
+      "dropped": "Vervallen waarden, omdat de nieuwe versie ze niet accepteert: {list}",
+      "types": {
+        "string": "Tekst",
+        "number": "Getal",
+        "boolean": "Ja of nee",
+        "stringList": "Lijst van teksten"
+      },
+      "scopes": {
+        "installation": "per installatie",
+        "infrastructure": "per installatie en infrastructuur"
+      },
+      "invalid": {
+        "text": "Voer hoogstens 2.000 tekens in",
+        "number": "Voer een getal in",
+        "boolean": "Kies ja of nee",
+        "list": "Voer hoogstens 100 items van hoogstens 2.000 tekens in",
+        "enum": "Toegestaan: {values}"
+      }
+    }
   },
   "nav": {
     "targets": "AAS-doelen",

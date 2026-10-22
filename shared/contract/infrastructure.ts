@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { connectionInputSchema, connectionSchema } from './connections'
 import { scopesSchema, secretInputSchema, secretRefSchema, secretSummarySchema } from './credentials'
+import { infrastructureAppSettingsSchema, maxInfrastructureApps } from './settings'
 
 export { type SecretInput, secretInputSchema, type SecretSummary, secretSummarySchema } from './credentials'
 
@@ -214,7 +215,16 @@ export const infrastructureInputSchema = z.object({
   allowPrivateNetwork: z.boolean().default(false),
   /** Third-party services that content of this infrastructure refers to (ADR 0040), or that bound apps call (ADR 0047). */
   connections: z.array(connectionInputSchema).max(20).default([]),
+  /** Values of the `infrastructure` settings of apps, by app ID (ADR 0048); kept for apps that are not installed. */
+  apps: z.array(infrastructureAppSettingsSchema).max(maxInfrastructureApps).default([]),
 }).superRefine((input, context) => {
+  const apps = new Set<string>()
+  for (const [index, entry] of input.apps.entries()) {
+    if (apps.has(entry.app)) {
+      context.addIssue({ code: 'custom', path: ['apps', index, 'app'], message: `${entry.app} has settings in another entry of this infrastructure already` })
+    }
+    apps.add(entry.app)
+  }
   const keys = new Set<string>()
   const bindings = new Set<string>()
   for (const [index, connection] of input.connections.entries()) {
@@ -307,6 +317,7 @@ export const infrastructureSchema = z.object({
   clientCertificate: clientCertificateSummarySchema.nullable(),
   allowPrivateNetwork: z.boolean(),
   connections: z.array(connectionSchema),
+  apps: z.array(infrastructureAppSettingsSchema),
   /** Declared in the deployment's infrastructure file: read-only in Studio. */
   managed: z.boolean(),
   revision: z.number().int(),

@@ -47,6 +47,7 @@ export async function studioApi (page: Page) {
   return {
     get: (path: string) => request.get(`/api/studio/v1${path}`),
     post: (path: string, data: unknown) => request.post(`/api/studio/v1${path}`, { headers, data }),
+    put: (path: string, data: unknown) => request.put(`/api/studio/v1${path}`, { headers, data }),
     delete: (path: string) => request.delete(`/api/studio/v1${path}`, { headers }),
     /** Uploads an app package (developer mode). */
     install: (bytes: Uint8Array) => request.post('/api/studio/v1/app-installations', {

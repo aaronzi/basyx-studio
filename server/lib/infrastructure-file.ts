@@ -22,6 +22,9 @@ import { exportConnection } from './connections/secrets'
 //           type: influxdb2
 //           url: http://influxdb:8086
 //           auth: { scheme: token, token: { ref: env:INFLUX_TOKEN } }
+//       apps:
+//         - app: org.example.asset-board
+//           settings: { assetTypes: [https://example.org/types/pump] }
 
 export type ParsedInfrastructureInput = z.output<typeof infrastructureInputSchema>
 
@@ -225,6 +228,8 @@ export function exportInfrastructureFile (records: InfrastructureRecord[]): stri
       ...(clientCertificate ? { clientCertificate } : {}),
       allowPrivateNetwork: record.allowPrivateNetwork,
       ...(connections.length > 0 ? { connections } : {}),
+      // Settings values are not secrets (ADR 0048): they go with the entry.
+      ...(record.appSettings.length > 0 ? { apps: record.appSettings } : {}),
     }
   })
 

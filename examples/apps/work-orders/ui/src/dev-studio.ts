@@ -13,6 +13,7 @@ export function createDevStudio () {
 
   return createTestStudio({
     permissions: ['studio.aas.read', 'studio.ui.notifications', 'studio.connections'],
+    context: { connections: { orders: { bound: true } } },
     handlers: {
       'studio.aas.listShells': () => ({
         items: [{ id: 'urn:example:aas:pump-1', idShort: 'Pump1', displayName: [{ language: 'en', text: 'Pump 1' }], assetKind: 'Instance', globalAssetId: 'urn:example:asset:pump-1' }],

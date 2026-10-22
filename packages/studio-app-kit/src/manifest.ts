@@ -1,8 +1,8 @@
 import type { ApiIndex, OperationValidators } from './openapi.ts'
-import type { AppManifest, SandboxOriginKind } from '@basyx/studio-sdk/protocol'
+import type { AppManifest, AppSetting, SandboxOriginKind } from '@basyx/studio-sdk/protocol'
 import type { ErrorObject, ValidateFunction } from 'ajv/dist/2020.js'
 import manifestSchema from '@basyx/studio-sdk/app-manifest.schema.json' with { type: 'json' }
-import { connectionIdRule, sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/protocol'
+import { appSettingLimits, connectionIdRule, sandboxOriginKinds, studioAppApiVersion } from '@basyx/studio-sdk/protocol'
 import addFormats from 'ajv-formats'
 import Ajv2020 from 'ajv/dist/2020.js'
 import semver from 'semver'
@@ -184,6 +184,7 @@ export function checkManifestConsistency (manifest: AppManifest, files: Readonly
   } else if (connectionIds.size === 0 && hasConnectionsPermission) {
     findings.push({ path: `${manifestFileName}#permissions`, message: 'requests studio.connections, but the app declares no connections' })
   }
+  findings.push(...checkSettingDeclarations(manifest))
   for (const kind of sandboxOriginKinds) {
     for (const [index, origin] of (manifest.sandbox?.[kind] ?? []).entries()) {
       const port = Number(/:(\d+)$/.exec(origin)?.[1] ?? 0)
@@ -212,7 +213,104 @@ function usedFeatures (manifest: AppManifest): { path: string, since: string }[]
   if (manifest.connections !== undefined) {
     features.push({ path: 'connections', since: '0.1.6' })
   }
+  if (manifest.settings !== undefined) {
+    features.push({ path: 'settings', since: '0.1.9' })
+  }
   return features
+}
+
+/** Unique keys, `enum` only where it applies, and defaults the setting accepts (ADR 0048). */
+function checkSettingDeclarations (manifest: AppManifest): Finding[] {
+  const findings: Finding[] = []
+  const keys = new Set<string>()
+  for (const [index, setting] of (manifest.settings ?? []).entries()) {
+    const at = `${manifestFileName}#settings[${index}]`
+    if (keys.has(setting.key)) {
+      findings.push({ path: `${at}.key`, message: `duplicates the setting key ${JSON.stringify(setting.key)}` })
+    }
+    keys.add(setting.key)
+    if (setting.enum !== undefined && setting.type !== 'string' && setting.type !== 'stringList') {
+      findings.push({ path: `${at}.enum`, message: `applies to string and stringList settings only, not to ${setting.type}` })
+    }
+    if (setting.default !== undefined) {
+      const problem = checkSettingValue(setting, setting.default)
+      if (problem) {
+        findings.push({ path: `${at}.default`, message: problem })
+      }
+    }
+  }
+  return findings
+}
+
+/** Where a setting's values are set: per installation, or also per infrastructure. */
+export function settingScope (setting: Pick<AppSetting, 'scope'>): 'installation' | 'infrastructure' {
+  return setting.scope ?? 'installation'
+}
+
+function isSettingString (value: unknown): value is string {
+  return typeof value === 'string' && value.length <= appSettingLimits.stringLength
+}
+
+/**
+ * Why a setting does not accept a value (ADR 0048), or `null` when it does.
+ * Studio checks every value it stores with this, and `studio-app pack` the
+ * defaults.
+ */
+export function checkSettingValue (setting: Pick<AppSetting, 'type' | 'enum'>, value: unknown): string | null {
+  const allowed = setting.enum
+  const inEnum = (item: string) => !allowed || allowed.includes(item)
+  const oneOf = () => `must be one of ${allowed!.map(item => JSON.stringify(item)).join(', ')}`
+  switch (setting.type) {
+    case 'string': {
+      if (!isSettingString(value)) {
+        return `must be a string of at most ${appSettingLimits.stringLength} characters`
+      }
+      return inEnum(value) ? null : oneOf()
+    }
+    case 'number': {
+      return typeof value === 'number' && Number.isFinite(value) ? null : 'must be a finite number'
+    }
+    case 'boolean': {
+      return typeof value === 'boolean' ? null : 'must be true or false'
+    }
+    case 'stringList': {
+      if (!Array.isArray(value) || value.length > appSettingLimits.listItems || !value.every(item => isSettingString(item))) {
+        return `must be a list of at most ${appSettingLimits.listItems} strings of at most ${appSettingLimits.stringLength} characters`
+      }
+      return value.every(item => inEnum(item)) ? null : `items ${oneOf()}`
+    }
+    default: {
+      return 'has a type this Studio does not know'
+    }
+  }
+}
+
+/**
+ * Checks values for an app's settings: each key must be a declared setting
+ * that accepts the value, and, set on an infrastructure, one of scope
+ * `infrastructure`. `path` prefixes the findings, e.g. `values` or
+ * `apps.0.settings`.
+ */
+export function checkSettingValues (manifest: Pick<AppManifest, 'id' | 'settings'>, values: Readonly<Record<string, unknown>>, options: { path: string, scope: 'installation' | 'infrastructure' }): Finding[] {
+  const declared = new Map((manifest.settings ?? []).map(setting => [setting.key, setting]))
+  const findings: Finding[] = []
+  for (const [key, value] of Object.entries(values)) {
+    const setting = declared.get(key)
+    const path = `${options.path}.${key}`
+    if (!setting) {
+      findings.push({ path, message: `is not a setting of ${manifest.id}` })
+      continue
+    }
+    if (options.scope === 'infrastructure' && settingScope(setting) !== 'infrastructure') {
+      findings.push({ path, message: 'is set per installation, on the Apps page, not per infrastructure' })
+      continue
+    }
+    const problem = checkSettingValue(setting, value)
+    if (problem) {
+      findings.push({ path, message: problem })
+    }
+  }
+  return findings
 }
 
 /** The indexed and compiled OpenAPI document of an app connection (ADR 0047). */

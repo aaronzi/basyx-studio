@@ -489,6 +489,16 @@
       },
       "required": "Obligatorio",
       "httpUrl": "Introduzca una URL http(s)."
+    },
+    "appSettings": {
+      "title": "Ajustes de aplicaciones",
+      "help": "Valores de las aplicaciones instaladas en esta infraestructura. Prevalecen sobre los valores de la página Aplicaciones; un campo vacío usa ese valor o el predeterminado de la aplicación. No son para secretos: las claves y los tokens van en las conexiones.",
+      "count": "{count} valor | {count} valores",
+      "noApps": "Ninguna aplicación instalada tiene ajustes por infraestructura.",
+      "notInstalled": "No instalada; se conservan los valores: {list}",
+      "remove": "Eliminar los valores",
+      "obsoleteDropped": "Las versiones instaladas ya no definen estos valores por infraestructura, así que se eliminan al guardar: {list}",
+      "obsoleteIgnored": "Las versiones instaladas ya no definen estos valores por infraestructura, así que Studio los ignora: {list}"
     }
   },
   "apps": {
@@ -582,7 +592,45 @@
     },
     "remoteCode": "Puede ejecutar código que carga desde estos orígenes (WebAssembly o workers)",
     "egressNote": "Tu navegador contacta directamente con estos orígenes. Conocen tu dirección y lo que consultas, y la app puede enviarles datos que lee, en solicitudes y en URL.",
-    "framesOpaque": "Este Studio sirve todas las apps desde un mismo origen. Allí, las páginas insertadas se ejecutan sin cookies ni almacenamiento, y muchas quedan en blanco."
+    "framesOpaque": "Este Studio sirve todas las apps desde un mismo origen. Allí, las páginas insertadas se ejecutan sin cookies ni almacenamiento, y muchas quedan en blanco.",
+    "settings": {
+      "edit": "Ajustes",
+      "title": "Ajustes de {name}",
+      "help": "Los valores definidos aquí se aplican dondequiera que se ejecute la aplicación, salvo que una infraestructura defina el suyo para un ajuste que lo permita. Los ajustes no son para secretos: la aplicación y los navegadores de sus usuarios los ven.",
+      "save": "Guardar",
+      "list": "Ajustes: {list}",
+      "missing": "Faltan ajustes",
+      "missingHint": "Obligatorios sin valor: {list}. Las infraestructuras pueden definir algunos.",
+      "required": "Obligatorio",
+      "perInfrastructure": "Las infraestructuras pueden definir su propio valor",
+      "fallback": "Sin valor: {value}",
+      "replaces": "Sustituye: {value}",
+      "none": "ninguno",
+      "empty": "vacío",
+      "yes": "Sí",
+      "no": "No",
+      "declared": "Ajustes",
+      "changed": "Modificado",
+      "removed": "Ajustes eliminados: {list}",
+      "dropped": "Valores descartados porque la nueva versión no los acepta: {list}",
+      "types": {
+        "string": "Texto",
+        "number": "Número",
+        "boolean": "Sí o no",
+        "stringList": "Lista de textos"
+      },
+      "scopes": {
+        "installation": "por instalación",
+        "infrastructure": "por instalación e infraestructura"
+      },
+      "invalid": {
+        "text": "Introduzca como máximo 2000 caracteres",
+        "number": "Introduzca un número",
+        "boolean": "Elija sí o no",
+        "list": "Introduzca como máximo 100 entradas de como máximo 2000 caracteres",
+        "enum": "Permitidos: {values}"
+      }
+    }
   },
   "nav": {
     "targets": "Destinos AAS",

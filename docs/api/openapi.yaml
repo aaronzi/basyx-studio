@@ -2699,6 +2699,50 @@ paths:
         '412': { $ref: '#/components/responses/PreconditionFailed' }
         default: { $ref: '#/components/responses/Problem' }
 
+  /app-installations/{installationId}/settings:
+    parameters:
+      - $ref: '#/components/parameters/InstallationId'
+    put:
+      tags: [Apps]
+      operationId: putAppInstallationSettings
+      summary: Replace the installation's values of the app's declared settings
+      description: Every key must be a setting of the installed manifest that accepts its value; others are refused with `invalid_request` and a violation per key (`values.pageSize`). Audited as `app.settings.update` with the changed keys, never the values (ADR 0048). Administrators only.
+      x-requirements: [APP-025]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AppSettingsUpdate' }
+      responses:
+        '200':
+          description: The installation with its values
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AppInstallation' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /app-installations/{installationId}/context:
+    get:
+      tags: [Apps]
+      operationId: getAppTargetContext
+      summary: The settings and connection status an app frame gets on a target
+      description: Studio's page reads this before it loads a frame and adds it to the frame's context (`settings`, `connections`). With `targetId` of an infrastructure, only users who may open it are answered; workspaces and frames without a target get installation values and defaults, and no bindings (ADR 0048).
+      x-requirements: [APP-025, CON-002, CON-003]
+      parameters:
+        - $ref: '#/components/parameters/InstallationId'
+        - name: targetId
+          in: query
+          schema: { $ref: '#/components/schemas/TargetId' }
+      responses:
+        '200':
+          description: Resolved settings and connection status
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AppTargetContext' }
+        default: { $ref: '#/components/responses/Problem' }
+
   /app-installations/{installationId}/compatibility:
     get:
       tags: [Apps]
@@ -3878,6 +3922,12 @@ components:
           default: []
           description: Third-party services that content of this infrastructure refers to (ADR 0040), or that bound apps call (`http`, ADR 0047). Keys are unique; `delegatedUser` needs `delegated_user` security; an app connection is bound at most once per infrastructure.
           items: { $ref: '#/components/schemas/ConnectionInput' }
+        apps:
+          type: array
+          maxItems: 50
+          default: []
+          description: Values of apps' `infrastructure` settings on this infrastructure, by app ID, each app at most once (ADR 0048). For an installed app, every key must be such a setting and accept its value; entries for apps that are not installed are kept.
+          items: { $ref: '#/components/schemas/InfrastructureAppSettings' }
     ConnectionAuthInput:
       description: |
         How Studio authenticates at the service (CON-007). Each connection
@@ -3967,6 +4017,60 @@ components:
           default: []
           description: '`http` only: the app connections that may call this service (ADR 0047), by app ID and the `id` of a connection in its manifest.'
           items: { $ref: '#/components/schemas/ConnectionBinding' }
+    AppSettingValue:
+      description: A setting's value (ADR 0048). Not for secrets.
+      oneOf:
+        - { type: string, maxLength: 2000 }
+        - { type: number }
+        - { type: boolean }
+        - { type: array, maxItems: 100, items: { type: string, maxLength: 2000 } }
+    AppSettingValues:
+      type: object
+      maxProperties: 32
+      propertyNames: { pattern: '^[a-z][A-Za-z0-9]{0,63}$' }
+      additionalProperties: { $ref: '#/components/schemas/AppSettingValue' }
+    InfrastructureAppSettings:
+      type: object
+      additionalProperties: false
+      required: [app]
+      properties:
+        app: { $ref: '#/components/schemas/AppId' }
+        settings: { $ref: '#/components/schemas/AppSettingValues' }
+    AppSettingsUpdate:
+      type: object
+      additionalProperties: false
+      required: [values]
+      properties:
+        values:
+          type: object
+          maxProperties: 32
+          description: The installation's values; `null` or a missing key leaves a setting without one.
+          additionalProperties:
+            oneOf:
+              - { $ref: '#/components/schemas/AppSettingValue' }
+              - { type: 'null' }
+    AppTargetContext:
+      type: object
+      additionalProperties: false
+      required: [settings, connections]
+      description: What Studio's page adds to an app frame's context on a target (ADR 0048).
+      properties:
+        settings:
+          type: object
+          description: Every declared setting with its value for the target (the infrastructure's, else the installation's, else the default), or `null`.
+          additionalProperties:
+            oneOf:
+              - { $ref: '#/components/schemas/AppSettingValue' }
+              - { type: 'null' }
+        connections:
+          type: object
+          description: Per declared connection, whether an `http` connection of the target's infrastructure binds it (ADR 0047). Nothing else of the connection.
+          additionalProperties:
+            type: object
+            additionalProperties: false
+            required: [bound]
+            properties:
+              bound: { type: boolean }
     ConnectionBinding:
       type: object
       additionalProperties: false
@@ -4020,7 +4124,7 @@ components:
     Infrastructure:
       type: object
       additionalProperties: false
-      required: [id, name, description, template, endpoints, listSource, sync, serviceProfiles, probedAt, announced, security, clientCertificate, allowPrivateNetwork, connections, managed, revision, createdAt, updatedAt]
+      required: [id, name, description, template, endpoints, listSource, sync, serviceProfiles, probedAt, announced, security, clientCertificate, allowPrivateNetwork, connections, apps, managed, revision, createdAt, updatedAt]
       properties:
         id: { $ref: '#/components/schemas/TargetId' }
         name: { type: string }
@@ -4057,6 +4161,9 @@ components:
         connections:
           type: array
           items: { $ref: '#/components/schemas/Connection' }
+        apps:
+          type: array
+          items: { $ref: '#/components/schemas/InfrastructureAppSettings' }
         managed:
           type: boolean
           description: Declared in the deployment's infrastructure file; read-only in Studio (ADR 0037).

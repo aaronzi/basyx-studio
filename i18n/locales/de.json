@@ -577,6 +577,16 @@
       },
       "required": "Erforderlich",
       "httpUrl": "Geben Sie eine http(s)-URL ein."
+    },
+    "appSettings": {
+      "title": "App-Einstellungen",
+      "help": "Werte der installierten Apps auf dieser Infrastruktur. Sie gehen den Werten der Seite Apps vor; ein leeres Feld verwendet diesen Wert oder den Standard der App. Nicht für Geheimnisse: Schlüssel und Tokens gehören in Verbindungen.",
+      "count": "{count} Wert | {count} Werte",
+      "noApps": "Keine installierte App hat Einstellungen pro Infrastruktur.",
+      "notInstalled": "Nicht installiert; Werte bleiben erhalten: {list}",
+      "remove": "Werte entfernen",
+      "obsoleteDropped": "Die installierten Versionen setzen diese Werte nicht mehr pro Infrastruktur; sie werden beim Speichern entfernt: {list}",
+      "obsoleteIgnored": "Die installierten Versionen setzen diese Werte nicht mehr pro Infrastruktur; Studio ignoriert sie: {list}"
     }
   },
   "apps": {
@@ -673,7 +683,45 @@
     "operationsRemoved": "Ruft nicht mehr auf: {list}",
     "update": "Aktualisieren",
     "confirmInstall": "Installieren",
-    "updated": "{name} auf {version} aktualisiert."
+    "updated": "{name} auf {version} aktualisiert.",
+    "settings": {
+      "edit": "Einstellungen",
+      "title": "Einstellungen von {name}",
+      "help": "Werte, die hier gesetzt werden, gelten überall, wo die App läuft, außer eine Infrastruktur setzt einen eigenen Wert für eine Einstellung, die das erlaubt. Einstellungen sind nicht für Geheimnisse: Die App und die Browser ihrer Benutzer sehen sie.",
+      "save": "Speichern",
+      "list": "Einstellungen: {list}",
+      "missing": "Einstellungen fehlen",
+      "missingHint": "Erforderlich, ohne Wert: {list}. Infrastrukturen können einige davon setzen.",
+      "required": "Erforderlich",
+      "perInfrastructure": "Infrastrukturen können einen eigenen Wert setzen",
+      "fallback": "Ohne Wert: {value}",
+      "replaces": "Ersetzt: {value}",
+      "none": "keiner",
+      "empty": "leer",
+      "yes": "Ja",
+      "no": "Nein",
+      "declared": "Einstellungen",
+      "changed": "Geändert",
+      "removed": "Entfernte Einstellungen: {list}",
+      "dropped": "Verworfene Werte, weil die neue Version sie nicht annimmt: {list}",
+      "types": {
+        "string": "Text",
+        "number": "Zahl",
+        "boolean": "Ja oder nein",
+        "stringList": "Liste von Texten"
+      },
+      "scopes": {
+        "installation": "pro Installation",
+        "infrastructure": "pro Installation und Infrastruktur"
+      },
+      "invalid": {
+        "text": "Höchstens 2.000 Zeichen eingeben",
+        "number": "Eine Zahl eingeben",
+        "boolean": "Ja oder nein wählen",
+        "list": "Höchstens 100 Einträge mit je höchstens 2.000 Zeichen eingeben",
+        "enum": "Erlaubt: {values}"
+      }
+    }
   },
   "nav": {
     "targets": "AAS-Ziele",

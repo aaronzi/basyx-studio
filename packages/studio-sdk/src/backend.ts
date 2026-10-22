@@ -10,7 +10,7 @@
 // The process can reach nothing but Studio's capability endpoint. Each call
 // carries a short-lived capability token for the calling user and target.
 
-import type { Methods } from './protocol.ts'
+import type { AppSettingValue, Methods } from './protocol.ts'
 
 /**
  * Capability methods a backend may call: AAS access on the caller's target,
@@ -25,6 +25,10 @@ export interface BackendStudio {
 
 export interface BackendContext {
   studio: BackendStudio
+  /** The app's settings for the call's target, as in the UI's `context.settings` (Studio app API 0.1.9). */
+  settings: Record<string, AppSettingValue | null>
+  /** Whether the call's target binds each declared connection, as in the UI's `context.connections` (Studio app API 0.1.9). */
+  connections: Record<string, { bound: boolean }>
 }
 
 export type BackendHandler<P = unknown, R = unknown> = (params: P, context: BackendContext) => R | Promise<R>

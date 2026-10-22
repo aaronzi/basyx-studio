@@ -156,6 +156,15 @@
                   />
 
                   <v-chip
+                    v-if="missingSettings(item).length > 0"
+                    v-tooltip="t('apps.settings.missingHint', { list: missingSettings(item).map(setting => label(setting.title)).join(', ') })"
+                    color="warning"
+                    prepend-icon="mdi-tune-variant"
+                    size="x-small"
+                    :text="t('apps.settings.missing')"
+                  />
+
+                  <v-chip
                     v-if="item.backend"
                     v-tooltip="t('apps.backendHint')"
                     prepend-icon="mdi-server"
@@ -187,6 +196,11 @@
                 {{ t('apps.connections', { list: item.connections.map(connection => `${label(connection.title)} (${t('apps.operations', connection.operations.length)})`).join(', ') }) }}
               </v-list-item-subtitle>
 
+              <!-- Values an administrator sets here or per infrastructure (ADR 0048). -->
+              <v-list-item-subtitle v-if="item.settings.length > 0">
+                {{ t('apps.settings.list', { list: item.settings.map(setting => label(setting.title)).join(', ') }) }}
+              </v-list-item-subtitle>
+
               <!-- Third-party origins with the data-egress note (ADR 0045). -->
               <v-list-item-subtitle v-if="originsOf(item).length > 0" v-tooltip="t('apps.egressNote')">
                 {{ originKinds.filter(kind => item.sandbox[kind].length > 0).map(kind => `${t(`apps.originKind.${kind}`)} ${item.sandbox[kind].join(', ')}`).join(' · ') }}
@@ -196,8 +210,17 @@
                 <span class="text-body-small text-medium-emphasis text-no-wrap">{{ item.version }}</span>
               </template>
 
-              <template v-if="!item.bundled && !item.managed && appChanges" #actions>
+              <template #actions>
                 <v-btn
+                  v-if="item.settings.length > 0"
+                  v-tooltip="t('apps.settings.edit')"
+                  :aria-label="t('apps.settings.edit')"
+                  icon="mdi-tune-variant"
+                  @click="editSettings(item)"
+                />
+
+                <v-btn
+                  v-if="!item.bundled && !item.managed && appChanges"
                   v-tooltip="t('apps.uninstall')"
                   :aria-label="t('apps.uninstall')"
                   icon="mdi-delete-outline"
@@ -337,6 +360,31 @@
           {{ t('apps.operationsRemoved', { list: inspection.update.operationsRemoved.map(entry => entry.operationId).join(', ') }) }}
         </p>
 
+        <!-- Settings grant nothing: they are shown, with what an update changes (ADR 0048). -->
+        <v-list v-if="inspection.settings.length > 0">
+          <v-list-subheader>{{ t('apps.settings.declared') }}</v-list-subheader>
+
+          <v-list-item
+            v-for="setting in inspection.settings"
+            :key="`setting:${setting.key}`"
+            prepend-icon="mdi-tune-variant"
+            :subtitle="`${setting.key} · ${t(`apps.settings.types.${setting.type}`)} · ${t(`apps.settings.scopes.${setting.scope}`)}`"
+            :title="label(setting.title)"
+          >
+            <template v-if="inspection.update?.settingsAdded.includes(setting.key) || inspection.update?.settingsChanged.includes(setting.key)" #append>
+              <v-chip size="x-small" :text="inspection.update?.settingsAdded.includes(setting.key) ? t('apps.new') : t('apps.settings.changed')" />
+            </template>
+          </v-list-item>
+        </v-list>
+
+        <p v-if="inspection.update && inspection.update.settingsRemoved.length > 0" class="text-body-medium text-medium-emphasis mt-4">
+          {{ t('apps.settings.removed', { list: inspection.update.settingsRemoved.join(', ') }) }}
+        </p>
+
+        <p v-if="inspection.update && inspection.update.valuesDropped.length > 0" class="text-body-medium text-medium-emphasis mt-4">
+          {{ t('apps.settings.dropped', { list: inspection.update.valuesDropped.join(', ') }) }}
+        </p>
+
         <v-alert
           v-if="inspection.connections.length > 0"
           class="mt-4"
@@ -365,6 +413,34 @@
       </DialogCard>
     </v-dialog>
 
+    <v-dialog max-width="560" :model-value="editing !== null" @update:model-value="editing = null">
+      <DialogCard v-if="editing" :title="t('apps.settings.title', { name: label(editing.title) })">
+        <v-form ref="settingsForm" class="d-flex flex-column ga-3" @submit.prevent>
+          <div class="text-body-small text-medium-emphasis">{{ t('apps.settings.help') }}</div>
+
+          <AppSettingField
+            v-for="setting in editing.settings"
+            :key="setting.key"
+            v-model="settingsValues[setting.key]"
+            :fallback="setting.default"
+            level="installation"
+            :setting="setting"
+          />
+
+          <ProblemAlert v-if="settingsError" :error="settingsError" />
+
+          <ul v-if="settingsViolations.length > 0" class="text-body-small my-0">
+            <li v-for="violation in settingsViolations" :key="violation.path">{{ violation.path }}: {{ violation.message }}</li>
+          </ul>
+        </v-form>
+
+        <template #actions>
+          <v-btn :text="t('apps.cancel')" @click="editing = null" />
+          <v-btn-primary :loading="savingSettings" :text="t('apps.settings.save')" @click="saveSettings" />
+        </template>
+      </DialogCard>
+    </v-dialog>
+
     <v-dialog max-width="480" :model-value="confirmUninstall !== null" @update:model-value="confirmUninstall = null">
       <DialogCard :title="t('apps.uninstall')">
         {{ t('apps.uninstallConfirm', { name: confirmUninstall ? label(confirmUninstall.title) : '' }) }}
@@ -379,10 +455,12 @@
 </template>
 
 <script lang="ts" setup>
-  import type { AppInstallation, AppInstallationList, AppPackageInspection, AppPermission, SandboxOriginKind } from '#shared/contract'
+  import type { AppInstallation, AppInstallationList, AppPackageInspection, AppPermission, AppSettingSummary, SandboxOriginKind } from '#shared/contract'
+  import type { SettingFormValues } from '~/utils/app-settings'
   import type { FilterGroup } from '~/utils/records'
   import { useQuery } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
+  import { hasSettingValue, settingFormOf, settingValuesOf } from '~/utils/app-settings'
   import { filterRecords } from '~/utils/records'
 
   const { t } = useI18n()
@@ -486,8 +564,49 @@
   const findings = computed(() => installError.value instanceof StudioApiError ? (installError.value.problem?.violations ?? []) : [])
 
   async function refresh () {
-    // Open views and modules of every page depend on the installed apps.
-    await invalidate(['admin', 'apps'], ['app-contributions'])
+    // Open views and modules of every page depend on the installed apps, and on their settings.
+    await invalidate(['admin', 'apps'], ['app-contributions'], ['app-context'])
+  }
+
+  /**
+   * Required settings without a value that applies everywhere: neither the
+   * installation's nor a default. Infrastructures may still set
+   * `infrastructure` ones (ADR 0048).
+   */
+  function missingSettings (item: AppInstallation): AppSettingSummary[] {
+    return item.settings.filter(setting => setting.required && !hasSettingValue(item.settingValues[setting.key]) && !hasSettingValue(setting.default))
+  }
+
+  const editing = ref<AppInstallation | null>(null)
+  const settingsValues = ref<SettingFormValues>({})
+  const settingsForm = ref<{ validate: () => Promise<{ valid: boolean }> } | null>(null)
+  const savingSettings = ref(false)
+  const settingsError = ref<unknown>(null)
+  const settingsViolations = computed(() => settingsError.value instanceof StudioApiError ? (settingsError.value.problem?.violations ?? []) : [])
+
+  function editSettings (item: AppInstallation) {
+    settingsError.value = null
+    settingsValues.value = settingFormOf(item.settings, item.settingValues)
+    editing.value = item
+  }
+
+  /** Saves the installation's values; Studio refuses values the settings do not accept. */
+  async function saveSettings () {
+    const item = editing.value
+    if (!item || !(await settingsForm.value?.validate())?.valid) {
+      return
+    }
+    savingSettings.value = true
+    settingsError.value = null
+    try {
+      await api(`/app-installations/${item.id}/settings`, { method: 'PUT', body: { values: settingValuesOf(settingsValues.value) } })
+      editing.value = null
+      await refresh()
+    } catch (error) {
+      settingsError.value = error
+    } finally {
+      savingSettings.value = false
+    }
   }
 
   /** The `.sig` file's content for the header: a base64 signature, or a Sigstore bundle on one line. */

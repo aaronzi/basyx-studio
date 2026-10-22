@@ -489,6 +489,16 @@
       },
       "required": "Obligatoire",
       "httpUrl": "Saisissez une URL http(s)."
+    },
+    "appSettings": {
+      "title": "Paramètres des applications",
+      "help": "Valeurs des applications installées sur cette infrastructure. Elles l’emportent sur les valeurs de la page Applications ; un champ vide utilise cette valeur ou la valeur par défaut de l’application. Pas pour les secrets : les clés et les jetons vont dans les connexions.",
+      "count": "{count} valeur | {count} valeurs",
+      "noApps": "Aucune application installée n’a de paramètres par infrastructure.",
+      "notInstalled": "Non installée ; valeurs conservées : {list}",
+      "remove": "Supprimer les valeurs",
+      "obsoleteDropped": "Les versions installées ne définissent plus ces valeurs par infrastructure ; elles sont supprimées à l’enregistrement : {list}",
+      "obsoleteIgnored": "Les versions installées ne définissent plus ces valeurs par infrastructure ; Studio les ignore : {list}"
     }
   },
   "apps": {
@@ -582,7 +592,45 @@
     },
     "remoteCode": "Peut exécuter du code qu’elle charge depuis ces origines (WebAssembly ou workers)",
     "egressNote": "Votre navigateur contacte directement ces origines. Elles apprennent votre adresse et ce que vous consultez, et l’app peut leur envoyer des données qu’elle lit, dans des requêtes et dans des URL.",
-    "framesOpaque": "Ce Studio sert toutes les apps depuis une seule origine. Les pages intégrées y fonctionnent sans cookies ni stockage, et beaucoup restent vides."
+    "framesOpaque": "Ce Studio sert toutes les apps depuis une seule origine. Les pages intégrées y fonctionnent sans cookies ni stockage, et beaucoup restent vides.",
+    "settings": {
+      "edit": "Paramètres",
+      "title": "Paramètres de {name}",
+      "help": "Les valeurs définies ici s’appliquent partout où l’application s’exécute, sauf si une infrastructure définit la sienne pour un paramètre qui le permet. Les paramètres ne sont pas faits pour les secrets : l’application et les navigateurs de ses utilisateurs les voient.",
+      "save": "Enregistrer",
+      "list": "Paramètres : {list}",
+      "missing": "Paramètres manquants",
+      "missingHint": "Obligatoires sans valeur : {list}. Les infrastructures peuvent en définir certains.",
+      "required": "Obligatoire",
+      "perInfrastructure": "Les infrastructures peuvent définir leur propre valeur",
+      "fallback": "Sans valeur : {value}",
+      "replaces": "Remplace : {value}",
+      "none": "aucune",
+      "empty": "vide",
+      "yes": "Oui",
+      "no": "Non",
+      "declared": "Paramètres",
+      "changed": "Modifié",
+      "removed": "Paramètres supprimés : {list}",
+      "dropped": "Valeurs abandonnées, car la nouvelle version ne les accepte pas : {list}",
+      "types": {
+        "string": "Texte",
+        "number": "Nombre",
+        "boolean": "Oui ou non",
+        "stringList": "Liste de textes"
+      },
+      "scopes": {
+        "installation": "par installation",
+        "infrastructure": "par installation et infrastructure"
+      },
+      "invalid": {
+        "text": "Saisissez au plus 2 000 caractères",
+        "number": "Saisissez un nombre",
+        "boolean": "Choisissez oui ou non",
+        "list": "Saisissez au plus 100 entrées d’au plus 2 000 caractères",
+        "enum": "Autorisées : {values}"
+      }
+    }
   },
   "nav": {
     "targets": "Cibles AAS",

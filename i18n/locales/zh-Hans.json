@@ -489,6 +489,16 @@
       },
       "required": "必填",
       "httpUrl": "请输入 http(s) URL。"
+    },
+    "appSettings": {
+      "title": "应用设置",
+      "help": "已安装应用在此基础设施上的值。它们优先于“应用”页面上的值；字段为空时使用该值或应用的默认值。不用于机密：密钥和令牌应放在连接中。",
+      "count": "{count} 个值",
+      "noApps": "没有已安装的应用具有按基础设施的设置。",
+      "notInstalled": "未安装；保留的值：{list}",
+      "remove": "移除这些值",
+      "obsoleteDropped": "已安装的版本不再按基础设施设定这些值，保存时将移除它们：{list}",
+      "obsoleteIgnored": "已安装的版本不再按基础设施设定这些值，Studio 会忽略它们：{list}"
     }
   },
   "apps": {
@@ -582,7 +592,45 @@
     },
     "remoteCode": "可以运行从这些源加载的代码（WebAssembly 或 Worker）",
     "egressNote": "你的浏览器会直接连接这些源。它们会得知你的地址和你查看的内容，应用还可以通过请求和 URL 向它们发送所读取的数据。",
-    "framesOpaque": "此 Studio 从同一个源提供所有应用。嵌入的页面在那里没有 Cookie 和存储，许多页面会保持空白。"
+    "framesOpaque": "此 Studio 从同一个源提供所有应用。嵌入的页面在那里没有 Cookie 和存储，许多页面会保持空白。",
+    "settings": {
+      "edit": "设置",
+      "title": "{name} 的设置",
+      "help": "此处设置的值适用于应用运行的所有位置，除非基础设施为允许这样做的设置设定了自己的值。设置不用于机密：应用及其用户的浏览器都能看到它们。",
+      "save": "保存",
+      "list": "设置：{list}",
+      "missing": "需要设置",
+      "missingHint": "缺少值的必填设置：{list}。其中一些可由基础设施设定。",
+      "required": "必填",
+      "perInfrastructure": "基础设施可以设定自己的值",
+      "fallback": "无值时：{value}",
+      "replaces": "替代：{value}",
+      "none": "无",
+      "empty": "空",
+      "yes": "是",
+      "no": "否",
+      "declared": "设置",
+      "changed": "已更改",
+      "removed": "已移除的设置：{list}",
+      "dropped": "因新版本不接受而丢弃的值：{list}",
+      "types": {
+        "string": "文本",
+        "number": "数字",
+        "boolean": "是或否",
+        "stringList": "文本列表"
+      },
+      "scopes": {
+        "installation": "按安装",
+        "infrastructure": "按安装和基础设施"
+      },
+      "invalid": {
+        "text": "最多输入 2,000 个字符",
+        "number": "请输入数字",
+        "boolean": "请选择是或否",
+        "list": "最多输入 100 项，每项最多 2,000 个字符",
+        "enum": "允许的值：{values}"
+      }
+    }
   },
   "nav": {
     "targets": "AAS 目标",
