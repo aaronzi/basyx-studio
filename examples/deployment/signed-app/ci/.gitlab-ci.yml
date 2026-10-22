@@ -1,0 +1,73 @@
+# A release pipeline for an app in its own GitLab repository (ADR 0044):
+# build, pack, sign with cosign, verify, and keep the package and its
+# signature as job artifacts. Copy it to the root of the app's repository.
+#
+# Settings of that project:
+#   Repository > Protected tags   protect v*, so only maintainers release.
+#   CI/CD > Variables             both masked, protected and not expanded:
+#     COSIGN_PRIVATE_KEY_BASE64   the content of cosign.key on one line:
+#                                 base64 < cosign.key | tr -d '\n'
+#     COSIGN_PASSWORD             its password: one line, 8 characters or
+#                                 more, so that GitLab can mask it
+# GitLab masks single-line values only, so the key is stored base64-encoded;
+# the job decodes it into the variable cosign reads, never into a file.
+# Protected variables reach jobs on protected refs only.
+#
+# cosign.pub is committed next to this file and given to the operators of
+# the Studio deployments, who add it to their trust store.
+
+variables:
+  APP_ID: org.example.my-app
+  # cosign 3: the signing flags below need it.
+  COSIGN_VERSION: v3.0.6
+
+release:
+  # cosign's own image has no shell to run a job script in; this image has
+  # one, Node.js for the build, and curl to fetch cosign.
+  image: node:24
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v/ && $CI_COMMIT_REF_PROTECTED == "true"
+  before_script:
+    # The pinned cosign release binary, checked against the release's
+    # checksums file before it runs.
+    - arch="$(dpkg --print-architecture)"
+    - curl -fsSLO "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign-linux-${arch}"
+    - curl -fsSLO "https://github.com/sigstore/cosign/releases/download/${COSIGN_VERSION}/cosign_checksums.txt"
+    - grep " cosign-linux-${arch}$" cosign_checksums.txt | sha256sum -c -
+    - install -m 0755 "cosign-linux-${arch}" /usr/local/bin/cosign
+    - rm "cosign-linux-${arch}" cosign_checksums.txt
+    - cosign version
+    - corepack enable
+    - pnpm install --frozen-lockfile
+  script:
+    - pnpm build
+
+    # studio-app.json and the files below dist/ (add `--include backend` for
+    # a backend), checked as Studio's upload checks them, by `studio-app
+    # pack` of @basyx/studio-app-kit (ADR 0043). The version in
+    # studio-app.json must be higher than the installed one.
+    - PACKAGE="${APP_ID}-${CI_COMMIT_TAG#v}.zip"
+    - pnpm exec studio-app pack --out "${PACKAGE}"
+
+    # A detached signature over the exact package bytes. The key goes from
+    # the masked variable into the environment of this job only.
+    # --use-signing-config=false --tlog-upload=false sign offline with the
+    # key; without them, cosign 3 fetches Sigstore's signing configuration
+    # and records the signature in the public Rekor log.
+    - export COSIGN_PRIVATE_KEY="$(printf '%s' "${COSIGN_PRIVATE_KEY_BASE64}" | base64 -d)"
+    - >-
+      cosign sign-blob --yes --key env://COSIGN_PRIVATE_KEY
+      --use-signing-config=false --tlog-upload=false
+      --output-signature "${PACKAGE}.sig" "${PACKAGE}"
+    - unset COSIGN_PRIVATE_KEY COSIGN_PRIVATE_KEY_BASE64 COSIGN_PASSWORD
+
+    # Both checks with the committed public key: cosign's, and Studio's own
+    # checks of the package with its signature.
+    - cosign verify-blob --key cosign.pub --insecure-ignore-tlog=true --signature "${PACKAGE}.sig" "${PACKAGE}"
+    - pnpm exec studio-app verify "${PACKAGE}" --key cosign.pub
+  artifacts:
+    name: "${APP_ID}-${CI_COMMIT_TAG}"
+    paths:
+      - "*.zip"
+      - "*.zip.sig"
+    expire_in: never

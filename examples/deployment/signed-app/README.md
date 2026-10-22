@@ -12,7 +12,8 @@ it installs it and updates installed apps in place. Developer mode
 | `compose.yaml` | Studio with `STUDIO_APPS_TRUSTED_PUBLISHERS` and `STUDIO_APP_PACKAGES` |
 | `trust/trusted-publishers.yaml` | The trust store: one publisher, its key, its app IDs and a reserved permission |
 | `packages/` | Packages Studio installs at startup, each with an optional `.sig` |
-| `ci/release-app.yml` | A release workflow for the app's own repository |
+| `ci/release-app.yml` | A release workflow for the app's own repository on GitHub |
+| `ci/.gitlab-ci.yml` | The same release as a GitLab CI pipeline |
 | `smoke-test.mjs` | Signs packages with cosign and checks install, update and revocation end to end |
 
 ## Try it
@@ -97,10 +98,53 @@ from the repository's secrets, verifies the signature with the committed
   bundle too and ignores the log entry.
 - Keyless signing (`cosign sign-blob` without `--key`) is not accepted: Studio
   verifies against the keys in its trust store only, which must be ECDSA P-256.
-- Other CI systems run the same two cosign commands.
+- Other CI systems run the same two cosign commands; see
+  [GitLab CI](#gitlab-ci) for one that masks only single-line values.
 - Without cosign, `studio-app sign --key signing.pem` and `studio-app verify
   --key signing.pub` write and check the same `.sig` with a PEM key (PKCS#8 or
   SEC1). They do not read cosign's encrypted `cosign.key`.
+
+### GitLab CI
+
+`ci/.gitlab-ci.yml` is the same release for an app in a GitLab project. Copy
+it to the root of the app's repository, next to the committed `cosign.pub`.
+Its `release` job runs on a protected `v*` tag: it builds and packs the app,
+signs the package, checks the signature with cosign and with `studio-app
+verify --key cosign.pub`, and keeps the package and its `.sig` as job
+artifacts.
+
+1. Protect the tags `v*` (*Settings > Repository > Protected tags*), so only
+   maintainers release.
+2. Add two CI/CD variables (*Settings > CI/CD > Variables*), each *Masked*,
+   *Protected* and without *Expand variable reference*:
+   - `COSIGN_PRIVATE_KEY_BASE64`: GitLab masks single-line values only, so
+     store `cosign.key` base64-encoded on one line:
+
+     ```bash
+     base64 < cosign.key | tr -d '\n'
+     ```
+
+   - `COSIGN_PASSWORD`: the key's password. Choose one that GitLab can mask
+     (one line, 8 characters or more).
+
+   Protected variables reach jobs on protected tags and branches only. The
+   job decodes the key into `COSIGN_PRIVATE_KEY`, which cosign reads with
+   `--key env://COSIGN_PRIVATE_KEY`, so it is never written to a file, and
+   unsets both before the checks.
+3. Push a tag, e.g. `git tag v1.0.0 && git push origin v1.0.0`. The package
+   is `org.example.my-app-1.0.0.zip` (`APP_ID` in the file); download it and
+   its `.sig` from the job's artifacts, or link them from a release.
+
+cosign's container image has no shell to run a job's script in. The job
+runs in `node:24` instead and downloads the cosign release binary of the
+pinned `COSIGN_VERSION` for the runner's architecture, which it checks
+against the release's `cosign_checksums.txt` before it runs it.
+
+The file was checked against GitLab's CI schema, and its job script run in
+`node:24` (amd64 and arm64) with a throwaway key: Studio's signature check
+accepts the package it signed. Without cosign, a job can sign with
+`studio-app sign --key`, which reads a PEM key from a file, e.g. a CI/CD
+variable of type *File*.
 
 When a key is rotated, add the new public key to the publisher's `keys` first,
 release with it, then remove the old key. Apps the old key signed are revoked
