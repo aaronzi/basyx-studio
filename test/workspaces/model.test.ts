@@ -2,7 +2,7 @@ import type { JsonObject } from '~~/server/lib/aas/outline'
 import type { BinaryContent } from '~~/server/lib/targets/aas-target'
 import type { PackageFiles } from '~~/server/lib/workspaces/model'
 import { readFileSync } from 'node:fs'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { StudioProblem } from '~~/server/lib/problem'
 import { WorkspaceModel } from '~~/server/lib/workspaces/model'
 
@@ -47,6 +47,16 @@ describe('workspace model operations', () => {
       .rejects
       .toMatchObject({ code: 'revision_conflict' })
     await expect(model.attachment(edgeSubmodel, 'SimpleString')).rejects.toMatchObject({ code: 'unsupported_operation' })
+  })
+
+  it('answers a File without a value as not found, without reading the package (R3)', async () => {
+    const environment = fixture()
+    const submodel = (environment.submodels as JsonObject[]).find(item => item.id === edgeSubmodel)!
+    delete (submodel.submodelElements as JsonObject[]).find(element => element.idShort === 'Manual')!.value
+    const files = memoryFiles()
+    const read = vi.spyOn(files, 'read')
+    await expect(new WorkspaceModel(environment, files).attachment(edgeSubmodel, 'Manual')).rejects.toMatchObject({ code: 'target_resource_not_found', status: 404 })
+    expect(read).not.toHaveBeenCalled()
   })
 
   it('searches shells and elements locally and pages concept descriptions', () => {

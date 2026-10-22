@@ -98,10 +98,16 @@
   const title = computed(() => module.value ? label(module.value.title) : t('app.apps'))
   const trail = computed(() => [{ title: title.value }])
 
-  function navigate (subPath: string) {
+  /**
+   * The module's sub-path in Studio's URL. A pushed entry lets back and
+   * forward move between the module's pages; the new sub-path reaches the
+   * frame with the context, which stays connected (its key has no sub-path).
+   */
+  function navigate (subPath: string, history: 'push' | 'replace') {
     const base = props.targetId
       ? `/targets/${props.targetId}/apps/${props.installationId}/${props.route}`
       : `/apps/${props.installationId}/${props.route}`
-    void router.replace({ path: subPath ? `${base}/${subPath}` : base, query: currentRoute.query })
+    const location = { path: subPath ? `${base}/${subPath}` : base, query: currentRoute.query }
+    void (history === 'push' ? router.push(location) : router.replace(location))
   }
 </script>

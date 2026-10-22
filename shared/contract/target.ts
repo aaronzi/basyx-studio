@@ -161,6 +161,9 @@ export const shellSummarySchema = z.object({
   description: z.array(langStringSchema),
   assetKind: z.string().nullable(),
   globalAssetId: z.string().nullable(),
+  assetType: z.string().nullable(),
+  /** The specific asset IDs as the AAS server or registry returned them to the user. */
+  specificAssetIds: z.array(z.object({ name: z.string(), value: z.string() })),
   /** Whether the asset information names a default thumbnail. */
   thumbnail: z.boolean(),
   /**

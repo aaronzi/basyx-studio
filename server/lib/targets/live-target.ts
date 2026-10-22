@@ -653,9 +653,14 @@ export class LiveAasTarget implements AasTarget {
     if (value.modelType !== 'File') {
       throw new StudioProblem('unsupported_operation', 'Only File elements have an attachment.')
     }
+    // A File without a value has no content, which servers answer with a
+    // server error; Studio answers before it asks them.
+    const location = typeof value.value === 'string' ? value.value : ''
+    if (!location) {
+      throw new StudioProblem('target_resource_not_found', 'The File element has no value.')
+    }
     const blob = await this.#call(await this.#submodelBase(submodelId), configuration =>
       this.#submodelClient.getFileByPath({ configuration, submodelIdentifier: submodelId, idShortPath })) as Blob
-    const location = typeof value.value === 'string' ? value.value : ''
     return {
       bytes: new Uint8Array(await blob.arrayBuffer()),
       contentType: typeof value.contentType === 'string' ? value.contentType : (blob.type || 'application/octet-stream'),

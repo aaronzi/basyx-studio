@@ -37,6 +37,7 @@ runs the app, whatever the package version.
 | 0.1.3 | 0.1.5: structural writes (`aas.createShell`, `createSubmodel`, `putSubmodel`, `addElement`, `putElement`, `deleteElement`, `deleteSubmodel`, `deleteShell`), `aas.putAttachment`, `aas.getSubmodelSnapshot`, `structureRevision` on element snapshots; `memoryAas` in `testing` | next release |
 | 0.1.4 | 0.1.6: `connections`, `studio.connections.call`, permission `studio.connections` | next release |
 | 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
+| 0.1.6 | 0.1.8: `assetType` and `specificAssetIds` in `aas.listShells`; `ui.navigate(subPath, { history: 'push' })`; `navigations`, `back` and `forward` in `testing` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -87,6 +88,13 @@ A module is shown in a card below a header with breadcrumbs. With
 the navigation rail to the window's edges, below Studio's app bar: no header,
 card or padding. Studio's app bar keeps the target, the edit switch and the
 user menu; show the target's name yourself if the page needs it.
+
+A module with pages of its own keeps the page in its sub-path:
+`ui.navigate(subPath)` changes it and replaces the URL's history entry, e.g.
+for filter state. `ui.navigate(subPath, { history: 'push' })` adds an entry
+instead (Studio app API 0.1.8), so the browser's back and forward buttons
+move between the module's pages. The frame stays loaded; the new sub-path
+reaches it as `context.subPath` with `onContext`, as with every change.
 
 | Permission | Allows |
 | --- | --- |
@@ -140,7 +148,17 @@ To show a File element's content in the app, e.g. an image or a 3D model,
 read it with `ui.readFile(submodelId, idShortPath)` (Studio app API 0.1.1,
 so declare `"studioApi": "^0.1.1"`): Studio's page loads it with the user's
 rights and hands the bytes (`Uint8Array`, up to 200 MiB) and media type to
-the frame. `ui.openFile` opens it in a new tab instead.
+the frame. `ui.openFile` opens it in a new tab instead. A File element
+without a value is refused with `target_resource_not_found` (404) before
+Studio asks the AAS server for its content, on infrastructures as on AASX
+files (Studio app API 0.1.8; before, infrastructures answered
+`target_error`).
+
+`aas.listShells` pages through the target's shells. Each summary has the
+shell's `assetType` and its `specificAssetIds` (`{ name, value }`, as the
+AAS server returns them to the user; Studio app API 0.1.8), so an app
+selects the shells of an asset type and relates them through an ID from the
+pages alone, without reading each shell. Studio does not filter by them.
 
 A file that an element names by an http(s) address at another host (a File
 whose value is such an address, or a Property such as IDTA 02026's
@@ -438,9 +456,11 @@ studio.calls // every call the app made
 - `context` replaces parts of `testContext()`: a module on a writable target
   named "Test target", in view mode, English and Studio's light theme.
 - Studio's UI methods are answered: `getContext`, `setHeight`, `navigate`
-  (moves `context.subPath` and sends the new context), `notify` (recorded
-  in `studio.notifications`) and `openShell` (recorded in
-  `studio.openedShells`). Handlers replace them.
+  (moves `context.subPath`, sends the new context and is recorded in
+  `studio.navigations`), `notify` (recorded in `studio.notifications`) and
+  `openShell` (recorded in `studio.openedShells`). Handlers replace them.
+  `studio.back()` and `studio.forward()` move through the sub-paths that
+  `navigate` pushed, as the browser's buttons do.
 - Parameters and results are copied as a MessagePort copies them, a method
   without a handler is refused (`unsupported_operation`), and an error a
   handler throws reaches the app as a `StudioError`.

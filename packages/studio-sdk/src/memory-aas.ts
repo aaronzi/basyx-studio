@@ -1,4 +1,4 @@
-import type { ElementSnapshot, ElementValue, FileContent, JsonObject, ShellSummary, SubmodelSnapshot, SubmodelSummary, WriteStep } from './protocol.ts'
+import type { ElementSnapshot, ElementValue, FileContent, JsonObject, ShellSummary, SpecificAssetId, SubmodelSnapshot, SubmodelSummary, WriteStep } from './protocol.ts'
 import type { TestHandlers } from './testing.ts'
 import { putAttachmentMaxBytes } from './protocol.ts'
 import { StudioError } from './transport.ts'
@@ -227,13 +227,18 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
   const handlers: TestHandlers = {
     'studio.aas.listShells': ({ limit = 50, cursor }) => {
       const start = cursor ? Number(cursor) : 0
-      const items: ShellSummary[] = shells.slice(start, start + limit).map(shell => ({
-        id: String(shell.id),
-        idShort: typeof shell.idShort === 'string' ? shell.idShort : null,
-        displayName: (shell.displayName ?? []) as ShellSummary['displayName'],
-        assetKind: ((shell.assetInformation as JsonObject | undefined)?.assetKind as string | undefined) ?? null,
-        globalAssetId: ((shell.assetInformation as JsonObject | undefined)?.globalAssetId as string | undefined) ?? null,
-      }))
+      const items: ShellSummary[] = shells.slice(start, start + limit).map(shell => {
+        const asset = (shell.assetInformation ?? {}) as JsonObject
+        return {
+          id: String(shell.id),
+          idShort: typeof shell.idShort === 'string' ? shell.idShort : null,
+          displayName: (shell.displayName ?? []) as ShellSummary['displayName'],
+          assetKind: (asset.assetKind as string | undefined) ?? null,
+          globalAssetId: (asset.globalAssetId as string | undefined) ?? null,
+          assetType: (asset.assetType as string | undefined) ?? null,
+          specificAssetIds: ((asset.specificAssetIds ?? []) as SpecificAssetId[]).map(({ name, value }) => ({ name, value })),
+        }
+      })
       const more = start + limit < shells.length
       return { items, page: { nextCursor: more ? String(start + limit) : null, hasMore: more } }
     },
@@ -373,7 +378,14 @@ export function memoryAas (options: MemoryAasOptions = {}): MemoryAas {
       return snapshot(element)
     },
     'studio.ui.readFile': ({ submodelId, idShortPath }) => {
-      const file = contentOf(locate(submodelId, idShortPath).element)
+      const { element } = locate(submodelId, idShortPath)
+      if (element.modelType !== 'File') {
+        throw refuse('unsupported_operation', 'Only File elements have an attachment.')
+      }
+      if (typeof element.value !== 'string' || !element.value) {
+        throw refuse('target_resource_not_found', 'The File element has no value.')
+      }
+      const file = contentOf(element)
       if (!file) {
         throw refuse('target_resource_not_found', 'The File element has no content.')
       }

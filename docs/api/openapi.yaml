@@ -4107,7 +4107,7 @@ components:
     ShellSummary:
       type: object
       additionalProperties: false
-      required: [key, id, idShort, displayName, description, assetKind, globalAssetId, thumbnail, thumbnailUrl]
+      required: [key, id, idShort, displayName, description, assetKind, globalAssetId, assetType, specificAssetIds, thumbnail, thumbnailUrl]
       properties:
         key: { $ref: '#/components/schemas/ResourceKey' }
         id: { type: string }
@@ -4120,6 +4120,17 @@ components:
           items: { $ref: '#/components/schemas/LangString' }
         assetKind: { type: [string, 'null'] }
         globalAssetId: { type: [string, 'null'] }
+        assetType: { type: [string, 'null'] }
+        specificAssetIds:
+          type: array
+          description: The specific asset IDs with their name and value, as the AAS repository or registry returned them to the user.
+          items:
+            type: object
+            additionalProperties: false
+            required: [name, value]
+            properties:
+              name: { type: string }
+              value: { type: string }
         thumbnail:
           type: boolean
           description: Whether the asset information names a default thumbnail.

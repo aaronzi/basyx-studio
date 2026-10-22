@@ -13,6 +13,15 @@ export function externalUrl (path: unknown): string | null {
   return typeof path === 'string' && /^https?:\/\//i.test(path) ? path : null
 }
 
+/** The specific asset IDs with a name and a value, as the server returned them. */
+export function specificAssetIds (value: unknown): Array<{ name: string, value: string }> {
+  return Array.isArray(value)
+    ? value
+        .filter((entry): entry is { name: string, value: string } => typeof entry?.name === 'string' && typeof entry?.value === 'string')
+        .map(({ name, value }) => ({ name, value }))
+    : []
+}
+
 export function toShellSummary (shell: JsonObject): ShellSummary {
   const assetInformation = (shell.assetInformation ?? {}) as JsonObject
   const thumbnailPath = (assetInformation.defaultThumbnail as JsonObject | undefined)?.path
@@ -24,6 +33,8 @@ export function toShellSummary (shell: JsonObject): ShellSummary {
     description: langStrings(shell.description),
     assetKind: typeof assetInformation.assetKind === 'string' ? assetInformation.assetKind : null,
     globalAssetId: typeof assetInformation.globalAssetId === 'string' ? assetInformation.globalAssetId : null,
+    assetType: typeof assetInformation.assetType === 'string' ? assetInformation.assetType : null,
+    specificAssetIds: specificAssetIds(assetInformation.specificAssetIds),
     thumbnail: typeof thumbnailPath === 'string',
     thumbnailUrl: externalUrl(thumbnailPath),
   }
@@ -39,6 +50,8 @@ export function descriptorSummary (descriptor: JsonObject): ShellSummary {
     description: langStrings(descriptor.description),
     assetKind: typeof descriptor.assetKind === 'string' ? descriptor.assetKind : null,
     globalAssetId: typeof descriptor.globalAssetId === 'string' ? descriptor.globalAssetId : null,
+    assetType: typeof descriptor.assetType === 'string' ? descriptor.assetType : null,
+    specificAssetIds: specificAssetIds(descriptor.specificAssetIds),
     // Descriptors name no thumbnail; the shell page shows it.
     thumbnail: false,
     thumbnailUrl: null,

@@ -92,7 +92,17 @@ describe('AAS capability methods', () => {
     return {
       capabilities: { write: true, persistence: 'immediate' },
       listShells: vi.fn(async () => ({
-        items: [{ key: 'k', id: 'urn:shell', idShort: 'Shell', displayName: [], description: [], assetKind: null, globalAssetId: null }],
+        items: [{
+          key: 'k',
+          id: 'urn:shell',
+          idShort: 'Shell',
+          displayName: [],
+          description: [],
+          assetKind: null,
+          globalAssetId: null,
+          assetType: 'urn:type',
+          specificAssetIds: [{ name: 'serialNumber', value: 'S-1' }],
+        }],
         page: { nextCursor: null, hasMore: false },
       })),
       shell: vi.fn(async id => ({ id })),
@@ -112,7 +122,7 @@ describe('AAS capability methods', () => {
   it('maps target results to SDK shapes', async () => {
     const target = fakeTarget()
     expect(await executeAasMethod(callContext(target), 'studio.aas.listShells', {})).toEqual({
-      items: [{ id: 'urn:shell', idShort: 'Shell', displayName: [], assetKind: null, globalAssetId: null }],
+      items: [{ id: 'urn:shell', idShort: 'Shell', displayName: [], assetKind: null, globalAssetId: null, assetType: 'urn:type', specificAssetIds: [{ name: 'serialNumber', value: 'S-1' }] }],
       page: { nextCursor: null, hasMore: false },
     })
     expect(await executeAasMethod(callContext(target), 'studio.aas.listSubmodels', { shellId: 'urn:shell' })).toEqual({

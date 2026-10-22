@@ -12,7 +12,7 @@
 
         <!-- Nested route shells/<id>: one shell. -->
         <template v-else-if="shellId">
-          <v-btn class="mb-2" prepend-icon="mdi-arrow-left" text="All shells" @click="client.ui.navigate('')" />
+          <v-btn class="mb-2" prepend-icon="mdi-arrow-left" text="All shells" @click="client.ui.navigate('', { history: 'push' })" />
           <h2 class="text-h6 mb-2" data-test="heading">{{ shellId }}</h2>
           <SubmodelList :key="shellId" :client="client" :shell-id="shellId" />
         </template>
@@ -27,9 +27,9 @@
                 v-for="shell in shells"
                 :key="shell.id"
                 prepend-icon="mdi-cube-outline"
-                :subtitle="shell.id"
+                :subtitle="shell.assetType ?? shell.id"
                 :title="shell.idShort ?? shell.id"
-                @click="client.ui.navigate(`shells/${encode(shell.id)}`)"
+                @click="client.ui.navigate(`shells/${encode(shell.id)}`, { history: 'push' })"
               />
             </v-list>
           </v-card>
@@ -66,6 +66,8 @@
   }
 
   // The module's sub-path is its own nested route: `` or `shells/<id>`.
+  // Pages are pushed (app API 0.1.8), so the browser's back button returns
+  // to the list, and the list keeps the shells it loaded.
   const shellId = computed(() => {
     const match = /^shells\/([\w-]+)$/.exec(context.value.subPath)
     return match ? decode(match[1]!) : null
