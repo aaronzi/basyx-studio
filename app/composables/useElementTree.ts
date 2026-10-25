@@ -240,20 +240,25 @@ export function useElementTree (options: ElementTreeOptions) {
     ui.detailsDrawer = true
   }
 
+  /** Whether the tree's tab shows (followTabs); a selection from the URL opens the drawer only there. */
+  let onHomeTab = () => true
+
   /**
    * The drawer belongs to the tree's tab (`home`): other tabs close it, and
    * the Overview opens it only from a tile. Back on the tree's tab it is
    * open again if it was when the user left, or if a tile opened it.
    */
   function followTabs (tab: () => string, home: string) {
+    onHomeTab = () => tab() === home
     let openAtHome = ui.detailsDrawer
+    // From the first render on: a link to another tab opens no drawer.
     watch(tab, (value, previous) => {
       const open = ui.detailsDrawer
       if (previous === home) {
         openAtHome = open
       }
       ui.detailsDrawer = value === home && (openAtHome || open)
-    })
+    }, { immediate: true })
   }
 
   // The page's own submodel is the tree's selection only while the drawer shows it.
@@ -304,11 +309,11 @@ export function useElementTree (options: ElementTreeOptions) {
       const path = await trees.reveal(submodel, ancestors, element)
       if (path && selectedId.value === id) {
         opened.value = [...new Set([...opened.value, ...path])]
-        ui.detailsDrawer ||= opensDetails(element)
+        ui.detailsDrawer ||= onHomeTab() && opensDetails(element)
       }
     } catch {
       // The drawer shows why the element cannot be read.
-      ui.detailsDrawer ||= opensDetails(element)
+      ui.detailsDrawer ||= onHomeTab() && opensDetails(element)
     } finally {
       revealing.value = null
     }

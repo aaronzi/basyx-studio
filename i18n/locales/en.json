@@ -1518,6 +1518,18 @@
         "conceptDescriptions": "{count} concept description | {count} concept descriptions"
       },
       "empty": "Holds no shell, submodel or concept description."
+    },
+    "facts": {
+      "source": "Reads {name}",
+      "destination": "Writes to {name}",
+      "identity": {
+        "user": "with your account",
+        "studio": "with Studio’s service account",
+        "none": "without sign-in"
+      },
+      "replaceResources": "Replace",
+      "conceptDescriptions": "Concept descriptions",
+      "files": "Files"
     }
   }
 }

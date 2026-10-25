@@ -16,10 +16,12 @@ import { existsAt } from './plan'
 /**
  * What earlier executions of a plan did (K8): the identifiers they gave and
  * the resources they wrote, so a retry neither duplicates nor renames them.
+ * A resource is written once its identifiable is; it is `complete` once its
+ * files, thumbnail and shell reference are too, so a retry resumes those.
  */
 export interface CopyRun {
   identifiers: Map<string, string>
-  written: Map<string, CopyResourceOutcome>
+  written: Map<string, { outcome: CopyResourceOutcome, complete: boolean }>
 }
 
 export function newCopyRun (): CopyRun {
@@ -34,6 +36,10 @@ export interface CopyContext {
   dependencies: CopyDependencies
   /** A copied submodel root is also referenced from this shell. */
   destinationShellId: string | null
+  /** The deployment allows file uploads (STUDIO_ALLOW_UPLOADS); copied files are uploads too. */
+  filesAllowed: boolean
+  /** The revisions of the resources as the plan read them, by plan key (K4). */
+  revisions: ReadonlyMap<string, string>
 }
 
 const order: Record<CopyResourcePlan['resourceType'], number> = { conceptDescription: 0, submodel: 1, shell: 2 }
@@ -54,6 +60,31 @@ async function read (reader: CopyReader, resource: CopyResourcePlan): Promise<Js
       return reader.conceptDescription(resource.identifier)
     }
   }
+}
+
+/**
+ * The resources still to write, read once more: what is written is what the
+ * plan showed. A resource that changed at the source since, or a shell whose
+ * submodels changed, needs a new plan, before anything is written (K4).
+ */
+async function readAsPlanned (context: CopyContext, selected: readonly CopyResourcePlan[], run: CopyRun): Promise<Map<string, JsonObject>> {
+  const contents = new Map<string, JsonObject>()
+  const changed: string[] = []
+  for (const resource of selected) {
+    if (run.written.get(resource.key)?.complete) {
+      continue
+    }
+    const content = await read(context.reader, resource)
+    const planned = context.revisions.get(resource.key)
+    if (planned && planned !== revisionOf(content)) {
+      changed.push(resource.label)
+    }
+    contents.set(resource.key, content)
+  }
+  if (changed.length > 0) {
+    throw new StudioProblem('revision_conflict', `The source changed since the plan: ${changed.slice(0, 3).join(', ')}${changed.length > 3 ? ', …' : ''}. Make a new plan.`)
+  }
+  return contents
 }
 
 /** Copies the files of a submodel's File elements; returns how many could not be copied. */
@@ -137,6 +168,8 @@ export async function executeCopy (
   }
   const destinationIdOf = (resource: CopyResourcePlan) => run.identifiers.get(resource.identifier) ?? resource.identifier
 
+  const contents = await readAsPlanned(context, selected, run)
+
   // Refused before the first write, as the policy promises.
   if (policy === 'fail_without_changes') {
     const taken: string[] = []
@@ -156,6 +189,11 @@ export async function executeCopy (
   const copiesShells = selected.some(item => item.resourceType === 'shell')
   for (const resource of selected) {
     const destinationId = destinationIdOf(resource)
+    const earlier = run.written.get(resource.key)
+    if (earlier?.complete) {
+      outcomes.push({ ...earlier.outcome, status: 'skipped', message: 'Copied by an earlier run of this plan.' })
+      continue
+    }
     const outcome: CopyResourceOutcome = {
       resourceType: resource.resourceType,
       identifier: resource.identifier,
@@ -164,32 +202,39 @@ export async function executeCopy (
       message: null,
     }
     outcomes.push(outcome)
-    if (run.written.has(resource.key)) {
-      outcome.message = 'Copied by an earlier run of this plan.'
-      continue
-    }
+    const content = { ...rewriteReferences(contents.get(resource.key)!, run.identifiers), id: destinationId }
+    let exists: boolean
     try {
-      const content = { ...rewriteReferences(await read(context.reader, resource), run.identifiers), id: destinationId }
-      const exists = await existsAt(destination, resource.resourceType, destinationId)
-      // Kept as they are, unless the policy replaces them; with new
-      // identifiers only concept descriptions can collide (K5).
-      if (exists && policy !== 'replace') {
-        outcome.message = 'It exists at the destination.'
-        continue
+      if (earlier) {
+        // Written by an earlier run, whose later steps failed: only those run again.
+        exists = earlier.outcome.status === 'replaced'
+      } else {
+        exists = await existsAt(destination, resource.resourceType, destinationId)
+        // Kept as they are, unless the policy replaces them; with new
+        // identifiers only concept descriptions can collide (K5).
+        if (exists && policy !== 'replace') {
+          outcome.message = 'It exists at the destination.'
+          continue
+        }
+        await writeResource(context, resource, content, destinationId, exists)
       }
-      await writeResource(context, resource, content, destinationId, exists)
       outcome.status = exists ? 'replaced' : 'created'
+      // Checkpoint: the identifiable is written, whatever the next steps do.
+      run.written.set(resource.key, { outcome: { ...outcome }, complete: false })
       const notes = await afterWrite(context, resource, content, destinationId)
       outcome.message = notes.length > 0 ? notes.join(' ') : null
+      run.written.set(resource.key, { outcome: { ...outcome }, complete: true })
       if (resource.resourceType === 'shell') {
         createdShells.push(destinationId)
       } else if (resource.resourceType === 'submodel' && !exists && (resource.role === 'root' || !copiesShells)) {
         createdSubmodels.push(destinationId)
       }
-      run.written.set(resource.key, outcome)
     } catch (error) {
+      // A written identifiable whose later steps failed stays failed until a retry completes them.
       outcome.status = 'failed'
-      outcome.message = problemText(error)
+      outcome.message = run.written.has(resource.key)
+        ? `Written, but a later step failed: ${problemText(error)} Run the copy again to complete it.`
+        : problemText(error)
     }
   }
   return reportOf(planId, policy, outcomes, await register(context, createdShells, createdSubmodels))
@@ -199,11 +244,16 @@ export async function executeCopy (
 async function afterWrite (context: CopyContext, resource: CopyResourcePlan, content: JsonObject, destinationId: string): Promise<string[]> {
   const { destination } = context
   const notes: string[] = []
-  const copiesFiles = context.dependencies.supplementaryFiles === 'referenced' && destination.capabilities.files
+  const wantsFiles = context.dependencies.supplementaryFiles === 'referenced' && destination.capabilities.files
+  const copiesFiles = wantsFiles && context.filesAllowed
   if (resource.resourceType === 'submodel') {
     const failed = copiesFiles ? await copyFiles(context, resource.identifier, destinationId, content) : 0
     if (failed > 0) {
       notes.push(`${failed} file(s) could not be copied.`)
+    }
+    const withheld = wantsFiles && !context.filesAllowed ? packagedFilePaths(content).length : 0
+    if (withheld > 0) {
+      notes.push(`${withheld} file(s) were not copied: this deployment does not allow file uploads.`)
     }
     const shellId = resource.role === 'root' ? context.destinationShellId : null
     if (shellId && !submodelIdsOf(await destination.shell(shellId)).includes(destinationId)) {

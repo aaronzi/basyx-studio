@@ -34,6 +34,8 @@ export const useClipboardStore = defineStore('clipboard', () => {
   /** A model reference to a node (*Copy reference*, C2) for reference fields. */
   const copiedReference = ref<{ type: string, keys: Array<{ type: string, value: string }> } | null>(null)
   const pending = shallowRef<PendingCopy | null>(null)
+  /** The copy plan dialog waits for the server; nothing else opens it meanwhile. */
+  const busy = ref(false)
 
   function copy (value: CopiedElement): void {
     copied.value = value
@@ -56,8 +58,10 @@ export const useClipboardStore = defineStore('clipboard', () => {
 
   /** Opens the copy plan dialog (CopyPlanDialog in the layout). */
   function openCopy (value: PendingCopy): void {
-    pending.value = value
+    if (!busy.value) {
+      pending.value = value
+    }
   }
 
-  return { copied, resource, copiedReference, pending, copy, copyResource, copyReference, clear, openCopy }
+  return { copied, resource, copiedReference, pending, busy, copy, copyResource, copyReference, clear, openCopy }
 })

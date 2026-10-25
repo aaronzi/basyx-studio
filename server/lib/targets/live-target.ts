@@ -123,6 +123,13 @@ function toInvocation (operation: JsonObject, result: JsonObject, handle: string
  * every operation it offers; BaSyx Go endpoints the SDK lacks go through the
  * same guarded, credentialed HTTP layer (ADR 0022).
  */
+/** Files in operation variables have no AAS API path (`Run@input.Manual`); only packages reach them. */
+function unaddressableFile (idShortPath: string): void {
+  if (idShortPath.includes('@')) {
+    throw new StudioProblem('unsupported_operation', 'Files in operation variables cannot be read or written through the AAS API.')
+  }
+}
+
 export class LiveAasTarget implements AasTarget {
   readonly capabilities: TargetCapabilities
   readonly #http: TargetHttp
@@ -649,6 +656,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async attachment (submodelId: string, idShortPath: string): Promise<BinaryContent> {
+    unaddressableFile(idShortPath)
     const { value } = await this.#read(submodelId, idShortPath)
     if (value.modelType !== 'File') {
       throw new StudioProblem('unsupported_operation', 'Only File elements have an attachment.')
@@ -683,6 +691,7 @@ export class LiveAasTarget implements AasTarget {
   }
 
   async replaceAttachment (submodelId: string, idShortPath: string, file: BinaryContent, revision: string): Promise<ElementSnapshot> {
+    unaddressableFile(idShortPath)
     return this.#conditionalWrite(submodelId, idShortPath, revision, async (current, configuration) => {
       if (current.value.modelType !== 'File') {
         throw new StudioProblem('unsupported_operation', 'Only File elements have an attachment.')

@@ -9,6 +9,7 @@ import { submodelIdsOf } from '../aas/sync'
 import { indentXml } from '../aas/xml'
 import { StudioProblem } from '../problem'
 import { hasPackagedThumbnail, packagedFiles, semanticIdsOf } from './content'
+import { isAbsent } from './plan'
 
 /** Writes an environment and its files as an AASX package, in the Workspace Worker (`pack`). */
 export type Packer = (environment: JsonObject, files: PackagedFile[]) => Promise<Uint8Array>
@@ -22,9 +23,13 @@ const mediaTypes: Record<ExportFormat, string> = {
 async function readable<T> (read: () => Promise<T>): Promise<T | null> {
   try {
     return await read()
-  } catch {
-    // A dangling reference, or a concept kept elsewhere: not part of the export.
-    return null
+  } catch (error) {
+    // A dangling reference, or a concept kept elsewhere, is not part of the
+    // export; a failing source fails the export rather than shortening it.
+    if (isAbsent(error)) {
+      return null
+    }
+    throw error
   }
 }
 

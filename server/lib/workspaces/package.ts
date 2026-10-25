@@ -195,8 +195,14 @@ export async function packEnvironment (environment: JsonObject, files: readonly 
     },
   }
   const pkg = await NewPackaging().CreateInStream(stream)
+  // The spec part takes a path no file has, so no file can replace it.
+  const filePaths = new Set(files.map(file => `/${file.path.replace(/^\/+/, '')}`))
+  let specPath = '/aasx/data.json'
+  for (let index = 1; filePaths.has(specPath); index++) {
+    specPath = `/aasx/data-${index}.json`
+  }
   const spec = await pkg.PutPart(
-    new URL('file:///aasx/data.json'),
+    new URL(`file://${specPath}`),
     'application/json',
     new TextEncoder().encode(JSON.stringify(jsonization.toJsonable(parsed.mustValue()), null, 2)),
   )

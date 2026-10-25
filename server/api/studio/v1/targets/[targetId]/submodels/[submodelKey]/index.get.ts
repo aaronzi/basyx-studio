@@ -29,7 +29,11 @@ export default defineStudioHandler(async (event): Promise<SubmodelDetail | Uint8
     event.res.headers.set('ETag', `"${revisionOf(metadata)}"`)
     return { key, submodel: metadata, revision: revisionOf(metadata) }
   }
-  if (format === 'aasx' && !at) {
+  // A package holds the submodel as it is: no point in time (its files have no history).
+  if (format === 'aasx' && at) {
+    throw new StudioProblem('invalid_request', 'A submodel as it was at a point in time is available as JSON or XML only.')
+  }
+  if (format === 'aasx') {
     const studio = await useStudio()
     const inspector = studio.inspector
     if (!inspector) {

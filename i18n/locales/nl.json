@@ -1314,6 +1314,18 @@
         "conceptDescriptions": "{count} conceptbeschrijving | {count} conceptbeschrijvingen"
       },
       "empty": "Bevat geen shell, submodel of conceptbeschrijving."
+    },
+    "facts": {
+      "source": "Leest {name}",
+      "destination": "Schrijft naar {name}",
+      "identity": {
+        "user": "met uw account",
+        "studio": "met het serviceaccount van Studio",
+        "none": "zonder aanmelding"
+      },
+      "replaceResources": "Vervangen",
+      "conceptDescriptions": "Conceptbeschrijvingen",
+      "files": "Bestanden"
     }
   }
 }

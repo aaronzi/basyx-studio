@@ -1,14 +1,18 @@
-import type { CopyDependencies, CopyPlan } from '#shared/contract'
+import type { CopyDependencies, CopyPlan, CopyTargetFacts } from '#shared/contract'
 import type { CopyRoot } from '../lib/copies/plan'
 import type { EnvironmentReader } from '../lib/copies/source'
 import type { StoredCopySource } from '../lib/copies/store'
+import type { AasTarget } from '../lib/targets/aas-target'
 import type { OpenedTarget } from './target'
 import type { RequestEvent } from 'nuxt/server'
 import { decodeKey } from '../lib/aas/keys'
 import { submodelIdsOf } from '../lib/aas/sync'
 import { newCopyRun } from '../lib/copies/execute'
 import { planCopy } from '../lib/copies/plan'
+import { getInfrastructure } from '../lib/infrastructures'
+import { isWorkspaceId } from '../lib/workspaces/manager'
 import { requireActor } from './auth'
+import { requireWorkspaces } from './desktop'
 import { requestIdOf } from './handler'
 import { useStudio } from './studio'
 import { openTargetFor, requireCapability } from './target'
@@ -27,6 +31,25 @@ export async function openCopyTarget (event: RequestEvent, targetId: string, rol
     await requireCapability(opened, 'createResources')
   }
   return opened
+}
+
+/** What a copy may do at a target (DATA-013): its name, whose rights it checks, and what it allows now. */
+async function targetFacts (targetId: string, target: AasTarget, filesAllowed: boolean): Promise<CopyTargetFacts> {
+  const studio = await useStudio()
+  const { capabilities } = target
+  const allows = {
+    createResources: capabilities.createResources,
+    replaceResources: capabilities.writeStructure,
+    conceptDescriptions: capabilities.conceptDescriptions,
+    files: capabilities.files && filesAllowed,
+  }
+  if (isWorkspaceId(targetId)) {
+    const info = await requireWorkspaces(studio).info(targetId)
+    return { targetId, name: info.fileName, kind: 'workspace', identity: 'none', ...allows }
+  }
+  const record = await getInfrastructure(studio, targetId)
+  const identities = { delegated_user: 'user', deployment_client_credentials: 'studio', unsecured: 'none' } as const
+  return { targetId, name: record.name, kind: 'live', identity: identities[record.security.mode] ?? 'none', ...allows }
 }
 
 /** The roots of an environment: its shells, the submodels no shell of it references, and its concept descriptions. */
@@ -56,13 +79,19 @@ export async function createCopyPlan (event: RequestEvent, input: NewCopyPlan): 
   const destination = await openCopyTarget(event, input.destinationTargetId, 'destination', destinationShellId ?? undefined)
   const sourceTargetId = input.source.kind === 'target' ? input.source.targetId : null
   const shellRoot = input.roots.find(root => root.type === 'shell')
-  const reader = input.source.kind === 'target'
+  const sourceTarget = input.source.kind === 'target'
     ? (await openCopyTarget(event, input.source.targetId, 'source', shellRoot?.id)).target
-    : input.source.reader
+    : null
+  const reader = sourceTarget ?? (input.source as Extract<StoredCopySource, { kind: 'environment' }>).reader
   const sameTarget = sourceTargetId === input.destinationTargetId
-  const planned = await planCopy({ reader, roots: input.roots, destination: destination.target, dependencies: input.dependencies, sameTarget })
+  const filesAllowed = studio.config.deployment.uploads
+  const { revisions, ...planned } = await planCopy({ reader, roots: input.roots, destination: destination.target, dependencies: input.dependencies, sameTarget, filesAllowed })
   const plan: CopyPlan = {
     id: studio.copies.newId(),
+    source: sourceTarget && sourceTargetId
+      ? await targetFacts(sourceTargetId, sourceTarget, filesAllowed)
+      : { targetId: null, name: input.sourceLabel, kind: 'text', identity: 'none', createResources: false, replaceResources: false, conceptDescriptions: false, files: false },
+    destination: await targetFacts(input.destinationTargetId, destination.target, filesAllowed),
     sourceTargetId,
     sourceLabel: input.sourceLabel,
     destinationTargetId: input.destinationTargetId,
@@ -78,8 +107,10 @@ export async function createCopyPlan (event: RequestEvent, input: NewCopyPlan): 
     roots: input.roots,
     dependencies: input.dependencies,
     destinationShellId,
+    revisions,
     run: newCopyRun(),
-    reports: new Map(),
+    executions: new Map(),
+    tail: Promise.resolve(),
   })
   return plan
 }

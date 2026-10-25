@@ -1001,7 +1001,8 @@ paths:
         elements; `content=full` the whole submodel. `format=xml` returns the
         whole submodel as AAS XML (aas-core `xmlization`) as an attachment.
         `format=aasx` returns an AASX package of the submodel with the concept
-        descriptions the target has for its semantic IDs and its files.
+        descriptions the target has for its semantic IDs and its files; it
+        cannot be combined with `at`.
         With `at` the submodel is read as it was at that point in time; this
         needs the `history` capability. `download=true` with `content=full`
         returns the JSON as an attachment (the submodel view's export).
@@ -1834,9 +1835,15 @@ paths:
     post:
       tags: [AAS]
       operationId: validateAasJson
-      summary: AAS Core findings for a JSON value; nothing is written
-      description: 'Body `{ kind: element | submodel | shell, value }`. Used by the insert dialog while the user types.'
-      x-requirements: [DATA-007]
+      summary: AAS Core findings for a JSON value, or for AAS JSON or XML text; nothing is written
+      description: |
+        With `value`, AAS Core checks a JSON value of the kind. With `format`
+        and `text` (the *From JSON or XML* dialog), the text is parsed first:
+        an element comes back as JSON in `value`, to insert; for shells,
+        submodels and concept descriptions `contents` says what the text holds,
+        which a copy plan then writes. Text that does not parse answers with
+        one violation and no `value` or `contents`.
+      x-requirements: [DATA-007, DATA-012]
       parameters:
         - $ref: '#/components/parameters/TargetId'
         - $ref: '#/components/parameters/CsrfToken'
@@ -1844,13 +1851,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: true }
+            schema: { $ref: '#/components/schemas/AasValidationRequest' }
       responses:
         '200':
           description: Findings, empty when the value is valid
           content:
             application/json:
-              schema: { type: object, additionalProperties: true }
+              schema: { $ref: '#/components/schemas/AasValidationResult' }
         default: { $ref: '#/components/responses/Problem' }
 
   /submodel-templates/{templateId}:
@@ -2207,6 +2214,11 @@ paths:
           in: query
           required: true
           schema: { type: string, maxLength: 255 }
+        - name: destinationShellKey
+          in: query
+          required: false
+          description: The file's submodels are also referenced from this shell (the shell page's import).
+          schema: { $ref: '#/components/schemas/ResourceKey' }
       requestBody:
         required: true
         content:
@@ -2247,9 +2259,13 @@ paths:
         files, then shells with their thumbnails, then registry entries where
         Studio keeps them in step. Independent targets form no transaction:
         each resource reports its own outcome and the source stays unchanged.
-        A repeated `Idempotency-Key` answers with the first report; running
-        the plan again skips the resources an earlier run wrote and keeps the
-        identifiers it gave.
+        Each resource is read again first and compared with the plan; when
+        one changed, nothing is written and the answer is `revision_conflict`.
+        The `Idempotency-Key` is required. A repeated key answers with the
+        first report, also while that execution still runs; executions of one
+        plan run one after another. Running the plan again skips the resources
+        an earlier run completed, keeps the identifiers it gave, and completes
+        the steps it left open.
       x-requirements: [PROD-007, DATA-012, DATA-013, DATA-014, DATA-015, DATA-020]
       parameters:
         - $ref: '#/components/parameters/CopyPlanId'
@@ -5160,12 +5176,31 @@ components:
           type: array
           maxItems: 20
           items: { type: string }
+    CopyTargetFacts:
+      type: object
+      additionalProperties: false
+      description: What the copy may do at a target (DATA-013); the target still checks every write.
+      required: [targetId, name, kind, identity, createResources, replaceResources, conceptDescriptions, files]
+      properties:
+        targetId: { oneOf: [{ $ref: '#/components/schemas/TargetId' }, { type: 'null' }] }
+        name: { type: string }
+        kind: { type: string, enum: [live, workspace, text] }
+        identity:
+          type: string
+          enum: [user, studio, none]
+          description: Whose rights the target checks, the signed-in user's, Studio's service account's, or none.
+        createResources: { type: boolean }
+        replaceResources: { type: boolean }
+        conceptDescriptions: { type: boolean }
+        files: { type: boolean, description: The target keeps files and the deployment allows uploads. }
     CopyPlan:
       type: object
       additionalProperties: false
-      required: [id, sourceTargetId, sourceLabel, destinationTargetId, destinationShellKey, sameTarget, resources, allowedCollisionPolicies, defaultCollisionPolicy, notes, expiresAt]
+      required: [id, source, destination, sourceTargetId, sourceLabel, destinationTargetId, destinationShellKey, sameTarget, resources, allowedCollisionPolicies, defaultCollisionPolicy, notes, expiresAt]
       properties:
         id: { $ref: '#/components/schemas/CopyPlanId' }
+        source: { $ref: '#/components/schemas/CopyTargetFacts' }
+        destination: { $ref: '#/components/schemas/CopyTargetFacts' }
         sourceTargetId: { oneOf: [{ $ref: '#/components/schemas/TargetId' }, { type: 'null' }] }
         sourceLabel: { type: string }
         destinationTargetId: { $ref: '#/components/schemas/TargetId' }
@@ -6287,6 +6322,46 @@ components:
         jsonPointer: { type: string, maxLength: 2000 }
         resourceKey: { $ref: '#/components/schemas/ResourceKey' }
         remediation: { type: string, maxLength: 2000 }
+    AasValidationKind:
+      type: string
+      enum: [element, submodel, shell, conceptDescription]
+    AasValidationRequest:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, value]
+          properties:
+            kind: { $ref: '#/components/schemas/AasValidationKind' }
+            value: {}
+        - type: object
+          additionalProperties: false
+          required: [kind, format, text]
+          properties:
+            kind: { $ref: '#/components/schemas/AasValidationKind' }
+            format: { type: string, enum: [json, xml] }
+            text: { type: string, maxLength: 20000000 }
+    AasValidationResult:
+      type: object
+      additionalProperties: false
+      required: [violations]
+      properties:
+        violations:
+          type: array
+          items: { $ref: '#/components/schemas/ProblemViolation' }
+        value:
+          description: For the text of an element, the element as JSON.
+          oneOf: [{ type: object, additionalProperties: true }, { type: 'null' }]
+        contents:
+          description: For the text of shells, submodels or concept descriptions, how many of each it holds.
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [shells, submodels, conceptDescriptions]
+              properties:
+                shells: { type: integer, minimum: 0 }
+                submodels: { type: integer, minimum: 0 }
+                conceptDescriptions: { type: integer, minimum: 0 }
+            - type: 'null'
     ValidationResult:
       type: object
       additionalProperties: false

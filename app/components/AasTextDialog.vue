@@ -18,6 +18,7 @@
       <v-divider />
 
       <div class="pa-3">
+        <!-- Shells, submodels and concept descriptions continue with findings, which the plan shows per resource; unparsable text does not. -->
         <v-alert v-if="findings.length > 0" density="compact" :title="t('editor.findings')" type="error">
           <ul class="ps-4 text-body-small">
             <li v-for="finding in findings.slice(0, 6)" :key="`${finding.path}:${finding.message}`">
@@ -39,7 +40,7 @@
         <v-btn :text="t('common.cancel')" @click="close" />
 
         <v-btn-primary
-          :disabled="!checked || (findings.length > 0 && kind === 'element')"
+          :disabled="!checked || (kind === 'element' ? findings.length > 0 : !contents)"
           :loading="busy"
           :text="kind === 'element' ? t('insert.insert') : t('copies.text.review')"
           @click="submit"

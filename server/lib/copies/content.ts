@@ -1,6 +1,7 @@
 import type { JsonObject } from '../aas/outline'
-import { childProperties, hasNamedChildren } from '#shared/aas/defaults'
 import { semanticKey } from '../aas/edits'
+import { formatLocator } from '../aas/keys'
+import { childrenOf, submodelChildren } from '../aas/outline'
 import { isPackagePath } from './source'
 
 // Walks over the AAS JSON a copy writes: the files it carries, the concept
@@ -10,26 +11,25 @@ function isObject (value: unknown): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function childrenOf (container: JsonObject): JsonObject[] {
-  const property = childProperties[String(container.modelType)]
-  const value = property ? container[property] : undefined
-  return Array.isArray(value) ? value.filter(isObject) : []
-}
-
-/** File elements whose value is a file inside the source (not a URL): their idShortPath and that value. */
+/**
+ * File elements whose value is a file inside the source (not a URL), with
+ * their locator and that value; operation variables included, through the
+ * outline's traversal (`Run@input.Manual`).
+ */
 export function packagedFiles (submodel: JsonObject): Array<{ idShortPath: string, location: string }> {
   const files: Array<{ idShortPath: string, location: string }> = []
-  const visit = (container: JsonObject, prefix: string) => {
-    const named = hasNamedChildren(String(container.modelType))
-    for (const [index, child] of childrenOf(container).entries()) {
-      const path = named ? (prefix ? `${prefix}.${String(child.idShort)}` : String(child.idShort)) : `${prefix}[${index}]`
-      if (child.modelType === 'File' && isPackagePath(child.value)) {
-        files.push({ idShortPath: path, location: child.value })
+  const visit = (children: ReturnType<typeof submodelChildren>) => {
+    for (const child of children) {
+      const value = child.value
+      if (isObject(value) && value.modelType === 'File' && isPackagePath(value.value)) {
+        files.push({ idShortPath: formatLocator(child.steps), location: value.value })
       }
-      visit(child, path)
+      if (isObject(value) || Array.isArray(value)) {
+        visit(childrenOf(value as JsonObject | JsonObject[], child.steps))
+      }
     }
   }
-  visit(submodel, '')
+  visit(submodelChildren(submodel))
   return files
 }
 

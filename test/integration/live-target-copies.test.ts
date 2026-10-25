@@ -46,9 +46,9 @@ describe.runIf(testenvAvailable)('copies between a package and a live target', (
 
   it('copies a shell from a package with its submodels, concept description and file, and registers it', async () => {
     const source = packageTarget(new WorkspaceModel(copyEnvironment(prefix), memoryFiles([['/aasx/manual.pdf', manual]])))
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: ids.shellId }], destination: live, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: ids.shellId }], destination: live, dependencies, sameTarget: false, filesAllowed: true })
     expect(plan.resources.filter(resource => !resource.blocked)).toHaveLength(4)
-    const report = await executeCopy({ reader: source, destination: live, scheme, sync, dependencies, destinationShellId: null }, 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
+    const report = await executeCopy({ reader: source, destination: live, scheme, sync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }, 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
 
     expect(report.status).toBe('succeeded')
     expect(report.outcomes.every(outcome => outcome.message === null)).toBe(true)
@@ -64,8 +64,8 @@ describe.runIf(testenvAvailable)('copies between a package and a live target', (
     const files = memoryFiles()
     const model = new WorkspaceModel({ assetAdministrationShells: [], submodels: [], conceptDescriptions: [] }, files)
     const destination = packageTarget(model)
-    const plan = await planCopy({ reader: live, roots: [{ type: 'shell', id: ids.shellId }], destination, dependencies, sameTarget: false })
-    const report = await executeCopy({ reader: live, destination, scheme, sync, dependencies, destinationShellId: null }, 'p2', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
+    const plan = await planCopy({ reader: live, roots: [{ type: 'shell', id: ids.shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
+    const report = await executeCopy({ reader: live, destination, scheme, sync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }, 'p2', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
 
     expect(report.counts).toMatchObject({ created: 4, failed: 0 })
     expect((await model.attachment(ids.documentsId, 'Files[0]')).bytes).toEqual(manual.bytes)
@@ -73,7 +73,7 @@ describe.runIf(testenvAvailable)('copies between a package and a live target', (
 
   it('finds every resource at the destination when planning the same copy again', async () => {
     const source = packageTarget(new WorkspaceModel(copyEnvironment(prefix), memoryFiles([['/aasx/manual.pdf', manual]])))
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: ids.shellId }], destination: live, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: ids.shellId }], destination: live, dependencies, sameTarget: false, filesAllowed: true })
     expect(plan.resources.filter(resource => !resource.blocked).every(resource => resource.exists)).toBe(true)
     expect(plan.defaultCollisionPolicy).toBe('skip_existing')
   })

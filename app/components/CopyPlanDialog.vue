@@ -2,13 +2,38 @@
   <!-- The plan and the report of a paste or an import (package editing
        plan, K4 to K8): what would be written, the policy for identifiers
        that exist, then what was written. The clipboard store opens it. -->
-  <v-dialog max-width="640" :model-value="open" scrollable @update:model-value="value => !value && close()">
+  <!-- Not dismissible while a request runs: its plan or report belongs to this dialog. -->
+  <v-dialog
+    max-width="640"
+    :model-value="open"
+    :persistent="busy"
+    scrollable
+    @update:model-value="value => !value && close()"
+  >
     <DialogCard flush :title="pending?.title ?? ''">
       <div class="pa-4">
         <p class="text-body-medium text-medium-emphasis mt-0 mb-0">
           {{ t('copies.into', { name: destination.data.value?.name ?? '' }) }}
           <template v-if="plan?.sourceLabel"> · {{ plan.sourceLabel }}</template>
         </p>
+
+        <!-- Whose rights apply and what each side allows (DATA-013). -->
+        <div v-if="plan && !report" class="d-flex flex-column ga-1 mt-3 text-body-small">
+          <div v-for="side in facts" :key="side.role" class="d-flex flex-wrap align-center ga-1">
+            <span class="text-medium-emphasis me-1">{{ t(`copies.facts.${side.role}`, { name: side.facts.name }) }}</span>
+            <v-chip :prepend-icon="identityIcons[side.facts.identity]" :text="t(`copies.facts.identity.${side.facts.identity}`)" />
+
+            <template v-if="side.role === 'destination'">
+              <v-chip
+                v-for="item in allowances"
+                :key="item"
+                :color="side.facts[item] ? undefined : 'warning'"
+                :prepend-icon="side.facts[item] ? 'mdi-check' : 'mdi-close'"
+                :text="t(`copies.facts.${item}`)"
+              />
+            </template>
+          </div>
+        </div>
 
         <ProblemAlert v-if="error" class="mt-4" :error="error" />
       </div>
@@ -114,7 +139,7 @@
       </template>
 
       <template #actions>
-        <v-btn :text="report ? t('common.close') : t('common.cancel')" @click="close" />
+        <v-btn :disabled="busy" :text="report ? t('common.close') : t('common.cancel')" @click="close" />
 
         <v-btn-primary
           v-if="!report"
@@ -137,7 +162,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { CollisionPolicy, CopyPlan, CopyReport, CopyResourceOutcome, CopyResourceType } from '#shared/contract'
+  import type { CollisionPolicy, CopyPlan, CopyReport, CopyResourceOutcome, CopyResourceType, CopyTargetFacts } from '#shared/contract'
   import { useQueryCache } from '@pinia/colada'
 
   const { t } = useI18n()
@@ -162,6 +187,11 @@
   // One key per attempt: a repeated request answers with the attempt's report (DATA-015).
   let idempotencyKey = ''
 
+  const identityIcons: Record<CopyTargetFacts['identity'], string> = { user: 'mdi-account-outline', studio: 'mdi-robot-outline', none: 'mdi-lock-open-outline' }
+  const allowances = ['replaceResources', 'conceptDescriptions', 'files'] as const
+  const facts = computed(() => plan.value
+    ? [{ role: 'source' as const, facts: plan.value.source }, { role: 'destination' as const, facts: plan.value.destination }]
+    : [])
   const typeIcons: Record<CopyResourceType, string> = { shell: '$aas', submodel: 'mdi-file-tree-outline', conceptDescription: 'mdi-book-open-page-variant-outline' }
   const statusIcons: Record<CopyResourceOutcome['status'], string> = { created: 'mdi-plus-circle-outline', replaced: 'mdi-swap-horizontal', skipped: 'mdi-minus-circle-outline', failed: 'mdi-alert-circle-outline' }
   const statusColors: Record<CopyResourceOutcome['status'], string> = { created: 'success', replaced: 'info', skipped: 'secondary', failed: 'error' }
@@ -173,6 +203,10 @@
     return status === 'failed' ? 'error' : 'warning'
   })
   const selectedCount = computed(() => plan.value?.resources.filter(resource => resource.blocked === null && !excluded.value.has(resource.key)).length ?? 0)
+
+  const busy = computed(() => planning.value || running.value)
+  // While a request runs, no other paste or import replaces this one.
+  watch(busy, value => (store.busy = value))
 
   watch(pending, async value => {
     plan.value = null
@@ -189,9 +223,15 @@
     }
     planning.value = true
     try {
-      show(await api<CopyPlan>('/copy-plans', { method: 'POST', body: value.request }))
+      const made = await api<CopyPlan>('/copy-plans', { method: 'POST', body: value.request })
+      // Only for the paste it was made for.
+      if (store.pending === value) {
+        show(made)
+      }
     } catch (error_) {
-      error.value = error_
+      if (store.pending === value) {
+        error.value = error_
+      }
     } finally {
       planning.value = false
     }
@@ -215,20 +255,26 @@
   }
 
   async function execute () {
-    if (!plan.value) {
+    // The plan and request this execution belongs to, whatever happens meanwhile.
+    const executing = plan.value
+    const request = store.pending
+    if (!executing) {
       return
     }
     running.value = true
     error.value = null
     try {
-      report.value = await api<CopyReport>(`/copy-plans/${plan.value.id}/executions`, {
+      const result = await api<CopyReport>(`/copy-plans/${executing.id}/executions`, {
         method: 'POST',
         headers: { 'Idempotency-Key': idempotencyKey },
         body: { collisionPolicy: policy.value, confirmed: true, exclude: [...excluded.value] },
       })
+      if (store.pending === request) {
+        report.value = result
+      }
       // A retry of the plan is a new attempt.
       idempotencyKey = globalThis.crypto.randomUUID()
-      await invalidate(['targets', plan.value.destinationTargetId])
+      await invalidate(['targets', executing.destinationTargetId])
       // A package's unsaved changes, in the target list.
       await queryCache.invalidateQueries({ key: ['targets'], exact: true })
     } catch (error_) {

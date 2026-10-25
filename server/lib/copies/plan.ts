@@ -5,6 +5,7 @@ import type { CopyReader } from './source'
 import { verifyConceptDescription, verifyShell, verifySubmodel } from '../aas/edits'
 import { submodelIdsOf } from '../aas/sync'
 import { StudioProblem } from '../problem'
+import { revisionOf } from '../targets/revision'
 import { hasPackagedThumbnail, packagedFilePaths, semanticIdsOf } from './content'
 
 /** A resource the user chose to copy. */
@@ -15,6 +16,8 @@ export interface CopyRoot {
 
 export interface PlannedCopy {
   resources: CopyResourcePlan[]
+  /** The revision of each resource as read, by plan key, which the execution checks (K4). */
+  revisions: Map<string, string>
   allowedCollisionPolicies: CollisionPolicy[]
   defaultCollisionPolicy: CollisionPolicy
   notes: string[]
@@ -27,10 +30,17 @@ export interface PlanInput {
   dependencies: CopyDependencies
   /** Source and destination are the same target. */
   sameTarget: boolean
+  /** The deployment allows file uploads (STUDIO_ALLOW_UPLOADS). */
+  filesAllowed: boolean
 }
 
 function problemText (error: unknown): string {
   return error instanceof StudioProblem ? (error.detail ?? error.title) : 'Internal error.'
+}
+
+/** A resource the source does not have, or a repository it does not have: expected, unlike failures. */
+export function isAbsent (error: unknown): boolean {
+  return error instanceof StudioProblem && (error.code === 'target_resource_not_found' || error.code === 'unsupported_operation')
 }
 
 /** Whether the destination has a resource with this identifier; other failures are not "free". */
@@ -96,6 +106,7 @@ async function read (reader: CopyReader, type: CopyResourceType, id: string): Pr
 export async function planCopy (input: PlanInput): Promise<PlannedCopy> {
   const { reader, destination, dependencies } = input
   const resources: CopyResourcePlan[] = []
+  const revisions = new Map<string, string>()
   const seen = new Set<string>()
   const notes: string[] = []
   const semantics = new Set<string>()
@@ -127,6 +138,7 @@ export async function planCopy (input: PlanInput): Promise<PlannedCopy> {
       return null
     }
     entry.label = labelOf(content)
+    revisions.set(entry.key, revisionOf(content))
     entry.findings = findingsOf(type, content)
     if (entry.findings.length > 0) {
       entry.blocked = 'AAS Core reports findings.'
@@ -171,10 +183,14 @@ export async function planCopy (input: PlanInput): Promise<PlannedCopy> {
       if (seen.has(`conceptDescription:${id}`)) {
         continue
       }
+      // Concepts kept elsewhere are expected; an unreachable source is not.
       try {
         await reader.conceptDescription(id)
-      } catch {
-        continue
+      } catch (error) {
+        if (isAbsent(error)) {
+          continue
+        }
+        throw error
       }
       await add('conceptDescription', id, 'dependency', null)
     }
@@ -185,6 +201,8 @@ export async function planCopy (input: PlanInput): Promise<PlannedCopy> {
   }
   if (!destination.capabilities.files && resources.some(resource => resource.files > 0)) {
     notes.push('The destination keeps no files; File elements keep their paths.')
+  } else if (!input.filesAllowed && resources.some(resource => resource.files > 0)) {
+    notes.push('This deployment does not allow file uploads; File elements keep their paths.')
   }
 
   const collides = resources.some(resource => resource.exists && !resource.blocked)
@@ -199,5 +217,5 @@ export async function planCopy (input: PlanInput): Promise<PlannedCopy> {
   } else if (collides) {
     defaultPolicy = 'skip_existing'
   }
-  return { resources, allowedCollisionPolicies: allowed, defaultCollisionPolicy: defaultPolicy, notes }
+  return { resources, revisions, allowedCollisionPolicies: allowed, defaultCollisionPolicy: defaultPolicy, notes }
 }

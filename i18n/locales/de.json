@@ -1518,6 +1518,18 @@
         "conceptDescriptions": "{count} Konzeptbeschreibung | {count} Konzeptbeschreibungen"
       },
       "empty": "Enthält keine Verwaltungsschale, kein Teilmodell und keine Konzeptbeschreibung."
+    },
+    "facts": {
+      "source": "Liest {name}",
+      "destination": "Schreibt in {name}",
+      "identity": {
+        "user": "mit Ihrem Konto",
+        "studio": "mit dem Dienstkonto von Studio",
+        "none": "ohne Anmeldung"
+      },
+      "replaceResources": "Ersetzen",
+      "conceptDescriptions": "Konzeptbeschreibungen",
+      "files": "Dateien"
     }
   }
 }

@@ -1314,6 +1314,18 @@
         "conceptDescriptions": "{count} description de concept | {count} descriptions de concept"
       },
       "empty": "Ne contient ni shell, ni sous-modèle, ni description de concept."
+    },
+    "facts": {
+      "source": "Lit {name}",
+      "destination": "Écrit dans {name}",
+      "identity": {
+        "user": "avec votre compte",
+        "studio": "avec le compte de service de Studio",
+        "none": "sans connexion"
+      },
+      "replaceResources": "Remplacer",
+      "conceptDescriptions": "Descriptions de concept",
+      "files": "Fichiers"
     }
   }
 }

@@ -1314,6 +1314,18 @@
         "conceptDescriptions": "{count} 个概念描述"
       },
       "empty": "不包含管理壳、子模型或概念描述。"
+    },
+    "facts": {
+      "source": "读取 {name}",
+      "destination": "写入 {name}",
+      "identity": {
+        "user": "使用您的账户",
+        "studio": "使用 Studio 的服务账户",
+        "none": "无需登录"
+      },
+      "replaceResources": "替换",
+      "conceptDescriptions": "概念描述",
+      "files": "文件"
     }
   }
 }

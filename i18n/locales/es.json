@@ -1314,6 +1314,18 @@
         "conceptDescriptions": "{count} descripción de concepto | {count} descripciones de concepto"
       },
       "empty": "No contiene ninguna AAS, submodelo ni descripción de concepto."
+    },
+    "facts": {
+      "source": "Lee {name}",
+      "destination": "Escribe en {name}",
+      "identity": {
+        "user": "con su cuenta",
+        "studio": "con la cuenta de servicio de Studio",
+        "none": "sin inicio de sesión"
+      },
+      "replaceResources": "Reemplazar",
+      "conceptDescriptions": "Descripciones de concepto",
+      "files": "Archivos"
     }
   }
 }

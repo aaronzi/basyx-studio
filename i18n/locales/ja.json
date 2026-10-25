@@ -1314,6 +1314,18 @@
         "conceptDescriptions": "コンセプト記述 {count} 件"
       },
       "empty": "シェル、サブモデル、コンセプト記述のいずれも含まれていません。"
+    },
+    "facts": {
+      "source": "{name} から読み取り",
+      "destination": "{name} に書き込み",
+      "identity": {
+        "user": "あなたのアカウントで",
+        "studio": "Studio のサービスアカウントで",
+        "none": "サインインなしで"
+      },
+      "replaceResources": "置き換え",
+      "conceptDescriptions": "コンセプト記述",
+      "files": "ファイル"
     }
   }
 }

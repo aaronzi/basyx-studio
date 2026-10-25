@@ -1,6 +1,8 @@
 import type { JsonObject } from '../aas/outline'
 import type { AasTarget, BinaryContent } from '../targets/aas-target'
 import type { PackagedFile } from '../workspaces/package'
+import { parseLocator } from '../aas/keys'
+import { navigate, submodelChildren } from '../aas/outline'
 import { StudioProblem } from '../problem'
 
 /**
@@ -27,18 +29,16 @@ export function isPackagePath (value: unknown): value is string {
   return typeof value === 'string' && value !== '' && !/^[a-z][\w+.-]*:/i.test(value)
 }
 
-/** The element at an idShortPath (`A.B[0].C`) inside a submodel. */
-function elementAt (submodel: JsonObject, idShortPath: string): JsonObject | undefined {
-  let children = objects(submodel.submodelElements)
-  let current: JsonObject | undefined
-  for (const step of idShortPath.match(/[^.[\]]+|\[\d+\]/g) ?? []) {
-    current = step.startsWith('[') ? children[Number(step.slice(1, -1))] : children.find(child => child.idShort === step)
-    if (!current) {
-      return undefined
-    }
-    children = objects(current.value ?? current.statements ?? current.annotations)
-  }
-  return current
+/** The element at a locator (`A.B[0].C`, `Run@input.Manual`) inside a submodel. */
+function elementAt (submodel: JsonObject, locator: string): JsonObject | undefined {
+  const [first, ...rest] = parseLocator(locator)
+  const top = first?.kind === 'idShort' ? submodelChildren(submodel).find(child => child.label === first.idShort) : undefined
+  const found = top && isObject(top.value) ? navigate(top.value, rest) : undefined
+  return isObject(found) ? found : undefined
+}
+
+function isObject (value: unknown): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 /** An AAS environment, e.g. from the system clipboard or an imported AASX with its files. */

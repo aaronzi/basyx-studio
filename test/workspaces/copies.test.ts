@@ -1,5 +1,7 @@
 import type { CopyDependencies } from '#shared/contract'
 import type { JsonObject } from '~~/server/lib/aas/outline'
+import type { CopyContext } from '~~/server/lib/copies/execute'
+import type { AasTarget } from '~~/server/lib/targets/aas-target'
 import { describe, expect, it } from 'vitest'
 import { toAasXml } from '~~/server/lib/aas/xml'
 import { packagedFilePaths, rewriteReferences, semanticIdsOf } from '~~/server/lib/copies/content'
@@ -8,6 +10,7 @@ import { planCopy } from '~~/server/lib/copies/plan'
 import { allRoots, collectEnvironment, exportEnvironment } from '~~/server/lib/copies/serialize'
 import { EnvironmentReader } from '~~/server/lib/copies/source'
 import { checkPastedText, parsePastedElement, parsePastedText } from '~~/server/lib/copies/text'
+import { StudioProblem } from '~~/server/lib/problem'
 import { WorkspaceModel } from '~~/server/lib/workspaces/model'
 import { extractEnvironment, packEnvironment } from '~~/server/lib/workspaces/package'
 import { copyEnvironment, copyIds, manual, memoryFiles, packageTarget } from '../support/copies'
@@ -45,7 +48,7 @@ describe('copy content', () => {
 describe('copy plans', () => {
   it('lists a shell with its submodels, the concept descriptions the source has and the files', async () => {
     const { source, destination } = packages()
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
     expect(plan.resources.map(resource => [resource.resourceType, resource.identifier, resource.role, resource.files])).toEqual([
       ['shell', shellId, 'root', 0],
       ['submodel', nameplateId, 'dependency', 0],
@@ -62,7 +65,7 @@ describe('copy plans', () => {
 
   it('leaves out the submodels and concepts the user did not ask for', async () => {
     const { source, destination } = packages()
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies: { ...dependencies, submodels: 'none', conceptDescriptions: 'none' }, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies: { ...dependencies, submodels: 'none', conceptDescriptions: 'none' }, sameTarget: false, filesAllowed: true })
     expect(plan.resources.map(resource => resource.resourceType)).toEqual(['shell'])
   })
 })
@@ -70,8 +73,8 @@ describe('copy plans', () => {
 describe('copy execution', () => {
   it('copies a shell with its submodels, concept description and files into another package', async () => {
     const { source, destination, destinationModel, destinationFiles } = packages()
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false })
-    const report = await executeCopy({ reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null }, 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
+    const report = await executeCopy({ reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }, 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
 
     expect(report.status).toBe('succeeded')
     expect(report.counts).toMatchObject({ planned: 4, created: 4, failed: 0 })
@@ -88,10 +91,10 @@ describe('copy execution', () => {
   it('refuses before writing when an identifier exists, and skips or replaces on request', async () => {
     const { source, destination, destinationModel } = packages()
     destinationModel.createSubmodel({ modelType: 'Submodel', id: nameplateId, idShort: 'OldNameplate' })
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
     expect(plan.resources.find(resource => resource.identifier === nameplateId)!.exists).toBe(true)
     expect(plan.defaultCollisionPolicy).toBe('skip_existing')
-    const context = { reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null }
+    const context = { reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }
 
     await expect(executeCopy(context, 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())).rejects.toMatchObject({ code: 'identifier_conflict' })
     expect(() => destinationModel.shell(shellId)).toThrow()
@@ -109,10 +112,10 @@ describe('copy execution', () => {
     const files = memoryFiles([['/aasx/manual.pdf', manual]])
     const model = new WorkspaceModel(environment(), files)
     const target = targetOf(model)
-    const plan = await planCopy({ reader: target, roots: [{ type: 'shell', id: shellId }], destination: target, dependencies, sameTarget: true })
+    const plan = await planCopy({ reader: target, roots: [{ type: 'shell', id: shellId }], destination: target, dependencies, sameTarget: true, filesAllowed: true })
     expect(plan.defaultCollisionPolicy).toBe('new_identifiers')
     expect(plan.allowedCollisionPolicies).not.toContain('replace')
-    const report = await executeCopy({ reader: target, destination: target, scheme, sync: noSync, dependencies, destinationShellId: null }, 'p1', plan.resources, 'new_identifiers', new Set(), newCopyRun())
+    const report = await executeCopy({ reader: target, destination: target, scheme, sync: noSync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }, 'p1', plan.resources, 'new_identifiers', new Set(), newCopyRun())
 
     const byId = new Map(report.outcomes.map(outcome => [outcome.identifier, outcome]))
     // The concept keeps its identifier and exists already.
@@ -129,9 +132,9 @@ describe('copy execution', () => {
 
   it('skips on a second run what the first run wrote, with the same identifiers (DATA-015)', async () => {
     const { source, destination, destinationModel } = packages()
-    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
     const run = newCopyRun()
-    const context = { reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null }
+    const context = { reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions }
     const first = await executeCopy(context, 'p1', plan.resources, 'new_identifiers', new Set(), run)
     const second = await executeCopy(context, 'p1', plan.resources, 'new_identifiers', new Set(), run)
     expect(second.counts).toMatchObject({ created: 0, skipped: 4 })
@@ -142,9 +145,9 @@ describe('copy execution', () => {
   it('references a pasted submodel from the destination shell and leaves out excluded resources', async () => {
     const { source, destination, destinationModel } = packages()
     destinationModel.createShell({ modelType: 'AssetAdministrationShell', id: 'urn:test:aas:line', assetInformation: { assetKind: 'Instance', globalAssetId: 'urn:test:asset:line' } })
-    const plan = await planCopy({ reader: source, roots: [{ type: 'submodel', id: nameplateId }], destination, dependencies, sameTarget: false })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'submodel', id: nameplateId }], destination, dependencies, sameTarget: false, filesAllowed: true })
     const concept = plan.resources.find(resource => resource.resourceType === 'conceptDescription')!
-    const report = await executeCopy({ reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: 'urn:test:aas:line' }, 'p1', plan.resources, 'fail_without_changes', new Set([concept.key]), newCopyRun())
+    const report = await executeCopy({ reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: 'urn:test:aas:line', filesAllowed: true, revisions: plan.revisions }, 'p1', plan.resources, 'fail_without_changes', new Set([concept.key]), newCopyRun())
     expect(report.outcomes.map(outcome => outcome.resourceType)).toEqual(['submodel'])
     expect(destinationModel.submodelIds('urn:test:aas:line')).toEqual([nameplateId])
     expect(() => destinationModel.conceptDescription(conceptId)).toThrow()
@@ -221,5 +224,90 @@ describe('exports', () => {
       { type: 'submodel', id: 'urn:test:sm:alone' },
       { type: 'conceptDescription', id: conceptId },
     ])
+  })
+})
+
+describe('review findings', () => {
+  const context = (source: AasTarget, destination: AasTarget, plan: { revisions: Map<string, string> }, extra: Partial<CopyContext> = {}): CopyContext =>
+    ({ reader: source, destination, scheme, sync: noSync, dependencies, destinationShellId: null, filesAllowed: true, revisions: plan.revisions, ...extra })
+
+  it('refuses to run a plan whose source changed since, before writing anything', async () => {
+    const sourceModel = new WorkspaceModel(environment(), memoryFiles([['/aasx/manual.pdf', manual]]))
+    const { destination, destinationModel } = packages()
+    const source = targetOf(sourceModel)
+    const plan = await planCopy({ reader: source, roots: [{ type: 'shell', id: shellId }], destination, dependencies, sameTarget: false, filesAllowed: true })
+    sourceModel.removeSubmodelRef(shellId, documentsId)
+    await expect(executeCopy(context(source, destination, plan), 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun()))
+      .rejects
+      .toMatchObject({ code: 'revision_conflict' })
+    expect(destinationModel.listShells(10, undefined).items).toHaveLength(0)
+  })
+
+  it('completes on a retry the steps after a written submodel that failed', async () => {
+    const { source, destination, destinationModel } = packages()
+    destinationModel.createShell({ modelType: 'AssetAdministrationShell', id: 'urn:test:aas:line', assetInformation: { assetKind: 'Instance', globalAssetId: 'urn:test:asset:line' } })
+    const plan = await planCopy({ reader: source, roots: [{ type: 'submodel', id: documentsId }], destination, dependencies, sameTarget: false, filesAllowed: true })
+    const run = newCopyRun()
+    let failing = true
+    const flaky = new Proxy(destination, {
+      get: (target, name) => name === 'addSubmodelRef' && failing
+        ? async () => {
+          throw new StudioProblem('target_unreachable', 'The target is down.')
+        }
+        : Reflect.get(target, name),
+    })
+    const first = await executeCopy(context(source, flaky, plan, { destinationShellId: 'urn:test:aas:line' }), 'p1', plan.resources, 'fail_without_changes', new Set(), run)
+    expect(first.outcomes[0]).toMatchObject({ status: 'failed', message: expect.stringMatching(/^Written, but a later step failed/) })
+    failing = false
+    const second = await executeCopy(context(source, flaky, plan, { destinationShellId: 'urn:test:aas:line' }), 'p1', plan.resources, 'fail_without_changes', new Set(), run)
+    expect(second.outcomes[0]).toMatchObject({ status: 'created' })
+    expect(destinationModel.submodelIds('urn:test:aas:line')).toEqual([documentsId])
+  })
+
+  it('copies no files where the deployment allows no uploads, and says so', async () => {
+    const { source, destination, destinationFiles } = packages()
+    const plan = await planCopy({ reader: source, roots: [{ type: 'submodel', id: documentsId }], destination, dependencies, sameTarget: false, filesAllowed: false })
+    expect(plan.notes).toContainEqual(expect.stringMatching(/does not allow file uploads/))
+    const report = await executeCopy(context(source, destination, plan, { filesAllowed: false }), 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
+    expect(report.outcomes[0]!.message).toMatch(/1 file\(s\) were not copied/)
+    expect(destinationFiles.parts.size).toBe(0)
+  })
+
+  it('copies and exports files of operation variables', async () => {
+    const env = environment()
+    ;(env.submodels as JsonObject[])[1]!.submodelElements = [{
+      modelType: 'Operation',
+      idShort: 'Print',
+      inputVariables: [{ value: { modelType: 'File', idShort: 'Manual', contentType: 'application/pdf', value: '/aasx/manual.pdf' } }],
+    }]
+    const source = targetOf(new WorkspaceModel(env, memoryFiles([['/aasx/manual.pdf', manual]])))
+    const { destination, destinationModel } = packages()
+    expect(packagedFilePaths((env.submodels as JsonObject[])[1]!)).toEqual(['Print@input.Manual'])
+    const plan = await planCopy({ reader: source, roots: [{ type: 'submodel', id: documentsId }], destination, dependencies, sameTarget: false, filesAllowed: true })
+    await executeCopy(context(source, destination, plan), 'p1', plan.resources, 'fail_without_changes', new Set(), newCopyRun())
+    expect((await destinationModel.attachment(documentsId, 'Print@input.Manual')).bytes).toEqual(manual.bytes)
+    const { files } = await collectEnvironment(new EnvironmentReader(env, [{ path: '/aasx/manual.pdf', contentType: 'application/pdf', bytes: manual.bytes }]), [{ type: 'submodel', id: documentsId }])
+    expect(files.map(file => file.path)).toEqual(['/aasx/manual.pdf'])
+  })
+
+  it('keeps the spec of a packed environment when a file has its usual path', async () => {
+    const env = environment()
+    ;((env.submodels as JsonObject[])[1]!.submodelElements as JsonObject[])[0]!.value = [{ modelType: 'File', contentType: 'application/json', value: '/aasx/data.json' }]
+    const bytes = await packEnvironment(env, [{ path: '/aasx/data.json', contentType: 'application/json', bytes: new Uint8Array([7]) }])
+    const extracted = await extractEnvironment(bytes, 'aasx')
+    expect((extracted.environment.assetAdministrationShells as JsonObject[])[0]!.id).toBe(shellId)
+    expect(extracted.files).toContainEqual({ path: '/aasx/data.json', contentType: 'application/json', bytes: new Uint8Array([7]) })
+  })
+
+  it('fails an export when the source fails, instead of leaving content out', async () => {
+    const { source } = packages()
+    const failing = new Proxy(source, {
+      get: (target, name) => name === 'submodel'
+        ? async () => {
+          throw new StudioProblem('target_unreachable', 'The target is down.')
+        }
+        : Reflect.get(target, name),
+    })
+    await expect(collectEnvironment(failing, [{ type: 'shell', id: shellId }])).rejects.toMatchObject({ code: 'target_unreachable' })
   })
 })

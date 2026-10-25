@@ -82,8 +82,29 @@ export interface CopyResourcePlan {
   findings: string[]
 }
 
+/**
+ * What a copy may do at a target, for the plan the user confirms (DATA-013):
+ * whose rights the target checks, and what its capabilities and the
+ * deployment's switches allow. The target still checks every write.
+ */
+export interface CopyTargetFacts {
+  targetId: string | null
+  name: string
+  kind: 'live' | 'workspace' | 'text'
+  /** The signed-in user's rights, Studio's service account's, or none (unsecured, a package, text). */
+  identity: 'user' | 'studio' | 'none'
+  createResources: boolean
+  /** Existing resources can be replaced (structural writes). */
+  replaceResources: boolean
+  conceptDescriptions: boolean
+  /** Files can be written: the target keeps them and the deployment allows uploads. */
+  files: boolean
+}
+
 export interface CopyPlan {
   id: string
+  source: CopyTargetFacts
+  destination: CopyTargetFacts
   sourceTargetId: string | null
   /** The file or text the copy reads, for the dialog's title. */
   sourceLabel: string

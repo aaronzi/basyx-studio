@@ -22,9 +22,17 @@ export interface StoredCopyPlan {
   roots: CopyRoot[]
   dependencies: CopyDependencies
   destinationShellId: string | null
+  /** The revision of each resource as the plan read it, by plan key; never sent to the browser. */
+  revisions: Map<string, string>
   run: CopyRun
-  /** Reports by `Idempotency-Key`: a repeated request answers with its first report. */
-  reports: Map<string, CopyReport>
+  /**
+   * Executions by `Idempotency-Key`, registered before the first await: a
+   * repeated request, even one sent while the first still runs, shares its
+   * report (DATA-015).
+   */
+  executions: Map<string, Promise<CopyReport>>
+  /** The last execution of the plan; the next one waits for it, as they share `run`. */
+  tail: Promise<unknown>
 }
 
 /** Copy plans of this Studio Service process, in memory (K8). */
