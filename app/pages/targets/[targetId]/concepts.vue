@@ -404,15 +404,27 @@
   // Undo and redo are the package bar's (package editing plan, H5).
   onWorkspaceRestored(() => targetId.value, onRestored)
 
-  // The palette offers the page's actions in edit mode (L6).
-  watch([canWrite, selectedKey], ([writable, key]) => {
-    structureActions.set(writable
-      ? [
-        { key: 'cd:new', title: t('cd.new'), icon: 'mdi-plus', run: () => (adding.value = true) },
-        { key: 'cd:json', title: t('cd.fromJson'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
-        ...(key ? [{ key: 'cd:delete', title: t('cd.delete'), icon: 'mdi-delete-outline', run: () => askDelete(key, rowName(key)) }] : []),
-      ]
-      : [])
+  // ⌘C copies the selected concept description, ⌘V pastes a copied one (K10).
+  const clipboardActions = useClipboardCommands(
+    () => selectedKey.value ? { title: t('palette.structure.copy', { name: rowName(selectedKey.value) }), run: () => copies.copyConceptDescription(targetId.value, selectedKey.value!, rowName(selectedKey.value!)) } : null,
+    () => {
+      const concept = canWrite.value ? copies.pasteable('conceptDescription') : null
+      return concept ? { title: t('copies.pasteInto', { name: concept.label }), run: () => copies.paste(targetId.value) } : null
+    },
+  )
+
+  // The palette offers the page's actions in edit mode (L6), and copy and paste.
+  watch([canWrite, selectedKey, clipboardActions], ([writable, key, clipboard]) => {
+    structureActions.set([
+      ...clipboard,
+      ...(writable
+        ? [
+          { key: 'cd:new', title: t('cd.new'), icon: 'mdi-plus', run: () => (adding.value = true) },
+          { key: 'cd:json', title: t('cd.fromJson'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
+          ...(key ? [{ key: 'cd:delete', title: t('cd.delete'), icon: 'mdi-delete-outline', run: () => askDelete(key, rowName(key)) }] : []),
+        ]
+        : []),
+    ])
   }, { immediate: true })
   onBeforeUnmount(() => structureActions.set([]))
 

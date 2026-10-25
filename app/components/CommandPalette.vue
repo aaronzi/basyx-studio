@@ -143,6 +143,7 @@
   }
 
   const structureActions = useStructureActionsStore()
+  const copies = useCopyActions()
 
   const actions = computed<PaletteItem[]>(() => {
     const base = props.targetId ? `/targets/${props.targetId}` : null
@@ -167,9 +168,13 @@
         items.push({ key: 'concepts', group: '', title: t('palette.actions.concepts'), icon: 'mdi-book-open-page-variant-outline', run: () => router.push(`${base}/concepts`) })
       }
     }
-    // The selected node's structure actions, in edit mode.
-    if (ui.editing) {
-      items.push(...structureActions.actions.map(action => ({ ...action, group: '' })))
+    // The page's copy and paste always (K10), the selected node's structure actions in edit mode.
+    items.push(...structureActions.actions
+      .filter(action => ui.editing || action.key.startsWith('clipboard:'))
+      .map(action => ({ ...action, group: '' })))
+    // AAS JSON or XML from the system clipboard into the target (K9).
+    if (base && ui.editing && target.data.value?.capabilities.createResources) {
+      items.push({ key: 'paste-text', group: '', title: t('copies.pasteText'), icon: 'mdi-clipboard-text-outline', run: () => copies.pasteText(target.data.value!.id) })
     }
     if (session.isAdmin) {
       items.push({ key: 'infrastructures', group: '', title: t('palette.actions.infrastructures'), icon: 'mdi-server-plus-outline', run: () => panel.open('infrastructures') })

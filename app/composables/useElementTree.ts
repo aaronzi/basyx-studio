@@ -1,13 +1,13 @@
 import type { ElementModelType } from '#shared/aas/defaults'
 import type { EffectiveRights, ElementDetail, SubmodelRef, Target, TargetCapabilities } from '#shared/contract'
-import type { InjectionKey } from 'vue'
+import type { ComputedRef, InjectionKey } from 'vue'
+import type { ClipboardCommand } from '~/composables/useClipboardCommands'
 import type { LiveSignal } from '~/composables/useShellOverview'
 import type { ShellTreeItem } from '~/composables/useShellTrees'
 import type { StructureAction } from '~/stores/structureActions'
 import type { DetailsMode } from '~/utils/aas'
 import type { CreatingElement } from '~/utils/editor'
 import { useQueryCache } from '@pinia/colada'
-import { useHotkey } from 'vuetify'
 import { childTypesFor, isContainerType, newElement, uniqueIdShort } from '#shared/aas/defaults'
 import { semanticLabel } from '#shared/aas/semantic-label'
 import { noCapabilities } from '#shared/contract'
@@ -448,27 +448,26 @@ export function useElementTree (options: ElementTreeOptions) {
   })
   onBeforeUnmount(() => globalThis.removeEventListener('keydown', onKeydown))
 
-  // The selected node's actions are in the command palette too (U3).
+  // The selected node's actions are in the command palette too (U3), and
+  // copy and paste with their shortcuts (bindClipboardKeys).
   const structureActions = useStructureActionsStore()
+  const clipboardActions = shallowRef<ComputedRef<StructureAction[]> | null>(null)
   watchEffect(() => {
     const item = selectedItem.value
+    // Copy and paste with their shortcuts, in view mode too where they copy.
+    const actions: StructureAction[] = [...clipboardActions.value?.value ?? []]
     if (!canEditStructure.value || !item || !hasActions(item)) {
-      structureActions.set([])
+      structureActions.set(actions)
       return
     }
-    const actions: StructureAction[] = []
     if (isContainerItem(item)) {
       actions.push(
         { key: 'add', title: t('palette.structure.add', { name: item.title }), icon: 'mdi-plus', run: () => void startCreate(item, item.modelType === 'SubmodelElementList' ? null : 'Property') },
         { key: 'json', title: t('palette.structure.json', { name: item.title }), icon: 'mdi-code-json', run: () => (jsonTarget.value = item) },
-        ...(clipboardStore.copied
-          ? [{ key: 'paste', title: t('palette.structure.paste', { name: item.title }), icon: 'mdi-content-paste', run: () => void pasteInto(item) }]
-          : []),
       )
     }
     if (item.elementKey) {
       actions.push(
-        { key: 'copy', title: t('palette.structure.copy', { name: item.title }), icon: 'mdi-content-copy', run: () => void copyElement(item) },
         { key: 'duplicate', title: t('palette.structure.duplicate', { name: item.title }), icon: 'mdi-content-duplicate', run: () => void duplicate(item) },
         { key: 'delete', title: t('palette.structure.delete', { name: item.title }), icon: 'mdi-delete-outline', run: () => (pendingDelete.value = item) },
       )
@@ -623,38 +622,27 @@ export function useElementTree (options: ElementTreeOptions) {
   }
 
   /**
-   * ⌘C and ⌘V (Ctrl elsewhere) outside text fields (package editing plan,
-   * K10): the selected element, else the page's own resource; selected text
-   * keeps the browser's copy. Pasting needs edit mode (UX-006).
+   * ⌘C and ⌘V and their palette entries (package editing plan, K10): the
+   * selected element first, else what the page copies or pastes (its shell
+   * or submodel, a copied resource). Pasting an element needs edit mode (UX-006).
    */
-  function bindClipboardKeys (page: { copy?: () => unknown, paste?: () => unknown }) {
-    const hasTextSelection = () => (globalThis.getSelection?.()?.toString() ?? '') !== ''
-    useHotkey('cmd+c', event => {
-      if (hasTextSelection()) {
-        return
-      }
-      const item = selectedItem.value
-      if (item?.elementKey && !item.draft && !item.variableGroup) {
-        event.preventDefault()
-        void copyElement(item)
-      } else if (page.copy) {
-        event.preventDefault()
-        void page.copy()
-      }
-    }, { inputs: false })
-    useHotkey('cmd+v', event => {
-      if (!canEditStructure.value) {
-        return
-      }
-      const item = selectedItem.value
-      if (clipboardStore.copied && item && isContainerItem(item)) {
-        event.preventDefault()
-        void pasteInto(item)
-      } else if (page.paste) {
-        event.preventDefault()
-        void page.paste()
-      }
-    }, { inputs: false })
+  function bindClipboardKeys (page: { copy?: () => ClipboardCommand | null, paste?: () => ClipboardCommand | null }) {
+    clipboardActions.value = useClipboardCommands(
+      () => {
+        const item = selectedItem.value
+        if (item?.elementKey && !item.draft && !item.variableGroup) {
+          return { title: t('palette.structure.copy', { name: item.title }), run: () => copyElement(item) }
+        }
+        return page.copy?.() ?? null
+      },
+      () => {
+        const item = selectedItem.value
+        if (canEditStructure.value && clipboardStore.copied && item && isContainerItem(item)) {
+          return { title: t('palette.structure.paste', { name: item.title }), run: () => pasteInto(item) }
+        }
+        return page.paste?.() ?? null
+      },
+    )
   }
 
   async function duplicate (item: ShellTreeItem) {

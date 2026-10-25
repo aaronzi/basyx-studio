@@ -82,10 +82,11 @@ test('lays out the shell header by the width the content area has (H2 to H4)', a
   const exportButton = await header.getByRole('button', { name: 'Export' }).boundingBox()
   expect(exportButton!.y).toBeGreaterThan(title!.y + title!.height)
 
-  // Narrow: everything in the menu, the title on one line.
+  // Narrow: everything in the menu, the title with the card's width beside the menu button.
   await page.setViewportSize({ width: 1300, height: 900 })
   await expect(header.getByRole('button', { name: 'Export' })).toHaveCount(0)
   await header.getByRole('button', { name: 'More actions' }).click()
   await expect(page.getByText('AASX package', { exact: true })).toBeVisible()
-  expect((await header.getByRole('heading').boundingBox())!.height).toBeLessThan(40)
+  const card = (await header.boundingBox())!
+  expect((await header.getByRole('heading').boundingBox())!.width).toBeGreaterThan(card.width - 150)
 })

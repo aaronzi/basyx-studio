@@ -48,7 +48,9 @@ test.afterEach(async () => {
 test('creates a shell with an empty submodel through the wizard', async ({ page }) => {
   await page.goto(`/targets/${targetId}/shells`)
   await setMode(page, 'Edit')
+  // New or pasted, from the list's menu.
   await page.getByRole('button', { name: 'New shell' }).click()
+  await page.getByRole('listitem').filter({ hasText: /^New shell$/ }).click()
 
   const dialog = page.getByRole('dialog')
   const idShort = dialog.getByRole('textbox', { name: 'idShort' })

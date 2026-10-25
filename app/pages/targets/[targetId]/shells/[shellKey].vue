@@ -459,7 +459,17 @@
   const copyShell = () => copies.copyShell(targetId.value, shellKey.value, shellLabel.value)
   const pastedSubmodel = computed(() => canEditShell.value ? copies.pasteable('submodel') : null)
   const pasteSubmodel = () => copies.paste(targetId.value, shellKey.value)
-  tree.bindClipboardKeys({ copy: copyShell, paste: () => pastedSubmodel.value && pasteSubmodel() })
+  // ⌘C copies the shell; ⌘V pastes a copied submodel into it, or a copied shell into the target.
+  tree.bindClipboardKeys({
+    copy: () => ({ title: t('palette.structure.copy', { name: shellLabel.value }), run: copyShell }),
+    paste: () => {
+      if (pastedSubmodel.value) {
+        return { title: t('copies.pasteInto', { name: pastedSubmodel.value.label }), run: pasteSubmodel }
+      }
+      const shell = canEditShell.value ? copies.pasteable('shell') : null
+      return shell ? { title: t('copies.pasteInto', { name: shell.label }), run: () => copies.paste(targetId.value) } : null
+    },
+  })
   const alsoDeleteSubmodels = ref(false)
   const deleting = ref(false)
 

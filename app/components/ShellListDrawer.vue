@@ -29,13 +29,37 @@
 
         <!-- Importing adds content without editing any, so it is offered in view mode too. -->
         <div v-if="canCreate || canImport" class="d-flex ga-2 mt-2">
-          <v-btn-secondary
-            v-if="canCreate"
-            class="flex-grow-1"
-            prepend-icon="mdi-plus"
-            :text="t('wizard.newShell')"
-            @click="wizardOpen = true"
-          />
+          <!-- New, or pasted: a copied shell, or AAS JSON or XML text (package
+               editing plan, K2, K9), as the submodel list offers it. -->
+          <v-menu v-if="canCreate">
+            <template #activator="{ props: activator }">
+              <v-btn-secondary
+                v-bind="activator"
+                append-icon="mdi-chevron-down"
+                class="flex-grow-1"
+                prepend-icon="mdi-plus"
+                :text="t('wizard.newShell')"
+              />
+            </template>
+
+            <v-card>
+              <v-list>
+                <v-list-item prepend-icon="mdi-plus" :title="t('wizard.newShell')" @click="wizardOpen = true" />
+
+                <v-divider class="my-1" />
+
+                <v-list-item
+                  v-if="copies.pasteable('shell')"
+                  prepend-icon="mdi-content-paste"
+                  :subtitle="copies.pasteable('shell')!.label"
+                  :title="t('copies.pasteShell')"
+                  @click="copies.paste(targetId)"
+                />
+
+                <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
+              </v-list>
+            </v-card>
+          </v-menu>
 
           <v-btn-secondary
             v-if="canImport"
@@ -44,25 +68,6 @@
             :text="t('upload.action')"
             @click="ui.openUpload()"
           />
-
-          <!-- A copied shell, or AAS JSON or XML text (package editing plan, K2, K9). -->
-          <v-menu v-if="canCreate">
-            <template #activator="{ props: activator }">
-              <v-btn-secondary v-bind="activator" :aria-label="t('copies.paste')" icon="mdi-content-paste" />
-            </template>
-
-            <v-list>
-              <v-list-item
-                v-if="copies.pasteable('shell')"
-                prepend-icon="mdi-content-paste"
-                :subtitle="copies.pasteable('shell')!.label"
-                :title="t('copies.pasteShell')"
-                @click="copies.paste(targetId)"
-              />
-
-              <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
-            </v-list>
-          </v-menu>
         </div>
 
         <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">

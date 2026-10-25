@@ -382,7 +382,14 @@
   // Copy (package editing plan, K1, K10); the list pastes submodels.
   const copies = useCopyActions()
   const copySubmodel = () => submodelKey.value && copies.copySubmodel(targetId.value, submodelKey.value, submodelLabel.value)
-  tree.bindClipboardKeys({ copy: copySubmodel })
+  // ⌘C copies the submodel; ⌘V pastes a copied submodel into the target.
+  tree.bindClipboardKeys({
+    copy: () => submodelKey.value ? { title: t('palette.structure.copy', { name: submodelLabel.value }), run: copySubmodel } : null,
+    paste: () => {
+      const submodel = canCreate.value ? copies.pasteable('submodel') : null
+      return submodel ? { title: t('copies.pasteInto', { name: submodel.label }), run: () => copies.paste(targetId.value) } : null
+    },
+  })
 
   // The header's actions, by how long they stay inline (H3).
   const headerActions = computed<HeaderAction[]>(() => [
