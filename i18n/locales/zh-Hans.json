@@ -1229,5 +1229,72 @@
       "elements": "元素"
     },
     "identifier": "标识符"
+  },
+  "copies": {
+    "copied": "已复制 {name}",
+    "clipboardUnreadable": "无法读取剪贴板。请允许 Studio 读取后重试。",
+    "clipboardEmpty": "剪贴板为空。",
+    "pasteTitle": "粘贴 {name}",
+    "pasteTextTitle": "从剪贴板粘贴",
+    "importTitle": "导入 {name}",
+    "into": "粘贴到 {name}",
+    "planning": "正在检查复制将写入的内容…",
+    "types": {
+      "shell": "管理壳",
+      "submodel": "子模型",
+      "conceptDescription": "概念描述"
+    },
+    "states": {
+      "new": "新建",
+      "exists": "已存在",
+      "blocked": "已排除"
+    },
+    "files": "{count} 个文件",
+    "policy": "如果目标中已存在相同标识符",
+    "policies": {
+      "fail_without_changes": {
+        "title": "停止且不做更改",
+        "text": "只要有一个标识符已存在，就不写入任何内容。"
+      },
+      "skip_existing": {
+        "title": "跳过已存在的",
+        "text": "已存在的资源保持不变，其余的被复制。"
+      },
+      "replace": {
+        "title": "替换已存在的",
+        "text": "已存在的资源被副本覆盖。"
+      },
+      "new_identifiers": {
+        "title": "使用新标识符复制",
+        "text": "管理壳和子模型获得新标识符；已存在的概念描述保持不变。"
+      }
+    },
+    "notAtomic": "每个资源单独写入：如果其中一个失败，之前写入的保持不变。源不会被更改。",
+    "copy": "复制",
+    "retry": "重试",
+    "openShell": "打开管理壳",
+    "openSubmodel": "打开子模型",
+    "report": {
+      "succeeded": "已复制",
+      "partial_success": "部分已复制",
+      "failed": "未复制任何内容",
+      "counts": "创建 {created} · 替换 {replaced} · 跳过 {skipped} · 失败 {failed}"
+    },
+    "statuses": {
+      "created": "已创建",
+      "replaced": "已替换",
+      "skipped": "已跳过",
+      "failed": "失败"
+    },
+    "copyShell": "复制管理壳",
+    "copySubmodel": "复制子模型",
+    "copyConcept": "复制概念描述",
+    "paste": "粘贴",
+    "pasteShell": "粘贴管理壳",
+    "pasteSubmodel": "粘贴子模型",
+    "pasteConcept": "粘贴概念描述",
+    "pasteText": "粘贴 AAS JSON 或 XML",
+    "pasteInto": "粘贴 {name}",
+    "listType": "此列表只包含 {type} 元素；复制的元素是 {copied}。"
   }
 }

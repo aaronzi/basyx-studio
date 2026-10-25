@@ -57,6 +57,19 @@
 
                 <v-list>
                   <v-list-item prepend-icon="mdi-code-json" :title="t('cd.fromJson')" @click="inserting = true" />
+
+                  <!-- A copied concept description, or AAS JSON or XML text (package editing plan, K2, K9). -->
+                  <v-divider class="my-1" />
+
+                  <v-list-item
+                    v-if="copies.pasteable('conceptDescription')"
+                    prepend-icon="mdi-content-paste"
+                    :subtitle="copies.pasteable('conceptDescription')!.label"
+                    :title="t('copies.pasteConcept')"
+                    @click="copies.paste(targetId)"
+                  />
+
+                  <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
                 </v-list>
               </v-menu>
             </v-btn-group>
@@ -103,6 +116,8 @@
 
               <v-list>
                 <v-list-item prepend-icon="mdi-content-copy" :title="t('concepts.copyId')" @click="copy(item.id, t('concepts.id'))" />
+
+                <v-list-item prepend-icon="mdi-content-duplicate" :title="t('copies.copyConcept')" @click="copies.copyConceptDescription(targetId, item.key, item.name)" />
 
                 <v-list-item
                   v-if="canWrite"
@@ -213,6 +228,7 @@
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)
   const openPackages = useOpenPackages(() => targetId.value)
+  const copies = useCopyActions()
   const capabilities = computed<TargetCapabilities>(() => target.data.value?.capabilities ?? noCapabilities)
   // Concept descriptions change like submodels: edit mode and a target that takes structural writes (MVP-6 plan, W4).
   const canWrite = computed(() => ui.editing && capabilities.value.conceptDescriptions && capabilities.value.writeStructure && capabilities.value.createResources)

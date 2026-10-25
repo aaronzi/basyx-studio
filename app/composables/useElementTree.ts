@@ -7,6 +7,7 @@ import type { StructureAction } from '~/stores/structureActions'
 import type { DetailsMode } from '~/utils/aas'
 import type { CreatingElement } from '~/utils/editor'
 import { useQueryCache } from '@pinia/colada'
+import { useHotkey } from 'vuetify'
 import { childTypesFor, isContainerType, newElement, uniqueIdShort } from '#shared/aas/defaults'
 import { semanticLabel } from '#shared/aas/semantic-label'
 import { noCapabilities } from '#shared/contract'
@@ -602,6 +603,15 @@ export function useElementTree (options: ElementTreeOptions) {
       return
     }
     await guard(async () => {
+      // A list takes elements of its own type only (package editing plan, K2).
+      if (parent.modelType === 'SubmodelElementList' && parent.elementKey) {
+        const list = (await structure.read(parent.submodelKey, parent.elementKey)).value as Record<string, unknown>
+        const type = list.typeValueListElement
+        if (typeof type === 'string' && type !== 'SubmodelElement' && type !== copied.element.modelType) {
+          notifications.notify({ text: t('copies.listType', { type, copied: String(copied.element.modelType) }), color: 'error' })
+          return
+        }
+      }
       const revision = await structureRevisionOf(parent)
       const names = (parent.children ?? []).filter(child => !child.more).map(child => child.title)
       const added = await structure.paste(parent.submodelKey, parent.elementKey, revision, copied.element, names, parent.modelType === 'SubmodelElementList')
@@ -610,6 +620,41 @@ export function useElementTree (options: ElementTreeOptions) {
       await afterStructureChange(parent.submodelKey)
       select(itemId(parent.submodelKey, added.key))
     })
+  }
+
+  /**
+   * ⌘C and ⌘V (Ctrl elsewhere) outside text fields (package editing plan,
+   * K10): the selected element, else the page's own resource; selected text
+   * keeps the browser's copy. Pasting needs edit mode (UX-006).
+   */
+  function bindClipboardKeys (page: { copy?: () => unknown, paste?: () => unknown }) {
+    const hasTextSelection = () => (globalThis.getSelection?.()?.toString() ?? '') !== ''
+    useHotkey('cmd+c', event => {
+      if (hasTextSelection()) {
+        return
+      }
+      const item = selectedItem.value
+      if (item?.elementKey && !item.draft && !item.variableGroup) {
+        event.preventDefault()
+        void copyElement(item)
+      } else if (page.copy) {
+        event.preventDefault()
+        void page.copy()
+      }
+    }, { inputs: false })
+    useHotkey('cmd+v', event => {
+      if (!canEditStructure.value) {
+        return
+      }
+      const item = selectedItem.value
+      if (clipboardStore.copied && item && isContainerItem(item)) {
+        event.preventDefault()
+        void pasteInto(item)
+      } else if (page.paste) {
+        event.preventDefault()
+        void page.paste()
+      }
+    }, { inputs: false })
   }
 
   async function duplicate (item: ShellTreeItem) {
@@ -672,6 +717,7 @@ export function useElementTree (options: ElementTreeOptions) {
     select,
     openFromOverview,
     followTabs,
+    bindClipboardKeys,
     onElementChanged,
     // Structure editing
     creating,

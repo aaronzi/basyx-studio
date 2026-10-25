@@ -33,6 +33,19 @@
             <v-list-item prepend-icon="mdi-file-outline" :title="t('wizard.empty')" @click="emptyOpen = true" />
             <v-list-item prepend-icon="mdi-file-document-outline" :title="t('wizard.fromTemplate')" @click="templateOpen = true" />
             <v-list-item prepend-icon="mdi-code-json" :title="t('wizard.fromJson')" @click="jsonOpen = true" />
+
+            <!-- A copied submodel, or AAS JSON or XML text (package editing plan, K2, K9). -->
+            <v-divider class="my-1" />
+
+            <v-list-item
+              v-if="copies.pasteable('submodel')"
+              prepend-icon="mdi-content-paste"
+              :subtitle="copies.pasteable('submodel')!.label"
+              :title="t('copies.pasteSubmodel')"
+              @click="copies.paste(targetId)"
+            />
+
+            <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
           </v-list>
         </v-card>
       </v-menu>
@@ -234,6 +247,7 @@
   const emptyOpen = ref(false)
   const templateOpen = ref(false)
   const jsonOpen = ref(false)
+  const copies = useCopyActions()
 
   const filter = ref<'all' | 'Instance' | 'Template'>('all')
   const kindUnknown = computed(() => target.value?.capabilities.submodelListSource === 'registry')

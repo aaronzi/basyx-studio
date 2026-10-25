@@ -1438,5 +1438,72 @@
       "elements": "Elemente"
     },
     "identifier": "Identifikator"
+  },
+  "copies": {
+    "copied": "{name} kopiert",
+    "clipboardUnreadable": "Die Zwischenablage kann nicht gelesen werden. Erlauben Sie Studio den Zugriff und versuchen Sie es erneut.",
+    "clipboardEmpty": "Die Zwischenablage ist leer.",
+    "pasteTitle": "{name} einfügen",
+    "pasteTextTitle": "Aus der Zwischenablage einfügen",
+    "importTitle": "{name} importieren",
+    "into": "In {name}",
+    "planning": "Prüfe, was die Kopie schreiben würde…",
+    "types": {
+      "shell": "Verwaltungsschale",
+      "submodel": "Teilmodell",
+      "conceptDescription": "Konzeptbeschreibung"
+    },
+    "states": {
+      "new": "Neu",
+      "exists": "Vorhanden",
+      "blocked": "Ausgelassen"
+    },
+    "files": "{count} Datei | {count} Dateien",
+    "policy": "Wenn ein Identifikator am Ziel schon existiert",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Ohne Änderungen abbrechen",
+        "text": "Nichts wird geschrieben, wenn einer der Identifikatoren existiert."
+      },
+      "skip_existing": {
+        "title": "Vorhandenes überspringen",
+        "text": "Vorhandene Ressourcen bleiben, wie sie sind; die übrigen werden kopiert."
+      },
+      "replace": {
+        "title": "Vorhandenes ersetzen",
+        "text": "Vorhandene Ressourcen werden mit der Kopie überschrieben."
+      },
+      "new_identifiers": {
+        "title": "Mit neuen Identifikatoren kopieren",
+        "text": "Verwaltungsschalen und Teilmodelle erhalten neue Identifikatoren; vorhandene Konzeptbeschreibungen bleiben."
+      }
+    },
+    "notAtomic": "Jede Ressource wird einzeln geschrieben: Schlägt eine fehl, bleiben die vorherigen geschrieben. Die Quelle bleibt unverändert.",
+    "copy": "Kopieren",
+    "retry": "Erneut versuchen",
+    "openShell": "Verwaltungsschale öffnen",
+    "openSubmodel": "Teilmodell öffnen",
+    "report": {
+      "succeeded": "Kopiert",
+      "partial_success": "Teilweise kopiert",
+      "failed": "Nichts wurde kopiert",
+      "counts": "{created} erstellt · {replaced} ersetzt · {skipped} übersprungen · {failed} fehlgeschlagen"
+    },
+    "statuses": {
+      "created": "Erstellt",
+      "replaced": "Ersetzt",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen"
+    },
+    "copyShell": "Verwaltungsschale kopieren",
+    "copySubmodel": "Teilmodell kopieren",
+    "copyConcept": "Konzeptbeschreibung kopieren",
+    "paste": "Einfügen",
+    "pasteShell": "Verwaltungsschale einfügen",
+    "pasteSubmodel": "Teilmodell einfügen",
+    "pasteConcept": "Konzeptbeschreibung einfügen",
+    "pasteText": "AAS-JSON oder -XML einfügen",
+    "pasteInto": "{name} einfügen",
+    "listType": "Diese Liste enthält {type}-Elemente; das kopierte Element ist ein {copied}."
   }
 }

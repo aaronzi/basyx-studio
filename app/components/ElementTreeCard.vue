@@ -226,6 +226,13 @@
           @click="jsonTarget = menuItem"
         />
 
+        <v-list-item
+          v-if="menuItem.modelType === 'Submodel'"
+          prepend-icon="mdi-content-duplicate"
+          :title="t('copies.copySubmodel')"
+          @click="copies.copySubmodel(tree.targetId.value, menuItem.submodelKey, menuItem.title)"
+        />
+
         <template v-if="menuItem.modelType === 'Submodel' && capabilities.createResources">
           <v-list-item
             v-if="menuItem.kind === 'Template'"
@@ -310,6 +317,7 @@
   const { mdAndUp } = useDisplay()
   const preferences = usePreferences()
   const tree = injectElementTree()
+  const copies = useCopyActions()
   const unitTypes = new Set(['Property', 'Range'])
   const {
     capabilities,

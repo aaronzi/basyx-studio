@@ -1438,5 +1438,72 @@
       "elements": "Elements"
     },
     "identifier": "Identifier"
+  },
+  "copies": {
+    "copied": "Copied {name}",
+    "clipboardUnreadable": "The clipboard cannot be read. Allow Studio to read it and try again.",
+    "clipboardEmpty": "The clipboard is empty.",
+    "pasteTitle": "Paste {name}",
+    "pasteTextTitle": "Paste from the clipboard",
+    "importTitle": "Import {name}",
+    "into": "Into {name}",
+    "planning": "Checking what the copy would write…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Concept description"
+    },
+    "states": {
+      "new": "New",
+      "exists": "Exists",
+      "blocked": "Left out"
+    },
+    "files": "{count} file | {count} files",
+    "policy": "If an identifier exists at the destination",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Stop without changes",
+        "text": "Nothing is written if one of the identifiers exists."
+      },
+      "skip_existing": {
+        "title": "Skip what exists",
+        "text": "Resources that exist stay as they are; the others are copied."
+      },
+      "replace": {
+        "title": "Replace what exists",
+        "text": "Resources that exist are overwritten with the copy."
+      },
+      "new_identifiers": {
+        "title": "Copy with new identifiers",
+        "text": "Shells and submodels get new identifiers; concept descriptions that exist are kept."
+      }
+    },
+    "notAtomic": "Each resource is written on its own: if one fails, those before it stay written. The source is not changed.",
+    "copy": "Copy",
+    "retry": "Try again",
+    "openShell": "Open shell",
+    "openSubmodel": "Open submodel",
+    "report": {
+      "succeeded": "Copied",
+      "partial_success": "Copied in part",
+      "failed": "Nothing was copied",
+      "counts": "{created} created · {replaced} replaced · {skipped} skipped · {failed} failed"
+    },
+    "statuses": {
+      "created": "Created",
+      "replaced": "Replaced",
+      "skipped": "Skipped",
+      "failed": "Failed"
+    },
+    "copyShell": "Copy shell",
+    "copySubmodel": "Copy submodel",
+    "copyConcept": "Copy concept description",
+    "paste": "Paste",
+    "pasteShell": "Paste shell",
+    "pasteSubmodel": "Paste submodel",
+    "pasteConcept": "Paste concept description",
+    "pasteText": "Paste AAS JSON or XML",
+    "pasteInto": "Paste {name}",
+    "listType": "This list holds {type} elements; the copied element is a {copied}."
   }
 }

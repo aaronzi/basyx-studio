@@ -44,6 +44,25 @@
             :text="t('upload.action')"
             @click="ui.openUpload()"
           />
+
+          <!-- A copied shell, or AAS JSON or XML text (package editing plan, K2, K9). -->
+          <v-menu v-if="canCreate">
+            <template #activator="{ props: activator }">
+              <v-btn-secondary v-bind="activator" :aria-label="t('copies.paste')" icon="mdi-content-paste" />
+            </template>
+
+            <v-list>
+              <v-list-item
+                v-if="copies.pasteable('shell')"
+                prepend-icon="mdi-content-paste"
+                :subtitle="copies.pasteable('shell')!.label"
+                :title="t('copies.pasteShell')"
+                @click="copies.paste(targetId)"
+              />
+
+              <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
+            </v-list>
+          </v-menu>
         </div>
 
         <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">
@@ -220,6 +239,7 @@
   const canCreate = computed(() => ui.editing && Boolean(target.value?.capabilities.createResources))
   const wizardOpen = ref(false)
   const canImport = targetQuery.canImport
+  const copies = useCopyActions()
 
   async function onCreated (result: ShellCreateResult) {
     await queryCache.invalidateQueries({ key: ['targets', props.targetId] })

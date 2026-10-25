@@ -378,11 +378,17 @@
   /** The submodel's row of the tree, for the conversion dialog. */
   const submodelItem = computed(() => submodelKey.value ? tree.trees.lookup(submodelKey.value) : null)
 
+  // Copy (package editing plan, K1, K10); the list pastes submodels.
+  const copies = useCopyActions()
+  const copySubmodel = () => submodelKey.value && copies.copySubmodel(targetId.value, submodelKey.value, submodelLabel.value)
+  tree.bindClipboardKeys({ copy: copySubmodel })
+
   // The header's actions, by how long they stay inline (H3).
   const headerActions = computed<HeaderAction[]>(() => [
     ...(canEdit.value ? [{ id: 'edit', title: t('submodels.edit'), icon: 'mdi-pencil-outline', rank: 1, onClick: () => tree.select(submodelKey.value) }] : []),
     ...(canCreate.value && isTemplate.value ? [{ id: 'convert', title: t('edit.convert'), icon: 'mdi-file-replace-outline', rank: 3, onClick: () => (convertTarget.value = submodelItem.value) }] : []),
     { id: 'export', title: t('shell.export'), icon: 'mdi-download', rank: 2, primary: true, items: exportFormats.value },
+    { id: 'copy', title: t('copies.copySubmodel'), icon: 'mdi-content-copy', rank: 4, menuOnly: true, onClick: copySubmodel },
     ...(canCreate.value ? [{ id: 'add-to-shell', title: t('submodels.addToShell'), icon: 'mdi-link-variant-plus', rank: 4, menuOnly: true, onClick: () => (pickShellOpen.value = true) }] : []),
     ...(canCreate.value ? [{ id: 'delete', title: t('submodels.delete'), icon: 'mdi-delete-outline', rank: 5, danger: true, onClick: openDelete }] : []),
   ])

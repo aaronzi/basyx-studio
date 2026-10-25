@@ -370,10 +370,13 @@
 
     <CommandPalette v-if="!session.needsLogin" :target-id="targetId" />
 
+    <!-- The plan and report of a paste or an import (package editing plan, K4). -->
+    <CopyPlanDialog />
+
     <!-- One import dialog for the current target: the dashboard, the shell list,
          drops and the command palette open it through the UI store. -->
     <UploadDialog
-      v-if="routeTarget.data.value?.capabilities.upload"
+      v-if="routeTarget.data.value && canImportInto(routeTarget.data.value)"
       v-model="ui.uploadOpen"
       :initial-file="ui.uploadFile"
       :target="routeTarget.data.value"

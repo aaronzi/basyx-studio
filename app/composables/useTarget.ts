@@ -15,7 +15,16 @@ export function useTarget (targetId: MaybeRefOrGetter<string>) {
     enabled: () => toValue(targetId) !== '',
   })
   const needsAuthorization = computed(() => query.data.value?.authenticationState === 'required')
-  /** Files can be imported into the target now: it accepts uploads and the user is signed in to it. */
-  const canImport = computed(() => Boolean(query.data.value?.capabilities.upload) && !needsAuthorization.value)
+  /**
+   * Files can be imported into the target now: it accepts uploads, or it is
+   * a package, which imports through a copy plan (package editing plan,
+   * E1), and the user is signed in to it.
+   */
+  const canImport = computed(() => Boolean(query.data.value && canImportInto(query.data.value)) && !needsAuthorization.value)
   return { ...query, needsAuthorization, canImport }
+}
+
+/** Whether files can be imported into a target: a BaSyx upload, or a copy plan into a package. */
+export function canImportInto (target: Target): boolean {
+  return target.capabilities.upload || (target.workspace !== null && target.capabilities.createResources)
 }

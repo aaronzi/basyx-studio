@@ -1229,5 +1229,72 @@
       "elements": "Elementos"
     },
     "identifier": "Identificador"
+  },
+  "copies": {
+    "copied": "{name} copiado",
+    "clipboardUnreadable": "No se puede leer el portapapeles. Permita que Studio lo lea e inténtelo de nuevo.",
+    "clipboardEmpty": "El portapapeles está vacío.",
+    "pasteTitle": "Pegar {name}",
+    "pasteTextTitle": "Pegar desde el portapapeles",
+    "importTitle": "Importar {name}",
+    "into": "En {name}",
+    "planning": "Comprobando qué escribiría la copia…",
+    "types": {
+      "shell": "AAS",
+      "submodel": "Submodelo",
+      "conceptDescription": "Descripción de concepto"
+    },
+    "states": {
+      "new": "Nuevo",
+      "exists": "Existe",
+      "blocked": "Excluido"
+    },
+    "files": "{count} archivo | {count} archivos",
+    "policy": "Si un identificador ya existe en el destino",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Detener sin cambios",
+        "text": "No se escribe nada si alguno de los identificadores existe."
+      },
+      "skip_existing": {
+        "title": "Omitir lo existente",
+        "text": "Los recursos existentes se quedan como están; los demás se copian."
+      },
+      "replace": {
+        "title": "Reemplazar lo existente",
+        "text": "Los recursos existentes se sobrescriben con la copia."
+      },
+      "new_identifiers": {
+        "title": "Copiar con identificadores nuevos",
+        "text": "Las AAS y los submodelos reciben identificadores nuevos; las descripciones de concepto existentes se conservan."
+      }
+    },
+    "notAtomic": "Cada recurso se escribe por separado: si uno falla, los anteriores quedan escritos. El origen no cambia.",
+    "copy": "Copiar",
+    "retry": "Reintentar",
+    "openShell": "Abrir AAS",
+    "openSubmodel": "Abrir submodelo",
+    "report": {
+      "succeeded": "Copiado",
+      "partial_success": "Copiado en parte",
+      "failed": "No se copió nada",
+      "counts": "{created} creados · {replaced} reemplazados · {skipped} omitidos · {failed} fallidos"
+    },
+    "statuses": {
+      "created": "Creado",
+      "replaced": "Reemplazado",
+      "skipped": "Omitido",
+      "failed": "Fallido"
+    },
+    "copyShell": "Copiar AAS",
+    "copySubmodel": "Copiar submodelo",
+    "copyConcept": "Copiar descripción de concepto",
+    "paste": "Pegar",
+    "pasteShell": "Pegar AAS",
+    "pasteSubmodel": "Pegar submodelo",
+    "pasteConcept": "Pegar descripción de concepto",
+    "pasteText": "Pegar JSON o XML de AAS",
+    "pasteInto": "Pegar {name}",
+    "listType": "Esta lista contiene elementos {type}; el elemento copiado es un {copied}."
   }
 }

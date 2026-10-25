@@ -1229,5 +1229,72 @@
       "elements": "Elementen"
     },
     "identifier": "Identifier"
+  },
+  "copies": {
+    "copied": "{name} gekopieerd",
+    "clipboardUnreadable": "Het klembord kan niet worden gelezen. Geef Studio toegang en probeer het opnieuw.",
+    "clipboardEmpty": "Het klembord is leeg.",
+    "pasteTitle": "{name} plakken",
+    "pasteTextTitle": "Plakken van het klembord",
+    "importTitle": "{name} importeren",
+    "into": "In {name}",
+    "planning": "Controleren wat de kopie zou schrijven…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Conceptbeschrijving"
+    },
+    "states": {
+      "new": "Nieuw",
+      "exists": "Bestaat",
+      "blocked": "Weggelaten"
+    },
+    "files": "{count} bestand | {count} bestanden",
+    "policy": "Als een identifier op de bestemming al bestaat",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Stoppen zonder wijzigingen",
+        "text": "Er wordt niets geschreven als een van de identifiers bestaat."
+      },
+      "skip_existing": {
+        "title": "Bestaande overslaan",
+        "text": "Bestaande resources blijven zoals ze zijn; de andere worden gekopieerd."
+      },
+      "replace": {
+        "title": "Bestaande vervangen",
+        "text": "Bestaande resources worden met de kopie overschreven."
+      },
+      "new_identifiers": {
+        "title": "Kopiëren met nieuwe identifiers",
+        "text": "Shells en submodellen krijgen nieuwe identifiers; bestaande conceptbeschrijvingen blijven."
+      }
+    },
+    "notAtomic": "Elke resource wordt afzonderlijk geschreven: mislukt er een, dan blijven de eerdere geschreven. De bron verandert niet.",
+    "copy": "Kopiëren",
+    "retry": "Opnieuw proberen",
+    "openShell": "Shell openen",
+    "openSubmodel": "Submodel openen",
+    "report": {
+      "succeeded": "Gekopieerd",
+      "partial_success": "Deels gekopieerd",
+      "failed": "Niets gekopieerd",
+      "counts": "{created} gemaakt · {replaced} vervangen · {skipped} overgeslagen · {failed} mislukt"
+    },
+    "statuses": {
+      "created": "Gemaakt",
+      "replaced": "Vervangen",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt"
+    },
+    "copyShell": "Shell kopiëren",
+    "copySubmodel": "Submodel kopiëren",
+    "copyConcept": "Conceptbeschrijving kopiëren",
+    "paste": "Plakken",
+    "pasteShell": "Shell plakken",
+    "pasteSubmodel": "Submodel plakken",
+    "pasteConcept": "Conceptbeschrijving plakken",
+    "pasteText": "AAS-JSON of -XML plakken",
+    "pasteInto": "{name} plakken",
+    "listType": "Deze lijst bevat {type}-elementen; het gekopieerde element is een {copied}."
   }
 }

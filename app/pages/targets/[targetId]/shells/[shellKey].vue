@@ -448,9 +448,18 @@
         items: exportFormats.value.map(format => ({ ...format, href: studioUrl.api(`/targets/${targetId.value}/shells/${shellKey.value}/export?format=${format.value}`) })),
       }]
       : []),
+    { id: 'copy', title: t('copies.copyShell'), icon: 'mdi-content-copy', rank: 5, menuOnly: true, onClick: copyShell },
+    ...(pastedSubmodel.value ? [{ id: 'paste', title: t('copies.pasteInto', { name: pastedSubmodel.value.label }), icon: 'mdi-content-paste', rank: 5, menuOnly: true, onClick: pasteSubmodel }] : []),
     ...(globalAssetId.value ? [{ id: 'qr', title: t('qr.show'), icon: 'mdi-qrcode', rank: 5, narrowOnly: true, onClick: () => (qrOpen.value = true) }] : []),
     ...(canDelete.value ? [{ id: 'delete', title: t('shell.delete'), icon: 'mdi-delete-outline', rank: 6, danger: true, onClick: () => (confirmDelete.value = true) }] : []),
   ])
+  // Copy and paste (package editing plan, K1, K2, K10): the shell, and a
+  // copied submodel into it.
+  const copies = useCopyActions()
+  const copyShell = () => copies.copyShell(targetId.value, shellKey.value, shellLabel.value)
+  const pastedSubmodel = computed(() => canEditShell.value ? copies.pasteable('submodel') : null)
+  const pasteSubmodel = () => copies.paste(targetId.value, shellKey.value)
+  tree.bindClipboardKeys({ copy: copyShell, paste: () => pastedSubmodel.value && pasteSubmodel() })
   const alsoDeleteSubmodels = ref(false)
   const deleting = ref(false)
 

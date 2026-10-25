@@ -1229,5 +1229,72 @@
       "elements": "Éléments"
     },
     "identifier": "Identifiant"
+  },
+  "copies": {
+    "copied": "{name} copié",
+    "clipboardUnreadable": "Impossible de lire le presse-papiers. Autorisez Studio à le lire et réessayez.",
+    "clipboardEmpty": "Le presse-papiers est vide.",
+    "pasteTitle": "Coller {name}",
+    "pasteTextTitle": "Coller depuis le presse-papiers",
+    "importTitle": "Importer {name}",
+    "into": "Dans {name}",
+    "planning": "Vérification de ce que la copie écrirait…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Sous-modèle",
+      "conceptDescription": "Description de concept"
+    },
+    "states": {
+      "new": "Nouveau",
+      "exists": "Existe",
+      "blocked": "Exclu"
+    },
+    "files": "{count} fichier | {count} fichiers",
+    "policy": "Si un identifiant existe déjà à la destination",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Arrêter sans modification",
+        "text": "Rien n’est écrit si l’un des identifiants existe."
+      },
+      "skip_existing": {
+        "title": "Ignorer l’existant",
+        "text": "Les ressources existantes restent telles quelles ; les autres sont copiées."
+      },
+      "replace": {
+        "title": "Remplacer l’existant",
+        "text": "Les ressources existantes sont écrasées par la copie."
+      },
+      "new_identifiers": {
+        "title": "Copier avec de nouveaux identifiants",
+        "text": "Les shells et sous-modèles reçoivent de nouveaux identifiants ; les descriptions de concept existantes sont conservées."
+      }
+    },
+    "notAtomic": "Chaque ressource est écrite séparément : si l’une échoue, les précédentes restent écrites. La source n’est pas modifiée.",
+    "copy": "Copier",
+    "retry": "Réessayer",
+    "openShell": "Ouvrir le shell",
+    "openSubmodel": "Ouvrir le sous-modèle",
+    "report": {
+      "succeeded": "Copié",
+      "partial_success": "Copié en partie",
+      "failed": "Rien n’a été copié",
+      "counts": "{created} créés · {replaced} remplacés · {skipped} ignorés · {failed} en échec"
+    },
+    "statuses": {
+      "created": "Créé",
+      "replaced": "Remplacé",
+      "skipped": "Ignoré",
+      "failed": "Échec"
+    },
+    "copyShell": "Copier le shell",
+    "copySubmodel": "Copier le sous-modèle",
+    "copyConcept": "Copier la description de concept",
+    "paste": "Coller",
+    "pasteShell": "Coller le shell",
+    "pasteSubmodel": "Coller le sous-modèle",
+    "pasteConcept": "Coller la description de concept",
+    "pasteText": "Coller du JSON ou XML AAS",
+    "pasteInto": "Coller {name}",
+    "listType": "Cette liste contient des éléments {type} ; l’élément copié est un {copied}."
   }
 }

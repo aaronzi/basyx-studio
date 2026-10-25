@@ -1229,5 +1229,72 @@
       "elements": "要素"
     },
     "identifier": "識別子"
+  },
+  "copies": {
+    "copied": "{name} をコピーしました",
+    "clipboardUnreadable": "クリップボードを読み取れません。Studio に読み取りを許可して、もう一度お試しください。",
+    "clipboardEmpty": "クリップボードは空です。",
+    "pasteTitle": "{name} を貼り付け",
+    "pasteTextTitle": "クリップボードから貼り付け",
+    "importTitle": "{name} をインポート",
+    "into": "貼り付け先: {name}",
+    "planning": "コピーで書き込まれる内容を確認しています…",
+    "types": {
+      "shell": "シェル",
+      "submodel": "サブモデル",
+      "conceptDescription": "コンセプト記述"
+    },
+    "states": {
+      "new": "新規",
+      "exists": "既存",
+      "blocked": "除外"
+    },
+    "files": "{count} 個のファイル",
+    "policy": "識別子が貼り付け先に既に存在する場合",
+    "policies": {
+      "fail_without_changes": {
+        "title": "変更せずに中止",
+        "text": "識別子が一つでも存在すれば、何も書き込みません。"
+      },
+      "skip_existing": {
+        "title": "既存のものをスキップ",
+        "text": "既存のリソースはそのまま残し、それ以外をコピーします。"
+      },
+      "replace": {
+        "title": "既存のものを置き換え",
+        "text": "既存のリソースをコピーで上書きします。"
+      },
+      "new_identifiers": {
+        "title": "新しい識別子でコピー",
+        "text": "シェルとサブモデルに新しい識別子を付けます。既存のコンセプト記述はそのまま残します。"
+      }
+    },
+    "notAtomic": "リソースは一つずつ書き込まれます。途中で失敗しても、それまでに書き込んだものは残ります。コピー元は変更されません。",
+    "copy": "コピー",
+    "retry": "再試行",
+    "openShell": "シェルを開く",
+    "openSubmodel": "サブモデルを開く",
+    "report": {
+      "succeeded": "コピーしました",
+      "partial_success": "一部をコピーしました",
+      "failed": "何もコピーされませんでした",
+      "counts": "作成 {created} · 置換 {replaced} · スキップ {skipped} · 失敗 {failed}"
+    },
+    "statuses": {
+      "created": "作成",
+      "replaced": "置換",
+      "skipped": "スキップ",
+      "failed": "失敗"
+    },
+    "copyShell": "シェルをコピー",
+    "copySubmodel": "サブモデルをコピー",
+    "copyConcept": "コンセプト記述をコピー",
+    "paste": "貼り付け",
+    "pasteShell": "シェルを貼り付け",
+    "pasteSubmodel": "サブモデルを貼り付け",
+    "pasteConcept": "コンセプト記述を貼り付け",
+    "pasteText": "AAS の JSON または XML を貼り付け",
+    "pasteInto": "{name} を貼り付け",
+    "listType": "このリストには {type} 要素だけが入ります。コピーした要素は {copied} です。"
   }
 }
