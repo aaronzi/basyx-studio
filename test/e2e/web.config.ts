@@ -8,6 +8,21 @@ import { defineConfig, devices } from '@playwright/test'
 const port = process.env.STUDIO_E2E_PORT ?? '3000'
 const baseURL = `http://localhost:${port}`
 
+// CI runs the files in shards of about the same duration, each against its
+// own test environment (STUDIO_E2E_SHARD). "other" runs every file that no
+// shard names, so a new file always runs.
+const shards: Record<string, RegExp> = {
+  apps: /\/apps\.spec\.ts$/,
+  models3d: /\/models3d\.spec\.ts$/,
+  content: /\/(viewer|structure|files|edit)\.spec\.ts$/,
+}
+const shard = process.env.STUDIO_E2E_SHARD
+if (shard !== undefined && shard !== 'other' && !(shard in shards)) {
+  throw new Error(`STUDIO_E2E_SHARD must be one of ${[...Object.keys(shards), 'other'].join(', ')}.`)
+}
+const named = shard === undefined || shard === 'other' ? undefined : shards[shard]
+const others = shard === 'other' ? Object.values(shards) : []
+
 export default defineConfig({
   testDir: 'web',
   timeout: 60_000,
@@ -19,9 +34,9 @@ export default defineConfig({
     trace: 'retain-on-failure',
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /mobile\.spec/ },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, ...(named ? { testMatch: named } : {}), testIgnore: [/mobile\.spec/, ...others] },
     // Phone-sized layout (aas-viewer-port plan D10).
-    { name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ },
+    ...(named ? [] : [{ name: 'mobile', use: { ...devices['Pixel 7'] }, testMatch: /mobile\.spec/ }]),
   ],
   webServer: {
     command: 'node .output/server/index.mjs',

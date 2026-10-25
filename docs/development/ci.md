@@ -1,0 +1,91 @@
+# Continuous integration
+
+`.github/workflows/ci.yml` checks every pull request against `main`, every
+push to `main`, and `main` once a night. Its jobs run side by side on
+standard `ubuntu-latest` runners. On a pull request, a job whose files did not
+change is skipped by fixed path rules; `CI result` sums up the run.
+
+## Jobs
+
+| Job | What it proves | Runs on a pull request |
+| --- | --- | --- |
+| Jobs of this run (`changes`) | Decides which jobs run and writes why into its job summary | Always |
+| Lint and translations | `pnpm lint`, `pnpm i18n:check` | Always |
+| Typecheck | `pnpm typecheck` | Always |
+| Unit tests | `pnpm test` | Always |
+| Build hosted Studio and the example apps | `pnpm build`, `pnpm apps:build`; hands the build to the end-to-end jobs | Always |
+| Integration tests against the test environment | `pnpm testenv:smoke`, `pnpm test:integration` | Studio's code, `test/integration`, `test/support`, `test-setup` |
+| End-to-end tests, hosted web (4 shards) | `pnpm test:e2e:web`, `pnpm test:e2e:origins` on the build | Studio's code, the web and origins tests, `test/apps`, `test-setup`, `examples/apps` |
+| End-to-end tests of the packaged desktop app | `pnpm test:e2e:desktop` on an unpacked Linux build | Studio's code, `electron`, `build`, the desktop tests, `test/apps`, `examples/apps` |
+| Local container lifecycle and export/import | `test/integration/containers.test.ts` on the runner's Docker | The container, desktop and database code on the server |
+| Container image build and smoke test | The image, `.github/scripts/image-smoke-test.sh` and the deployment examples | `docker`, `examples/deployment`, and the server parts they exercise |
+| An app built from the packed packages | `scripts/check-app-tarballs.mjs` | `packages`, `examples/apps` |
+| CI result | Every planned job succeeded | Always |
+
+"Studio's code" is `app`, `server`, `shared`, `apps`, `packages`, `i18n`,
+`modules`, `public` and `scripts/build-example-apps.mjs`.
+
+## When a job is skipped
+
+`scripts/ci-changes.mjs` holds the rules, and `test/ci/changes.test.ts` tests
+them. A change to a rule changes this document in the same pull request.
+
+1. A push to `main`, the nightly run and a manual run (*Run workflow*) run
+   every job.
+2. A pull request with the label `ci:full` runs every job. The labels are read
+   when the run starts, so after adding the label, choose *Re-run all jobs*.
+3. If the changed files are unknown, every job runs.
+4. The changed files are those that merging the pull request would change,
+   over all of its commits. Documentation (`docs/**`, `**/*.md`) does not
+   count; a pull request with nothing else starts no run at all.
+5. If one of them is a file at the repository root (`package.json`,
+   `pnpm-lock.yaml`, `nuxt.config.ts`, `Dockerfile`, …), under `patches/`, or
+   part of CI (`ci.yml`, `.github/actions`, `.github/scripts`,
+   `scripts/ci-changes.mjs`), every job runs.
+6. Otherwise a job runs if it always runs, or if a changed file matches one of
+   its paths.
+
+`**` in a path spans folders and `*` stays within one. The summary of the
+`Jobs of this run` job lists each job with the file and path that ran it.
+
+A pull request can still break a skipped job when it changes code that the
+job's paths do not name. The push to `main` and the nightly run catch that;
+the fix is then a path added to the job's rule.
+
+## CI result
+
+`CI result` fails if a job failed or was cancelled, or if a job was skipped
+although the plan ran it (for example because the build it needs failed). A
+skipped job counts as passed only when the plan skipped it. `main` has no
+branch protection today; if CI is ever required before merging, `CI result`
+is the one check to require, so that renaming, adding or sharding jobs never
+touches the branch protection.
+
+## End-to-end shards
+
+The hosted web tests run in four shards, each on its own runner against its
+own test environment, so they stay isolated without changes to the tests.
+`test/e2e/web.config.ts` assigns the files with `STUDIO_E2E_SHARD`:
+
+| Shard | Files |
+| --- | --- |
+| `apps` | `apps.spec.ts` |
+| `models3d` | `models3d.spec.ts` |
+| `content` | `viewer`, `structure`, `files`, `edit` |
+| `other` | every other file, and the app origin tests |
+
+A new spec file lands in `other` without further changes. When a shard grows
+much longer than the others, move a file to another shard or name a new one in
+both `web.config.ts` and the matrix in `ci.yml`. Locally, all files run when
+`STUDIO_E2E_SHARD` is not set.
+
+The end-to-end jobs start the test environment in the background first
+(`.github/scripts/testenv.sh start`), so it boots while they install
+dependencies and download the build, and wait for it just before the tests.
+
+## Duration
+
+Before this layout, a pull request took about 20 minutes: the integration
+job waited for lint, typecheck, unit tests and build, then ran the test
+environment, the container tests, a second build and all end-to-end tests one
+after another.

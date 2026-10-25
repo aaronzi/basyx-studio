@@ -54,6 +54,7 @@ ADRs are normative for architecture. If a later decision changes an accepted ADR
 - [External apps follow-up plan](development/external-apps-follow-up-plan.md): what a multi-page app still misses after the pilot: shell summaries, settings per installation, history, localization, viewer size, views of other apps
 - [Package editing plan](development/package-editing-plan.md): details pane and headers, several open AASX packages, a typed clipboard with copies between targets, import and export formats
 - [Test environment](../test-setup/README.md): local IdP and BaSyx targets for dev, build, and Electron testing
+- [Continuous integration](development/ci.md): the CI jobs, when a pull request skips one, and the end-to-end shards
 
 ## Document authority
 
