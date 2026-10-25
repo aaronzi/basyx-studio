@@ -22,6 +22,9 @@ export const everything = ['*', 'patches/**', '.github/workflows/ci.yml', '.gith
 /** The code of Studio and of its bundled apps. */
 const studio = ['app/**', 'server/**', 'shared/**', 'apps/**', 'packages/**', 'i18n/**', 'modules/**', 'public/**', 'scripts/build-example-apps.mjs']
 
+/** The desktop app and its tests. */
+const desktop = [...studio, 'electron/**', 'build/**', 'test/e2e/desktop/**', 'test/e2e/desktop.config.ts', 'test/apps/**', 'test-setup/fixtures/**', 'examples/apps/**']
+
 /** Each job runs always, or when a changed file matches one of its paths. */
 export const jobs = {
   'lint': 'always',
@@ -30,7 +33,8 @@ export const jobs = {
   'build': 'always',
   'integration': [...studio, 'test/integration/**', 'test/support/**', 'test-setup/**'],
   'e2e-web': [...studio, 'test/e2e/web/**', 'test/e2e/origins/**', 'test/e2e/web.config.ts', 'test/e2e/origins.config.ts', 'test/apps/**', 'test-setup/**', 'examples/apps/**'],
-  'desktop-e2e': [...studio, 'electron/**', 'build/**', 'test/e2e/desktop/**', 'test/e2e/desktop.config.ts', 'test/apps/**', 'test-setup/fixtures/**', 'examples/apps/**'],
+  'desktop-build': desktop,
+  'desktop-e2e': desktop,
   // Real BaSyx stacks on the container engine (ADR 0033).
   'containers': ['server/lib/containers/**', 'server/lib/desktop/**', 'server/database/**', 'test/integration/containers.test.ts', 'test-setup/fixtures/open/**'],
   // The image and the deployment examples: packaging, start-up and the

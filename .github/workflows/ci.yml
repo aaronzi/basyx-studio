@@ -41,6 +41,7 @@ jobs:
       plan: ${{ steps.plan.outputs.plan }}
       integration: ${{ steps.plan.outputs.integration }}
       e2e-web: ${{ steps.plan.outputs.e2e-web }}
+      desktop-build: ${{ steps.plan.outputs.desktop-build }}
       desktop-e2e: ${{ steps.plan.outputs.desktop-e2e }}
       containers: ${{ steps.plan.outputs.containers }}
       image: ${{ steps.plan.outputs.image }}
@@ -311,12 +312,48 @@ jobs:
         working-directory: test-setup
         run: docker compose down -v
 
+  desktop-build:
+    name: Build the unpacked desktop app (Linux)
+    needs: changes
+    if: needs.changes.outputs.desktop-build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup
+
+      - name: Build the unpacked desktop app
+        run: pnpm build:electron:dir --linux --x64
+
+      - name: Pack the desktop app
+        run: tar --zstd -cf studio-desktop.tar.zst dist/linux-unpacked
+
+      - name: Upload the desktop app
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          path: studio-desktop.tar.zst
+          archive: false
+          retention-days: 1
+
+  # Starts with the desktop build and waits for its artifact, as e2e-web does.
   desktop-e2e:
-    name: End-to-end tests of the packaged desktop app (Linux)
+    name: End-to-end tests of the packaged desktop app (Linux, ${{ matrix.shard }})
     needs: changes
     if: needs.changes.outputs.desktop-e2e == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
+    permissions:
+      actions: read
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        # test/e2e/desktop.config.ts: the container flow, and every other file.
+        shard: [containers, other]
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -326,7 +363,7 @@ jobs:
       # A display, a Secret Service for Electron safeStorage (Studio refuses
       # plain-text key storage), and unprivileged user namespaces for the
       # Chromium sandbox, which Ubuntu restricts by default. The packages
-      # install in the background during the build.
+      # install in the background while the app is built.
       - name: Prepare display, keyring and sandbox
         run: |
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
@@ -334,11 +371,22 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - name: Build the unpacked desktop app
-        run: pnpm build:electron:dir --linux --x64
-
       - name: Build example apps
         run: pnpm apps:build
+
+      - name: Wait for the desktop app
+        run: bash .github/scripts/wait-for-artifact.sh studio-desktop.tar.zst "Build the unpacked desktop app (Linux)"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Download the desktop app
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: studio-desktop.tar.zst
+          path: ${{ runner.temp }}/desktop
+
+      - name: Unpack the desktop app
+        run: tar --zstd -xf "$(find "${RUNNER_TEMP}/desktop" -type f | head -n 1)"
 
       - name: Wait for display and keyring packages
         run: bash .github/scripts/background.sh wait packages
@@ -349,12 +397,14 @@ jobs:
             echo -n "ci" | gnome-keyring-daemon --unlock --components=secrets >/dev/null
             STUDIO_CONTAINER_E2E=1 xvfb-run --auto-servernum pnpm test:e2e:desktop
           '
+        env:
+          STUDIO_E2E_SHARD: ${{ matrix.shard }}
 
       - name: Upload Playwright report on failure
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: playwright-desktop
+          name: playwright-desktop-${{ matrix.shard }}
           path: |
             playwright-report/desktop
             test-results/desktop
@@ -416,7 +466,7 @@ jobs:
     name: CI result
     # Also after failures, to report them; not for a run a newer push replaced.
     if: ${{ !cancelled() }}
-    needs: [changes, lint, typecheck, unit, build, packages, integration, containers, e2e-web, desktop-e2e, image]
+    needs: [changes, lint, typecheck, unit, build, packages, integration, containers, e2e-web, desktop-build, desktop-e2e, image]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 

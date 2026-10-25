@@ -42,16 +42,16 @@ describe('CI path rules', () => {
   })
 
   it('runs the tests of Studio for its code, but not the narrow jobs', () => {
-    expect(running(['app/components/WelcomeScreen.vue'])).toEqual([...always, 'desktop-e2e', 'e2e-web', 'integration'].toSorted())
+    expect(running(['app/components/WelcomeScreen.vue'])).toEqual([...always, 'desktop-build', 'desktop-e2e', 'e2e-web', 'integration'].toSorted())
   })
 
   it('runs the narrow jobs for their paths', () => {
     expect(running(['server/lib/containers/manager.ts'])).toContain('containers')
     expect(running(['docker/start.mjs'])).toEqual([...always, 'image'].toSorted())
     expect(running(['examples/deployment/time-series/compose.yaml'])).toEqual([...always, 'image'].toSorted())
-    expect(running(['electron/main.ts'])).toEqual([...always, 'desktop-e2e'].toSorted())
+    expect(running(['electron/main.ts'])).toEqual([...always, 'desktop-build', 'desktop-e2e'].toSorted())
     expect(running(['test/e2e/web/apps.spec.ts'])).toEqual([...always, 'e2e-web'].toSorted())
-    expect(running(['packages/studio-sdk/src/index.ts'])).toEqual([...always, 'desktop-e2e', 'e2e-web', 'integration', 'packages'].toSorted())
+    expect(running(['packages/studio-sdk/src/index.ts'])).toEqual([...always, 'desktop-build', 'desktop-e2e', 'e2e-web', 'integration', 'packages'].toSorted())
   })
 
   it('names the file and pattern that ran a job', () => {

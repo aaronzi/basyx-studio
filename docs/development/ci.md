@@ -16,7 +16,8 @@ change is skipped by fixed path rules; `CI result` sums up the run.
 | Build hosted Studio and the example apps | `pnpm build`, `pnpm apps:build`; hands the build to the end-to-end jobs | Always |
 | Integration tests against the test environment | `pnpm testenv:smoke`, `pnpm test:integration` | Studio's code, `test/integration`, `test/support`, `test-setup` |
 | End-to-end tests, hosted web (4 shards) | `pnpm test:e2e:web`, `pnpm test:e2e:origins` on the build | Studio's code, the web and origins tests, `test/apps`, `test-setup`, `examples/apps` |
-| End-to-end tests of the packaged desktop app | `pnpm test:e2e:desktop` on an unpacked Linux build | Studio's code, `electron`, `build`, the desktop tests, `test/apps`, `examples/apps` |
+| Build the unpacked desktop app | `pnpm build:electron:dir`; hands the app to the desktop end-to-end jobs | Studio's code, `electron`, `build`, the desktop tests, `test/apps`, `test-setup/fixtures`, `examples/apps` |
+| End-to-end tests of the packaged desktop app (2 shards) | `pnpm test:e2e:desktop` on the unpacked Linux app | As the desktop build |
 | Local container lifecycle and export/import | `test/integration/containers.test.ts` on the runner's Docker | The container, desktop and database code on the server |
 | Container image build and smoke test | The image, `.github/scripts/image-smoke-test.sh` and the deployment examples | `docker`, `examples/deployment`, and the server parts they exercise |
 | An app built from the packed packages | `scripts/check-app-tarballs.mjs` | `packages`, `examples/apps` |
@@ -79,11 +80,17 @@ much longer than the others, move a file to another shard or name a new one in
 both `web.config.ts` and the matrix in `ci.yml`. Locally, all files run when
 `STUDIO_E2E_SHARD` is not set.
 
+The desktop tests run in two shards in the same way
+(`test/e2e/desktop.config.ts`): `containers` (`containers.spec.ts`) and
+`other`, every other file.
+
 The shards start together with the build job, not after it. Each one starts
 the test environment in the background (`.github/scripts/testenv.sh start`),
 installs dependencies and the browser, and then waits until the build job has
 uploaded its artifact (`.github/scripts/wait-for-artifact.sh`); it fails as
-soon as the build job ends without one. The runner image has Chromium's
+soon as the build job ends without one. The desktop shards wait for the
+desktop build likewise and install their display and keyring packages in the
+background meanwhile. The runner image has Chromium's
 libraries, so their packages are installed only if Chromium does not start:
 apt mirrors sometimes take minutes for them.
 
