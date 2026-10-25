@@ -113,11 +113,17 @@ export async function setMode (page: Page, mode: 'View' | 'Edit'): Promise<void>
 export async function headerAction (page: Page, name: string): Promise<void> {
   const header = page.getByRole('main').locator('.v-card').first()
   const inline = header.getByRole('button', { name, exact: true })
-  if (await inline.isVisible()) {
-    await inline.click()
+  const more = header.getByRole('button', { name: 'More actions' })
+  await expect(inline.or(more).first()).toBeVisible()
+  // The layout follows the drawers: while one opens or closes, an inline
+  // action may move into the menu, so a short try falls back to the menu.
+  try {
+    await inline.click({ timeout: 3000 })
     return
+  } catch {
+    // Not inline (any more).
   }
-  await header.getByRole('button', { name: 'More actions' }).click()
+  await more.click()
   await page.getByRole('listitem').filter({ hasText: new RegExp(`^${name}$`) }).click()
 }
 
