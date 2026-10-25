@@ -22,7 +22,8 @@
     "legalNotice": "法的情報",
     "privacyPolicy": "プライバシーポリシー",
     "mainNavigation": "メインナビゲーション",
-    "toggleSubmodelList": "サブモデル一覧の表示/非表示"
+    "toggleSubmodelList": "サブモデル一覧の表示/非表示",
+    "packages": "開いているパッケージ"
   },
   "qr": {
     "title": "アセットの QR コード",
@@ -188,7 +189,10 @@
     "closeTitle": "{name} を閉じますか？",
     "closeText": "このパッケージには未保存の変更があります。今閉じると変更は失われます。",
     "closeWithoutSaving": "保存せずに閉じる",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "more": "パッケージの操作",
+    "moreNamed": "{name} の操作",
+    "exportAs": "パッケージをエクスポート"
   },
   "variables": {
     "input": "入力変数",
@@ -776,7 +780,8 @@
     },
     "empty": "管理シェルはまだありません",
     "emptyText": "このターゲットにはまだ管理シェルがありません。",
-    "emptyTextImport": "AASX、JSON、XML ファイルをインポートするか、この一覧にドロップしてください。"
+    "emptyTextImport": "AASX、JSON、XML ファイルをインポートするか、この一覧にドロップしてください。",
+    "loadMore": "シェルをさらに読み込む"
   },
   "viewer": {
     "headline": "参照する管理シェルを選択",
@@ -819,8 +824,6 @@
     "noDescription": "この要素には説明がありません。",
     "qualifiers": "修飾子",
     "noQualifiers": "修飾子はありません。",
-    "nothing": "何も選択されていません",
-    "nothingText": "ツリーで要素を選択すると詳細を確認できます。",
     "identifier": "識別子",
     "semanticId": "セマンティック ID",
     "valueType": "値の型",
@@ -1106,9 +1109,6 @@
   },
   "cd": {
     "new": "新しいコンセプト記述",
-    "moreCreate": "その他の作成方法",
-    "fromJson": "JSON から",
-    "fromJsonTitle": "JSON からコンセプト記述を挿入",
     "newTitle": "新しいコンセプト記述",
     "create": "作成",
     "created": "{name} を作成しました。",
@@ -1127,7 +1127,6 @@
     "isCaseOf": "ケース元",
     "isCaseOfHint": "このコンセプトが互換性を持つ外部定義（例: ECLASS プロパティ）。",
     "conflictTitle": "他のユーザーがこのコンセプト記述を変更しました",
-    "nothingText": "表からコンセプト記述を選択してください。",
     "open": "開く",
     "notFound": "このターゲットにはこの Semantic ID のコンセプト記述がありません。",
     "createFromElement": "コンセプト記述を作成",
@@ -1199,7 +1198,6 @@
     "fromRegistry": "サブモデルレジストリのサブモデル",
     "fromRepository": "サブモデルリポジトリのサブモデル",
     "fromTemplateTitle": "テンプレートから新しいサブモデル",
-    "fromJsonTitle": "JSON から新しいサブモデル",
     "idShortHint": "空欄の場合はテンプレートの idShort が使われます。",
     "unsupported": "このターゲットにはサブモデルビューがありません",
     "unsupportedText": "このターゲットはサブモデルを管理シェル経由でのみ提供します。管理シェルから開いてください。",
@@ -1228,5 +1226,106 @@
       "elements": "要素"
     },
     "identifier": "識別子"
+  },
+  "copies": {
+    "copied": "{name} をコピーしました",
+    "pasteTitle": "{name} を貼り付け",
+    "importTitle": "{name} をインポート",
+    "into": "貼り付け先: {name}",
+    "planning": "コピーで書き込まれる内容を確認しています…",
+    "types": {
+      "shell": "シェル",
+      "submodel": "サブモデル",
+      "conceptDescription": "コンセプト記述"
+    },
+    "states": {
+      "new": "新規",
+      "exists": "既存",
+      "blocked": "除外"
+    },
+    "files": "{count} 個のファイル",
+    "policy": "識別子が貼り付け先に既に存在する場合",
+    "policies": {
+      "fail_without_changes": {
+        "title": "変更せずに中止",
+        "text": "識別子が一つでも存在すれば、何も書き込みません。"
+      },
+      "skip_existing": {
+        "title": "既存のものをスキップ",
+        "text": "既存のリソースはそのまま残し、それ以外をコピーします。"
+      },
+      "replace": {
+        "title": "既存のものを置き換え",
+        "text": "既存のリソースをコピーで上書きします。"
+      },
+      "new_identifiers": {
+        "title": "新しい識別子でコピー",
+        "text": "シェルとサブモデルに新しい識別子を付けます。既存のコンセプト記述はそのまま残します。"
+      }
+    },
+    "notAtomic": "リソースは一つずつ書き込まれます。途中で失敗しても、それまでに書き込んだものは残ります。コピー元は変更されません。",
+    "copy": "コピー",
+    "retry": "再試行",
+    "openShell": "シェルを開く",
+    "openSubmodel": "サブモデルを開く",
+    "report": {
+      "succeeded": "コピーしました",
+      "partial_success": "一部をコピーしました",
+      "failed": "何もコピーされませんでした",
+      "counts": "作成 {created} · 置換 {replaced} · スキップ {skipped} · 失敗 {failed}"
+    },
+    "statuses": {
+      "created": "作成",
+      "replaced": "置換",
+      "skipped": "スキップ",
+      "failed": "失敗"
+    },
+    "copyShell": "シェルをコピー",
+    "copySubmodel": "サブモデルをコピー",
+    "copyConcept": "コンセプト記述をコピー",
+    "paste": "貼り付け",
+    "pasteInto": "{name} を貼り付け",
+    "listType": "このリストには {type} 要素だけが入ります。コピーした要素は {copied} です。",
+    "add": {
+      "shell": "シェル",
+      "submodel": "サブモデル",
+      "conceptDescription": "コンセプト記述"
+    },
+    "copyFirst": {
+      "shell": "貼り付け: 先にシェルをコピー (⌘C)",
+      "submodel": "貼り付け: 先にサブモデルをコピー (⌘C)",
+      "conceptDescription": "貼り付け: 先にコンセプト記述をコピー (⌘C)",
+      "element": "貼り付け: 先に要素をコピー (⌘C)"
+    },
+    "fromText": "JSON または XML から…",
+    "importFile": "AASX、JSON または XML をインポート…",
+    "text": {
+      "hint": "AAS の JSON または XML を貼り付けるか入力してください。クリップボードの AAS テキストは開いたときに入力されます。",
+      "review": "続行",
+      "title": {
+        "shell": "JSON または XML からシェル",
+        "submodel": "JSON または XML からサブモデル",
+        "conceptDescription": "JSON または XML からコンセプト記述"
+      },
+      "contents": "{list} を含みます。次の手順で書き込まれる内容を確認できます。",
+      "count": {
+        "shells": "シェル {count} 件",
+        "submodels": "サブモデル {count} 件",
+        "conceptDescriptions": "コンセプト記述 {count} 件"
+      },
+      "empty": "シェル、サブモデル、コンセプト記述のいずれも含まれていません。"
+    },
+    "facts": {
+      "source": "{name} から読み取り",
+      "destination": "{name} に書き込み",
+      "identity": {
+        "user": "あなたのアカウントで",
+        "studio": "Studio のサービスアカウントで",
+        "none": "サインインなしで"
+      },
+      "replaceResources": "置き換え",
+      "conceptDescriptions": "コンセプト記述",
+      "files": "ファイル"
+    }
   }
 }

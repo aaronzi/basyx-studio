@@ -22,7 +22,8 @@
     "legalNotice": "Colofon",
     "privacyPolicy": "Privacybeleid",
     "mainNavigation": "Hoofdnavigatie",
-    "toggleSubmodelList": "Submodellenlijst tonen of verbergen"
+    "toggleSubmodelList": "Submodellenlijst tonen of verbergen",
+    "packages": "Geopende pakketten"
   },
   "qr": {
     "title": "QR-code van het asset",
@@ -188,7 +189,10 @@
     "closeTitle": "{name} sluiten?",
     "closeText": "Het pakket heeft niet-opgeslagen wijzigingen. Die gaan verloren als je het nu sluit.",
     "closeWithoutSaving": "Sluiten zonder opslaan",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "more": "Pakketacties",
+    "moreNamed": "Acties voor {name}",
+    "exportAs": "Pakket exporteren als"
   },
   "variables": {
     "input": "Invoervariabelen",
@@ -776,7 +780,8 @@
     },
     "empty": "Nog geen AAS'en",
     "emptyText": "Dit doel heeft nog geen AAS'en.",
-    "emptyTextImport": "Importeer een AASX-, JSON- of XML-bestand, of zet het neer op deze lijst."
+    "emptyTextImport": "Importeer een AASX-, JSON- of XML-bestand, of zet het neer op deze lijst.",
+    "loadMore": "Meer shells laden"
   },
   "viewer": {
     "headline": "Kies een AAS om te verkennen",
@@ -819,8 +824,6 @@
     "noDescription": "Voor dit element is geen beschrijving opgegeven.",
     "qualifiers": "Qualifiers",
     "noQualifiers": "Geen qualifiers.",
-    "nothing": "Niets geselecteerd",
-    "nothingText": "Selecteer een element in de boom om het te bekijken.",
     "identifier": "Identifier",
     "semanticId": "Semantische ID",
     "valueType": "Waardetype",
@@ -1106,9 +1109,6 @@
   },
   "cd": {
     "new": "Nieuwe conceptbeschrijving",
-    "moreCreate": "Meer manieren om aan te maken",
-    "fromJson": "Uit JSON",
-    "fromJsonTitle": "Conceptbeschrijving uit JSON invoegen",
     "newTitle": "Nieuwe conceptbeschrijving",
     "create": "Aanmaken",
     "created": "{name} aangemaakt.",
@@ -1127,7 +1127,6 @@
     "isCaseOf": "Is geval van",
     "isCaseOfHint": "Externe definities waarmee dit concept verenigbaar is, bijv. een ECLASS-eigenschap.",
     "conflictTitle": "Iemand anders heeft deze conceptbeschrijving gewijzigd",
-    "nothingText": "Selecteer een conceptbeschrijving in de tabel.",
     "open": "Openen",
     "notFound": "Geen conceptbeschrijving voor deze semantic ID op dit doel.",
     "createFromElement": "Conceptbeschrijving aanmaken",
@@ -1199,7 +1198,6 @@
     "fromRegistry": "Submodellen uit het submodelregister",
     "fromRepository": "Submodellen uit de submodelrepository",
     "fromTemplateTitle": "Nieuw submodel uit een sjabloon",
-    "fromJsonTitle": "Nieuw submodel uit JSON",
     "idShortHint": "Leeg gelaten wordt de idShort van het sjabloon gebruikt.",
     "unsupported": "Geen submodelweergave voor dit doel",
     "unsupportedText": "Dit doel biedt submodellen alleen via hun AAS aan. Open ze vanuit de AAS.",
@@ -1228,5 +1226,106 @@
       "elements": "Elementen"
     },
     "identifier": "Identifier"
+  },
+  "copies": {
+    "copied": "{name} gekopieerd",
+    "pasteTitle": "{name} plakken",
+    "importTitle": "{name} importeren",
+    "into": "In {name}",
+    "planning": "Controleren wat de kopie zou schrijven…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Conceptbeschrijving"
+    },
+    "states": {
+      "new": "Nieuw",
+      "exists": "Bestaat",
+      "blocked": "Weggelaten"
+    },
+    "files": "{count} bestand | {count} bestanden",
+    "policy": "Als een identifier op de bestemming al bestaat",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Stoppen zonder wijzigingen",
+        "text": "Er wordt niets geschreven als een van de identifiers bestaat."
+      },
+      "skip_existing": {
+        "title": "Bestaande overslaan",
+        "text": "Bestaande resources blijven zoals ze zijn; de andere worden gekopieerd."
+      },
+      "replace": {
+        "title": "Bestaande vervangen",
+        "text": "Bestaande resources worden met de kopie overschreven."
+      },
+      "new_identifiers": {
+        "title": "Kopiëren met nieuwe identifiers",
+        "text": "Shells en submodellen krijgen nieuwe identifiers; bestaande conceptbeschrijvingen blijven."
+      }
+    },
+    "notAtomic": "Elke resource wordt afzonderlijk geschreven: mislukt er een, dan blijven de eerdere geschreven. De bron verandert niet.",
+    "copy": "Kopiëren",
+    "retry": "Opnieuw proberen",
+    "openShell": "Shell openen",
+    "openSubmodel": "Submodel openen",
+    "report": {
+      "succeeded": "Gekopieerd",
+      "partial_success": "Deels gekopieerd",
+      "failed": "Niets gekopieerd",
+      "counts": "{created} gemaakt · {replaced} vervangen · {skipped} overgeslagen · {failed} mislukt"
+    },
+    "statuses": {
+      "created": "Gemaakt",
+      "replaced": "Vervangen",
+      "skipped": "Overgeslagen",
+      "failed": "Mislukt"
+    },
+    "copyShell": "Shell kopiëren",
+    "copySubmodel": "Submodel kopiëren",
+    "copyConcept": "Conceptbeschrijving kopiëren",
+    "paste": "Plakken",
+    "pasteInto": "{name} plakken",
+    "listType": "Deze lijst bevat {type}-elementen; het gekopieerde element is een {copied}.",
+    "add": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Conceptbeschrijving"
+    },
+    "copyFirst": {
+      "shell": "Plakken: kopieer eerst een shell (⌘C)",
+      "submodel": "Plakken: kopieer eerst een submodel (⌘C)",
+      "conceptDescription": "Plakken: kopieer eerst een conceptbeschrijving (⌘C)",
+      "element": "Plakken: kopieer eerst een element (⌘C)"
+    },
+    "fromText": "Uit JSON of XML…",
+    "importFile": "AASX, JSON of XML importeren…",
+    "text": {
+      "hint": "Plak of typ AAS-JSON of -XML. AAS-tekst op het klembord wordt bij het openen ingevuld.",
+      "review": "Verder",
+      "title": {
+        "shell": "Shells uit JSON of XML",
+        "submodel": "Submodellen uit JSON of XML",
+        "conceptDescription": "Conceptbeschrijvingen uit JSON of XML"
+      },
+      "contents": "Bevat {list}. De volgende stap toont wat wordt geschreven.",
+      "count": {
+        "shells": "{count} shell | {count} shells",
+        "submodels": "{count} submodel | {count} submodellen",
+        "conceptDescriptions": "{count} conceptbeschrijving | {count} conceptbeschrijvingen"
+      },
+      "empty": "Bevat geen shell, submodel of conceptbeschrijving."
+    },
+    "facts": {
+      "source": "Leest {name}",
+      "destination": "Schrijft naar {name}",
+      "identity": {
+        "user": "met uw account",
+        "studio": "met het serviceaccount van Studio",
+        "none": "zonder aanmelding"
+      },
+      "replaceResources": "Vervangen",
+      "conceptDescriptions": "Conceptbeschrijvingen",
+      "files": "Bestanden"
+    }
   }
 }

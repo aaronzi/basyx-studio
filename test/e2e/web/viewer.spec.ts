@@ -95,7 +95,9 @@ test('exports a shell and imports the export again', async ({ page }) => {
   expect(file.suggestedFilename()).toBe('EdgeCasesShell.json')
   const content = await readFile((await file.path())!)
 
+  // Importing changes the target, so it needs edit mode (UX-006).
   await page.goto(`/targets/${targetId}`)
+  await setMode(page, 'Edit')
   await page.getByRole('button', { name: 'Import' }).click()
   await page.locator('input[type="file"]').setInputFiles({ name: 'edge-cases.json', mimeType: 'application/json', buffer: content })
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click()
@@ -107,7 +109,11 @@ test('exports a shell and imports the export again', async ({ page }) => {
 test('deletes a shell only in edit mode and after confirmation', async ({ page }) => {
   const fixture = await readFile(new URL('../../../test-setup/fixtures/open/IESEDriveMotorDM3000.aasx', import.meta.url))
   await page.goto(`/targets/${targetId}/shells/${key(motorShell)}`)
-  await expect(page.getByRole('button', { name: 'More actions' })).toHaveCount(0)
+  // View mode offers copying, never deleting.
+  await page.getByRole('button', { name: 'More actions' }).click()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Copy shell' })).toBeVisible()
+  await expect(page.getByText('Delete shell')).toHaveCount(0)
+  await page.keyboard.press('Escape')
   await setMode(page, 'Edit')
   await page.getByRole('button', { name: 'More actions' }).click()
   await page.getByText('Delete shell').click()

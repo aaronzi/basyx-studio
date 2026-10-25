@@ -23,7 +23,8 @@
     "legalNotice": "Legal notice",
     "privacyPolicy": "Privacy policy",
     "mainNavigation": "Main navigation",
-    "toggleSubmodelList": "Show or hide the submodel list"
+    "toggleSubmodelList": "Show or hide the submodel list",
+    "packages": "Open packages"
   },
   "qr": {
     "title": "QR code of the asset",
@@ -169,7 +170,6 @@
     "derivedFrom": "Derived from",
     "administration": "Administration",
     "revisionLabel": "Revision",
-    "addSubmodel": "Submodel",
     "alsoDeleteSubmodels": "Also delete its submodel | Also delete its {count} submodels",
     "affectedSubmodels": "These submodels are deleted",
     "sharedWarning": "Other shells that reference these submodels will lose them.",
@@ -266,7 +266,10 @@
     "cancel": "Cancel",
     "new": "New package",
     "undo": "Undo",
-    "redo": "Redo"
+    "redo": "Redo",
+    "more": "Package actions",
+    "moreNamed": "Actions of {name}",
+    "exportAs": "Export package as"
   },
   "variables": {
     "input": "Input variables",
@@ -875,7 +878,8 @@
     },
     "empty": "No shells yet",
     "emptyText": "This target has no shells yet.",
-    "emptyTextImport": "Import an AASX, JSON or XML file, or drop it on this list."
+    "emptyTextImport": "Import an AASX, JSON or XML file, or drop it on this list.",
+    "loadMore": "Load more shells"
   },
   "viewer": {
     "headline": "Pick a shell to explore",
@@ -918,8 +922,6 @@
     "noDescription": "No description provided for this element.",
     "qualifiers": "Qualifiers",
     "noQualifiers": "No qualifiers.",
-    "nothing": "Nothing selected",
-    "nothingText": "Select an element in the tree to inspect it.",
     "identifier": "Identifier",
     "semanticId": "Semantic ID",
     "valueType": "Value type",
@@ -1200,7 +1202,6 @@
     "rowMenu": "Element actions",
     "unsaved": "Unsaved changes",
     "addElement": "Add element",
-    "paste": "Paste",
     "copy": "Copy",
     "copyReference": "Copy reference",
     "duplicate": "Duplicate",
@@ -1213,7 +1214,6 @@
     "pasted": "{name} pasted",
     "referenceCopied": "Reference to {name} copied. Paste it into a reference field.",
     "draftNode": "draft",
-    "insertJson": "Insert from JSON",
     "insertJsonTitle": "Insert into {name}",
     "convert": "Convert to instance",
     "convertTitle": "Convert to instance?",
@@ -1234,8 +1234,7 @@
   },
   "insert": {
     "insert": "Insert",
-    "valid": "AAS Core finds no problems.",
-    "notJson": "This is not a JSON object."
+    "valid": "AAS Core finds no problems."
   },
   "wizard": {
     "title": "Create shell",
@@ -1256,7 +1255,6 @@
     "partial": "Only some of the changes were written",
     "fromTemplate": "From template",
     "empty": "Empty submodel",
-    "fromJson": "From JSON",
     "json": "Submodel as JSON",
     "noSubmodelsTitle": "No submodels yet",
     "noSubmodelsText": "Add a submodel and fill in its fields. Its elements are added in the tree afterwards.",
@@ -1295,9 +1293,6 @@
   },
   "cd": {
     "new": "New concept description",
-    "moreCreate": "More ways to create",
-    "fromJson": "From JSON",
-    "fromJsonTitle": "Insert concept description from JSON",
     "newTitle": "New concept description",
     "create": "Create",
     "created": "{name} created.",
@@ -1316,7 +1311,6 @@
     "isCaseOf": "Is case of",
     "isCaseOfHint": "External definitions this concept is compatible with, e.g. an ECLASS property.",
     "conflictTitle": "Someone else changed this concept description",
-    "nothingText": "Select a concept description in the table.",
     "open": "Open",
     "notFound": "No concept description for this semantic ID on this target.",
     "createFromElement": "Create concept description",
@@ -1408,7 +1402,6 @@
     "fromRegistry": "Submodels from the submodel registry",
     "fromRepository": "Submodels from the submodel repository",
     "fromTemplateTitle": "New submodel from a template",
-    "fromJsonTitle": "New submodel from JSON",
     "idShortHint": "Left empty, the template’s idShort is used.",
     "unsupported": "No submodel view for this target",
     "unsupportedText": "This target serves submodels only through their shells. Open them from the shell browser.",
@@ -1437,5 +1430,106 @@
       "elements": "Elements"
     },
     "identifier": "Identifier"
+  },
+  "copies": {
+    "copied": "Copied {name}",
+    "pasteTitle": "Paste {name}",
+    "importTitle": "Import {name}",
+    "into": "Into {name}",
+    "planning": "Checking what the copy would write…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Concept description"
+    },
+    "states": {
+      "new": "New",
+      "exists": "Exists",
+      "blocked": "Left out"
+    },
+    "files": "{count} file | {count} files",
+    "policy": "If an identifier exists at the destination",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Stop without changes",
+        "text": "Nothing is written if one of the identifiers exists."
+      },
+      "skip_existing": {
+        "title": "Skip what exists",
+        "text": "Resources that exist stay as they are; the others are copied."
+      },
+      "replace": {
+        "title": "Replace what exists",
+        "text": "Resources that exist are overwritten with the copy."
+      },
+      "new_identifiers": {
+        "title": "Copy with new identifiers",
+        "text": "Shells and submodels get new identifiers; concept descriptions that exist are kept."
+      }
+    },
+    "notAtomic": "Each resource is written on its own: if one fails, those before it stay written. The source is not changed.",
+    "copy": "Copy",
+    "retry": "Try again",
+    "openShell": "Open shell",
+    "openSubmodel": "Open submodel",
+    "report": {
+      "succeeded": "Copied",
+      "partial_success": "Copied in part",
+      "failed": "Nothing was copied",
+      "counts": "{created} created · {replaced} replaced · {skipped} skipped · {failed} failed"
+    },
+    "statuses": {
+      "created": "Created",
+      "replaced": "Replaced",
+      "skipped": "Skipped",
+      "failed": "Failed"
+    },
+    "copyShell": "Copy shell",
+    "copySubmodel": "Copy submodel",
+    "copyConcept": "Copy concept description",
+    "paste": "Paste",
+    "pasteInto": "Paste {name}",
+    "listType": "This list holds {type} elements; the copied element is a {copied}.",
+    "add": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Concept description"
+    },
+    "copyFirst": {
+      "shell": "Paste: copy a shell first (⌘C)",
+      "submodel": "Paste: copy a submodel first (⌘C)",
+      "conceptDescription": "Paste: copy a concept description first (⌘C)",
+      "element": "Paste: copy an element first (⌘C)"
+    },
+    "fromText": "From JSON or XML…",
+    "importFile": "Import AASX, JSON or XML…",
+    "text": {
+      "hint": "Paste or type AAS JSON or XML. AAS text on the clipboard is filled in when the dialog opens.",
+      "review": "Continue",
+      "title": {
+        "shell": "Shells from JSON or XML",
+        "submodel": "Submodels from JSON or XML",
+        "conceptDescription": "Concept descriptions from JSON or XML"
+      },
+      "contents": "Holds {list}. The next step shows what is written.",
+      "count": {
+        "shells": "{count} shell | {count} shells",
+        "submodels": "{count} submodel | {count} submodels",
+        "conceptDescriptions": "{count} concept description | {count} concept descriptions"
+      },
+      "empty": "Holds no shell, submodel or concept description."
+    },
+    "facts": {
+      "source": "Reads {name}",
+      "destination": "Writes to {name}",
+      "identity": {
+        "user": "with your account",
+        "studio": "with Studio’s service account",
+        "none": "without sign-in"
+      },
+      "replaceResources": "Replace",
+      "conceptDescriptions": "Concept descriptions",
+      "files": "Files"
+    }
   }
 }

@@ -36,7 +36,7 @@ export class WorkspaceWorkerClient {
   request<Op extends WorkerRequest['op']> (request: Extract<WorkerRequest, { op: Op }>): Promise<WorkerResults[Op]> {
     const child = this.#start()
     const id = this.#nextId++
-    const parsesPackage = request.op === 'open' || request.op === 'inspect'
+    const parsesPackage = ['open', 'inspect', 'extract', 'pack'].includes(request.op)
     const timeoutMs = parsesPackage ? (this.options.openTimeoutMs ?? 120_000) : (this.options.timeoutMs ?? 30_000)
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {

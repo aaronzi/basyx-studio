@@ -22,7 +22,8 @@
     "legalNotice": "Mentions légales",
     "privacyPolicy": "Politique de confidentialité",
     "mainNavigation": "Navigation principale",
-    "toggleSubmodelList": "Afficher ou masquer la liste des sous-modèles"
+    "toggleSubmodelList": "Afficher ou masquer la liste des sous-modèles",
+    "packages": "Paquets ouverts"
   },
   "qr": {
     "title": "Code QR de l'actif",
@@ -188,7 +189,10 @@
     "closeTitle": "Fermer {name} ?",
     "closeText": "Le paquet contient des modifications non enregistrées. Elles seront perdues si vous le fermez maintenant.",
     "closeWithoutSaving": "Fermer sans enregistrer",
-    "cancel": "Annuler"
+    "cancel": "Annuler",
+    "more": "Actions du paquet",
+    "moreNamed": "Actions de {name}",
+    "exportAs": "Exporter le paquet en"
   },
   "variables": {
     "input": "Variables d'entrée",
@@ -776,7 +780,8 @@
     },
     "empty": "Pas encore d'AAS",
     "emptyText": "Cette cible n'a pas encore d'AAS.",
-    "emptyTextImport": "Importez un fichier AASX, JSON ou XML, ou déposez-le sur cette liste."
+    "emptyTextImport": "Importez un fichier AASX, JSON ou XML, ou déposez-le sur cette liste.",
+    "loadMore": "Charger plus de shells"
   },
   "viewer": {
     "headline": "Choisissez une AAS à explorer",
@@ -819,8 +824,6 @@
     "noDescription": "Aucune description fournie pour cet élément.",
     "qualifiers": "Qualificateurs",
     "noQualifiers": "Aucun qualificateur.",
-    "nothing": "Rien de sélectionné",
-    "nothingText": "Sélectionnez un élément dans l'arborescence pour l'inspecter.",
     "identifier": "Identifiant",
     "semanticId": "ID sémantique",
     "valueType": "Type de valeur",
@@ -1106,9 +1109,6 @@
   },
   "cd": {
     "new": "Nouvelle description de concept",
-    "moreCreate": "Autres façons de créer",
-    "fromJson": "Depuis JSON",
-    "fromJsonTitle": "Insérer une description de concept depuis JSON",
     "newTitle": "Nouvelle description de concept",
     "create": "Créer",
     "created": "{name} créée.",
@@ -1127,7 +1127,6 @@
     "isCaseOf": "Est un cas de",
     "isCaseOfHint": "Définitions externes avec lesquelles ce concept est compatible, p. ex. une propriété ECLASS.",
     "conflictTitle": "Quelqu'un d'autre a modifié cette description de concept",
-    "nothingText": "Sélectionnez une description de concept dans le tableau.",
     "open": "Ouvrir",
     "notFound": "Aucune description de concept pour ce semantic ID sur cette cible.",
     "createFromElement": "Créer une description de concept",
@@ -1199,7 +1198,6 @@
     "fromRegistry": "Sous-modèles du registre de sous-modèles",
     "fromRepository": "Sous-modèles du dépôt de sous-modèles",
     "fromTemplateTitle": "Nouveau sous-modèle à partir d’un modèle",
-    "fromJsonTitle": "Nouveau sous-modèle à partir de JSON",
     "idShortHint": "Laissé vide, l’idShort du modèle est utilisé.",
     "unsupported": "Pas de vue des sous-modèles pour cette cible",
     "unsupportedText": "Cette cible ne fournit les sous-modèles qu’à travers leurs AAS. Ouvrez-les depuis leur AAS.",
@@ -1228,5 +1226,106 @@
       "elements": "Éléments"
     },
     "identifier": "Identifiant"
+  },
+  "copies": {
+    "copied": "{name} copié",
+    "pasteTitle": "Coller {name}",
+    "importTitle": "Importer {name}",
+    "into": "Dans {name}",
+    "planning": "Vérification de ce que la copie écrirait…",
+    "types": {
+      "shell": "Shell",
+      "submodel": "Sous-modèle",
+      "conceptDescription": "Description de concept"
+    },
+    "states": {
+      "new": "Nouveau",
+      "exists": "Existe",
+      "blocked": "Exclu"
+    },
+    "files": "{count} fichier | {count} fichiers",
+    "policy": "Si un identifiant existe déjà à la destination",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Arrêter sans modification",
+        "text": "Rien n’est écrit si l’un des identifiants existe."
+      },
+      "skip_existing": {
+        "title": "Ignorer l’existant",
+        "text": "Les ressources existantes restent telles quelles ; les autres sont copiées."
+      },
+      "replace": {
+        "title": "Remplacer l’existant",
+        "text": "Les ressources existantes sont écrasées par la copie."
+      },
+      "new_identifiers": {
+        "title": "Copier avec de nouveaux identifiants",
+        "text": "Les shells et sous-modèles reçoivent de nouveaux identifiants ; les descriptions de concept existantes sont conservées."
+      }
+    },
+    "notAtomic": "Chaque ressource est écrite séparément : si l’une échoue, les précédentes restent écrites. La source n’est pas modifiée.",
+    "copy": "Copier",
+    "retry": "Réessayer",
+    "openShell": "Ouvrir le shell",
+    "openSubmodel": "Ouvrir le sous-modèle",
+    "report": {
+      "succeeded": "Copié",
+      "partial_success": "Copié en partie",
+      "failed": "Rien n’a été copié",
+      "counts": "{created} créés · {replaced} remplacés · {skipped} ignorés · {failed} en échec"
+    },
+    "statuses": {
+      "created": "Créé",
+      "replaced": "Remplacé",
+      "skipped": "Ignoré",
+      "failed": "Échec"
+    },
+    "copyShell": "Copier le shell",
+    "copySubmodel": "Copier le sous-modèle",
+    "copyConcept": "Copier la description de concept",
+    "paste": "Coller",
+    "pasteInto": "Coller {name}",
+    "listType": "Cette liste contient des éléments {type} ; l’élément copié est un {copied}.",
+    "add": {
+      "shell": "Shell",
+      "submodel": "Sous-modèle",
+      "conceptDescription": "Description de concept"
+    },
+    "copyFirst": {
+      "shell": "Coller : copiez d’abord un shell (⌘C)",
+      "submodel": "Coller : copiez d’abord un sous-modèle (⌘C)",
+      "conceptDescription": "Coller : copiez d’abord une description de concept (⌘C)",
+      "element": "Coller : copiez d’abord un élément (⌘C)"
+    },
+    "fromText": "Depuis JSON ou XML…",
+    "importFile": "Importer AASX, JSON ou XML…",
+    "text": {
+      "hint": "Collez ou saisissez du JSON ou XML AAS. Le texte AAS du presse-papiers est repris à l’ouverture.",
+      "review": "Continuer",
+      "title": {
+        "shell": "Shells depuis JSON ou XML",
+        "submodel": "Sous-modèles depuis JSON ou XML",
+        "conceptDescription": "Descriptions de concept depuis JSON ou XML"
+      },
+      "contents": "Contient {list}. L’étape suivante montre ce qui est écrit.",
+      "count": {
+        "shells": "{count} shell | {count} shells",
+        "submodels": "{count} sous-modèle | {count} sous-modèles",
+        "conceptDescriptions": "{count} description de concept | {count} descriptions de concept"
+      },
+      "empty": "Ne contient ni shell, ni sous-modèle, ni description de concept."
+    },
+    "facts": {
+      "source": "Lit {name}",
+      "destination": "Écrit dans {name}",
+      "identity": {
+        "user": "avec votre compte",
+        "studio": "avec le compte de service de Studio",
+        "none": "sans connexion"
+      },
+      "replaceResources": "Remplacer",
+      "conceptDescriptions": "Descriptions de concept",
+      "files": "Fichiers"
+    }
   }
 }

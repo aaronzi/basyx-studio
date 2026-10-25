@@ -345,17 +345,18 @@ function isTrustedSender (event: Electron.IpcMainInvokeEvent): boolean {
 }
 
 function registerDesktopBridge (): void {
-  ipcMain.handle('studio:choose-aasx-file', async event => {
+  // Several packages at once, each as its own target (package editing plan, M4).
+  ipcMain.handle('studio:choose-aasx-files', async event => {
     if (!isTrustedSender(event)) {
       throw new Error('Untrusted sender.')
     }
     const window = BrowserWindow.fromWebContents(event.sender)
-    const options = { properties: ['openFile' as const], filters: aasxFilters }
+    const options = { properties: ['openFile' as const, 'multiSelections' as const], filters: aasxFilters }
     const result = window ? await dialog.showOpenDialog(window, options) : await dialog.showOpenDialog(options)
-    if (result.canceled || !result.filePaths[0]) {
-      return null
+    if (result.canceled) {
+      return []
     }
-    return callService('desktop/file-grants', { method: 'POST', body: { path: result.filePaths[0], purpose: 'open' } })
+    return Promise.all(result.filePaths.map(path => callService('desktop/file-grants', { method: 'POST', body: { path, purpose: 'open' } })))
   })
 
   ipcMain.handle('studio:choose-stack-files', (event, kind: unknown, suggestedName: unknown) => chooseStackFiles(event, kind, suggestedName))

@@ -211,19 +211,23 @@
           @click="tree.startCreate(menuItem, null)"
         />
 
-        <v-list-item
-          v-if="tree.isContainerItem(menuItem) && tree.clipboard.copied"
-          prepend-icon="mdi-content-paste"
-          :subtitle="tree.clipboard.copied.label"
-          :title="t('edit.paste')"
-          @click="tree.pasteInto(menuItem)"
-        />
+        <!-- As every add menu (A1): new, pasted, from JSON or XML. -->
+        <template v-if="tree.isContainerItem(menuItem)">
+          <v-list-item
+            :disabled="!tree.clipboard.copied"
+            prepend-icon="mdi-content-paste"
+            :title="tree.clipboard.copied ? t('copies.pasteInto', { name: tree.clipboard.copied.label }) : t('copies.copyFirst.element')"
+            @click="tree.pasteInto(menuItem)"
+          />
+
+          <v-list-item prepend-icon="mdi-code-json" :title="t('copies.fromText')" @click="jsonTarget = menuItem" />
+        </template>
 
         <v-list-item
-          v-if="tree.isContainerItem(menuItem)"
-          prepend-icon="mdi-code-json"
-          :title="t('edit.insertJson')"
-          @click="jsonTarget = menuItem"
+          v-if="menuItem.modelType === 'Submodel'"
+          prepend-icon="mdi-content-duplicate"
+          :title="t('copies.copySubmodel')"
+          @click="copies.copySubmodel(tree.targetId.value, menuItem.submodelKey, menuItem.title)"
         />
 
         <template v-if="menuItem.modelType === 'Submodel' && capabilities.createResources">
@@ -266,10 +270,10 @@
     </DialogCard>
   </v-dialog>
 
-  <JsonInsertDialog
-    :kind="'element'"
+  <AasTextDialog
+    :insert="tree.insertJson"
+    kind="element"
     :model-value="jsonTarget !== null"
-    :submit="tree.insertJson"
     :target-id="tree.targetId.value"
     :title="t('edit.insertJsonTitle', { name: jsonTarget?.title ?? '' })"
     @update:model-value="open => { if (!open) jsonTarget = null }"
@@ -310,6 +314,7 @@
   const { mdAndUp } = useDisplay()
   const preferences = usePreferences()
   const tree = injectElementTree()
+  const copies = useCopyActions()
   const unitTypes = new Set(['Property', 'Range'])
   const {
     capabilities,

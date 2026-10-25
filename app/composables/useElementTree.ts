@@ -1,6 +1,7 @@
 import type { ElementModelType } from '#shared/aas/defaults'
 import type { EffectiveRights, ElementDetail, SubmodelRef, Target, TargetCapabilities } from '#shared/contract'
-import type { InjectionKey } from 'vue'
+import type { ComputedRef, InjectionKey } from 'vue'
+import type { ClipboardCommand } from '~/composables/useClipboardCommands'
 import type { LiveSignal } from '~/composables/useShellOverview'
 import type { ShellTreeItem } from '~/composables/useShellTrees'
 import type { StructureAction } from '~/stores/structureActions'
@@ -122,6 +123,7 @@ export function useElementTree (options: ElementTreeOptions) {
 
   // Structure editing (MVP-5 plan, U3, U4, U6, C1)
   const clipboardStore = useClipboardStore()
+  const copies = useCopyActions()
   const drafts = useDraftStore()
   const structure = useStructureEdits(() => targetId.value)
   const creating = ref<CreatingElement | null>(null)
@@ -238,6 +240,27 @@ export function useElementTree (options: ElementTreeOptions) {
     ui.detailsDrawer = true
   }
 
+  /** Whether the tree's tab shows (followTabs); a selection from the URL opens the drawer only there. */
+  let onHomeTab = () => true
+
+  /**
+   * The drawer belongs to the tree's tab (`home`): other tabs close it, and
+   * the Overview opens it only from a tile. Back on the tree's tab it is
+   * open again if it was when the user left, or if a tile opened it.
+   */
+  function followTabs (tab: () => string, home: string) {
+    onHomeTab = () => tab() === home
+    let openAtHome = ui.detailsDrawer
+    // From the first render on: a link to another tab opens no drawer.
+    watch(tab, (value, previous) => {
+      const open = ui.detailsDrawer
+      if (previous === home) {
+        openAtHome = open
+      }
+      ui.detailsDrawer = value === home && (openAtHome || open)
+    }, { immediate: true })
+  }
+
   // The page's own submodel is the tree's selection only while the drawer shows it.
   const activated = computed({
     get: () => {
@@ -286,11 +309,11 @@ export function useElementTree (options: ElementTreeOptions) {
       const path = await trees.reveal(submodel, ancestors, element)
       if (path && selectedId.value === id) {
         opened.value = [...new Set([...opened.value, ...path])]
-        ui.detailsDrawer ||= opensDetails(element)
+        ui.detailsDrawer ||= onHomeTab() && opensDetails(element)
       }
     } catch {
       // The drawer shows why the element cannot be read.
-      ui.detailsDrawer ||= opensDetails(element)
+      ui.detailsDrawer ||= onHomeTab() && opensDetails(element)
     } finally {
       revealing.value = null
     }
@@ -431,27 +454,26 @@ export function useElementTree (options: ElementTreeOptions) {
   })
   onBeforeUnmount(() => globalThis.removeEventListener('keydown', onKeydown))
 
-  // The selected node's actions are in the command palette too (U3).
+  // The selected node's actions are in the command palette too (U3), and
+  // copy and paste with their shortcuts (bindClipboardKeys).
   const structureActions = useStructureActionsStore()
+  const clipboardActions = shallowRef<ComputedRef<StructureAction[]> | null>(null)
   watchEffect(() => {
     const item = selectedItem.value
+    // Copy and paste with their shortcuts, in view mode too where they copy.
+    const actions: StructureAction[] = [...clipboardActions.value?.value ?? []]
     if (!canEditStructure.value || !item || !hasActions(item)) {
-      structureActions.set([])
+      structureActions.set(actions)
       return
     }
-    const actions: StructureAction[] = []
     if (isContainerItem(item)) {
       actions.push(
         { key: 'add', title: t('palette.structure.add', { name: item.title }), icon: 'mdi-plus', run: () => void startCreate(item, item.modelType === 'SubmodelElementList' ? null : 'Property') },
         { key: 'json', title: t('palette.structure.json', { name: item.title }), icon: 'mdi-code-json', run: () => (jsonTarget.value = item) },
-        ...(clipboardStore.copied
-          ? [{ key: 'paste', title: t('palette.structure.paste', { name: item.title }), icon: 'mdi-content-paste', run: () => void pasteInto(item) }]
-          : []),
       )
     }
     if (item.elementKey) {
       actions.push(
-        { key: 'copy', title: t('palette.structure.copy', { name: item.title }), icon: 'mdi-content-copy', run: () => void copyElement(item) },
         { key: 'duplicate', title: t('palette.structure.duplicate', { name: item.title }), icon: 'mdi-content-duplicate', run: () => void duplicate(item) },
         { key: 'delete', title: t('palette.structure.delete', { name: item.title }), icon: 'mdi-delete-outline', run: () => (pendingDelete.value = item) },
       )
@@ -586,6 +608,15 @@ export function useElementTree (options: ElementTreeOptions) {
       return
     }
     await guard(async () => {
+      // A list takes elements of its own type only (package editing plan, K2).
+      if (parent.modelType === 'SubmodelElementList' && parent.elementKey) {
+        const list = (await structure.read(parent.submodelKey, parent.elementKey)).value as Record<string, unknown>
+        const type = list.typeValueListElement
+        if (typeof type === 'string' && type !== 'SubmodelElement' && type !== copied.element.modelType) {
+          notifications.notify({ text: t('copies.listType', { type, copied: String(copied.element.modelType) }), color: 'error' })
+          return
+        }
+      }
       const revision = await structureRevisionOf(parent)
       const names = (parent.children ?? []).filter(child => !child.more).map(child => child.title)
       const added = await structure.paste(parent.submodelKey, parent.elementKey, revision, copied.element, names, parent.modelType === 'SubmodelElementList')
@@ -594,6 +625,34 @@ export function useElementTree (options: ElementTreeOptions) {
       await afterStructureChange(parent.submodelKey)
       select(itemId(parent.submodelKey, added.key))
     })
+  }
+
+  /**
+   * ⌘C and ⌘V and their palette entries (package editing plan, K10): the
+   * selected element first, else what the page copies or pastes (its shell
+   * or submodel, a copied resource). Pasting an element needs edit mode (UX-006).
+   */
+  function bindClipboardKeys (page: { copy?: () => ClipboardCommand | null, paste?: () => ClipboardCommand | null }) {
+    clipboardActions.value = useClipboardCommands(
+      () => {
+        const item = selectedItem.value
+        if (item?.elementKey && !item.draft && !item.variableGroup) {
+          return { title: t('palette.structure.copy', { name: item.title }), run: () => copyElement(item) }
+        }
+        // A selected submodel row copies the submodel, not the page's shell.
+        if (item && !item.elementKey && item.modelType === 'Submodel' && !item.unavailable && selectedId.value !== options.subject?.()) {
+          return { title: t('palette.structure.copy', { name: item.title }), run: () => copies.copySubmodel(targetId.value, item.submodelKey, item.title) }
+        }
+        return page.copy?.() ?? null
+      },
+      () => {
+        const item = selectedItem.value
+        if (canEditStructure.value && clipboardStore.copied && item && isContainerItem(item)) {
+          return { title: t('palette.structure.paste', { name: item.title }), run: () => pasteInto(item) }
+        }
+        return page.paste?.() ?? null
+      },
+    )
   }
 
   async function duplicate (item: ShellTreeItem) {
@@ -655,6 +714,8 @@ export function useElementTree (options: ElementTreeOptions) {
     detailsView,
     select,
     openFromOverview,
+    followTabs,
+    bindClipboardKeys,
     onElementChanged,
     // Structure editing
     creating,

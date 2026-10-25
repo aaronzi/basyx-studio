@@ -995,11 +995,14 @@ paths:
     get:
       tags: [AAS]
       operationId: getSubmodel
-      summary: Read a submodel's metadata, or the whole submodel as JSON or AAS XML
+      summary: Read a submodel's metadata, or the whole submodel as JSON, AAS XML or AASX
       description: |
         `content=metadata` (the default) returns the submodel without its
         elements; `content=full` the whole submodel. `format=xml` returns the
         whole submodel as AAS XML (aas-core `xmlization`) as an attachment.
+        `format=aasx` returns an AASX package of the submodel with the concept
+        descriptions the target has for its semantic IDs and its files; it
+        cannot be combined with `at`.
         With `at` the submodel is read as it was at that point in time; this
         needs the `history` capability. `download=true` with `content=full`
         returns the JSON as an attachment (the submodel view's export).
@@ -1010,7 +1013,7 @@ paths:
           schema: { type: string, enum: [metadata, full], default: metadata }
         - name: format
           in: query
-          schema: { type: string, enum: [json, xml], default: json }
+          schema: { type: string, enum: [json, xml, aasx], default: json }
         - name: download
           in: query
           schema: { type: string, enum: ['true', 'false'], default: 'false' }
@@ -1022,6 +1025,8 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/SubmodelDetail' }
             application/xml:
+              schema: { type: string, format: binary }
+            application/asset-administration-shell-package+xml:
               schema: { type: string, format: binary }
         default: { $ref: '#/components/responses/Problem' }
     put:
@@ -1830,9 +1835,15 @@ paths:
     post:
       tags: [AAS]
       operationId: validateAasJson
-      summary: AAS Core findings for a JSON value; nothing is written
-      description: 'Body `{ kind: element | submodel | shell, value }`. Used by the insert dialog while the user types.'
-      x-requirements: [DATA-007]
+      summary: AAS Core findings for a JSON value, or for AAS JSON or XML text; nothing is written
+      description: |
+        With `value`, AAS Core checks a JSON value of the kind. With `format`
+        and `text` (the *From JSON or XML* dialog), the text is parsed first:
+        an element comes back as JSON in `value`, to insert; for shells,
+        submodels and concept descriptions `contents` says what the text holds,
+        which a copy plan then writes. Text that does not parse answers with
+        one violation and no `value` or `contents`.
+      x-requirements: [DATA-007, DATA-012]
       parameters:
         - $ref: '#/components/parameters/TargetId'
         - $ref: '#/components/parameters/CsrfToken'
@@ -1840,13 +1851,13 @@ paths:
         required: true
         content:
           application/json:
-            schema: { type: object, additionalProperties: true }
+            schema: { $ref: '#/components/schemas/AasValidationRequest' }
       responses:
         '200':
           description: Findings, empty when the value is valid
           content:
             application/json:
-              schema: { type: object, additionalProperties: true }
+              schema: { $ref: '#/components/schemas/AasValidationResult' }
         default: { $ref: '#/components/responses/Problem' }
 
   /submodel-templates/{templateId}:
@@ -1866,6 +1877,27 @@ paths:
           content:
             application/json:
               schema: { type: object, additionalProperties: true }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /workspaces/{workspaceId}/download:
+    get:
+      tags: [Workspaces]
+      operationId: downloadWorkspace
+      summary: The whole package as it is now, as an AASX package or an AAS environment in JSON or XML
+      description: Unsaved changes are included; the package's own file stays as it is.
+      x-requirements: [PROD-002, DEP-004, DATA-005]
+      parameters:
+        - $ref: '#/components/parameters/WorkspaceId'
+        - name: format
+          in: query
+          required: true
+          schema: { type: string, enum: [aasx, json, xml] }
+      responses:
+        '200':
+          description: The package as a file
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
         default: { $ref: '#/components/responses/Problem' }
 
   /workspaces/{workspaceId}/undos:
@@ -2136,12 +2168,18 @@ paths:
     post:
       tags: [Copies]
       operationId: createCopyPlan
-      summary: Build a read-only preflight plan for a snapshot copy between two targets
-      description: The default and always-supported collision policy is `fail_without_changes`. Planning never modifies the source or destination.
-      x-requirements: [PROD-007, DATA-011, DATA-012, DATA-013, DATA-014]
+      summary: Plan a copy of shells, submodels or concept descriptions into a target
+      description: |
+        The source is resources of a target (read now and again on execution)
+        or AAS JSON or XML text: an environment, a shell, a submodel or a
+        concept description. The plan lists the chosen resources, a shell's
+        submodels, the concept descriptions the source has for their semantic
+        IDs and their files, each with its state at the destination and its
+        AAS Core findings. Planning writes nothing. Plans are kept in memory
+        for 30 minutes and belong to the user who made them.
+      x-requirements: [PROD-007, DATA-011, DATA-012, DATA-013, DATA-016]
       parameters:
         - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
         content:
@@ -2149,30 +2187,62 @@ paths:
             schema: { $ref: '#/components/schemas/CopyPlanRequest' }
       responses:
         '201':
-          description: Durable, expiring preflight plan
-          headers:
-            Location: { $ref: '#/components/headers/Location' }
-            ETag: { $ref: '#/components/headers/ETag' }
+          description: Expiring copy plan
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CopyPlan' }
-        '409': { $ref: '#/components/responses/Conflict' }
         '422': { $ref: '#/components/responses/Unprocessable' }
+        default: { $ref: '#/components/responses/Problem' }
+
+  /copy-plans/uploads:
+    post:
+      tags: [Copies]
+      operationId: createImportPlan
+      summary: Plan the import of an AASX, JSON or XML file into a target as a copy
+      description: |
+        The file is the request body; the Workspace Worker reads it with the
+        package's supplementary files and thumbnail. Packages import through
+        this route, as they have no BaSyx upload.
+      x-requirements: [DATA-006, DATA-012, DATA-013]
+      parameters:
+        - $ref: '#/components/parameters/CsrfToken'
+        - name: destinationTargetId
+          in: query
+          required: true
+          schema: { $ref: '#/components/schemas/TargetId' }
+        - name: fileName
+          in: query
+          required: true
+          schema: { type: string, maxLength: 255 }
+        - name: destinationShellKey
+          in: query
+          required: false
+          description: The file's submodels are also referenced from this shell (the shell page's import).
+          schema: { $ref: '#/components/schemas/ResourceKey' }
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '201':
+          description: Expiring copy plan
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CopyPlan' }
         default: { $ref: '#/components/responses/Problem' }
 
   /copy-plans/{copyPlanId}:
     get:
       tags: [Copies]
       operationId: getCopyPlan
-      summary: Get a copy preflight plan with permissions, capabilities, collisions, findings, and planned actions
-      x-requirements: [DATA-012, DATA-013, DATA-014]
+      summary: Get a copy plan of the signed-in user until it expires
+      x-requirements: [DATA-012, DATA-013]
       parameters:
         - $ref: '#/components/parameters/CopyPlanId'
       responses:
         '200':
           description: Copy plan
-          headers:
-            ETag: { $ref: '#/components/headers/ETag' }
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CopyPlan' }
@@ -2180,15 +2250,26 @@ paths:
 
   /copy-plans/{copyPlanId}/executions:
     post:
-      tags: [Copies, Operations]
+      tags: [Copies]
       operationId: executeCopyPlan
-      summary: Confirm and execute one current copy plan
-      description: The BFF reauthorizes source reads and every destination write immediately before execution. Independent targets do not form a distributed transaction; partial destination success is an expected report state and the source remains unchanged.
-      x-requirements: [PROD-007, DATA-012, DATA-013, DATA-014, DATA-015, OPS-007]
+      summary: Run a copy plan with the confirmed collision policy and get its report
+      description: |
+        Source and destination are opened again, so their rights are checked
+        now. Concept descriptions are written first, then submodels with their
+        files, then shells with their thumbnails, then registry entries where
+        Studio keeps them in step. Independent targets form no transaction:
+        each resource reports its own outcome and the source stays unchanged.
+        Each resource is read again first and compared with the plan; when
+        one changed, nothing is written and the answer is `revision_conflict`.
+        The `Idempotency-Key` is required. A repeated key answers with the
+        first report, also while that execution still runs; executions of one
+        plan run one after another. Running the plan again skips the resources
+        an earlier run completed, keeps the identifiers it gave, and completes
+        the steps it left open.
+      x-requirements: [PROD-007, DATA-012, DATA-013, DATA-014, DATA-015, DATA-020]
       parameters:
         - $ref: '#/components/parameters/CopyPlanId'
         - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IfMatch'
         - $ref: '#/components/parameters/IdempotencyKey'
       requestBody:
         required: true
@@ -2196,59 +2277,13 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/CopyExecutionRequest' }
       responses:
-        '202':
-          description: Copy operation accepted
-          headers:
-            Location: { $ref: '#/components/headers/Location' }
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OperationAccepted' }
-        '409': { $ref: '#/components/responses/Conflict' }
-        '412': { $ref: '#/components/responses/PreconditionFailed' }
-        '422': { $ref: '#/components/responses/Unprocessable' }
-        default: { $ref: '#/components/responses/Problem' }
-
-  /copy-operations/{operationId}/report:
-    get:
-      tags: [Copies, Operations]
-      operationId: getCopyReport
-      summary: Get the durable per-resource result of a completed or interrupted copy
-      x-requirements: [DATA-012, DATA-014, DATA-015, OPS-007]
-      parameters:
-        - $ref: '#/components/parameters/OperationId'
-      responses:
         '200':
-          description: Complete, partial-success, or failed copy report
+          description: Report of the copy, also on partial success
           content:
             application/json:
               schema: { $ref: '#/components/schemas/CopyReport' }
         '409': { $ref: '#/components/responses/Conflict' }
-        default: { $ref: '#/components/responses/Problem' }
-
-  /copy-operations/{operationId}/retries:
-    post:
-      tags: [Copies, Operations]
-      operationId: retryCopyOperation
-      summary: Safely retry eligible failed or incomplete resources
-      x-requirements: [DATA-014, DATA-015, OPS-007]
-      parameters:
-        - $ref: '#/components/parameters/OperationId'
-        - $ref: '#/components/parameters/CsrfToken'
-        - $ref: '#/components/parameters/IdempotencyKey'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema: { $ref: '#/components/schemas/CopyRetryRequest' }
-      responses:
-        '202':
-          description: Retry operation accepted
-          headers:
-            Location: { $ref: '#/components/headers/Location' }
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/OperationAccepted' }
-        '409': { $ref: '#/components/responses/Conflict' }
+        '422': { $ref: '#/components/responses/Unprocessable' }
         default: { $ref: '#/components/responses/Problem' }
 
   /views:
@@ -5072,114 +5107,117 @@ components:
         size: { type: integer, minimum: 0 }
         sha256: { type: string, pattern: '^[a-f0-9]{64}$' }
         validation: { $ref: '#/components/schemas/ValidationResult' }
+    CopyResourceType:
+      type: string
+      enum: [shell, submodel, conceptDescription]
     CopyDependencySelection:
       type: object
       additionalProperties: false
-      required: [submodels, conceptDescriptions, supplementaryFiles]
       properties:
-        submodels:
-          type: string
-          enum: [none, referenced, selected]
-        submodelKeys:
-          type: array
-          uniqueItems: true
-          maxItems: 10000
-          items: { $ref: '#/components/schemas/ResourceKey' }
-        conceptDescriptions:
-          type: string
-          enum: [none, referenced]
-        supplementaryFiles:
-          type: string
-          enum: [none, referenced]
+        submodels: { type: string, enum: [none, referenced], default: referenced }
+        conceptDescriptions: { type: string, enum: [none, referenced], default: referenced }
+        supplementaryFiles: { type: string, enum: [none, referenced], default: referenced }
+    CopySource:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, targetId, resources]
+          properties:
+            kind: { type: string, const: target }
+            targetId: { $ref: '#/components/schemas/TargetId' }
+            resources:
+              type: array
+              minItems: 1
+              maxItems: 100
+              items:
+                type: object
+                additionalProperties: false
+                required: [type, key]
+                properties:
+                  type: { $ref: '#/components/schemas/CopyResourceType' }
+                  key: { $ref: '#/components/schemas/ResourceKey' }
+        - type: object
+          additionalProperties: false
+          required: [kind, format, content]
+          properties:
+            kind: { type: string, const: text }
+            format: { type: string, enum: [json, xml] }
+            content: { type: string, maxLength: 20000000 }
     CopyPlanRequest:
       type: object
       additionalProperties: false
-      required: [sourceTargetId, sourceShellKey, destinationTargetId, dependencies]
+      required: [source, destinationTargetId]
       properties:
-        sourceTargetId: { $ref: '#/components/schemas/TargetId' }
-        sourceShellKey: { $ref: '#/components/schemas/ResourceKey' }
+        source: { $ref: '#/components/schemas/CopySource' }
         destinationTargetId: { $ref: '#/components/schemas/TargetId' }
+        destinationShellKey:
+          $ref: '#/components/schemas/ResourceKey'
+          description: A copied submodel is also referenced from this shell of the destination.
         dependencies: { $ref: '#/components/schemas/CopyDependencySelection' }
     CollisionPolicy:
       type: string
-      enum: [fail_without_changes, skip_existing, replace]
-      description: '`fail_without_changes` is the default. `replace` is available only when the destination capability and current permissions support it. Identifier remapping is intentionally not part of this first contract.'
-    CopyResourceType:
-      type: string
-      enum: [shell, submodel, conceptDescription, supplementaryFile]
-    CopyPlannedAction:
-      type: string
-      enum: [create, skip, replace, blocked]
+      enum: [fail_without_changes, skip_existing, replace, new_identifiers]
+      description: '`fail_without_changes` writes nothing if an identifier exists. `replace` needs structural writes and is not offered within one target. `new_identifiers` gives copied shells and submodels new identifiers and rewrites the references inside the copied set; concept descriptions keep theirs.'
     CopyResourcePlan:
       type: object
       additionalProperties: false
-      required: [resourceType, sourceKey, identifier, plannedActions, findings]
+      required: [key, resourceType, identifier, label, role, shellIdentifier, exists, blocked, files, findings]
       properties:
+        key: { type: string, maxLength: 100, description: Opaque within the plan, for `exclude`. }
         resourceType: { $ref: '#/components/schemas/CopyResourceType' }
-        sourceKey: { $ref: '#/components/schemas/ResourceKey' }
         identifier: { type: string, minLength: 1, maxLength: 4096 }
-        size: { type: integer, minimum: 0 }
-        collision:
-          oneOf:
-            - $ref: '#/components/schemas/CopyCollision'
-            - type: 'null'
-        plannedActions:
-          type: object
-          propertyNames:
-            enum: [fail_without_changes, skip_existing, replace]
-          additionalProperties: { $ref: '#/components/schemas/CopyPlannedAction' }
+        label: { type: string }
+        role: { type: string, enum: [root, dependency] }
+        shellIdentifier: { type: [string, 'null'] }
+        exists: { type: boolean }
+        blocked: { type: [string, 'null'], description: Why the resource is left out, e.g. unreadable or with findings. }
+        files: { type: integer, minimum: 0 }
         findings:
           type: array
-          maxItems: 500
-          items: { $ref: '#/components/schemas/Diagnostic' }
-    CopyCollision:
+          maxItems: 20
+          items: { type: string }
+    CopyTargetFacts:
       type: object
       additionalProperties: false
-      required: [kind, destinationResourceKey]
+      description: What the copy may do at a target (DATA-013); the target still checks every write.
+      required: [targetId, name, kind, identity, createResources, replaceResources, conceptDescriptions, files]
       properties:
-        kind:
+        targetId: { oneOf: [{ $ref: '#/components/schemas/TargetId' }, { type: 'null' }] }
+        name: { type: string }
+        kind: { type: string, enum: [live, workspace, text] }
+        identity:
           type: string
-          enum: [identifier_exists, incompatible_type, revision_unknown]
-        destinationResourceKey: { $ref: '#/components/schemas/ResourceKey' }
-        replaceSupported: { type: boolean }
-    TargetCopyFacts:
-      type: object
-      additionalProperties: false
-      required: [targetId, permissions, capabilities, authenticationState]
-      properties:
-        targetId: { $ref: '#/components/schemas/TargetId' }
-        displayName: { type: string, maxLength: 200 }
-        permissions: { $ref: '#/components/schemas/PermissionSet' }
-        capabilities: { $ref: '#/components/schemas/TargetCapabilities' }
-        authenticationState: { $ref: '#/components/schemas/TargetAuthenticationState' }
-        downstreamIdentityDisplay:
-          type: string
-          maxLength: 500
-          description: Sanitized identity class or display value for user understanding; never a token or credential.
+          enum: [user, studio, none]
+          description: Whose rights the target checks, the signed-in user's, Studio's service account's, or none.
+        createResources: { type: boolean }
+        replaceResources: { type: boolean }
+        conceptDescriptions: { type: boolean }
+        files: { type: boolean, description: The target keeps files and the deployment allows uploads. }
     CopyPlan:
       type: object
       additionalProperties: false
-      required: [id, revision, source, destination, dependencies, allowedCollisionPolicies, resources, validation, estimatedTransferBytes, executable, createdAt, expiresAt]
+      required: [id, source, destination, sourceTargetId, sourceLabel, destinationTargetId, destinationShellKey, sameTarget, resources, allowedCollisionPolicies, defaultCollisionPolicy, notes, expiresAt]
       properties:
         id: { $ref: '#/components/schemas/CopyPlanId' }
-        revision: { $ref: '#/components/schemas/Revision' }
-        source: { $ref: '#/components/schemas/TargetCopyFacts' }
-        destination: { $ref: '#/components/schemas/TargetCopyFacts' }
-        sourceShell: { $ref: '#/components/schemas/AasResourceSummary' }
-        dependencies: { $ref: '#/components/schemas/CopyDependencySelection' }
+        source: { $ref: '#/components/schemas/CopyTargetFacts' }
+        destination: { $ref: '#/components/schemas/CopyTargetFacts' }
+        sourceTargetId: { oneOf: [{ $ref: '#/components/schemas/TargetId' }, { type: 'null' }] }
+        sourceLabel: { type: string }
+        destinationTargetId: { $ref: '#/components/schemas/TargetId' }
+        destinationShellKey: { oneOf: [{ $ref: '#/components/schemas/ResourceKey' }, { type: 'null' }] }
+        sameTarget: { type: boolean }
+        resources:
+          type: array
+          items: { $ref: '#/components/schemas/CopyResourcePlan' }
         allowedCollisionPolicies:
           type: array
           minItems: 1
           uniqueItems: true
           items: { $ref: '#/components/schemas/CollisionPolicy' }
-        resources:
+        defaultCollisionPolicy: { $ref: '#/components/schemas/CollisionPolicy' }
+        notes:
           type: array
-          maxItems: 100000
-          items: { $ref: '#/components/schemas/CopyResourcePlan' }
-        validation: { $ref: '#/components/schemas/ValidationResult' }
-        estimatedTransferBytes: { type: integer, minimum: 0 }
-        executable: { type: boolean }
-        createdAt: { $ref: '#/components/schemas/Timestamp' }
+          items: { type: string }
         expiresAt: { $ref: '#/components/schemas/Timestamp' }
     CopyExecutionRequest:
       type: object
@@ -5190,35 +5228,25 @@ components:
         confirmed:
           type: boolean
           const: true
-          description: Confirms the visible source, destination, dependency closure, collisions, policy, and non-atomic partial-success semantics.
-    CopyRetryRequest:
-      type: object
-      additionalProperties: false
-      required: [confirmed]
-      properties:
-        confirmed: { type: boolean, const: true }
-        resourceOutcomeIds:
+          description: Confirms the visible source, destination, dependencies, collisions, policy, and non-atomic partial-success semantics.
+        exclude:
           type: array
-          uniqueItems: true
-          maxItems: 100000
-          items: { $ref: '#/components/schemas/OpaqueId' }
-          description: Omit to retry every eligible failed/incomplete resource safely.
+          maxItems: 10000
+          items: { type: string, maxLength: 100 }
+          description: Keys of plan resources the user deselected.
     CopyOutcomeStatus:
       type: string
-      enum: [created, skipped, replaced, failed]
+      enum: [created, replaced, skipped, failed]
     CopyResourceOutcome:
       type: object
       additionalProperties: false
-      required: [id, resourceType, identifier, status, retryable]
+      required: [resourceType, identifier, destinationIdentifier, status, message]
       properties:
-        id: { $ref: '#/components/schemas/OpaqueId' }
         resourceType: { $ref: '#/components/schemas/CopyResourceType' }
         identifier: { type: string, minLength: 1, maxLength: 4096 }
+        destinationIdentifier: { type: string, minLength: 1, maxLength: 4096 }
         status: { $ref: '#/components/schemas/CopyOutcomeStatus' }
-        destinationResourceKey: { $ref: '#/components/schemas/ResourceKey' }
-        errorCode: { type: string, maxLength: 100 }
-        message: { type: string, maxLength: 1000 }
-        retryable: { type: boolean }
+        message: { type: [string, 'null'] }
     CopyReportStatus:
       type: string
       enum: [succeeded, partial_success, failed]
@@ -5235,22 +5263,22 @@ components:
     CopyReport:
       type: object
       additionalProperties: false
-      required: [operationId, status, sourceTargetId, destinationTargetId, collisionPolicy, sourceUnchanged, atomic, counts, outcomes, destinationValidation]
+      required: [planId, status, collisionPolicy, sourceUnchanged, atomic, counts, outcomes, sync, shellKey, submodelKey]
       properties:
-        operationId: { $ref: '#/components/schemas/OperationId' }
+        planId: { $ref: '#/components/schemas/CopyPlanId' }
         status: { $ref: '#/components/schemas/CopyReportStatus' }
-        sourceTargetId: { $ref: '#/components/schemas/TargetId' }
-        destinationTargetId: { $ref: '#/components/schemas/TargetId' }
         collisionPolicy: { $ref: '#/components/schemas/CollisionPolicy' }
         sourceUnchanged: { type: boolean, const: true }
         atomic: { type: boolean, const: false }
         counts: { $ref: '#/components/schemas/CopyReportCounts' }
         outcomes:
           type: array
-          maxItems: 100000
           items: { $ref: '#/components/schemas/CopyResourceOutcome' }
-        destinationValidation: { $ref: '#/components/schemas/ValidationResult' }
-        completedAt: { $ref: '#/components/schemas/Timestamp' }
+        sync:
+          type: array
+          items: { $ref: '#/components/schemas/SyncStep' }
+        shellKey: { oneOf: [{ $ref: '#/components/schemas/ResourceKey' }, { type: 'null' }] }
+        submodelKey: { oneOf: [{ $ref: '#/components/schemas/ResourceKey' }, { type: 'null' }] }
     PrincipalType:
       type: string
       enum: [user, group]
@@ -6294,6 +6322,46 @@ components:
         jsonPointer: { type: string, maxLength: 2000 }
         resourceKey: { $ref: '#/components/schemas/ResourceKey' }
         remediation: { type: string, maxLength: 2000 }
+    AasValidationKind:
+      type: string
+      enum: [element, submodel, shell, conceptDescription]
+    AasValidationRequest:
+      oneOf:
+        - type: object
+          additionalProperties: false
+          required: [kind, value]
+          properties:
+            kind: { $ref: '#/components/schemas/AasValidationKind' }
+            value: {}
+        - type: object
+          additionalProperties: false
+          required: [kind, format, text]
+          properties:
+            kind: { $ref: '#/components/schemas/AasValidationKind' }
+            format: { type: string, enum: [json, xml] }
+            text: { type: string, maxLength: 20000000 }
+    AasValidationResult:
+      type: object
+      additionalProperties: false
+      required: [violations]
+      properties:
+        violations:
+          type: array
+          items: { $ref: '#/components/schemas/ProblemViolation' }
+        value:
+          description: For the text of an element, the element as JSON.
+          oneOf: [{ type: object, additionalProperties: true }, { type: 'null' }]
+        contents:
+          description: For the text of shells, submodels or concept descriptions, how many of each it holds.
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [shells, submodels, conceptDescriptions]
+              properties:
+                shells: { type: integer, minimum: 0 }
+                submodels: { type: integer, minimum: 0 }
+                conceptDescriptions: { type: integer, minimum: 0 }
+            - type: 'null'
     ValidationResult:
       type: object
       additionalProperties: false

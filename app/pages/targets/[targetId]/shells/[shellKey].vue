@@ -16,188 +16,34 @@
       <v-skeleton-loader v-else-if="!shell.data.value || !target.data.value" type="card, article" />
 
       <template v-else>
-        <!-- Shell header: title and a muted meta line, then the identifiers
-             as a description list. Phones keep the star and a menu. -->
-        <v-card class="mb-3">
-          <v-card-item class="pa-3">
-            <template #prepend>
-              <ShellAvatar
-                class="me-1"
-                :icon-size="smAndUp ? 28 : 24"
-                :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail, thumbnailUrl }"
-                :size="smAndUp ? 48 : 40"
-                :target-id="targetId"
-                :thumbnails="capabilities.files"
-              />
-            </template>
-
-            <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-title-large' : 'text-title-medium'" tag="h1">{{ shellLabel }}</v-card-title>
-
-            <div class="d-flex flex-wrap align-center gc-3 text-body-small text-medium-emphasis">
-              <span v-for="item in headerMeta" :key="item.text" class="d-inline-flex align-center ga-1" :class="item.class">
-                <v-icon :icon="item.icon" size="14" />
-                {{ item.text }}
-              </span>
-            </div>
-
-            <template #append>
-              <div class="d-flex align-center ga-1">
-                <WorkspaceActions
-                  v-if="target.data.value.workspace"
-                  :target="target.data.value"
-                  @error="error => (actionError = error)"
-                  @restored="onRestored"
-                />
-
-                <template v-if="smAndUp">
-                  <v-btn
-                    v-if="canEditShell"
-                    prepend-icon="mdi-pencil-outline"
-                    :text="t('shell.edit')"
-                    @click="editShell"
-                  />
-
-                  <v-btn
-                    v-if="canEditShell && assetKind === 'Type'"
-                    prepend-icon="mdi-content-copy"
-                    :text="t('instance.create')"
-                    @click="instanceOpen = true"
-                  />
-
-                  <v-btn
-                    v-if="canShare"
-                    prepend-icon="mdi-account-multiple-plus-outline"
-                    :text="t('share.share')"
-                    @click="shareOpen = true"
-                  />
-
-                  <v-menu v-if="capabilities.export">
-                    <template #activator="{ props: activator }">
-                      <v-btn
-                        v-bind="activator"
-                        append-icon="mdi-chevron-down"
-                        color="primary"
-                        prepend-icon="mdi-download"
-                        :text="t('shell.export')"
-                        variant="tonal"
-                      />
-                    </template>
-
-                    <v-card>
-                      <v-list>
-                        <v-list-item
-                          v-for="format in exportFormats"
-                          :key="format.value"
-                          :href="studioUrl.api(`/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`)"
-                          :prepend-icon="format.icon"
-                          :subtitle="format.subtitle"
-                          :title="format.title"
-                        />
-                      </v-list>
-                    </v-card>
-                  </v-menu>
-                </template>
-
-                <!-- Everything else; on phones also export, share and the identifiers. -->
-                <v-menu v-if="!smAndUp || canDelete">
-                  <template #activator="{ props: activator }">
-                    <v-btn v-bind="activator" :aria-label="t('shell.more')" icon="mdi-dots-vertical" />
-                  </template>
-
-                  <v-card>
-                    <v-list>
-                      <template v-if="!smAndUp">
-                        <v-list-item v-if="canEditShell" prepend-icon="mdi-pencil-outline" :title="t('shell.edit')" @click="editShell" />
-
-                        <v-list-item
-                          v-if="canEditShell && assetKind === 'Type'"
-                          prepend-icon="mdi-content-copy"
-                          :title="t('instance.create')"
-                          @click="instanceOpen = true"
-                        />
-
-                        <template v-if="capabilities.export">
-                          <v-list-subheader :title="t('shell.export')" />
-
-                          <v-list-item
-                            v-for="format in exportFormats"
-                            :key="format.value"
-                            :href="studioUrl.api(`/targets/${targetId}/shells/${shellKey}/export?format=${format.value}`)"
-                            :prepend-icon="format.icon"
-                            :title="format.title"
-                          />
-
-                          <v-divider class="my-1" />
-                        </template>
-
-                        <v-list-item v-if="canShare" prepend-icon="mdi-account-multiple-plus-outline" :title="t('share.share')" @click="shareOpen = true" />
-
-                        <v-list-item v-if="globalAssetId" prepend-icon="mdi-qrcode" :title="t('qr.show')" @click="qrOpen = true" />
-
-                        <v-list-item
-                          :prepend-icon="showIdentifiers ? 'mdi-information-off-outline' : 'mdi-information-outline'"
-                          :title="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
-                          @click="showIdentifiers = !showIdentifiers"
-                        />
-                      </template>
-
-                      <template v-if="canDelete">
-                        <v-divider v-if="!smAndUp" class="my-1" />
-                        <v-list-item base-color="error" prepend-icon="mdi-delete-outline" :title="t('shell.delete')" @click="confirmDelete = true" />
-                      </template>
-                    </v-list>
-                  </v-card>
-                </v-menu>
-              </div>
-            </template>
-          </v-card-item>
-
-          <!-- Identifiers: label column, value and its copy button side by side,
-               and the global asset ID as a QR code. Phones stack label and
-               value and show them on request. -->
-          <template v-if="smAndUp || showIdentifiers">
-            <v-divider />
-
-            <div class="d-flex align-center ga-3 px-3 py-2">
-              <div class="flex-grow-1 overflow-hidden">
-                <!-- A fixed label column: the card's width depends on the drawers, not on the window. -->
-                <div
-                  v-for="row in identifiers"
-                  :key="row.label"
-                  class="d-flex text-body-small"
-                  :class="smAndUp ? 'align-center' : 'flex-column mb-1'"
-                >
-                  <v-sheet
-                    class="d-flex align-center ga-2 flex-shrink-0 text-medium-emphasis text-no-wrap"
-                    color="transparent"
-                    :width="smAndUp ? 136 : undefined"
-                  >
-                    <v-icon :icon="row.icon" size="16" />
-                    {{ row.label }}
-                  </v-sheet>
-
-                  <div class="d-flex align-center ga-1 overflow-hidden">
-                    <span :class="smAndUp ? 'text-truncate' : 'text-break'" :title="row.value">{{ row.value }}</span>
-                    <v-btn :aria-label="t('common.copyLabel', { label: row.label })" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
-                  </div>
-                </div>
-              </div>
-
-              <v-btn
-                v-if="globalAssetId && smAndUp"
-                v-tooltip="t('qr.show')"
-                :aria-label="t('qr.show')"
-                class="pa-1 flex-shrink-0"
-                height="72"
-                min-width="0"
-                width="72"
-                @click="qrOpen = true"
-              >
-                <v-img :alt="t('qr.alt', { id: globalAssetId })" :src="qrPreview" width="64" />
-              </v-btn>
-            </div>
+        <!-- Shell header: title, meta line, actions and identifiers, with the
+             global asset ID as a QR code (package editing plan, H1). -->
+        <ResourceHeader :actions="headerActions" :identifiers="identifiers" :meta="headerMeta" :title="shellLabel">
+          <template #avatar="{ large }">
+            <ShellAvatar
+              class="me-1"
+              :icon-size="large ? 28 : 24"
+              :shell="{ key: shellKey, idShort: shellJson.idShort ?? null, assetKind, thumbnail: hasThumbnail, thumbnailUrl }"
+              :size="large ? 48 : 40"
+              :target-id="targetId"
+              :thumbnails="capabilities.files"
+            />
           </template>
-        </v-card>
+
+          <template v-if="globalAssetId" #identifiers-append>
+            <v-btn
+              v-tooltip="t('qr.show')"
+              :aria-label="t('qr.show')"
+              class="pa-1 flex-shrink-0"
+              height="72"
+              min-width="0"
+              width="72"
+              @click="qrOpen = true"
+            >
+              <v-img :alt="t('qr.alt', { id: globalAssetId })" :src="qrPreview" width="64" />
+            </v-btn>
+          </template>
+        </ResourceHeader>
 
         <ProblemAlert v-if="actionError" class="mb-4" :error="actionError" />
 
@@ -226,13 +72,19 @@
               :refs-loading="refs.isLoading.value"
               @retry="refs.refetch()"
             >
+              <!-- Submodels of this shell: new, pasted, from text or a file (A1). -->
               <template #toolbar>
-                <v-btn
+                <AddMenu
                   v-if="canEditShell"
-                  prepend-icon="mdi-plus"
-                  size="small"
-                  :text="t('shell.addSubmodel')"
-                  @click="addSubmodelOpen = true"
+                  compact
+                  importable
+                  kind="submodel"
+                  :label="t('copies.add.submodel')"
+                  :new-items="[{ title: t('wizard.addSubmodel'), icon: 'mdi-plus', onClick: () => (addSubmodelOpen = true) }]"
+                  :paste-label="pastedSubmodel?.label ?? null"
+                  @import="ui.openUpload(null, shellKey)"
+                  @paste="pasteSubmodel"
+                  @text="textOpen = true"
                 />
               </template>
 
@@ -281,6 +133,15 @@
             </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
+
+        <AasTextDialog
+          v-if="canEditShell"
+          v-model="textOpen"
+          :destination-shell-key="shellKey"
+          kind="submodel"
+          :target-id="targetId"
+          :title="t('copies.text.title.submodel')"
+        />
 
         <AssetQrDialog v-if="globalAssetId" v-model="qrOpen" :content="globalAssetId" :file-name="shellJson.idShort ?? 'asset'" />
 
@@ -395,8 +256,8 @@
 <script lang="ts" setup>
   import type { DeleteResult, EffectiveRights, ShellCreateResult, ShellDetail, SubmodelRef, TargetCapabilities } from '#shared/contract'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
+  import type { HeaderAction } from '~/utils/resource-header'
   import { useQuery, useQueryCache } from '@pinia/colada'
-  import { useDisplay } from 'vuetify'
   import { noCapabilities } from '#shared/contract'
   import { provideElementTree, useElementTree } from '~/composables/useElementTree'
   import { StudioApiError } from '~/composables/useStudioApi'
@@ -411,10 +272,8 @@
   const invalidate = useInvalidate()
   const queryCache = useQueryCache()
   const ui = useUiStore()
-  const copy = useClipboard()
   const preferences = usePreferences()
   const notifications = useNotificationsStore()
-  const { smAndUp } = useDisplay()
 
   const targetId = computed(() => String(route.params.targetId))
   const shellKey = computed(() => String(route.params.shellKey))
@@ -453,7 +312,7 @@
     ...(shellJson.value.idShort && shellJson.value.idShort !== shellLabel.value ? [{ text: String(shellJson.value.idShort), icon: '$aas', class: undefined }] : []),
     ...(assetKind.value ? [{ text: t('shell.assetKind', { kind: assetKind.value }), icon: 'mdi-shape-outline', class: assetKind.value === 'Type' ? 'text-warning' : undefined }] : []),
     { text: t('shell.submodelCount', submodelRefs.value.length), icon: 'mdi-folder-multiple-outline', class: undefined },
-    ...(target.data.value ? [{ text: target.data.value.name, icon: 'mdi-server-network', class: undefined }] : []),
+    ...(target.data.value ? [{ text: target.data.value.name, icon: target.data.value.workspace ? 'mdi-package-variant-closed' : 'mdi-server-network', class: undefined }] : []),
   ])
   const thumbnailUrl = computed(() => {
     const path = shellJson.value.assetInformation?.defaultThumbnail?.path
@@ -517,6 +376,7 @@
     },
     set: (value: string) => router.replace({ query: { ...route.query, tab: value === 'submodels' ? undefined : value } }),
   })
+  tree.followTabs(() => tab.value, 'submodels')
 
   watch([targetId, shellKey], () => tree.resetView())
   // Remembered once the shell is loaded, with the title the user saw.
@@ -551,6 +411,8 @@
   async function onRestored () {
     await afterShellChange()
   }
+  // Undo and redo are the package bar's (package editing plan, H5).
+  onWorkspaceRestored(() => targetId.value, onRestored)
 
   async function onInstanceCreated (result: ShellCreateResult) {
     await queryCache.invalidateQueries({ key: ['targets', targetId.value] })
@@ -580,11 +442,49 @@
   }
 
   const shareOpen = ref(false)
-  const showIdentifiers = ref(false)
   const qrOpen = ref(false)
   const globalAssetId = computed(() => typeof shellJson.value.assetInformation?.globalAssetId === 'string' ? shellJson.value.assetInformation.globalAssetId as string : null)
   const qrPreview = computed(() => globalAssetId.value ? svgDataUrl(identificationLinkSvg(globalAssetId.value)) : '')
   const confirmDelete = ref(false)
+
+  // The header's actions, by how long they stay inline (H3): Edit first in
+  // edit mode, Export as the one action of view mode.
+  const headerActions = computed<HeaderAction[]>(() => [
+    ...(canEditShell.value ? [{ id: 'edit', title: t('shell.edit'), icon: 'mdi-pencil-outline', rank: 1, onClick: editShell }] : []),
+    ...(canEditShell.value && assetKind.value === 'Type' ? [{ id: 'instance', title: t('instance.create'), icon: 'mdi-content-copy', rank: 3, onClick: () => (instanceOpen.value = true) }] : []),
+    ...(canShare.value ? [{ id: 'share', title: t('share.share'), icon: 'mdi-account-multiple-plus-outline', rank: 4, onClick: () => (shareOpen.value = true) }] : []),
+    ...(capabilities.value.export
+      ? [{
+        id: 'export',
+        title: t('shell.export'),
+        icon: 'mdi-download',
+        rank: 2,
+        primary: true,
+        items: exportFormats.value.map(format => ({ ...format, href: studioUrl.api(`/targets/${targetId.value}/shells/${shellKey.value}/export?format=${format.value}`) })),
+      }]
+      : []),
+    { id: 'copy', title: t('copies.copyShell'), icon: 'mdi-content-copy', rank: 5, menuOnly: true, onClick: copyShell },
+    ...(globalAssetId.value ? [{ id: 'qr', title: t('qr.show'), icon: 'mdi-qrcode', rank: 5, narrowOnly: true, onClick: () => (qrOpen.value = true) }] : []),
+    ...(canDelete.value ? [{ id: 'delete', title: t('shell.delete'), icon: 'mdi-delete-outline', rank: 6, danger: true, onClick: () => (confirmDelete.value = true) }] : []),
+  ])
+  // Copy and paste (package editing plan, K1, K2, K10): the shell, and a
+  // copied submodel into it.
+  const copies = useCopyActions()
+  const copyShell = () => copies.copyShell(targetId.value, shellKey.value, shellLabel.value)
+  const pastedSubmodel = computed(() => canEditShell.value ? copies.pasteable('submodel') : null)
+  const pasteSubmodel = () => copies.paste(targetId.value, shellKey.value)
+  const textOpen = ref(false)
+  // ⌘C copies the shell; ⌘V pastes a copied submodel into it, or a copied shell into the target.
+  tree.bindClipboardKeys({
+    copy: () => ({ title: t('palette.structure.copy', { name: shellLabel.value }), run: copyShell }),
+    paste: () => {
+      if (pastedSubmodel.value) {
+        return { title: t('copies.pasteInto', { name: pastedSubmodel.value.label }), run: pasteSubmodel }
+      }
+      const shell = canEditShell.value ? copies.pasteable('shell') : null
+      return shell ? { title: t('copies.pasteInto', { name: shell.label }), run: () => copies.paste(targetId.value) } : null
+    },
+  })
   const alsoDeleteSubmodels = ref(false)
   const deleting = ref(false)
 

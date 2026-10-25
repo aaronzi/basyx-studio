@@ -3,7 +3,7 @@ import type { ConceptDescriptionSource } from '#shared/search/expression'
 import type { JsonObject } from '../aas/outline'
 import type { Violation } from '../problem'
 import type { BinaryContent, ElementSnapshot, StructureResult, SubmodelOwnership } from '../targets/aas-target'
-import type { InspectedEnvironment, UploadFormat } from './package'
+import type { ExtractedEnvironment, InspectedEnvironment, PackagedFile, UploadFormat } from './package'
 
 // IPC contract between the Studio Service and the Workspace Worker process.
 
@@ -73,6 +73,10 @@ export type WorkerRequest
     | { op: 'list' }
     /** Validates a file before it is uploaded to a live target; opens nothing. */
     | { op: 'inspect', bytes: Uint8Array, format: UploadFormat }
+    /** Reads a file to copy its content into a target (E1); opens nothing. */
+    | { op: 'extract', bytes: Uint8Array, format: UploadFormat }
+    /** Writes an environment and its files as a new AASX package (E2). */
+    | { op: 'pack', environment: JsonObject, files: PackagedFile[] }
 
 export interface WorkerResults {
   open: WorkspaceInfo
@@ -82,6 +86,8 @@ export interface WorkerResults {
   close: null
   list: WorkspaceInfo[]
   inspect: InspectedEnvironment
+  extract: ExtractedEnvironment
+  pack: Uint8Array
 }
 
 export interface WorkerProblem {

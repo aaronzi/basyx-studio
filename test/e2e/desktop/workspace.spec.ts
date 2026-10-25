@@ -65,7 +65,9 @@ test('opens a package, edits a value, saves and saves as', async () => {
   expect(await contentXml(path)).toContain('SN-E2E-0001')
 
   await editSerialNumber('SN-E2E-0002', false)
-  await window.getByRole('button', { name: 'Save as…' }).click()
+  // Save as and Close are in the package bar's menu.
+  await window.getByRole('banner').getByRole('button', { name: 'Package actions' }).click()
+  await window.getByText('Save as…', { exact: true }).click()
   await expect(window.getByText('motor-copy.aasx').first()).toBeVisible()
   expect(await contentXml(copy)).toContain('SN-E2E-0002')
   // Save As leaves the original file as it was.
@@ -80,7 +82,8 @@ test('asks before closing a package or the window with unsaved changes', async (
   await editSerialNumber('SN-E2E-UNSAVED')
 
   // Closing the package in the app asks first.
-  await window.getByRole('button', { name: 'Close package' }).click()
+  await window.getByRole('banner').getByRole('button', { name: 'Package actions' }).click()
+  await window.getByText('Close package', { exact: true }).click()
   await expect(window.getByText('Close unsaved.aasx?')).toBeVisible()
   await window.getByRole('button', { name: 'Cancel' }).click()
 

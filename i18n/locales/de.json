@@ -23,7 +23,8 @@
     "legalNotice": "Impressum",
     "privacyPolicy": "Datenschutz",
     "mainNavigation": "Hauptnavigation",
-    "toggleSubmodelList": "Liste der Teilmodelle ein- oder ausblenden"
+    "toggleSubmodelList": "Liste der Teilmodelle ein- oder ausblenden",
+    "packages": "Geöffnete Pakete"
   },
   "qr": {
     "title": "QR-Code des Assets",
@@ -169,7 +170,6 @@
     "derivedFrom": "Abgeleitet von",
     "administration": "Verwaltung",
     "revisionLabel": "Revision",
-    "addSubmodel": "Submodell",
     "alsoDeleteSubmodels": "Auch das Submodell löschen | Auch die {count} Submodelle löschen",
     "affectedSubmodels": "Diese Submodelle werden gelöscht",
     "sharedWarning": "Andere Shells, die diese Submodelle referenzieren, verlieren sie.",
@@ -266,7 +266,10 @@
     "cancel": "Abbrechen",
     "new": "Neues Paket",
     "undo": "Rückgängig",
-    "redo": "Wiederholen"
+    "redo": "Wiederholen",
+    "more": "Paketaktionen",
+    "moreNamed": "Aktionen für {name}",
+    "exportAs": "Paket exportieren als"
   },
   "variables": {
     "input": "Eingabevariablen",
@@ -875,7 +878,8 @@
     },
     "empty": "Noch keine Shells",
     "emptyText": "Dieses Ziel hat noch keine Shells.",
-    "emptyTextImport": "Importieren Sie eine AASX-, JSON- oder XML-Datei, oder legen Sie sie auf dieser Liste ab."
+    "emptyTextImport": "Importieren Sie eine AASX-, JSON- oder XML-Datei, oder legen Sie sie auf dieser Liste ab.",
+    "loadMore": "Weitere Verwaltungsschalen laden"
   },
   "viewer": {
     "headline": "Wählen Sie eine Verwaltungsschale",
@@ -918,8 +922,6 @@
     "noDescription": "Für dieses Element ist keine Beschreibung angegeben.",
     "qualifiers": "Qualifier",
     "noQualifiers": "Keine Qualifier.",
-    "nothing": "Nichts ausgewählt",
-    "nothingText": "Wählen Sie ein Element im Baum, um es zu untersuchen.",
     "identifier": "Identifikator",
     "semanticId": "Semantic ID",
     "valueType": "Werttyp",
@@ -1200,7 +1202,6 @@
     "rowMenu": "Elementaktionen",
     "unsaved": "Ungespeicherte Änderungen",
     "addElement": "Element hinzufügen",
-    "paste": "Einfügen",
     "copy": "Kopieren",
     "copyReference": "Referenz kopieren",
     "duplicate": "Duplizieren",
@@ -1213,7 +1214,6 @@
     "pasted": "{name} eingefügt",
     "referenceCopied": "Referenz auf {name} kopiert. Fügen Sie sie in ein Referenzfeld ein.",
     "draftNode": "Entwurf",
-    "insertJson": "Aus JSON einfügen",
     "insertJsonTitle": "In {name} einfügen",
     "convert": "In Instanz umwandeln",
     "convertTitle": "In Instanz umwandeln?",
@@ -1234,8 +1234,7 @@
   },
   "insert": {
     "insert": "Einfügen",
-    "valid": "AAS Core findet keine Probleme.",
-    "notJson": "Das ist kein JSON-Objekt."
+    "valid": "AAS Core findet keine Probleme."
   },
   "wizard": {
     "title": "Shell erstellen",
@@ -1256,7 +1255,6 @@
     "partial": "Nur ein Teil der Änderungen wurde geschrieben",
     "fromTemplate": "Aus Template",
     "empty": "Leeres Submodell",
-    "fromJson": "Aus JSON",
     "json": "Submodell als JSON",
     "noSubmodelsTitle": "Noch keine Submodelle",
     "noSubmodelsText": "Fügen Sie ein Submodell hinzu und füllen Sie seine Felder aus. Seine Elemente fügen Sie danach im Baum hinzu.",
@@ -1295,9 +1293,6 @@
   },
   "cd": {
     "new": "Neue Konzeptbeschreibung",
-    "moreCreate": "Weitere Möglichkeiten zum Anlegen",
-    "fromJson": "Aus JSON",
-    "fromJsonTitle": "Konzeptbeschreibung aus JSON einfügen",
     "newTitle": "Neue Konzeptbeschreibung",
     "create": "Anlegen",
     "created": "{name} angelegt.",
@@ -1316,7 +1311,6 @@
     "isCaseOf": "Ist Fall von",
     "isCaseOfHint": "Externe Definitionen, mit denen dieses Konzept verträglich ist, z. B. ein ECLASS-Merkmal.",
     "conflictTitle": "Jemand anderes hat diese Konzeptbeschreibung geändert",
-    "nothingText": "Wählen Sie eine Konzeptbeschreibung in der Tabelle.",
     "open": "Öffnen",
     "notFound": "Zu dieser Semantic ID gibt es auf diesem Ziel keine Konzeptbeschreibung.",
     "createFromElement": "Konzeptbeschreibung anlegen",
@@ -1408,7 +1402,6 @@
     "fromRegistry": "Teilmodelle aus der Teilmodell-Registry",
     "fromRepository": "Teilmodelle aus dem Teilmodell-Repository",
     "fromTemplateTitle": "Neues Teilmodell aus einem Template",
-    "fromJsonTitle": "Neues Teilmodell aus JSON",
     "idShortHint": "Leer gelassen wird der idShort des Templates verwendet.",
     "unsupported": "Keine Teilmodell-Ansicht für dieses Ziel",
     "unsupportedText": "Dieses Ziel stellt Teilmodelle nur über ihre Verwaltungsschalen bereit. Öffnen Sie sie dort.",
@@ -1437,5 +1430,106 @@
       "elements": "Elemente"
     },
     "identifier": "Identifikator"
+  },
+  "copies": {
+    "copied": "{name} kopiert",
+    "pasteTitle": "{name} einfügen",
+    "importTitle": "{name} importieren",
+    "into": "In {name}",
+    "planning": "Prüfe, was die Kopie schreiben würde…",
+    "types": {
+      "shell": "Verwaltungsschale",
+      "submodel": "Teilmodell",
+      "conceptDescription": "Konzeptbeschreibung"
+    },
+    "states": {
+      "new": "Neu",
+      "exists": "Vorhanden",
+      "blocked": "Ausgelassen"
+    },
+    "files": "{count} Datei | {count} Dateien",
+    "policy": "Wenn ein Identifikator am Ziel schon existiert",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Ohne Änderungen abbrechen",
+        "text": "Nichts wird geschrieben, wenn einer der Identifikatoren existiert."
+      },
+      "skip_existing": {
+        "title": "Vorhandenes überspringen",
+        "text": "Vorhandene Ressourcen bleiben, wie sie sind; die übrigen werden kopiert."
+      },
+      "replace": {
+        "title": "Vorhandenes ersetzen",
+        "text": "Vorhandene Ressourcen werden mit der Kopie überschrieben."
+      },
+      "new_identifiers": {
+        "title": "Mit neuen Identifikatoren kopieren",
+        "text": "Verwaltungsschalen und Teilmodelle erhalten neue Identifikatoren; vorhandene Konzeptbeschreibungen bleiben."
+      }
+    },
+    "notAtomic": "Jede Ressource wird einzeln geschrieben: Schlägt eine fehl, bleiben die vorherigen geschrieben. Die Quelle bleibt unverändert.",
+    "copy": "Kopieren",
+    "retry": "Erneut versuchen",
+    "openShell": "Verwaltungsschale öffnen",
+    "openSubmodel": "Teilmodell öffnen",
+    "report": {
+      "succeeded": "Kopiert",
+      "partial_success": "Teilweise kopiert",
+      "failed": "Nichts wurde kopiert",
+      "counts": "{created} erstellt · {replaced} ersetzt · {skipped} übersprungen · {failed} fehlgeschlagen"
+    },
+    "statuses": {
+      "created": "Erstellt",
+      "replaced": "Ersetzt",
+      "skipped": "Übersprungen",
+      "failed": "Fehlgeschlagen"
+    },
+    "copyShell": "Verwaltungsschale kopieren",
+    "copySubmodel": "Teilmodell kopieren",
+    "copyConcept": "Konzeptbeschreibung kopieren",
+    "paste": "Einfügen",
+    "pasteInto": "{name} einfügen",
+    "listType": "Diese Liste enthält {type}-Elemente; das kopierte Element ist ein {copied}.",
+    "add": {
+      "shell": "Verwaltungsschale",
+      "submodel": "Teilmodell",
+      "conceptDescription": "Konzeptbeschreibung"
+    },
+    "copyFirst": {
+      "shell": "Einfügen: zuerst eine Verwaltungsschale kopieren (⌘C)",
+      "submodel": "Einfügen: zuerst ein Teilmodell kopieren (⌘C)",
+      "conceptDescription": "Einfügen: zuerst eine Konzeptbeschreibung kopieren (⌘C)",
+      "element": "Einfügen: zuerst ein Element kopieren (⌘C)"
+    },
+    "fromText": "Aus JSON oder XML…",
+    "importFile": "AASX, JSON oder XML importieren…",
+    "text": {
+      "hint": "AAS-JSON oder -XML einfügen oder tippen. AAS-Text aus der Zwischenablage wird beim Öffnen übernommen.",
+      "review": "Weiter",
+      "title": {
+        "shell": "Verwaltungsschalen aus JSON oder XML",
+        "submodel": "Teilmodelle aus JSON oder XML",
+        "conceptDescription": "Konzeptbeschreibungen aus JSON oder XML"
+      },
+      "contents": "Enthält {list}. Der nächste Schritt zeigt, was geschrieben wird.",
+      "count": {
+        "shells": "{count} Verwaltungsschale | {count} Verwaltungsschalen",
+        "submodels": "{count} Teilmodell | {count} Teilmodelle",
+        "conceptDescriptions": "{count} Konzeptbeschreibung | {count} Konzeptbeschreibungen"
+      },
+      "empty": "Enthält keine Verwaltungsschale, kein Teilmodell und keine Konzeptbeschreibung."
+    },
+    "facts": {
+      "source": "Liest {name}",
+      "destination": "Schreibt in {name}",
+      "identity": {
+        "user": "mit Ihrem Konto",
+        "studio": "mit dem Dienstkonto von Studio",
+        "none": "ohne Anmeldung"
+      },
+      "replaceResources": "Ersetzen",
+      "conceptDescriptions": "Konzeptbeschreibungen",
+      "files": "Dateien"
+    }
   }
 }

@@ -22,7 +22,8 @@
     "legalNotice": "Aviso legal",
     "privacyPolicy": "Política de privacidad",
     "mainNavigation": "Navegación principal",
-    "toggleSubmodelList": "Mostrar u ocultar la lista de submodelos"
+    "toggleSubmodelList": "Mostrar u ocultar la lista de submodelos",
+    "packages": "Paquetes abiertos"
   },
   "qr": {
     "title": "Código QR del activo",
@@ -188,7 +189,10 @@
     "closeTitle": "¿Cerrar {name}?",
     "closeText": "El paquete tiene cambios sin guardar. Se perderán si lo cierras ahora.",
     "closeWithoutSaving": "Cerrar sin guardar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "more": "Acciones del paquete",
+    "moreNamed": "Acciones de {name}",
+    "exportAs": "Exportar paquete como"
   },
   "variables": {
     "input": "Variables de entrada",
@@ -776,7 +780,8 @@
     },
     "empty": "Aún no hay AAS",
     "emptyText": "Este destino aún no tiene AAS.",
-    "emptyTextImport": "Importa un archivo AASX, JSON o XML, o suéltalo sobre esta lista."
+    "emptyTextImport": "Importa un archivo AASX, JSON o XML, o suéltalo sobre esta lista.",
+    "loadMore": "Cargar más AAS"
   },
   "viewer": {
     "headline": "Elige una AAS para explorarla",
@@ -819,8 +824,6 @@
     "noDescription": "Este elemento no tiene descripción.",
     "qualifiers": "Calificadores",
     "noQualifiers": "Sin calificadores.",
-    "nothing": "Nada seleccionado",
-    "nothingText": "Selecciona un elemento del árbol para inspeccionarlo.",
     "identifier": "Identificador",
     "semanticId": "ID semántico",
     "valueType": "Tipo de valor",
@@ -1106,9 +1109,6 @@
   },
   "cd": {
     "new": "Nueva descripción de concepto",
-    "moreCreate": "Otras formas de crear",
-    "fromJson": "Desde JSON",
-    "fromJsonTitle": "Insertar descripción de concepto desde JSON",
     "newTitle": "Nueva descripción de concepto",
     "create": "Crear",
     "created": "{name} creada.",
@@ -1127,7 +1127,6 @@
     "isCaseOf": "Es caso de",
     "isCaseOfHint": "Definiciones externas con las que este concepto es compatible, p. ej. una propiedad ECLASS.",
     "conflictTitle": "Otra persona ha cambiado esta descripción de concepto",
-    "nothingText": "Seleccione una descripción de concepto en la tabla.",
     "open": "Abrir",
     "notFound": "No hay descripción de concepto para este semantic ID en este destino.",
     "createFromElement": "Crear descripción de concepto",
@@ -1199,7 +1198,6 @@
     "fromRegistry": "Submodelos del registro de submodelos",
     "fromRepository": "Submodelos del repositorio de submodelos",
     "fromTemplateTitle": "Nuevo submodelo a partir de una plantilla",
-    "fromJsonTitle": "Nuevo submodelo a partir de JSON",
     "idShortHint": "Si se deja vacío, se usa el idShort de la plantilla.",
     "unsupported": "No hay vista de submodelos para este destino",
     "unsupportedText": "Este destino solo ofrece los submodelos a través de sus AAS. Ábrelos desde su AAS.",
@@ -1228,5 +1226,106 @@
       "elements": "Elementos"
     },
     "identifier": "Identificador"
+  },
+  "copies": {
+    "copied": "{name} copiado",
+    "pasteTitle": "Pegar {name}",
+    "importTitle": "Importar {name}",
+    "into": "En {name}",
+    "planning": "Comprobando qué escribiría la copia…",
+    "types": {
+      "shell": "AAS",
+      "submodel": "Submodelo",
+      "conceptDescription": "Descripción de concepto"
+    },
+    "states": {
+      "new": "Nuevo",
+      "exists": "Existe",
+      "blocked": "Excluido"
+    },
+    "files": "{count} archivo | {count} archivos",
+    "policy": "Si un identificador ya existe en el destino",
+    "policies": {
+      "fail_without_changes": {
+        "title": "Detener sin cambios",
+        "text": "No se escribe nada si alguno de los identificadores existe."
+      },
+      "skip_existing": {
+        "title": "Omitir lo existente",
+        "text": "Los recursos existentes se quedan como están; los demás se copian."
+      },
+      "replace": {
+        "title": "Reemplazar lo existente",
+        "text": "Los recursos existentes se sobrescriben con la copia."
+      },
+      "new_identifiers": {
+        "title": "Copiar con identificadores nuevos",
+        "text": "Las AAS y los submodelos reciben identificadores nuevos; las descripciones de concepto existentes se conservan."
+      }
+    },
+    "notAtomic": "Cada recurso se escribe por separado: si uno falla, los anteriores quedan escritos. El origen no cambia.",
+    "copy": "Copiar",
+    "retry": "Reintentar",
+    "openShell": "Abrir AAS",
+    "openSubmodel": "Abrir submodelo",
+    "report": {
+      "succeeded": "Copiado",
+      "partial_success": "Copiado en parte",
+      "failed": "No se copió nada",
+      "counts": "{created} creados · {replaced} reemplazados · {skipped} omitidos · {failed} fallidos"
+    },
+    "statuses": {
+      "created": "Creado",
+      "replaced": "Reemplazado",
+      "skipped": "Omitido",
+      "failed": "Fallido"
+    },
+    "copyShell": "Copiar AAS",
+    "copySubmodel": "Copiar submodelo",
+    "copyConcept": "Copiar descripción de concepto",
+    "paste": "Pegar",
+    "pasteInto": "Pegar {name}",
+    "listType": "Esta lista contiene elementos {type}; el elemento copiado es un {copied}.",
+    "add": {
+      "shell": "AAS",
+      "submodel": "Submodelo",
+      "conceptDescription": "Descripción de concepto"
+    },
+    "copyFirst": {
+      "shell": "Pegar: copie primero una AAS (⌘C)",
+      "submodel": "Pegar: copie primero un submodelo (⌘C)",
+      "conceptDescription": "Pegar: copie primero una descripción de concepto (⌘C)",
+      "element": "Pegar: copie primero un elemento (⌘C)"
+    },
+    "fromText": "Desde JSON o XML…",
+    "importFile": "Importar AASX, JSON o XML…",
+    "text": {
+      "hint": "Pegue o escriba JSON o XML de AAS. El texto AAS del portapapeles se rellena al abrir el diálogo.",
+      "review": "Continuar",
+      "title": {
+        "shell": "AAS desde JSON o XML",
+        "submodel": "Submodelos desde JSON o XML",
+        "conceptDescription": "Descripciones de concepto desde JSON o XML"
+      },
+      "contents": "Contiene {list}. El siguiente paso muestra qué se escribe.",
+      "count": {
+        "shells": "{count} AAS | {count} AAS",
+        "submodels": "{count} submodelo | {count} submodelos",
+        "conceptDescriptions": "{count} descripción de concepto | {count} descripciones de concepto"
+      },
+      "empty": "No contiene ninguna AAS, submodelo ni descripción de concepto."
+    },
+    "facts": {
+      "source": "Lee {name}",
+      "destination": "Escribe en {name}",
+      "identity": {
+        "user": "con su cuenta",
+        "studio": "con la cuenta de servicio de Studio",
+        "none": "sin inicio de sesión"
+      },
+      "replaceResources": "Reemplazar",
+      "conceptDescriptions": "Descripciones de concepto",
+      "files": "Archivos"
+    }
   }
 }

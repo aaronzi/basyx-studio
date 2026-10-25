@@ -14,8 +14,9 @@
       <!-- The landing page of a target; a later MVP turns it into a dashboard (MVP-4 plan, R1). -->
       <PageHeader :subtitle="target.data.value.description ?? t('landing.subtitle')" :title="target.data.value.name">
         <template #actions>
+          <!-- Importing changes the target: edit mode only (UX-006, A1). -->
           <v-btn
-            v-if="capabilities.upload"
+            v-if="target.canImport.value && ui.editing"
             prepend-icon="mdi-upload"
             :text="t('upload.action')"
             variant="tonal"

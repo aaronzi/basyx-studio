@@ -385,8 +385,9 @@ export const elementQuerySchema = pointInTimeQuerySchema.extend({
  */
 export const submodelQuerySchema = pointInTimeQuerySchema.extend({
   content: z.enum(['metadata', 'full']).default('metadata'),
-  format: z.enum(['json', 'xml']).default('json'),
-  /** The whole submodel as a JSON file to save (the submodel view's export); XML always is one. */
+  /** `aasx`: the submodel with its concept descriptions and files as a package (package editing plan, E2). */
+  format: z.enum(['json', 'xml', 'aasx']).default('json'),
+  /** The whole submodel as a JSON file to save (the submodel view's export); XML and AASX always are one. */
   download: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
 })
 
@@ -684,14 +685,20 @@ export const instanceCreateSchema = z.object({
 export type InstanceCreateInput = z.infer<typeof instanceCreateSchema>
 
 /** A dry run: AAS Core findings for a JSON value, nothing is written. */
-export const validationInputSchema = z.object({
-  kind: z.enum(['element', 'submodel', 'shell', 'conceptDescription']),
-  value: z.unknown(),
-})
+const validationKinds = z.enum(['element', 'submodel', 'shell', 'conceptDescription'])
+export const validationInputSchema = z.union([
+  z.object({ kind: validationKinds, value: z.unknown() }),
+  /** AAS JSON or XML text, as the *From JSON or XML* dialog has it (package editing plan, K9). */
+  z.object({ kind: validationKinds, format: z.enum(['json', 'xml']), text: z.string().max(20_000_000) }),
+])
 export type ValidationInput = z.infer<typeof validationInputSchema>
 
 export interface ValidationResult {
   violations: Array<{ path: string, message: string }>
+  /** For the text of an element: the element as JSON, to insert. */
+  value?: Record<string, unknown> | null
+  /** For the text of shells, submodels or concept descriptions: how many of each it holds. */
+  contents?: { shells: number, submodels: number, conceptDescriptions: number } | null
 }
 
 /** A shell with the steps that created it (submodels first, then the shell, then registries). */

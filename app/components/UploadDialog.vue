@@ -41,10 +41,10 @@
 </template>
 
 <script lang="ts" setup>
-  import type { ShellSummary, SyncStep, Target, UploadResult } from '#shared/contract'
+  import type { CopyPlan, ShellSummary, SyncStep, Target, UploadResult } from '#shared/contract'
   import { langText } from '~/utils/aas'
 
-  const props = defineProps<{ target: Target, initialFile?: File | null }>()
+  const props = defineProps<{ target: Target, initialFile?: File | null, shellKey?: string | null }>()
   const open = defineModel<boolean>({ required: true })
 
   const { t } = useI18n()
@@ -52,6 +52,7 @@
   const router = useRouter()
   const invalidate = useInvalidate()
   const notifications = useNotificationsStore()
+  const clipboard = useClipboardStore()
 
   const file = shallowRef<File | File[] | undefined>()
   const uploading = ref(false)
@@ -76,6 +77,19 @@
     uploading.value = true
     error.value = null
     try {
+      // A package has no BaSyx upload, and BaSyx adds nothing to a shell:
+      // these imports are copies with a plan (E1).
+      if (props.target.workspace || props.shellKey) {
+        const plan = await api<CopyPlan>('/copy-plans/uploads', {
+          method: 'POST',
+          query: { destinationTargetId: props.target.id, fileName: chosen.name, destinationShellKey: props.shellKey ?? undefined },
+          headers: { 'Content-Type': chosen.type || 'application/octet-stream' },
+          body: chosen,
+        })
+        open.value = false
+        clipboard.openCopy({ request: null, plan, title: t('copies.importTitle', { name: chosen.name }) })
+        return
+      }
       const result = await api<UploadResult>(`/targets/${props.target.id}/uploads`, {
         method: 'POST',
         query: { fileName: chosen.name },

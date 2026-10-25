@@ -5,6 +5,8 @@ export interface StructureAction {
   key: string
   title: string
   icon: string
+  /** Its keyboard shortcut, shown in the palette (e.g. `cmd+c`). */
+  keys?: string
   run: () => void
 }
 

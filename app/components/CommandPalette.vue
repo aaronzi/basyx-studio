@@ -157,7 +157,7 @@
         { key: 'refresh', group: '', title: t('palette.actions.refresh'), icon: 'mdi-refresh-auto', run: () => preferences.update(current => ({ ...current, autoRefresh: !current.autoRefresh })) },
         { key: 'dashboard', group: '', title: t('palette.actions.dashboard'), icon: 'mdi-view-dashboard-outline', run: () => router.push(base) },
       )
-      if (target.canImport.value) {
+      if (target.canImport.value && ui.editing) {
         items.push({ key: 'import', group: '', title: t('palette.actions.import'), icon: 'mdi-tray-arrow-up', run: () => ui.openUpload() })
       }
       if (target.data.value?.capabilities.submodelListSource) {
@@ -167,10 +167,10 @@
         items.push({ key: 'concepts', group: '', title: t('palette.actions.concepts'), icon: 'mdi-book-open-page-variant-outline', run: () => router.push(`${base}/concepts`) })
       }
     }
-    // The selected node's structure actions, in edit mode.
-    if (ui.editing) {
-      items.push(...structureActions.actions.map(action => ({ ...action, group: '' })))
-    }
+    // The page's copy and paste always (K10), the selected node's structure actions in edit mode.
+    items.push(...structureActions.actions
+      .filter(action => ui.editing || action.key.startsWith('clipboard:'))
+      .map(action => ({ ...action, group: '' })))
     if (session.isAdmin) {
       items.push({ key: 'infrastructures', group: '', title: t('palette.actions.infrastructures'), icon: 'mdi-server-plus-outline', run: () => panel.open('infrastructures') })
     }

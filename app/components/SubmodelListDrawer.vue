@@ -16,26 +16,23 @@
 
       <div v-if="localOnly && search" class="text-body-small text-medium-emphasis mt-1">{{ t('submodels.localOnly') }}</div>
 
-      <v-menu v-if="canCreate">
-        <template #activator="{ props: activator }">
-          <v-btn-secondary
-            v-bind="activator"
-            append-icon="mdi-chevron-down"
-            block
-            class="mt-2"
-            prepend-icon="mdi-plus"
-            :text="t('wizard.newSubmodel')"
-          />
-        </template>
-
-        <v-card>
-          <v-list>
-            <v-list-item prepend-icon="mdi-file-outline" :title="t('wizard.empty')" @click="emptyOpen = true" />
-            <v-list-item prepend-icon="mdi-file-document-outline" :title="t('wizard.fromTemplate')" @click="templateOpen = true" />
-            <v-list-item prepend-icon="mdi-code-json" :title="t('wizard.fromJson')" @click="jsonOpen = true" />
-          </v-list>
-        </v-card>
-      </v-menu>
+      <!-- Adding in edit mode, as everywhere: new, pasted, from text or a file (A1). -->
+      <AddMenu
+        v-if="canCreate"
+        block
+        class="mt-2"
+        :importable="targetQuery.canImport.value"
+        kind="submodel"
+        :label="t('copies.add.submodel')"
+        :new-items="[
+          { title: t('wizard.empty'), icon: 'mdi-file-outline', onClick: () => (emptyOpen = true) },
+          { title: t('wizard.fromTemplate'), icon: 'mdi-file-document-outline', onClick: () => (templateOpen = true) },
+        ]"
+        :paste-label="copies.pasteable('submodel')?.label ?? null"
+        @import="ui.openUpload()"
+        @paste="copies.paste(targetId)"
+        @text="jsonOpen = true"
+      />
 
       <!-- Registry descriptors do not carry the kind, so it cannot be filtered. -->
       <div v-tooltip="kindUnknown ? t('submodels.kindUnknown') : undefined">
@@ -55,106 +52,119 @@
 
     <v-divider />
 
-    <!-- A deep link to a submodel the list has not loaded yet keeps it in sight. -->
-    <v-list v-if="pinned" class="flex-shrink-0 px-2 py-1" lines="two" nav>
-      <v-list-item
-        active
-        prepend-icon="mdi-pin-outline"
-        :subtitle="pinned.id"
-        :title="pinned.title"
-        :to="rowLink(activeKey!)"
+    <!-- Several open packages: one group each (package editing plan, M1). -->
+    <PackageListGroups
+      v-if="grouped"
+      :active-key="activeKey"
+      :current-target-id="targetId"
+      :expression="applied"
+      kind="submodels"
+      :kind-filter="filter"
+      :search-state="searchState"
+    />
+
+    <template v-else>
+      <!-- A deep link to a submodel the list has not loaded yet keeps it in sight. -->
+      <v-list v-if="pinned" class="flex-shrink-0 px-2 py-1" lines="two" nav>
+        <v-list-item
+          active
+          prepend-icon="mdi-pin-outline"
+          :subtitle="pinned.id"
+          :title="pinned.title"
+          :to="rowLink(activeKey!)"
+        />
+      </v-list>
+
+      <ProblemAlert
+        v-if="source.error.value && items.length === 0"
+        class="ma-2"
+        :error="source.error.value"
+        retry
+        @retry="source.refetch()"
       />
-    </v-list>
 
-    <ProblemAlert
-      v-if="source.error.value && items.length === 0"
-      class="ma-2"
-      :error="source.error.value"
-      retry
-      @retry="source.refetch()"
-    />
+      <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-two-line@6" />
 
-    <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-two-line@6" />
+      <!-- Virtualized: only the visible rows exist; rows near the end load the next page. -->
+      <v-list
+        v-else-if="filtered.length > 0"
+        class="flex-grow-1 px-2 py-0"
+        height="0"
+        lines="two"
+        nav
+      >
+        <v-virtual-scroll ref="scroller" height="100%" item-key="key" :items="filtered">
+          <template #default="{ item: submodel, index }">
+            <v-list-item
+              v-intersect.once="(visible: boolean) => visible && onRowSeen(submodel.key, index)"
+              :active="submodel.key === activeKey"
+              :class="index === 0 ? 'mt-2' : undefined"
+              :title="submodelTitle(submodel)"
+              :to="rowLink(submodel.key)"
+              @click="onOpen"
+            >
+              <template #prepend>
+                <v-avatar :color="submodel.kind === 'Template' ? 'warning' : 'primary'" size="36" variant="tonal">
+                  <v-icon :icon="modelTypeIcon('Submodel')" />
+                </v-avatar>
+              </template>
 
-    <!-- Virtualized: only the visible rows exist; rows near the end load the next page. -->
-    <v-list
-      v-else-if="filtered.length > 0"
-      class="flex-grow-1 px-2 py-0"
-      height="0"
-      lines="two"
-      nav
-    >
-      <v-virtual-scroll ref="scroller" height="100%" item-key="key" :items="filtered">
-        <template #default="{ item: submodel, index }">
-          <v-list-item
-            v-intersect.once="(visible: boolean) => visible && onRowSeen(submodel.key, index)"
-            :active="submodel.key === activeKey"
-            :class="index === 0 ? 'mt-2' : undefined"
-            :title="submodelTitle(submodel)"
-            :to="rowLink(submodel.key)"
-            @click="onOpen"
-          >
-            <template #prepend>
-              <v-avatar :color="submodel.kind === 'Template' ? 'warning' : 'primary'" size="36" variant="tonal">
-                <v-icon :icon="modelTypeIcon('Submodel')" />
-              </v-avatar>
-            </template>
+              <template #subtitle>{{ submodel.id }}</template>
 
-            <template #subtitle>{{ submodel.id }}</template>
+              <!-- As the shell list marks types; the template a semantic ID names is in the header.
+                   The marker sits at the edge, so it lines up from row to row. -->
+              <template #append>
+                <v-chip
+                  v-if="submodel.kind === 'Template'"
+                  class="me-1"
+                  color="warning"
+                  size="x-small"
+                  :text="t('submodels.template')"
+                />
 
-            <!-- As the shell list marks types; the template a semantic ID names is in the header.
-                 The marker sits at the edge, so it lines up from row to row. -->
-            <template #append>
-              <v-chip
-                v-if="submodel.kind === 'Template'"
-                class="me-1"
-                color="warning"
-                size="x-small"
-                :text="t('submodels.template')"
-              />
+                <v-icon
+                  v-if="orphans[submodel.key]"
+                  v-tooltip="t('submodels.orphan')"
+                  :aria-label="t('submodels.orphan')"
+                  class="me-1"
+                  color="warning"
+                  icon="mdi-link-variant-off"
+                  size="small"
+                />
+              </template>
+            </v-list-item>
+          </template>
+        </v-virtual-scroll>
+      </v-list>
 
-              <v-icon
-                v-if="orphans[submodel.key]"
-                v-tooltip="t('submodels.orphan')"
-                :aria-label="t('submodels.orphan')"
-                class="me-1"
-                color="warning"
-                icon="mdi-link-variant-off"
-                size="small"
-              />
-            </template>
-          </v-list-item>
+      <v-empty-state
+        v-else-if="source.data.value && unfiltered && !source.hasNextPage.value"
+        icon="mdi-file-tree-outline"
+        size="64"
+        :text="t('submodels.emptyText')"
+        :title="t('submodels.empty')"
+      />
+
+      <v-empty-state
+        v-else-if="source.data.value && !source.hasNextPage.value"
+        icon="mdi-file-hidden"
+        size="64"
+        :text="t('submodels.noneText')"
+        :title="t('submodels.none')"
+      >
+        <template #actions>
+          <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
         </template>
-      </v-virtual-scroll>
-    </v-list>
+      </v-empty-state>
 
-    <v-empty-state
-      v-else-if="source.data.value && unfiltered && !source.hasNextPage.value"
-      icon="mdi-file-tree-outline"
-      size="64"
-      :text="t('submodels.emptyText')"
-      :title="t('submodels.empty')"
-    />
+      <!-- Outside the v-if chain above: the next page is loading below the rows. -->
+      <v-progress-linear v-if="loadingMore" class="flex-shrink-0" />
 
-    <v-empty-state
-      v-else-if="source.data.value && !source.hasNextPage.value"
-      icon="mdi-file-hidden"
-      size="64"
-      :text="t('submodels.noneText')"
-      :title="t('submodels.none')"
-    >
-      <template #actions>
-        <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
-      </template>
-    </v-empty-state>
-
-    <!-- Outside the v-if chain above: the next page is loading below the rows. -->
-    <v-progress-linear v-if="loadingMore" class="flex-shrink-0" />
-
-    <!-- A kind filter that matched little: further pages load on request. -->
-    <div v-else-if="source.data.value && source.hasNextPage.value && filtered.length < fillRows" class="pa-2 flex-shrink-0">
-      <v-btn block prepend-icon="mdi-chevron-down" :text="t('submodels.loadMore')" @click="loadMore" />
-    </div>
+      <!-- A kind filter that matched little: further pages load on request. -->
+      <div v-else-if="source.data.value && source.hasNextPage.value && filtered.length < fillRows" class="pa-2 flex-shrink-0">
+        <v-btn block prepend-icon="mdi-chevron-down" :text="t('submodels.loadMore')" @click="loadMore" />
+      </div>
+    </template>
 
     <v-divider />
 
@@ -183,13 +193,7 @@
 
     <SubmodelTemplateDialog v-model="templateOpen" :target-id="targetId" @created="onCreated" />
 
-    <JsonInsertDialog
-      v-model="jsonOpen"
-      kind="submodel"
-      :submit="createFromJson"
-      :target-id="targetId"
-      :title="t('submodels.fromJsonTitle')"
-    />
+    <AasTextDialog v-model="jsonOpen" kind="submodel" :target-id="targetId" :title="t('copies.text.title.submodel')" />
   </template>
 </template>
 
@@ -214,12 +218,14 @@
   const invalidate = useInvalidate()
   const { mobile } = useDisplay()
   const targetQuery = useTarget(() => props.targetId)
+  const { grouped } = useOpenPackages(() => props.targetId)
   const target = targetQuery.data
   // Creating needs edit mode (MVP-5 plan, T3).
   const canCreate = computed(() => ui.editing && Boolean(target.value?.capabilities.createResources))
   const emptyOpen = ref(false)
   const templateOpen = ref(false)
   const jsonOpen = ref(false)
+  const copies = useCopyActions()
 
   const filter = ref<'all' | 'Instance' | 'Template'>('all')
   const kindUnknown = computed(() => target.value?.capabilities.submodelListSource === 'registry')
@@ -427,10 +433,5 @@
   async function onCreated (submodelKey: string) {
     await router.push(rowLink(submodelKey))
     await invalidate(['targets', props.targetId])
-  }
-
-  async function createFromJson (submodel: Record<string, unknown>) {
-    const result = await api<{ submodelKey: string }>(`/targets/${props.targetId}/submodels`, { method: 'POST', body: { submodel: { source: 'json', submodel } } })
-    await onCreated(result.submodelKey)
   }
 </script>

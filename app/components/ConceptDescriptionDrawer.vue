@@ -1,12 +1,15 @@
 <template>
-  <!-- Widened up to the rail, whose own border then separates them: no second line. -->
+  <!-- Widened up to the rail, whose own border then separates them: no second line.
+       Open only with a concept description, and never by a change of breakpoint. -->
   <v-navigation-drawer
-    v-model="ui.detailsDrawer"
     :border="wide && lgAndUp ? 0 : 's'"
+    disable-resize-watcher
     disable-route-watcher
     location="end"
+    :model-value="ui.detailsDrawer && cdKey !== null"
     :temporary="!lgAndUp"
     :width="drawerWidth"
+    @update:model-value="open => (ui.detailsDrawer = open)"
   >
     <div v-if="cdKey" class="d-flex flex-column h-100">
       <v-toolbar class="px-1">
@@ -157,14 +160,6 @@
         />
       </div>
     </div>
-
-    <v-empty-state
-      v-else
-      icon="mdi-cursor-default-click-outline"
-      size="64"
-      :text="t('cd.nothingText')"
-      :title="t('details.nothing')"
-    />
 
     <!-- Apply and Discard of the form, always in view (FormActions). -->
     <template #append>

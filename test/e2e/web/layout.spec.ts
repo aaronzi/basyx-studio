@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { key, registerOpenEnvironment, signIn } from './support'
+import { key, registerOpenEnvironment, setMode, signIn } from './support'
 
 // The server-rendered page reserves the app bar, the rail and the shell list,
 // so it does not move when it hydrates (patches/README.md). Requested without
@@ -39,4 +39,54 @@ test('reserves the app bar and the drawers in server-rendered pages', async ({ p
   await expect(page.getByRole('heading', { name: 'Servo Motor DM-3000 (Fraunhofer IESE)' })).toBeVisible()
   const shift = await page.evaluate(() => (window as unknown as { layoutShifts: number[] }).layoutShifts.reduce((sum, value) => sum + value, 0))
   expect(shift).toBeLessThan(0.1)
+})
+
+test('opens the details pane only with something to show, and only on the tree\'s tab (D1, D2)', async ({ page }) => {
+  await signIn(page, 'studio-admin')
+  const targetId = await registerOpenEnvironment(page, 'E2E layout environment')
+  const details = page.locator('nav.v-navigation-drawer--right.v-navigation-drawer--active')
+
+  // Growing past the breakpoint where the pane stops floating does not open it.
+  await page.setViewportSize({ width: 1000, height: 800 })
+  await page.goto(`/targets/${targetId}/shells/${key(motorShell)}`)
+  await expect(page.getByRole('heading', { name: 'Servo Motor DM-3000 (Fraunhofer IESE)' })).toBeVisible()
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await expect(details).toHaveCount(0)
+
+  await page.getByRole('tree').locator('.v-list-item-title').getByText('Nameplate', { exact: true }).click()
+  await expect(details).toHaveCount(1)
+  await page.getByRole('tab', { name: 'Overview' }).click()
+  await expect(details).toHaveCount(0)
+  await page.getByRole('tab', { name: 'Submodels' }).click()
+  await expect(details).toHaveCount(1)
+})
+
+test('lays out the shell header by the width the content area has (H2 to H4)', async ({ page }) => {
+  await signIn(page, 'studio-admin')
+  const targetId = await registerOpenEnvironment(page, 'E2E layout environment')
+  const header = page.getByRole('main').locator('.v-card').first()
+  await page.setViewportSize({ width: 1600, height: 900 })
+  await page.goto(`/targets/${targetId}/shells/${key(motorShell)}`)
+  await setMode(page, 'Edit')
+
+  // Wide: the actions beside the title.
+  await expect(header.getByRole('button', { name: 'Export' })).toBeVisible()
+  await expect(header.getByRole('button', { name: 'Edit' })).toBeVisible()
+
+  // The details pane takes 440 px: medium, the actions below the title.
+  await page.getByRole('tree').locator('.v-list-item-title').getByText('Nameplate', { exact: true }).click()
+  await expect(page.locator('nav.v-navigation-drawer--right.v-navigation-drawer--active')).toHaveCount(1)
+  await expect(header.locator('.v-card-item').getByRole('button', { name: 'Export' })).toHaveCount(0)
+  await expect(header.getByRole('button', { name: 'Export' })).toBeVisible()
+  const title = await header.getByRole('heading').boundingBox()
+  const exportButton = await header.getByRole('button', { name: 'Export' }).boundingBox()
+  expect(exportButton!.y).toBeGreaterThan(title!.y + title!.height)
+
+  // Narrow: everything in the menu, the title with the card's width beside the menu button.
+  await page.setViewportSize({ width: 1300, height: 900 })
+  await expect(header.getByRole('button', { name: 'Export' })).toHaveCount(0)
+  await header.getByRole('button', { name: 'More actions' }).click()
+  await expect(page.getByText('AASX package', { exact: true })).toBeVisible()
+  const card = (await header.boundingBox())!
+  expect((await header.getByRole('heading').boundingBox())!.width).toBeGreaterThan(card.width - 150)
 })

@@ -3,6 +3,34 @@
     <v-container>
       <PageHeader :subtitle="t('concepts.subtitle')" :title="t('concepts.title')" />
 
+      <!-- Several open packages: the table pages one package's concept
+           descriptions at a time, so each package is a tab (package editing plan, M1). -->
+      <v-tabs
+        v-if="openPackages.grouped.value"
+        class="mb-3"
+        :model-value="targetId"
+        show-arrows
+        @update:model-value="id => router.push(`/targets/${id}/concepts`)"
+      >
+        <v-tab
+          v-for="item in openPackages.packages.value"
+          :key="item.id"
+          prepend-icon="mdi-package-variant-closed"
+          :value="item.id"
+        >
+          {{ item.name }}
+
+          <v-icon
+            v-if="item.workspace?.unsavedChanges"
+            v-tooltip="t('workspace.unsaved')"
+            :aria-label="t('workspace.unsaved')"
+            class="ms-1"
+            color="warning"
+            icon="mdi-circle-medium"
+          />
+        </v-tab>
+      </v-tabs>
+
       <ProblemAlert
         v-if="cds.error.value"
         class="mb-4"
@@ -17,27 +45,20 @@
         <!-- The search bar of the link picker too: text, source filters, advanced query (S1). -->
         <ConceptDescriptionSearchBar :state="cds" :target-id="targetId">
           <template #append>
-            <WorkspaceActions
-              v-if="target.data.value?.workspace"
-              :target="target.data.value"
-              @error="value => (actionError = value)"
-              @restored="onRestored"
+
+            <!-- Adding in edit mode (UX-006), as everywhere: new, pasted, from text or a file (A1). -->
+            <AddMenu
+              v-if="canWrite"
+              compact
+              :importable="target.canImport.value"
+              kind="conceptDescription"
+              :label="t('copies.add.conceptDescription')"
+              :new-items="[{ title: t('cd.new'), icon: 'mdi-plus', onClick: () => (adding = true) }]"
+              :paste-label="copies.pasteable('conceptDescription')?.label ?? null"
+              @import="ui.openUpload()"
+              @paste="copies.paste(targetId)"
+              @text="inserting = true"
             />
-
-            <!-- Creating needs edit mode (UX-006): new, or from JSON. -->
-            <v-btn-group v-if="canWrite">
-              <v-btn prepend-icon="mdi-plus" :text="xs ? undefined : t('cd.new')" @click="adding = true" />
-
-              <v-menu>
-                <template #activator="{ props: activator }">
-                  <v-btn v-bind="activator" :aria-label="t('cd.moreCreate')" icon="mdi-chevron-down" />
-                </template>
-
-                <v-list>
-                  <v-list-item prepend-icon="mdi-code-json" :title="t('cd.fromJson')" @click="inserting = true" />
-                </v-list>
-              </v-menu>
-            </v-btn-group>
           </template>
         </ConceptDescriptionSearchBar>
 
@@ -82,6 +103,8 @@
               <v-list>
                 <v-list-item prepend-icon="mdi-content-copy" :title="t('concepts.copyId')" @click="copy(item.id, t('concepts.id'))" />
 
+                <v-list-item prepend-icon="mdi-content-duplicate" :title="t('copies.copyConcept')" @click="copies.copyConceptDescription(targetId, item.key, item.name)" />
+
                 <v-list-item
                   v-if="canWrite"
                   base-color="error"
@@ -111,13 +134,7 @@
 
       <ConceptDescriptionAddDialog v-model="adding" :target-id="targetId" @created="onCreated" />
 
-      <JsonInsertDialog
-        v-model="inserting"
-        kind="conceptDescription"
-        :submit="insertJson"
-        :target-id="targetId"
-        :title="t('cd.fromJsonTitle')"
-      />
+      <AasTextDialog v-model="inserting" kind="conceptDescription" :target-id="targetId" :title="t('copies.text.title.conceptDescription')" />
 
       <!-- Deleting names the concept description and what references it (L5, UX-003). -->
       <v-dialog v-model="confirmDelete" max-width="460">
@@ -190,6 +207,8 @@
 
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)
+  const openPackages = useOpenPackages(() => targetId.value)
+  const copies = useCopyActions()
   const capabilities = computed<TargetCapabilities>(() => target.data.value?.capabilities ?? noCapabilities)
   // Concept descriptions change like submodels: edit mode and a target that takes structural writes (MVP-6 plan, W4).
   const canWrite = computed(() => ui.editing && capabilities.value.conceptDescriptions && capabilities.value.writeStructure && capabilities.value.createResources)
@@ -303,11 +322,6 @@
     afterWrite()
   }
 
-  async function insertJson (value: Record<string, unknown>) {
-    const detail = await api<ConceptDescriptionDetail>(`/targets/${targetId.value}/concept-descriptions`, { method: 'POST', body: { conceptDescription: value } })
-    onCreated(detail)
-  }
-
   // Deleting (L5)
   const confirmDelete = ref(false)
   const deleting = ref<{ key: string, name: string } | null>(null)
@@ -362,16 +376,30 @@
     await cds.reload()
     await queryCache.invalidateQueries({ key: ['targets', targetId.value, 'concept-descriptions'] })
   }
+  // Undo and redo are the package bar's (package editing plan, H5).
+  onWorkspaceRestored(() => targetId.value, onRestored)
 
-  // The palette offers the page's actions in edit mode (L6).
-  watch([canWrite, selectedKey], ([writable, key]) => {
-    structureActions.set(writable
-      ? [
-        { key: 'cd:new', title: t('cd.new'), icon: 'mdi-plus', run: () => (adding.value = true) },
-        { key: 'cd:json', title: t('cd.fromJson'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
-        ...(key ? [{ key: 'cd:delete', title: t('cd.delete'), icon: 'mdi-delete-outline', run: () => askDelete(key, rowName(key)) }] : []),
-      ]
-      : [])
+  // ⌘C copies the selected concept description, ⌘V pastes a copied one (K10).
+  const clipboardActions = useClipboardCommands(
+    () => selectedKey.value ? { title: t('palette.structure.copy', { name: rowName(selectedKey.value) }), run: () => copies.copyConceptDescription(targetId.value, selectedKey.value!, rowName(selectedKey.value!)) } : null,
+    () => {
+      const concept = canWrite.value ? copies.pasteable('conceptDescription') : null
+      return concept ? { title: t('copies.pasteInto', { name: concept.label }), run: () => copies.paste(targetId.value) } : null
+    },
+  )
+
+  // The palette offers the page's actions in edit mode (L6), and copy and paste.
+  watch([canWrite, selectedKey, clipboardActions], ([writable, key, clipboard]) => {
+    structureActions.set([
+      ...clipboard,
+      ...(writable
+        ? [
+          { key: 'cd:new', title: t('cd.new'), icon: 'mdi-plus', run: () => (adding.value = true) },
+          { key: 'cd:json', title: t('copies.fromText'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
+          ...(key ? [{ key: 'cd:delete', title: t('cd.delete'), icon: 'mdi-delete-outline', run: () => askDelete(key, rowName(key)) }] : []),
+        ]
+        : []),
+    ])
   }, { immediate: true })
   onBeforeUnmount(() => structureActions.set([]))
 

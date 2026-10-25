@@ -1,4 +1,4 @@
-import type { Target } from '#shared/contract'
+import type { ExportFormat, Target } from '#shared/contract'
 import type { JsonObject } from '../aas/outline'
 import type { SyncStep } from '../aas/sync'
 import type { AasTarget, BinaryContent, ElementSnapshot } from '../targets/aas-target'
@@ -8,6 +8,7 @@ import { randomBytes } from 'node:crypto'
 import { stat } from 'node:fs/promises'
 import { basename, dirname, extname, isAbsolute } from 'node:path'
 import { allRights } from '../aas/basyx-go'
+import { exportEnvironment } from '../copies/serialize'
 import { StudioProblem } from '../problem'
 import { workspaceCapabilities } from '../targets/capabilities'
 
@@ -51,7 +52,6 @@ class WorkspaceAasTarget implements AasTarget {
   invoke = unsupported
   invocation = unsupported
   lookupShells = unsupported
-  exportShell = unsupported
   upload = unsupported
   // A workspace has no registries or discovery.
   registerShells = noSync
@@ -68,6 +68,10 @@ class WorkspaceAasTarget implements AasTarget {
   download = unsupported
 
   constructor (private readonly client: WorkspaceWorkerClient, private readonly workspaceId: string) {}
+
+  /** Studio writes the export itself, as a package has no BaSyx serialization (package editing plan, E2). */
+  exportShell = (shellId: string, format: ExportFormat): Promise<BinaryContent> =>
+    exportEnvironment(this, [{ type: 'shell', id: shellId }], format, (environment, files) => this.client.request({ op: 'pack', environment, files }))
 
   listShells = (limit: number, cursor: string | undefined) => this.#call('listShells', limit, cursor)
   shell = (id: string): Promise<JsonObject> => this.#call('shell', id)

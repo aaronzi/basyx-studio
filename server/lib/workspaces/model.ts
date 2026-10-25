@@ -7,6 +7,7 @@ import { conceptDescriptionSearchFields, conceptDescriptionSource, matchesConcep
 import { toConceptDescriptionSummary } from '../aas/basyx-go'
 import { containerChildren, countSemanticUses, insertChild, moveChild, removeChild, replaceChild, semanticKey, shellMetadata, submodelReference, verifyConceptDescription, verifyShell, verifySubmodelMetadata, withChildren } from '../aas/edits'
 import { formatLocator, parseLocator } from '../aas/keys'
+import { navigate, submodelChildren } from '../aas/outline'
 import { submodelIdOf, toShellSummary } from '../aas/shells'
 import { ownersOf, toSubmodelSummary } from '../aas/submodels'
 import { elementHits } from '../aas/tree'
@@ -188,8 +189,12 @@ export class WorkspaceModel {
   }
 
   element (submodelId: string, idShortPath: string): ElementSnapshot {
-    const { container, index } = this.#locate(submodelId, idShortPath)
-    const value = container[index] as JsonObject
+    const value = idShortPath.includes('@')
+      ? this.#variableElement(submodelId, idShortPath)
+      : (() => {
+          const { container, index } = this.#locate(submodelId, idShortPath)
+          return container[index] as JsonObject
+        })()
     return { value, revision: revisionOf(value), concurrency: 'strong' }
   }
 
@@ -405,8 +410,9 @@ export class WorkspaceModel {
 
   async replaceAttachment (submodelId: string, idShortPath: string, file: BinaryContent, revision: string): Promise<ElementSnapshot> {
     const token = parseRevision(revision)
-    const { container, index } = this.#locate(submodelId, idShortPath)
-    const current = container[index] as JsonObject
+    // A File in an operation variable is changed in place: its variable wraps it.
+    const located = idShortPath.includes('@') ? null : this.#locate(submodelId, idShortPath)
+    const current = located ? located.container[located.index] as JsonObject : this.#variableElement(submodelId, idShortPath)
     if (contentHash(current) !== token.hash) {
       throw new StudioProblem('revision_conflict')
     }
@@ -415,7 +421,11 @@ export class WorkspaceModel {
     }
     const location = await this.files.write(file.fileName ?? 'file', file)
     const json = { ...current, value: location, contentType: file.contentType }
-    container[index] = json
+    if (located) {
+      located.container[located.index] = json
+    } else {
+      Object.assign(current, json)
+    }
     this.revision = ++this.#latest
     return { value: json, revision: revisionOf(json), concurrency: 'strong' }
   }
@@ -570,6 +580,17 @@ export class WorkspaceModel {
         container[index] = withChildren(element, children)
       },
     }
+  }
+
+  /**
+   * An element inside an operation variable (`Run@input.Manual`), which the
+   * editor does not address; copies reach their files through it.
+   */
+  #variableElement (submodelId: string, idShortPath: string): JsonObject {
+    const [first, ...rest] = parseLocator(idShortPath)
+    const top = first?.kind === 'idShort' ? submodelChildren(this.submodel(submodelId)).find(child => child.label === first.idShort)?.value : undefined
+    const found = top && typeof top === 'object' && !Array.isArray(top) ? navigate(top as JsonObject, rest) : undefined
+    return found && !Array.isArray(found) ? found : notFound()
   }
 
   /** The array holding the addressed element and its position, so it can be replaced. */

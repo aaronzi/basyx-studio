@@ -163,7 +163,7 @@
   import type { Target } from '#shared/contract'
   import type { DesktopBridge } from '~/composables/useDesktopBridge'
   import type { FilterGroup } from '~/utils/records'
-  import { useQuery } from '@pinia/colada'
+  import { useQuery, useQueryCache } from '@pinia/colada'
   import { StudioApiError } from '~/composables/useStudioApi'
   import { securityModeIcons, targetIcon, targetSubtitle } from '~/utils/aas'
   import { filterRecords } from '~/utils/records'
@@ -173,6 +173,7 @@
   const session = useSessionStore()
   const branding = useBranding()
   const api = useStudioApi()
+  const queryCache = useQueryCache()
 
   const targets = useQuery({
     key: ['targets'],
@@ -281,10 +282,26 @@
     opening.value = true
     openError.value = null
     try {
-      const grant = await bridge.value?.chooseAasxFile()
-      if (grant) {
-        const target = await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } })
-        await navigateTo(`/targets/${target.id}/shells`)
+      // Each file opens as its own package. Those that opened stay open and
+      // listed when a later one fails, which the page then reports.
+      const grants = await bridge.value?.chooseAasxFiles() ?? []
+      const opened: Target[] = []
+      let failure: unknown = null
+      for (const grant of grants) {
+        try {
+          opened.push(await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } }))
+        } catch (error) {
+          failure ??= error
+        }
+      }
+      if (opened.length > 0) {
+        await queryCache.invalidateQueries({ key: ['targets'], exact: true })
+      }
+      if (failure) {
+        throw failure
+      }
+      if (opened[0]) {
+        await navigateTo(`/targets/${opened[0].id}/shells`)
       }
     } catch (error) {
       openError.value = error

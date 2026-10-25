@@ -36,7 +36,7 @@ var g = {
 		"testenv:demo:live": "node examples/apps/fleet-atlas/demo/simulate.mjs",
 		"apps:build": "node scripts/build-example-apps.mjs",
 		"apps:bundle": "node scripts/build-example-apps.mjs apps server/bundled-apps",
-		typecheck: "nuxt typecheck && pnpm --filter \"./apps/*\" --filter \"./packages/*\" --if-present run typecheck",
+		typecheck: "nuxt typecheck && pnpm --filter \"./apps/*\" --filter \"./packages/*\" --filter \"./examples/apps/*\" --if-present run typecheck",
 		test: "vitest run",
 		"test:watch": "vitest",
 		"db:generate": "drizzle-kit generate",
@@ -48,7 +48,7 @@ var g = {
 	},
 	dependencies: {
 		"@aas-core-works/aas-core3.1-typescript": "^1.0.1",
-		"@electric-sql/pglite": "^0.5.10",
+		"@electric-sql/pglite": "^0.5.11",
 		"@mdi/font": "7.4.47",
 		"@nuxtjs/i18n": "^10.6.0",
 		"@pinia/colada": "1.4.8",
@@ -69,7 +69,7 @@ var g = {
 		pg: "^8.23.1",
 		pinia: "^4.1.0",
 		semver: "^7.8.5",
-		undici: "^8.12.2",
+		undici: "^8.12.3",
 		uqr: "0.1.3",
 		vue: "^3.5.44",
 		vuetify: "^4.2.6",
@@ -81,25 +81,25 @@ var g = {
 		"@basyx/model-viewer": "workspace:*",
 		"@basyx/studio-app-kit": "workspace:*",
 		"@basyx/studio-sdk": "workspace:*",
-		"@electric-sql/pglite-tools": "^0.4.10",
+		"@electric-sql/pglite-tools": "^0.4.11",
 		"@intlify/message-compiler": "^11.4.16",
 		"@nuxt/eslint": "^1.17.0",
 		"@nuxt/fonts": "^1.0.1",
 		"@pinia/nuxt": "^1.0.3",
-		"@playwright/test": "1.64.0",
+		"@playwright/test": "1.64.1",
 		"@types/node-forge": "^1.3.14",
 		"@types/pg": "^8.23.1",
 		"@types/semver": "^7.7.1",
 		"@vuetify/mcp": "^0.12.2",
 		"drizzle-kit": "^0.31.11",
-		electron: "^44.9.0",
+		electron: "^45.0.0",
 		"electron-builder": "^26.15.3",
 		esbuild: "0.28.2",
 		eslint: "^10.12.0",
 		"eslint-config-vuetify": "^4.7.2",
 		"nuxt-electron": "^0.7.0",
 		pnpm: "12.10.1",
-		sass: "^1.105.2",
+		sass: "^1.106.1",
 		typescript: "^6.0.3",
 		"vite-plugin-electron": "^1.1.2",
 		"vite-plugin-electron-renderer": "^1.0.0",
@@ -164,8 +164,7 @@ function y(e) {
 function b(e) {
 	return typeof e == "string" && _.includes(e);
 }
-//#endregion
-//#region electron/main.ts
+// electron/main.ts
 var x = "X-Studio-Launch-Secret", S = "X-Studio-Broker-Secret", C = "127.0.0.1", w = 15e3, T = [{
 	name: "AASX package",
 	extensions: ["aasx"]
@@ -345,19 +344,19 @@ function W(e) {
 	return !!(k && t && t === e.sender.mainFrame && new URL(t.url).origin === new URL(k).origin);
 }
 function G() {
-	d.handle("studio:choose-aasx-file", async (e) => {
+	d.handle("studio:choose-aasx-files", async (e) => {
 		if (!W(e)) throw Error("Untrusted sender.");
 		let t = c.fromWebContents(e.sender), n = {
-			properties: ["openFile"],
+			properties: ["openFile", "multiSelections"],
 			filters: T
 		}, r = t ? await u.showOpenDialog(t, n) : await u.showOpenDialog(n);
-		return r.canceled || !r.filePaths[0] ? null : U("desktop/file-grants", {
+		return r.canceled ? [] : Promise.all(r.filePaths.map((e) => U("desktop/file-grants", {
 			method: "POST",
 			body: {
-				path: r.filePaths[0],
+				path: e,
 				purpose: "open"
 			}
-		});
+		})));
 	}), d.handle("studio:choose-stack-files", (e, t, n) => K(e, t, n)), d.handle("studio:choose-save-location", async (e, t) => {
 		if (!W(e)) throw Error("Untrusted sender.");
 		let n = c.fromWebContents(e.sender), r = {
@@ -467,5 +466,4 @@ process.env.STUDIO_USER_DATA_DIR && l.setPath("userData", process.env.STUDIO_USE
 }), l.on("window-all-closed", () => {
 	process.platform !== "darwin" && l.quit();
 });
-//#endregion
 export {};
