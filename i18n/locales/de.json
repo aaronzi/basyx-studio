@@ -170,7 +170,6 @@
     "derivedFrom": "Abgeleitet von",
     "administration": "Verwaltung",
     "revisionLabel": "Revision",
-    "addSubmodel": "Submodell",
     "alsoDeleteSubmodels": "Auch das Submodell löschen | Auch die {count} Submodelle löschen",
     "affectedSubmodels": "Diese Submodelle werden gelöscht",
     "sharedWarning": "Andere Shells, die diese Submodelle referenzieren, verlieren sie.",
@@ -1203,7 +1202,6 @@
     "rowMenu": "Elementaktionen",
     "unsaved": "Ungespeicherte Änderungen",
     "addElement": "Element hinzufügen",
-    "paste": "Einfügen",
     "copy": "Kopieren",
     "copyReference": "Referenz kopieren",
     "duplicate": "Duplizieren",
@@ -1216,7 +1214,6 @@
     "pasted": "{name} eingefügt",
     "referenceCopied": "Referenz auf {name} kopiert. Fügen Sie sie in ein Referenzfeld ein.",
     "draftNode": "Entwurf",
-    "insertJson": "Aus JSON einfügen",
     "insertJsonTitle": "In {name} einfügen",
     "convert": "In Instanz umwandeln",
     "convertTitle": "In Instanz umwandeln?",
@@ -1237,8 +1234,7 @@
   },
   "insert": {
     "insert": "Einfügen",
-    "valid": "AAS Core findet keine Probleme.",
-    "notJson": "Das ist kein JSON-Objekt."
+    "valid": "AAS Core findet keine Probleme."
   },
   "wizard": {
     "title": "Shell erstellen",
@@ -1259,7 +1255,6 @@
     "partial": "Nur ein Teil der Änderungen wurde geschrieben",
     "fromTemplate": "Aus Template",
     "empty": "Leeres Submodell",
-    "fromJson": "Aus JSON",
     "json": "Submodell als JSON",
     "noSubmodelsTitle": "Noch keine Submodelle",
     "noSubmodelsText": "Fügen Sie ein Submodell hinzu und füllen Sie seine Felder aus. Seine Elemente fügen Sie danach im Baum hinzu.",
@@ -1298,9 +1293,6 @@
   },
   "cd": {
     "new": "Neue Konzeptbeschreibung",
-    "moreCreate": "Weitere Möglichkeiten zum Anlegen",
-    "fromJson": "Aus JSON",
-    "fromJsonTitle": "Konzeptbeschreibung aus JSON einfügen",
     "newTitle": "Neue Konzeptbeschreibung",
     "create": "Anlegen",
     "created": "{name} angelegt.",
@@ -1410,7 +1402,6 @@
     "fromRegistry": "Teilmodelle aus der Teilmodell-Registry",
     "fromRepository": "Teilmodelle aus dem Teilmodell-Repository",
     "fromTemplateTitle": "Neues Teilmodell aus einem Template",
-    "fromJsonTitle": "Neues Teilmodell aus JSON",
     "idShortHint": "Leer gelassen wird der idShort des Templates verwendet.",
     "unsupported": "Keine Teilmodell-Ansicht für dieses Ziel",
     "unsupportedText": "Dieses Ziel stellt Teilmodelle nur über ihre Verwaltungsschalen bereit. Öffnen Sie sie dort.",
@@ -1442,10 +1433,7 @@
   },
   "copies": {
     "copied": "{name} kopiert",
-    "clipboardUnreadable": "Die Zwischenablage kann nicht gelesen werden. Erlauben Sie Studio den Zugriff und versuchen Sie es erneut.",
-    "clipboardEmpty": "Die Zwischenablage ist leer.",
     "pasteTitle": "{name} einfügen",
-    "pasteTextTitle": "Aus der Zwischenablage einfügen",
     "importTitle": "{name} importieren",
     "into": "In {name}",
     "planning": "Prüfe, was die Kopie schreiben würde…",
@@ -1500,11 +1488,36 @@
     "copySubmodel": "Teilmodell kopieren",
     "copyConcept": "Konzeptbeschreibung kopieren",
     "paste": "Einfügen",
-    "pasteShell": "Verwaltungsschale einfügen",
-    "pasteSubmodel": "Teilmodell einfügen",
-    "pasteConcept": "Konzeptbeschreibung einfügen",
-    "pasteText": "AAS-JSON oder -XML einfügen",
     "pasteInto": "{name} einfügen",
-    "listType": "Diese Liste enthält {type}-Elemente; das kopierte Element ist ein {copied}."
+    "listType": "Diese Liste enthält {type}-Elemente; das kopierte Element ist ein {copied}.",
+    "add": {
+      "shell": "Verwaltungsschale",
+      "submodel": "Teilmodell",
+      "conceptDescription": "Konzeptbeschreibung"
+    },
+    "copyFirst": {
+      "shell": "Einfügen: zuerst eine Verwaltungsschale kopieren (⌘C)",
+      "submodel": "Einfügen: zuerst ein Teilmodell kopieren (⌘C)",
+      "conceptDescription": "Einfügen: zuerst eine Konzeptbeschreibung kopieren (⌘C)",
+      "element": "Einfügen: zuerst ein Element kopieren (⌘C)"
+    },
+    "fromText": "Aus JSON oder XML…",
+    "importFile": "AASX, JSON oder XML importieren…",
+    "text": {
+      "hint": "AAS-JSON oder -XML einfügen oder tippen. AAS-Text aus der Zwischenablage wird beim Öffnen übernommen.",
+      "review": "Weiter",
+      "title": {
+        "shell": "Verwaltungsschalen aus JSON oder XML",
+        "submodel": "Teilmodelle aus JSON oder XML",
+        "conceptDescription": "Konzeptbeschreibungen aus JSON oder XML"
+      },
+      "contents": "Enthält {list}. Der nächste Schritt zeigt, was geschrieben wird.",
+      "count": {
+        "shells": "{count} Verwaltungsschale | {count} Verwaltungsschalen",
+        "submodels": "{count} Teilmodell | {count} Teilmodelle",
+        "conceptDescriptions": "{count} Konzeptbeschreibung | {count} Konzeptbeschreibungen"
+      },
+      "empty": "Enthält keine Verwaltungsschale, kein Teilmodell und keine Konzeptbeschreibung."
+    }
   }
 }

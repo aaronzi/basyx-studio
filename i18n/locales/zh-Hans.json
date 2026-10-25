@@ -1109,9 +1109,6 @@
   },
   "cd": {
     "new": "新建概念描述",
-    "moreCreate": "更多创建方式",
-    "fromJson": "从 JSON",
-    "fromJsonTitle": "从 JSON 插入概念描述",
     "newTitle": "新建概念描述",
     "create": "创建",
     "created": "已创建 {name}。",
@@ -1201,7 +1198,6 @@
     "fromRegistry": "来自子模型注册表的子模型",
     "fromRepository": "来自子模型存储库的子模型",
     "fromTemplateTitle": "基于模板新建子模型",
-    "fromJsonTitle": "基于 JSON 新建子模型",
     "idShortHint": "留空则使用模板的 idShort。",
     "unsupported": "此目标没有子模型视图",
     "unsupportedText": "此目标仅通过管理壳提供子模型。请从管理壳中打开它们。",
@@ -1233,10 +1229,7 @@
   },
   "copies": {
     "copied": "已复制 {name}",
-    "clipboardUnreadable": "无法读取剪贴板。请允许 Studio 读取后重试。",
-    "clipboardEmpty": "剪贴板为空。",
     "pasteTitle": "粘贴 {name}",
-    "pasteTextTitle": "从剪贴板粘贴",
     "importTitle": "导入 {name}",
     "into": "粘贴到 {name}",
     "planning": "正在检查复制将写入的内容…",
@@ -1291,11 +1284,36 @@
     "copySubmodel": "复制子模型",
     "copyConcept": "复制概念描述",
     "paste": "粘贴",
-    "pasteShell": "粘贴管理壳",
-    "pasteSubmodel": "粘贴子模型",
-    "pasteConcept": "粘贴概念描述",
-    "pasteText": "粘贴 AAS JSON 或 XML",
     "pasteInto": "粘贴 {name}",
-    "listType": "此列表只包含 {type} 元素；复制的元素是 {copied}。"
+    "listType": "此列表只包含 {type} 元素；复制的元素是 {copied}。",
+    "add": {
+      "shell": "管理壳",
+      "submodel": "子模型",
+      "conceptDescription": "概念描述"
+    },
+    "copyFirst": {
+      "shell": "粘贴：请先复制一个管理壳 (⌘C)",
+      "submodel": "粘贴：请先复制一个子模型 (⌘C)",
+      "conceptDescription": "粘贴：请先复制一个概念描述 (⌘C)",
+      "element": "粘贴：请先复制一个元素 (⌘C)"
+    },
+    "fromText": "从 JSON 或 XML…",
+    "importFile": "导入 AASX、JSON 或 XML…",
+    "text": {
+      "hint": "粘贴或输入 AAS JSON 或 XML。打开时会填入剪贴板中的 AAS 文本。",
+      "review": "继续",
+      "title": {
+        "shell": "从 JSON 或 XML 导入管理壳",
+        "submodel": "从 JSON 或 XML 导入子模型",
+        "conceptDescription": "从 JSON 或 XML 导入概念描述"
+      },
+      "contents": "包含 {list}。下一步显示将写入的内容。",
+      "count": {
+        "shells": "{count} 个管理壳",
+        "submodels": "{count} 个子模型",
+        "conceptDescriptions": "{count} 个概念描述"
+      },
+      "empty": "不包含管理壳、子模型或概念描述。"
+    }
   }
 }

@@ -379,6 +379,7 @@
       v-if="routeTarget.data.value && canImportInto(routeTarget.data.value)"
       v-model="ui.uploadOpen"
       :initial-file="ui.uploadFile"
+      :shell-key="ui.uploadShellKey"
       :target="routeTarget.data.value"
     />
 

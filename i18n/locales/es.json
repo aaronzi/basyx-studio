@@ -1109,9 +1109,6 @@
   },
   "cd": {
     "new": "Nueva descripción de concepto",
-    "moreCreate": "Otras formas de crear",
-    "fromJson": "Desde JSON",
-    "fromJsonTitle": "Insertar descripción de concepto desde JSON",
     "newTitle": "Nueva descripción de concepto",
     "create": "Crear",
     "created": "{name} creada.",
@@ -1201,7 +1198,6 @@
     "fromRegistry": "Submodelos del registro de submodelos",
     "fromRepository": "Submodelos del repositorio de submodelos",
     "fromTemplateTitle": "Nuevo submodelo a partir de una plantilla",
-    "fromJsonTitle": "Nuevo submodelo a partir de JSON",
     "idShortHint": "Si se deja vacío, se usa el idShort de la plantilla.",
     "unsupported": "No hay vista de submodelos para este destino",
     "unsupportedText": "Este destino solo ofrece los submodelos a través de sus AAS. Ábrelos desde su AAS.",
@@ -1233,10 +1229,7 @@
   },
   "copies": {
     "copied": "{name} copiado",
-    "clipboardUnreadable": "No se puede leer el portapapeles. Permita que Studio lo lea e inténtelo de nuevo.",
-    "clipboardEmpty": "El portapapeles está vacío.",
     "pasteTitle": "Pegar {name}",
-    "pasteTextTitle": "Pegar desde el portapapeles",
     "importTitle": "Importar {name}",
     "into": "En {name}",
     "planning": "Comprobando qué escribiría la copia…",
@@ -1291,11 +1284,36 @@
     "copySubmodel": "Copiar submodelo",
     "copyConcept": "Copiar descripción de concepto",
     "paste": "Pegar",
-    "pasteShell": "Pegar AAS",
-    "pasteSubmodel": "Pegar submodelo",
-    "pasteConcept": "Pegar descripción de concepto",
-    "pasteText": "Pegar JSON o XML de AAS",
     "pasteInto": "Pegar {name}",
-    "listType": "Esta lista contiene elementos {type}; el elemento copiado es un {copied}."
+    "listType": "Esta lista contiene elementos {type}; el elemento copiado es un {copied}.",
+    "add": {
+      "shell": "AAS",
+      "submodel": "Submodelo",
+      "conceptDescription": "Descripción de concepto"
+    },
+    "copyFirst": {
+      "shell": "Pegar: copie primero una AAS (⌘C)",
+      "submodel": "Pegar: copie primero un submodelo (⌘C)",
+      "conceptDescription": "Pegar: copie primero una descripción de concepto (⌘C)",
+      "element": "Pegar: copie primero un elemento (⌘C)"
+    },
+    "fromText": "Desde JSON o XML…",
+    "importFile": "Importar AASX, JSON o XML…",
+    "text": {
+      "hint": "Pegue o escriba JSON o XML de AAS. El texto AAS del portapapeles se rellena al abrir el diálogo.",
+      "review": "Continuar",
+      "title": {
+        "shell": "AAS desde JSON o XML",
+        "submodel": "Submodelos desde JSON o XML",
+        "conceptDescription": "Descripciones de concepto desde JSON o XML"
+      },
+      "contents": "Contiene {list}. El siguiente paso muestra qué se escribe.",
+      "count": {
+        "shells": "{count} AAS | {count} AAS",
+        "submodels": "{count} submodelo | {count} submodelos",
+        "conceptDescriptions": "{count} descripción de concepto | {count} descripciones de concepto"
+      },
+      "empty": "No contiene ninguna AAS, submodelo ni descripción de concepto."
+    }
   }
 }

@@ -16,39 +16,23 @@
 
       <div v-if="localOnly && search" class="text-body-small text-medium-emphasis mt-1">{{ t('submodels.localOnly') }}</div>
 
-      <v-menu v-if="canCreate">
-        <template #activator="{ props: activator }">
-          <v-btn-secondary
-            v-bind="activator"
-            append-icon="mdi-chevron-down"
-            block
-            class="mt-2"
-            prepend-icon="mdi-plus"
-            :text="t('wizard.newSubmodel')"
-          />
-        </template>
-
-        <v-card>
-          <v-list>
-            <v-list-item prepend-icon="mdi-file-outline" :title="t('wizard.empty')" @click="emptyOpen = true" />
-            <v-list-item prepend-icon="mdi-file-document-outline" :title="t('wizard.fromTemplate')" @click="templateOpen = true" />
-            <v-list-item prepend-icon="mdi-code-json" :title="t('wizard.fromJson')" @click="jsonOpen = true" />
-
-            <!-- A copied submodel, or AAS JSON or XML text (package editing plan, K2, K9). -->
-            <v-divider class="my-1" />
-
-            <v-list-item
-              v-if="copies.pasteable('submodel')"
-              prepend-icon="mdi-content-paste"
-              :subtitle="copies.pasteable('submodel')!.label"
-              :title="t('copies.pasteSubmodel')"
-              @click="copies.paste(targetId)"
-            />
-
-            <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
-          </v-list>
-        </v-card>
-      </v-menu>
+      <!-- Adding in edit mode, as everywhere: new, pasted, from text or a file (A1). -->
+      <AddMenu
+        v-if="canCreate"
+        block
+        class="mt-2"
+        :importable="targetQuery.canImport.value"
+        kind="submodel"
+        :label="t('copies.add.submodel')"
+        :new-items="[
+          { title: t('wizard.empty'), icon: 'mdi-file-outline', onClick: () => (emptyOpen = true) },
+          { title: t('wizard.fromTemplate'), icon: 'mdi-file-document-outline', onClick: () => (templateOpen = true) },
+        ]"
+        :paste-label="copies.pasteable('submodel')?.label ?? null"
+        @import="ui.openUpload()"
+        @paste="copies.paste(targetId)"
+        @text="jsonOpen = true"
+      />
 
       <!-- Registry descriptors do not carry the kind, so it cannot be filtered. -->
       <div v-tooltip="kindUnknown ? t('submodels.kindUnknown') : undefined">
@@ -209,13 +193,7 @@
 
     <SubmodelTemplateDialog v-model="templateOpen" :target-id="targetId" @created="onCreated" />
 
-    <JsonInsertDialog
-      v-model="jsonOpen"
-      kind="submodel"
-      :submit="createFromJson"
-      :target-id="targetId"
-      :title="t('submodels.fromJsonTitle')"
-    />
+    <AasTextDialog v-model="jsonOpen" kind="submodel" :target-id="targetId" :title="t('copies.text.title.submodel')" />
   </template>
 </template>
 
@@ -455,10 +433,5 @@
   async function onCreated (submodelKey: string) {
     await router.push(rowLink(submodelKey))
     await invalidate(['targets', props.targetId])
-  }
-
-  async function createFromJson (submodel: Record<string, unknown>) {
-    const result = await api<{ submodelKey: string }>(`/targets/${props.targetId}/submodels`, { method: 'POST', body: { submodel: { source: 'json', submodel } } })
-    await onCreated(result.submodelKey)
   }
 </script>

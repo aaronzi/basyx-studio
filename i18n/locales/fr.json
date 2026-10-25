@@ -1109,9 +1109,6 @@
   },
   "cd": {
     "new": "Nouvelle description de concept",
-    "moreCreate": "Autres façons de créer",
-    "fromJson": "Depuis JSON",
-    "fromJsonTitle": "Insérer une description de concept depuis JSON",
     "newTitle": "Nouvelle description de concept",
     "create": "Créer",
     "created": "{name} créée.",
@@ -1201,7 +1198,6 @@
     "fromRegistry": "Sous-modèles du registre de sous-modèles",
     "fromRepository": "Sous-modèles du dépôt de sous-modèles",
     "fromTemplateTitle": "Nouveau sous-modèle à partir d’un modèle",
-    "fromJsonTitle": "Nouveau sous-modèle à partir de JSON",
     "idShortHint": "Laissé vide, l’idShort du modèle est utilisé.",
     "unsupported": "Pas de vue des sous-modèles pour cette cible",
     "unsupportedText": "Cette cible ne fournit les sous-modèles qu’à travers leurs AAS. Ouvrez-les depuis leur AAS.",
@@ -1233,10 +1229,7 @@
   },
   "copies": {
     "copied": "{name} copié",
-    "clipboardUnreadable": "Impossible de lire le presse-papiers. Autorisez Studio à le lire et réessayez.",
-    "clipboardEmpty": "Le presse-papiers est vide.",
     "pasteTitle": "Coller {name}",
-    "pasteTextTitle": "Coller depuis le presse-papiers",
     "importTitle": "Importer {name}",
     "into": "Dans {name}",
     "planning": "Vérification de ce que la copie écrirait…",
@@ -1291,11 +1284,36 @@
     "copySubmodel": "Copier le sous-modèle",
     "copyConcept": "Copier la description de concept",
     "paste": "Coller",
-    "pasteShell": "Coller le shell",
-    "pasteSubmodel": "Coller le sous-modèle",
-    "pasteConcept": "Coller la description de concept",
-    "pasteText": "Coller du JSON ou XML AAS",
     "pasteInto": "Coller {name}",
-    "listType": "Cette liste contient des éléments {type} ; l’élément copié est un {copied}."
+    "listType": "Cette liste contient des éléments {type} ; l’élément copié est un {copied}.",
+    "add": {
+      "shell": "Shell",
+      "submodel": "Sous-modèle",
+      "conceptDescription": "Description de concept"
+    },
+    "copyFirst": {
+      "shell": "Coller : copiez d’abord un shell (⌘C)",
+      "submodel": "Coller : copiez d’abord un sous-modèle (⌘C)",
+      "conceptDescription": "Coller : copiez d’abord une description de concept (⌘C)",
+      "element": "Coller : copiez d’abord un élément (⌘C)"
+    },
+    "fromText": "Depuis JSON ou XML…",
+    "importFile": "Importer AASX, JSON ou XML…",
+    "text": {
+      "hint": "Collez ou saisissez du JSON ou XML AAS. Le texte AAS du presse-papiers est repris à l’ouverture.",
+      "review": "Continuer",
+      "title": {
+        "shell": "Shells depuis JSON ou XML",
+        "submodel": "Sous-modèles depuis JSON ou XML",
+        "conceptDescription": "Descriptions de concept depuis JSON ou XML"
+      },
+      "contents": "Contient {list}. L’étape suivante montre ce qui est écrit.",
+      "count": {
+        "shells": "{count} shell | {count} shells",
+        "submodels": "{count} sous-modèle | {count} sous-modèles",
+        "conceptDescriptions": "{count} description de concept | {count} descriptions de concept"
+      },
+      "empty": "Ne contient ni shell, ni sous-modèle, ni description de concept."
+    }
   }
 }

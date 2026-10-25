@@ -14,6 +14,8 @@ export const useUiStore = defineStore('ui', () => {
   /** The import dialog of the current target, with a file dropped on the page if any. */
   const uploadOpen = ref(false)
   const uploadFile = shallowRef<File | null>(null)
+  /** The shell whose page imports: the file's submodels are referenced from it. */
+  const uploadShellKey = ref<string | null>(null)
   /** Easter egg: the arcade theme, toggled with the Konami code until the next reload. */
   const arcade = ref(false)
   /** The last undo or redo of a package (`onWorkspaceRestored`); a new object each time. */
@@ -29,10 +31,11 @@ export const useUiStore = defineStore('ui', () => {
     mode.value = mode.value === 'edit' ? 'view' : 'edit'
   }
 
-  function openUpload (file: File | null = null) {
+  function openUpload (file: File | null = null, shellKey: string | null = null) {
     uploadFile.value = file
+    uploadShellKey.value = shellKey
     uploadOpen.value = true
   }
 
-  return { mode, editing, commandOpen, listDrawer, detailsDrawer, uploadOpen, uploadFile, arcade, restored, toggleMode, openUpload, workspaceRestored }
+  return { mode, editing, commandOpen, listDrawer, detailsDrawer, uploadOpen, uploadFile, uploadShellKey, arcade, restored, toggleMode, openUpload, workspaceRestored }
 })

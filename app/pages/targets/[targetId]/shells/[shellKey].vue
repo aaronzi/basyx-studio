@@ -72,13 +72,19 @@
               :refs-loading="refs.isLoading.value"
               @retry="refs.refetch()"
             >
+              <!-- Submodels of this shell: new, pasted, from text or a file (A1). -->
               <template #toolbar>
-                <v-btn
+                <AddMenu
                   v-if="canEditShell"
-                  prepend-icon="mdi-plus"
-                  size="small"
-                  :text="t('shell.addSubmodel')"
-                  @click="addSubmodelOpen = true"
+                  compact
+                  importable
+                  kind="submodel"
+                  :label="t('copies.add.submodel')"
+                  :new-items="[{ title: t('wizard.addSubmodel'), icon: 'mdi-plus', onClick: () => (addSubmodelOpen = true) }]"
+                  :paste-label="pastedSubmodel?.label ?? null"
+                  @import="ui.openUpload(null, shellKey)"
+                  @paste="pasteSubmodel"
+                  @text="textOpen = true"
                 />
               </template>
 
@@ -127,6 +133,15 @@
             </v-card>
           </v-tabs-window-item>
         </v-tabs-window>
+
+        <AasTextDialog
+          v-if="canEditShell"
+          v-model="textOpen"
+          :destination-shell-key="shellKey"
+          kind="submodel"
+          :target-id="targetId"
+          :title="t('copies.text.title.submodel')"
+        />
 
         <AssetQrDialog v-if="globalAssetId" v-model="qrOpen" :content="globalAssetId" :file-name="shellJson.idShort ?? 'asset'" />
 
@@ -449,7 +464,6 @@
       }]
       : []),
     { id: 'copy', title: t('copies.copyShell'), icon: 'mdi-content-copy', rank: 5, menuOnly: true, onClick: copyShell },
-    ...(pastedSubmodel.value ? [{ id: 'paste', title: t('copies.pasteInto', { name: pastedSubmodel.value.label }), icon: 'mdi-content-paste', rank: 5, menuOnly: true, onClick: pasteSubmodel }] : []),
     ...(globalAssetId.value ? [{ id: 'qr', title: t('qr.show'), icon: 'mdi-qrcode', rank: 5, narrowOnly: true, onClick: () => (qrOpen.value = true) }] : []),
     ...(canDelete.value ? [{ id: 'delete', title: t('shell.delete'), icon: 'mdi-delete-outline', rank: 6, danger: true, onClick: () => (confirmDelete.value = true) }] : []),
   ])
@@ -459,6 +473,7 @@
   const copyShell = () => copies.copyShell(targetId.value, shellKey.value, shellLabel.value)
   const pastedSubmodel = computed(() => canEditShell.value ? copies.pasteable('submodel') : null)
   const pasteSubmodel = () => copies.paste(targetId.value, shellKey.value)
+  const textOpen = ref(false)
   // ⌘C copies the shell; ⌘V pastes a copied submodel into it, or a copied shell into the target.
   tree.bindClipboardKeys({
     copy: () => ({ title: t('palette.structure.copy', { name: shellLabel.value }), run: copyShell }),

@@ -46,33 +46,19 @@
         <ConceptDescriptionSearchBar :state="cds" :target-id="targetId">
           <template #append>
 
-            <!-- Creating needs edit mode (UX-006): new, or from JSON. -->
-            <v-btn-group v-if="canWrite">
-              <v-btn prepend-icon="mdi-plus" :text="xs ? undefined : t('cd.new')" @click="adding = true" />
-
-              <v-menu>
-                <template #activator="{ props: activator }">
-                  <v-btn v-bind="activator" :aria-label="t('cd.moreCreate')" icon="mdi-chevron-down" />
-                </template>
-
-                <v-list>
-                  <v-list-item prepend-icon="mdi-code-json" :title="t('cd.fromJson')" @click="inserting = true" />
-
-                  <!-- A copied concept description, or AAS JSON or XML text (package editing plan, K2, K9). -->
-                  <v-divider class="my-1" />
-
-                  <v-list-item
-                    v-if="copies.pasteable('conceptDescription')"
-                    prepend-icon="mdi-content-paste"
-                    :subtitle="copies.pasteable('conceptDescription')!.label"
-                    :title="t('copies.pasteConcept')"
-                    @click="copies.paste(targetId)"
-                  />
-
-                  <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
-                </v-list>
-              </v-menu>
-            </v-btn-group>
+            <!-- Adding in edit mode (UX-006), as everywhere: new, pasted, from text or a file (A1). -->
+            <AddMenu
+              v-if="canWrite"
+              compact
+              :importable="target.canImport.value"
+              kind="conceptDescription"
+              :label="t('copies.add.conceptDescription')"
+              :new-items="[{ title: t('cd.new'), icon: 'mdi-plus', onClick: () => (adding = true) }]"
+              :paste-label="copies.pasteable('conceptDescription')?.label ?? null"
+              @import="ui.openUpload()"
+              @paste="copies.paste(targetId)"
+              @text="inserting = true"
+            />
           </template>
         </ConceptDescriptionSearchBar>
 
@@ -148,13 +134,7 @@
 
       <ConceptDescriptionAddDialog v-model="adding" :target-id="targetId" @created="onCreated" />
 
-      <JsonInsertDialog
-        v-model="inserting"
-        kind="conceptDescription"
-        :submit="insertJson"
-        :target-id="targetId"
-        :title="t('cd.fromJsonTitle')"
-      />
+      <AasTextDialog v-model="inserting" kind="conceptDescription" :target-id="targetId" :title="t('copies.text.title.conceptDescription')" />
 
       <!-- Deleting names the concept description and what references it (L5, UX-003). -->
       <v-dialog v-model="confirmDelete" max-width="460">
@@ -342,11 +322,6 @@
     afterWrite()
   }
 
-  async function insertJson (value: Record<string, unknown>) {
-    const detail = await api<ConceptDescriptionDetail>(`/targets/${targetId.value}/concept-descriptions`, { method: 'POST', body: { conceptDescription: value } })
-    onCreated(detail)
-  }
-
   // Deleting (L5)
   const confirmDelete = ref(false)
   const deleting = ref<{ key: string, name: string } | null>(null)
@@ -420,7 +395,7 @@
       ...(writable
         ? [
           { key: 'cd:new', title: t('cd.new'), icon: 'mdi-plus', run: () => (adding.value = true) },
-          { key: 'cd:json', title: t('cd.fromJson'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
+          { key: 'cd:json', title: t('copies.fromText'), icon: 'mdi-code-json', run: () => (inserting.value = true) },
           ...(key ? [{ key: 'cd:delete', title: t('cd.delete'), icon: 'mdi-delete-outline', run: () => askDelete(key, rowName(key)) }] : []),
         ]
         : []),

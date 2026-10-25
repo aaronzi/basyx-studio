@@ -143,7 +143,6 @@
   }
 
   const structureActions = useStructureActionsStore()
-  const copies = useCopyActions()
 
   const actions = computed<PaletteItem[]>(() => {
     const base = props.targetId ? `/targets/${props.targetId}` : null
@@ -158,7 +157,7 @@
         { key: 'refresh', group: '', title: t('palette.actions.refresh'), icon: 'mdi-refresh-auto', run: () => preferences.update(current => ({ ...current, autoRefresh: !current.autoRefresh })) },
         { key: 'dashboard', group: '', title: t('palette.actions.dashboard'), icon: 'mdi-view-dashboard-outline', run: () => router.push(base) },
       )
-      if (target.canImport.value) {
+      if (target.canImport.value && ui.editing) {
         items.push({ key: 'import', group: '', title: t('palette.actions.import'), icon: 'mdi-tray-arrow-up', run: () => ui.openUpload() })
       }
       if (target.data.value?.capabilities.submodelListSource) {
@@ -172,10 +171,6 @@
     items.push(...structureActions.actions
       .filter(action => ui.editing || action.key.startsWith('clipboard:'))
       .map(action => ({ ...action, group: '' })))
-    // AAS JSON or XML from the system clipboard into the target (K9).
-    if (base && ui.editing && target.data.value?.capabilities.createResources) {
-      items.push({ key: 'paste-text', group: '', title: t('copies.pasteText'), icon: 'mdi-clipboard-text-outline', run: () => copies.pasteText(target.data.value!.id) })
-    }
     if (session.isAdmin) {
       items.push({ key: 'infrastructures', group: '', title: t('palette.actions.infrastructures'), icon: 'mdi-server-plus-outline', run: () => panel.open('infrastructures') })
     }

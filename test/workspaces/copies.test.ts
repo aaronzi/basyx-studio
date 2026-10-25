@@ -7,7 +7,7 @@ import { executeCopy, newCopyRun } from '~~/server/lib/copies/execute'
 import { planCopy } from '~~/server/lib/copies/plan'
 import { allRoots, collectEnvironment, exportEnvironment } from '~~/server/lib/copies/serialize'
 import { EnvironmentReader } from '~~/server/lib/copies/source'
-import { parsePastedText } from '~~/server/lib/copies/text'
+import { checkPastedText, parsePastedElement, parsePastedText } from '~~/server/lib/copies/text'
 import { WorkspaceModel } from '~~/server/lib/workspaces/model'
 import { extractEnvironment, packEnvironment } from '~~/server/lib/workspaces/package'
 import { copyEnvironment, copyIds, manual, memoryFiles, packageTarget } from '../support/copies'
@@ -159,6 +159,22 @@ describe('pasted text', () => {
     expect(new EnvironmentReader(fromJson.environment).submodels.map(item => item.id)).toEqual([nameplateId])
     const fromXml = parsePastedText('xml', toAasXml(submodel, 'submodel'))
     expect(await new EnvironmentReader(fromXml.environment).submodel(nameplateId)).toMatchObject({ idShort: 'Nameplate' })
+  })
+
+  it('says what the text of an environment holds, with findings by idShort', () => {
+    const environment = copyEnvironment()
+    ;(environment.submodels as JsonObject[]).push({ modelType: 'Submodel', id: '', idShort: 'Broken' })
+    const checked = checkPastedText('json', JSON.stringify(environment))
+    expect(checked.contents).toEqual({ shells: 1, submodels: 3, conceptDescriptions: 1 })
+    expect(checked.violations[0]!.path).toMatch(/^Broken/)
+  })
+
+  it('reads an element from JSON or XML for the tree', () => {
+    const element = { modelType: 'Property', idShort: 'Speed', valueType: 'xs:int', value: '7' }
+    expect(parsePastedElement('json', JSON.stringify(element))).toMatchObject(element)
+    const xml = '<property xmlns="https://admin-shell.io/aas/3/1"><idShort>Speed</idShort><valueType>xs:int</valueType><value>7</value></property>'
+    expect(parsePastedElement('xml', xml)).toMatchObject(element)
+    expect(() => parsePastedElement('json', JSON.stringify({ modelType: 'Submodel', id: 'x' }))).toThrow(/not a submodel element/)
   })
 
   it('sends submodel elements to the tree', () => {

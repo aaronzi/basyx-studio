@@ -48,8 +48,8 @@ test.afterEach(async () => {
 test('creates a shell with an empty submodel through the wizard', async ({ page }) => {
   await page.goto(`/targets/${targetId}/shells`)
   await setMode(page, 'Edit')
-  // New or pasted, from the list's menu.
-  await page.getByRole('button', { name: 'New shell' }).click()
+  // New, pasted, from text or a file: the list's add menu (A1).
+  await page.getByRole('button', { name: 'Shell', exact: true }).click()
   await page.getByRole('listitem').filter({ hasText: /^New shell$/ }).click()
 
   const dialog = page.getByRole('dialog')
@@ -209,7 +209,7 @@ test('inserts an element from JSON and refuses invalid JSON with findings', asyn
   await page.goto(`/targets/${targetId}/shells/${key(shellId)}`)
   await setMode(page, 'Edit')
   await rowMenu(page, 'E2EWorkbench')
-  await page.getByRole('listitem').filter({ hasText: 'Insert from JSON' }).click()
+  await page.getByRole('listitem').filter({ hasText: 'From JSON or XML' }).click()
 
   const dialog = page.getByRole('dialog')
   await dialog.locator('.monaco-editor').click()

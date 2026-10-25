@@ -95,7 +95,9 @@ test('exports a shell and imports the export again', async ({ page }) => {
   expect(file.suggestedFilename()).toBe('EdgeCasesShell.json')
   const content = await readFile((await file.path())!)
 
+  // Importing changes the target, so it needs edit mode (UX-006).
   await page.goto(`/targets/${targetId}`)
+  await setMode(page, 'Edit')
   await page.getByRole('button', { name: 'Import' }).click()
   await page.locator('input[type="file"]').setInputFiles({ name: 'edge-cases.json', mimeType: 'application/json', buffer: content })
   await page.getByRole('dialog').getByRole('button', { name: 'Import' }).click()

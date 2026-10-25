@@ -1109,9 +1109,6 @@
   },
   "cd": {
     "new": "Nieuwe conceptbeschrijving",
-    "moreCreate": "Meer manieren om aan te maken",
-    "fromJson": "Uit JSON",
-    "fromJsonTitle": "Conceptbeschrijving uit JSON invoegen",
     "newTitle": "Nieuwe conceptbeschrijving",
     "create": "Aanmaken",
     "created": "{name} aangemaakt.",
@@ -1201,7 +1198,6 @@
     "fromRegistry": "Submodellen uit het submodelregister",
     "fromRepository": "Submodellen uit de submodelrepository",
     "fromTemplateTitle": "Nieuw submodel uit een sjabloon",
-    "fromJsonTitle": "Nieuw submodel uit JSON",
     "idShortHint": "Leeg gelaten wordt de idShort van het sjabloon gebruikt.",
     "unsupported": "Geen submodelweergave voor dit doel",
     "unsupportedText": "Dit doel biedt submodellen alleen via hun AAS aan. Open ze vanuit de AAS.",
@@ -1233,10 +1229,7 @@
   },
   "copies": {
     "copied": "{name} gekopieerd",
-    "clipboardUnreadable": "Het klembord kan niet worden gelezen. Geef Studio toegang en probeer het opnieuw.",
-    "clipboardEmpty": "Het klembord is leeg.",
     "pasteTitle": "{name} plakken",
-    "pasteTextTitle": "Plakken van het klembord",
     "importTitle": "{name} importeren",
     "into": "In {name}",
     "planning": "Controleren wat de kopie zou schrijven…",
@@ -1291,11 +1284,36 @@
     "copySubmodel": "Submodel kopiëren",
     "copyConcept": "Conceptbeschrijving kopiëren",
     "paste": "Plakken",
-    "pasteShell": "Shell plakken",
-    "pasteSubmodel": "Submodel plakken",
-    "pasteConcept": "Conceptbeschrijving plakken",
-    "pasteText": "AAS-JSON of -XML plakken",
     "pasteInto": "{name} plakken",
-    "listType": "Deze lijst bevat {type}-elementen; het gekopieerde element is een {copied}."
+    "listType": "Deze lijst bevat {type}-elementen; het gekopieerde element is een {copied}.",
+    "add": {
+      "shell": "Shell",
+      "submodel": "Submodel",
+      "conceptDescription": "Conceptbeschrijving"
+    },
+    "copyFirst": {
+      "shell": "Plakken: kopieer eerst een shell (⌘C)",
+      "submodel": "Plakken: kopieer eerst een submodel (⌘C)",
+      "conceptDescription": "Plakken: kopieer eerst een conceptbeschrijving (⌘C)",
+      "element": "Plakken: kopieer eerst een element (⌘C)"
+    },
+    "fromText": "Uit JSON of XML…",
+    "importFile": "AASX, JSON of XML importeren…",
+    "text": {
+      "hint": "Plak of typ AAS-JSON of -XML. AAS-tekst op het klembord wordt bij het openen ingevuld.",
+      "review": "Verder",
+      "title": {
+        "shell": "Shells uit JSON of XML",
+        "submodel": "Submodellen uit JSON of XML",
+        "conceptDescription": "Conceptbeschrijvingen uit JSON of XML"
+      },
+      "contents": "Bevat {list}. De volgende stap toont wat wordt geschreven.",
+      "count": {
+        "shells": "{count} shell | {count} shells",
+        "submodels": "{count} submodel | {count} submodellen",
+        "conceptDescriptions": "{count} conceptbeschrijving | {count} conceptbeschrijvingen"
+      },
+      "empty": "Bevat geen shell, submodel of conceptbeschrijving."
+    }
   }
 }

@@ -57,6 +57,8 @@ export type CopyPlanRequest = z.infer<typeof copyPlanRequestSchema>
 export const copyUploadQuerySchema = z.object({
   destinationTargetId: z.string().min(1).max(200),
   fileName: z.string().min(1).max(255),
+  /** The file's submodels are also referenced from this shell (the shell page's import). */
+  destinationShellKey: keySchema.optional(),
 })
 
 /** One resource the plan would write. */

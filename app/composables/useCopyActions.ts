@@ -5,8 +5,8 @@ const allDependencies: CopyDependencies = { submodels: 'referenced', conceptDesc
 /**
  * Copy and paste of shells, submodels and concept descriptions (package
  * editing plan, K1, K2, K9): *Copy* keeps where the resource is and puts
- * its AAS JSON on the system clipboard; *Paste* and *Paste from text* open
- * the copy plan dialog for a destination.
+ * its AAS JSON on the system clipboard; *Paste* opens the copy plan dialog
+ * for a destination (text comes in through AasTextDialog).
  */
 export function useCopyActions () {
   const { t } = useI18n()
@@ -56,30 +56,5 @@ export function useCopyActions () {
     })
   }
 
-  /** AAS JSON or XML from the system clipboard (K9). */
-  async function pasteText (destinationTargetId: string, destinationShellKey?: string) {
-    let text: string
-    try {
-      text = await navigator.clipboard.readText()
-    } catch {
-      notifications.notify({ text: t('copies.clipboardUnreadable'), color: 'error' })
-      return
-    }
-    if (text.trim() === '') {
-      notifications.notify({ text: t('copies.clipboardEmpty'), color: 'warning' })
-      return
-    }
-    store.openCopy({
-      request: {
-        source: { kind: 'text', format: text.trimStart().startsWith('<') ? 'xml' : 'json', content: text },
-        destinationTargetId,
-        destinationShellKey,
-        dependencies: allDependencies,
-      },
-      plan: null,
-      title: t('copies.pasteTextTitle'),
-    })
-  }
-
-  return { copyShell, copySubmodel, copyConceptDescription, pasteable, paste, pasteText }
+  return { copyShell, copySubmodel, copyConceptDescription, pasteable, paste }
 }

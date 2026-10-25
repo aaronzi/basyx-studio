@@ -1109,9 +1109,6 @@
   },
   "cd": {
     "new": "新しいコンセプト記述",
-    "moreCreate": "その他の作成方法",
-    "fromJson": "JSON から",
-    "fromJsonTitle": "JSON からコンセプト記述を挿入",
     "newTitle": "新しいコンセプト記述",
     "create": "作成",
     "created": "{name} を作成しました。",
@@ -1201,7 +1198,6 @@
     "fromRegistry": "サブモデルレジストリのサブモデル",
     "fromRepository": "サブモデルリポジトリのサブモデル",
     "fromTemplateTitle": "テンプレートから新しいサブモデル",
-    "fromJsonTitle": "JSON から新しいサブモデル",
     "idShortHint": "空欄の場合はテンプレートの idShort が使われます。",
     "unsupported": "このターゲットにはサブモデルビューがありません",
     "unsupportedText": "このターゲットはサブモデルを管理シェル経由でのみ提供します。管理シェルから開いてください。",
@@ -1233,10 +1229,7 @@
   },
   "copies": {
     "copied": "{name} をコピーしました",
-    "clipboardUnreadable": "クリップボードを読み取れません。Studio に読み取りを許可して、もう一度お試しください。",
-    "clipboardEmpty": "クリップボードは空です。",
     "pasteTitle": "{name} を貼り付け",
-    "pasteTextTitle": "クリップボードから貼り付け",
     "importTitle": "{name} をインポート",
     "into": "貼り付け先: {name}",
     "planning": "コピーで書き込まれる内容を確認しています…",
@@ -1291,11 +1284,36 @@
     "copySubmodel": "サブモデルをコピー",
     "copyConcept": "コンセプト記述をコピー",
     "paste": "貼り付け",
-    "pasteShell": "シェルを貼り付け",
-    "pasteSubmodel": "サブモデルを貼り付け",
-    "pasteConcept": "コンセプト記述を貼り付け",
-    "pasteText": "AAS の JSON または XML を貼り付け",
     "pasteInto": "{name} を貼り付け",
-    "listType": "このリストには {type} 要素だけが入ります。コピーした要素は {copied} です。"
+    "listType": "このリストには {type} 要素だけが入ります。コピーした要素は {copied} です。",
+    "add": {
+      "shell": "シェル",
+      "submodel": "サブモデル",
+      "conceptDescription": "コンセプト記述"
+    },
+    "copyFirst": {
+      "shell": "貼り付け: 先にシェルをコピー (⌘C)",
+      "submodel": "貼り付け: 先にサブモデルをコピー (⌘C)",
+      "conceptDescription": "貼り付け: 先にコンセプト記述をコピー (⌘C)",
+      "element": "貼り付け: 先に要素をコピー (⌘C)"
+    },
+    "fromText": "JSON または XML から…",
+    "importFile": "AASX、JSON または XML をインポート…",
+    "text": {
+      "hint": "AAS の JSON または XML を貼り付けるか入力してください。クリップボードの AAS テキストは開いたときに入力されます。",
+      "review": "続行",
+      "title": {
+        "shell": "JSON または XML からシェル",
+        "submodel": "JSON または XML からサブモデル",
+        "conceptDescription": "JSON または XML からコンセプト記述"
+      },
+      "contents": "{list} を含みます。次の手順で書き込まれる内容を確認できます。",
+      "count": {
+        "shells": "シェル {count} 件",
+        "submodels": "サブモデル {count} 件",
+        "conceptDescriptions": "コンセプト記述 {count} 件"
+      },
+      "empty": "シェル、サブモデル、コンセプト記述のいずれも含まれていません。"
+    }
   }
 }

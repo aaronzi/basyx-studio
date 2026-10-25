@@ -110,8 +110,14 @@ Feedback from testing the desktop app found three areas to improve:
 | K6 | Files | Attachments and thumbnails are copied where both sides have `files`. Otherwise the File keeps its path and the report names it. |
 | K7 | Report | The copy runs resource by resource: concept descriptions, then submodels with their files, then shells with their thumbnails. The report names each resource as created, replaced, skipped or failed, because independent infrastructures give no atomicity (DATA-014). After a copy into an infrastructure, the registries are kept in step as after an upload (DATA-020). Into a package, each written resource is an entry of the undo log, as with the shell wizard. |
 | K8 | Safe retry | A plan has an ID and is kept in memory for 30 minutes, for the user who made it. A repeated `Idempotency-Key` answers with the first report; running the plan again skips the resources an earlier run wrote and keeps the identifiers it gave, so an interrupted copy does not create duplicates (DATA-015). |
-| K9 | System clipboard | *Copy* also writes the AAS JSON to the system clipboard. *Paste from text* reads AAS JSON or XML from it, either an environment or a single element, and validates it with AAS Core. An environment then goes through the same plan. |
+| K9 | System clipboard | *Copy* also writes the AAS JSON to the system clipboard. *From JSON or XML…* (A1) opens a code editor, filled from the system clipboard when it holds AAS text, and checks it with AAS Core while the user types. An element is inserted; an environment, shell, submodel or concept description goes through the same plan. |
 | K10 | Keyboard | ⌘C and ⌘V (Ctrl on Windows and Linux) copy and paste outside text fields on the shell, submodel and concept description pages: the selected element first, else the page's own resource, and a copied resource where it fits. The command palette lists both with their shortcut, *Copy* in view mode too, and *Paste AAS JSON or XML* in edit mode. Paste needs edit mode (UX-006). |
+
+### Adding
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| A1 | One add menu | Wherever shells, submodels or concept descriptions can be added, one menu (`AddMenu`) offers the same entries in the same order: *New…* (the form, wizard or template), *Paste* from Studio's clipboard, *From JSON or XML…* and *Import AASX, JSON or XML…*. The menus are on the shell list (+ Shell), the shell page's submodels (+ Submodel, which adds to that shell), the submodel list (+ Submodel) and the concept description page (+ Concept description). The element tree's row menu follows the same order, without the file import. *Paste* is listed when the clipboard holds nothing that fits too, disabled, and says what to copy first. The whole menu, import included, needs edit mode (UX-006). The header's ⋮ menu only copies. |
 
 ### Import and export
 

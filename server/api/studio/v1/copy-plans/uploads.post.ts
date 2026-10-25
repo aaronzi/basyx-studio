@@ -37,7 +37,7 @@ export default defineStudioHandler(async (event): Promise<CopyPlan> => {
     sourceLabel: query.fileName,
     roots: environmentRoots(reader),
     destinationTargetId: query.destinationTargetId,
-    destinationShellKey: null,
+    destinationShellKey: query.destinationShellKey ?? null,
     dependencies: { submodels: 'referenced', conceptDescriptions: 'referenced', supplementaryFiles: 'referenced' },
   })
   setResponseStatus(event, 201)

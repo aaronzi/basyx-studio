@@ -7,7 +7,7 @@
     <!-- Files dropped on the list are imported into the target. -->
     <FileDropZone
       class="d-flex flex-column flex-grow-1 overflow-hidden"
-      :disabled="!canImport"
+      :disabled="!canImport || !canCreate"
       :text="t('upload.dropTypes')"
       :title="t('upload.dropHere', { name: target?.name ?? '' })"
       @file="ui.openUpload($event)"
@@ -27,48 +27,20 @@
 
         <div v-if="localOnly && search" class="text-body-small text-medium-emphasis mt-1">{{ t('shells.localOnly') }}</div>
 
-        <!-- Importing adds content without editing any, so it is offered in view mode too. -->
-        <div v-if="canCreate || canImport" class="d-flex ga-2 mt-2">
-          <!-- New, or pasted: a copied shell, or AAS JSON or XML text (package
-               editing plan, K2, K9), as the submodel list offers it. -->
-          <v-menu v-if="canCreate">
-            <template #activator="{ props: activator }">
-              <v-btn-secondary
-                v-bind="activator"
-                append-icon="mdi-chevron-down"
-                class="flex-grow-1"
-                prepend-icon="mdi-plus"
-                :text="t('wizard.newShell')"
-              />
-            </template>
-
-            <v-card>
-              <v-list>
-                <v-list-item prepend-icon="mdi-plus" :title="t('wizard.newShell')" @click="wizardOpen = true" />
-
-                <v-divider class="my-1" />
-
-                <v-list-item
-                  v-if="copies.pasteable('shell')"
-                  prepend-icon="mdi-content-paste"
-                  :subtitle="copies.pasteable('shell')!.label"
-                  :title="t('copies.pasteShell')"
-                  @click="copies.paste(targetId)"
-                />
-
-                <v-list-item prepend-icon="mdi-clipboard-text-outline" :title="t('copies.pasteText')" @click="copies.pasteText(targetId)" />
-              </v-list>
-            </v-card>
-          </v-menu>
-
-          <v-btn-secondary
-            v-if="canImport"
-            :class="canCreate ? undefined : 'flex-grow-1'"
-            prepend-icon="mdi-tray-arrow-up"
-            :text="t('upload.action')"
-            @click="ui.openUpload()"
-          />
-        </div>
+        <!-- Adding in edit mode (UX-006), as everywhere: new, pasted, from text or a file (A1). -->
+        <AddMenu
+          v-if="canCreate"
+          block
+          class="mt-2"
+          :importable="canImport"
+          kind="shell"
+          :label="t('copies.add.shell')"
+          :new-items="[{ title: t('wizard.newShell'), icon: 'mdi-plus', onClick: () => (wizardOpen = true) }]"
+          :paste-label="copies.pasteable('shell')?.label ?? null"
+          @import="ui.openUpload()"
+          @paste="copies.paste(targetId)"
+          @text="textOpen = true"
+        />
 
         <v-chip-group v-model="filter" class="mt-1" mandatory selected-class="text-primary">
           <v-chip filter :text="t('shells.all')" value="all" />
@@ -167,10 +139,10 @@
           v-else-if="source.data.value && unfiltered"
           icon="mdi-tray-arrow-down"
           size="64"
-          :text="canImport ? t('shells.emptyTextImport') : t('shells.emptyText')"
+          :text="canImport && canCreate ? t('shells.emptyTextImport') : t('shells.emptyText')"
           :title="t('shells.empty')"
         >
-          <template v-if="canImport" #actions>
+          <template v-if="canImport && canCreate" #actions>
             <v-btn :text="t('upload.action')" variant="tonal" @click="ui.openUpload()" />
           </template>
         </v-empty-state>
@@ -216,7 +188,11 @@
 
   <QrScanDialog v-if="canScan" v-model="scanOpen" :target-id="targetId" />
 
-  <ShellWizard v-if="canCreate" v-model="wizardOpen" :target-id="targetId" @created="onCreated" />
+  <template v-if="canCreate">
+    <ShellWizard v-model="wizardOpen" :target-id="targetId" @created="onCreated" />
+
+    <AasTextDialog v-model="textOpen" kind="shell" :target-id="targetId" :title="t('copies.text.title.shell')" />
+  </template>
 </template>
 
 <script lang="ts" setup>
@@ -243,6 +219,7 @@
   // The creation wizard (MVP-5 plan, T3), in edit mode only.
   const canCreate = computed(() => ui.editing && Boolean(target.value?.capabilities.createResources))
   const wizardOpen = ref(false)
+  const textOpen = ref(false)
   const canImport = targetQuery.canImport
   const copies = useCopyActions()
 
