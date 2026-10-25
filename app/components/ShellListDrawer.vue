@@ -55,104 +55,117 @@
 
       <v-divider />
 
-      <!-- A deep link to a shell the list has not loaded yet keeps it in sight (DoD 6). -->
-      <v-list v-if="pinned" class="flex-shrink-0 px-2 py-1" lines="two" nav>
-        <v-list-item
-          active
-          prepend-icon="mdi-pin-outline"
-          :subtitle="pinned.id"
-          :title="pinned.title"
-          :to="{ path: `/targets/${targetId}/shells/${activeKey}`, query: searchState }"
-        />
-      </v-list>
-
-      <ProblemAlert
-        v-if="source.error.value && items.length === 0"
-        class="ma-2"
-        :error="source.error.value"
-        retry
-        @retry="source.refetch()"
+      <!-- Several open packages: one group each (package editing plan, M1). -->
+      <PackageListGroups
+        v-if="grouped"
+        :active-key="activeKey"
+        :current-target-id="targetId"
+        :expression="applied"
+        kind="shells"
+        :kind-filter="filter"
+        :search-state="searchState"
       />
 
-      <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-avatar-two-line@6" />
+      <template v-else>
+        <!-- A deep link to a shell the list has not loaded yet keeps it in sight (DoD 6). -->
+        <v-list v-if="pinned" class="flex-shrink-0 px-2 py-1" lines="two" nav>
+          <v-list-item
+            active
+            prepend-icon="mdi-pin-outline"
+            :subtitle="pinned.id"
+            :title="pinned.title"
+            :to="{ path: `/targets/${targetId}/shells/${activeKey}`, query: searchState }"
+          />
+        </v-list>
 
-      <!-- Virtualized (DoD 6): only the visible rows exist, so thousands of shells scroll smoothly.
-         Rows near the end load the next page. -->
-      <v-list
-        v-else-if="filtered.length > 0"
-        class="flex-grow-1 px-2 py-0"
-        height="0"
-        lines="two"
-        nav
-      >
-        <v-virtual-scroll ref="scroller" height="100%" item-key="key" :items="filtered">
-          <template #default="{ item: shell, index }">
-            <v-list-item
-              v-intersect.once="(visible: boolean) => visible && onRowSeen(shell.key, index)"
-              :active="shell.key === activeKey"
-              :class="index === 0 ? 'mt-2' : undefined"
-              :title="shellTitle(shell)"
-              :to="{ path: `/targets/${targetId}/shells/${shell.key}`, query: searchState }"
-              @click="onOpen"
-            >
-              <template #prepend>
-                <ShellAvatar :shell="shell" size="36" :target-id="targetId" :thumbnails="thumbnails" />
-              </template>
+        <ProblemAlert
+          v-if="source.error.value && items.length === 0"
+          class="ma-2"
+          :error="source.error.value"
+          retry
+          @retry="source.refetch()"
+        />
 
-              <template #subtitle>{{ shell.id }}</template>
+        <v-skeleton-loader v-else-if="loading && items.length === 0" type="list-item-avatar-two-line@6" />
 
-              <!-- The marker sits at the edge, so it lines up from row to row. -->
-              <template #append>
-                <v-chip
-                  v-if="shell.assetKind === 'Type'"
-                  class="me-1"
-                  color="warning"
-                  size="x-small"
-                  :text="t('shells.type')"
-                />
+        <!-- Virtualized (DoD 6): only the visible rows exist, so thousands of shells scroll smoothly.
+           Rows near the end load the next page. -->
+        <v-list
+          v-else-if="filtered.length > 0"
+          class="flex-grow-1 px-2 py-0"
+          height="0"
+          lines="two"
+          nav
+        >
+          <v-virtual-scroll ref="scroller" height="100%" item-key="key" :items="filtered">
+            <template #default="{ item: shell, index }">
+              <v-list-item
+                v-intersect.once="(visible: boolean) => visible && onRowSeen(shell.key, index)"
+                :active="shell.key === activeKey"
+                :class="index === 0 ? 'mt-2' : undefined"
+                :title="shellTitle(shell)"
+                :to="{ path: `/targets/${targetId}/shells/${shell.key}`, query: searchState }"
+                @click="onOpen"
+              >
+                <template #prepend>
+                  <ShellAvatar :shell="shell" size="36" :target-id="targetId" :thumbnails="thumbnails" />
+                </template>
 
-                <v-icon
-                  v-if="availability[shell.key] && availability[shell.key] !== 'available'"
-                  v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
-                  :aria-label="t(`shells.availability.${availability[shell.key]}`)"
-                  class="me-1"
-                  color="error"
-                  :icon="availabilityIcons[availability[shell.key]!]"
-                  size="small"
-                />
-              </template>
-            </v-list-item>
+                <template #subtitle>{{ shell.id }}</template>
+
+                <!-- The marker sits at the edge, so it lines up from row to row. -->
+                <template #append>
+                  <v-chip
+                    v-if="shell.assetKind === 'Type'"
+                    class="me-1"
+                    color="warning"
+                    size="x-small"
+                    :text="t('shells.type')"
+                  />
+
+                  <v-icon
+                    v-if="availability[shell.key] && availability[shell.key] !== 'available'"
+                    v-tooltip="t(`shells.availability.${availability[shell.key]}`)"
+                    :aria-label="t(`shells.availability.${availability[shell.key]}`)"
+                    class="me-1"
+                    color="error"
+                    :icon="availabilityIcons[availability[shell.key]!]"
+                    size="small"
+                  />
+                </template>
+              </v-list-item>
+            </template>
+          </v-virtual-scroll>
+        </v-list>
+
+        <!-- A target without any shell yet: the ways to add the first one. -->
+        <v-empty-state
+          v-else-if="source.data.value && unfiltered"
+          icon="mdi-tray-arrow-down"
+          size="64"
+          :text="canImport ? t('shells.emptyTextImport') : t('shells.emptyText')"
+          :title="t('shells.empty')"
+        >
+          <template v-if="canImport" #actions>
+            <v-btn :text="t('upload.action')" variant="tonal" @click="ui.openUpload()" />
           </template>
-        </v-virtual-scroll>
-      </v-list>
+        </v-empty-state>
 
-      <!-- A target without any shell yet: the ways to add the first one. -->
-      <v-empty-state
-        v-else-if="source.data.value && unfiltered"
-        icon="mdi-tray-arrow-down"
-        size="64"
-        :text="canImport ? t('shells.emptyTextImport') : t('shells.emptyText')"
-        :title="t('shells.empty')"
-      >
-        <template v-if="canImport" #actions>
-          <v-btn :text="t('upload.action')" variant="tonal" @click="ui.openUpload()" />
-        </template>
-      </v-empty-state>
+        <v-empty-state
+          v-else-if="source.data.value"
+          icon="mdi-cube-off-outline"
+          size="64"
+          :text="t('shells.noneText')"
+          :title="t('shells.none')"
+        >
+          <template #actions>
+            <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
+          </template>
+        </v-empty-state>
 
-      <v-empty-state
-        v-else-if="source.data.value"
-        icon="mdi-cube-off-outline"
-        size="64"
-        :text="t('shells.noneText')"
-        :title="t('shells.none')"
-      >
-        <template #actions>
-          <v-btn :text="t('shells.reset')" variant="tonal" @click="reset" />
-        </template>
-      </v-empty-state>
-
-      <!-- Outside the v-if chain above: the next page is loading below the rows. -->
-      <v-progress-linear v-if="loadingMore" class="flex-shrink-0" />
+        <!-- Outside the v-if chain above: the next page is loading below the rows. -->
+        <v-progress-linear v-if="loadingMore" class="flex-shrink-0" />
+      </template>
     </FileDropZone>
 
     <v-divider />
@@ -198,6 +211,7 @@
   const preferences = usePreferences()
   const { mobile } = useDisplay()
   const targetQuery = useTarget(() => props.targetId)
+  const { grouped } = useOpenPackages(() => props.targetId)
   const target = targetQuery.data
   // Lookup by asset ID needs discovery or queries on the repository (lookupShells).
   const canScan = computed(() => Boolean(target.value?.capabilities.discovery || target.value?.capabilities.queryTarget === 'repository'))

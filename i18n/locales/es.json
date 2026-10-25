@@ -190,7 +190,8 @@
     "closeText": "El paquete tiene cambios sin guardar. Se perderán si lo cierras ahora.",
     "closeWithoutSaving": "Cerrar sin guardar",
     "cancel": "Cancelar",
-    "more": "Acciones del paquete"
+    "more": "Acciones del paquete",
+    "moreNamed": "Acciones de {name}"
   },
   "variables": {
     "input": "Variables de entrada",
@@ -778,7 +779,8 @@
     },
     "empty": "Aún no hay AAS",
     "emptyText": "Este destino aún no tiene AAS.",
-    "emptyTextImport": "Importa un archivo AASX, JSON o XML, o suéltalo sobre esta lista."
+    "emptyTextImport": "Importa un archivo AASX, JSON o XML, o suéltalo sobre esta lista.",
+    "loadMore": "Cargar más AAS"
   },
   "viewer": {
     "headline": "Elige una AAS para explorarla",

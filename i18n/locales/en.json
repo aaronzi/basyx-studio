@@ -268,7 +268,8 @@
     "new": "New package",
     "undo": "Undo",
     "redo": "Redo",
-    "more": "Package actions"
+    "more": "Package actions",
+    "moreNamed": "Actions of {name}"
   },
   "variables": {
     "input": "Input variables",
@@ -877,7 +878,8 @@
     },
     "empty": "No shells yet",
     "emptyText": "This target has no shells yet.",
-    "emptyTextImport": "Import an AASX, JSON or XML file, or drop it on this list."
+    "emptyTextImport": "Import an AASX, JSON or XML file, or drop it on this list.",
+    "loadMore": "Load more shells"
   },
   "viewer": {
     "headline": "Pick a shell to explore",

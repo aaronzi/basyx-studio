@@ -92,7 +92,7 @@ Feedback from testing the desktop app found three areas to improve:
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| M1 | Grouped lists | While a package is the current target, the shell, submodel and concept description lists show one collapsible group per open package. A group header shows the file name and an unsaved-changes marker, and has a menu with *Save*, *Save as* and *Close*. |
+| M1 | Grouped lists | While a package is the current target and another one is open, the shell and submodel lists show one collapsible group per open package. A group header shows the file name and an unsaved-changes marker, and has a menu with *Save*, *Save as* and *Close*. The concept description page pages one target's table at a time from the server, so there each open package is a tab above the table. |
 | M2 | One target per view | Selecting an item opens it in its own package's route (`/targets/<ws-id>/…`). The views stay scoped to one target. Only the lists combine packages, and the copy-and-paste of K1 to K8 joins them. |
 | M3 | Loading | The current package's group is expanded and loaded. Other groups load their first page when expanded. Which groups are expanded is remembered for the session. Search in the list filters every expanded group. |
 | M4 | Opening | *Open package* accepts several files at once (`multiSelections`). Each file opens as its own target. The target switcher lists open packages first, each with its unsaved marker. |

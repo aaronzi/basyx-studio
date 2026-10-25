@@ -190,7 +190,8 @@
     "closeText": "Le paquet contient des modifications non enregistrées. Elles seront perdues si vous le fermez maintenant.",
     "closeWithoutSaving": "Fermer sans enregistrer",
     "cancel": "Annuler",
-    "more": "Actions du paquet"
+    "more": "Actions du paquet",
+    "moreNamed": "Actions de {name}"
   },
   "variables": {
     "input": "Variables d'entrée",
@@ -778,7 +779,8 @@
     },
     "empty": "Pas encore d'AAS",
     "emptyText": "Cette cible n'a pas encore d'AAS.",
-    "emptyTextImport": "Importez un fichier AASX, JSON ou XML, ou déposez-le sur cette liste."
+    "emptyTextImport": "Importez un fichier AASX, JSON ou XML, ou déposez-le sur cette liste.",
+    "loadMore": "Charger plus de shells"
   },
   "viewer": {
     "headline": "Choisissez une AAS à explorer",

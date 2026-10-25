@@ -3,6 +3,34 @@
     <v-container>
       <PageHeader :subtitle="t('concepts.subtitle')" :title="t('concepts.title')" />
 
+      <!-- Several open packages: the table pages one package's concept
+           descriptions at a time, so each package is a tab (package editing plan, M1). -->
+      <v-tabs
+        v-if="openPackages.grouped.value"
+        class="mb-3"
+        :model-value="targetId"
+        show-arrows
+        @update:model-value="id => router.push(`/targets/${id}/concepts`)"
+      >
+        <v-tab
+          v-for="item in openPackages.packages.value"
+          :key="item.id"
+          prepend-icon="mdi-package-variant-closed"
+          :value="item.id"
+        >
+          {{ item.name }}
+
+          <v-icon
+            v-if="item.workspace?.unsavedChanges"
+            v-tooltip="t('workspace.unsaved')"
+            :aria-label="t('workspace.unsaved')"
+            class="ms-1"
+            color="warning"
+            icon="mdi-circle-medium"
+          />
+        </v-tab>
+      </v-tabs>
+
       <ProblemAlert
         v-if="cds.error.value"
         class="mb-4"
@@ -184,6 +212,7 @@
 
   const targetId = computed(() => String(route.params.targetId))
   const target = useTarget(targetId)
+  const openPackages = useOpenPackages(() => targetId.value)
   const capabilities = computed<TargetCapabilities>(() => target.data.value?.capabilities ?? noCapabilities)
   // Concept descriptions change like submodels: edit mode and a target that takes structural writes (MVP-6 plan, W4).
   const canWrite = computed(() => ui.editing && capabilities.value.conceptDescriptions && capabilities.value.writeStructure && capabilities.value.createResources)

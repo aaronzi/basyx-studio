@@ -190,7 +190,8 @@
     "closeText": "此包有未保存的更改。如果现在关闭，这些更改将会丢失。",
     "closeWithoutSaving": "不保存并关闭",
     "cancel": "取消",
-    "more": "包操作"
+    "more": "包操作",
+    "moreNamed": "{name} 的操作"
   },
   "variables": {
     "input": "输入变量",
@@ -778,7 +779,8 @@
     },
     "empty": "还没有管理壳",
     "emptyText": "此目标还没有管理壳。",
-    "emptyTextImport": "导入 AASX、JSON 或 XML 文件，或将其拖放到此列表上。"
+    "emptyTextImport": "导入 AASX、JSON 或 XML 文件，或将其拖放到此列表上。",
+    "loadMore": "加载更多管理壳"
   },
   "viewer": {
     "headline": "选择要浏览的管理壳",

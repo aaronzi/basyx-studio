@@ -190,7 +190,8 @@
     "closeText": "Het pakket heeft niet-opgeslagen wijzigingen. Die gaan verloren als je het nu sluit.",
     "closeWithoutSaving": "Sluiten zonder opslaan",
     "cancel": "Annuleren",
-    "more": "Pakketacties"
+    "more": "Pakketacties",
+    "moreNamed": "Acties voor {name}"
   },
   "variables": {
     "input": "Invoervariabelen",
@@ -778,7 +779,8 @@
     },
     "empty": "Nog geen AAS'en",
     "emptyText": "Dit doel heeft nog geen AAS'en.",
-    "emptyTextImport": "Importeer een AASX-, JSON- of XML-bestand, of zet het neer op deze lijst."
+    "emptyTextImport": "Importeer een AASX-, JSON- of XML-bestand, of zet het neer op deze lijst.",
+    "loadMore": "Meer shells laden"
   },
   "viewer": {
     "headline": "Kies een AAS om te verkennen",

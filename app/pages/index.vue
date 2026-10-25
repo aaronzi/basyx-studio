@@ -281,10 +281,14 @@
     opening.value = true
     openError.value = null
     try {
-      const grant = await bridge.value?.chooseAasxFile()
-      if (grant) {
-        const target = await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } })
-        await navigateTo(`/targets/${target.id}/shells`)
+      // Each file opens as its own package; the first one is shown.
+      const grants = await bridge.value?.chooseAasxFiles() ?? []
+      const opened: Target[] = []
+      for (const grant of grants) {
+        opened.push(await api<Target>('/workspaces', { method: 'POST', body: { fileHandle: grant.handle } }))
+      }
+      if (opened[0]) {
+        await navigateTo(`/targets/${opened[0].id}/shells`)
       }
     } catch (error) {
       openError.value = error

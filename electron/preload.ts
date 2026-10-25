@@ -10,14 +10,15 @@ export interface StudioFileGrant {
 }
 
 export interface StudioDesktopBridge {
-  chooseAasxFile: () => Promise<StudioFileGrant | null>
+  /** AASX packages to open; empty when cancelled. */
+  chooseAasxFiles: () => Promise<StudioFileGrant[]>
   chooseSaveLocation: (suggestedName: string) => Promise<StudioFileGrant | null>
   /** Files for local BaSyx instances (ADR 0033); empty when cancelled. */
   chooseStackFiles: (kind: StackFileKind, suggestedName?: string) => Promise<StudioFileGrant[]>
 }
 
 const bridge: StudioDesktopBridge = {
-  chooseAasxFile: () => ipcRenderer.invoke('studio:choose-aasx-file'),
+  chooseAasxFiles: () => ipcRenderer.invoke('studio:choose-aasx-files'),
   chooseSaveLocation: suggestedName => ipcRenderer.invoke('studio:choose-save-location', String(suggestedName).slice(0, 255)),
   chooseStackFiles: (kind, suggestedName) => ipcRenderer.invoke('studio:choose-stack-files', kind, String(suggestedName ?? '').slice(0, 255)),
 }

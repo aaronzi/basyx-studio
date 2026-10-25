@@ -190,7 +190,8 @@
     "closeText": "このパッケージには未保存の変更があります。今閉じると変更は失われます。",
     "closeWithoutSaving": "保存せずに閉じる",
     "cancel": "キャンセル",
-    "more": "パッケージの操作"
+    "more": "パッケージの操作",
+    "moreNamed": "{name} の操作"
   },
   "variables": {
     "input": "入力変数",
@@ -778,7 +779,8 @@
     },
     "empty": "管理シェルはまだありません",
     "emptyText": "このターゲットにはまだ管理シェルがありません。",
-    "emptyTextImport": "AASX、JSON、XML ファイルをインポートするか、この一覧にドロップしてください。"
+    "emptyTextImport": "AASX、JSON、XML ファイルをインポートするか、この一覧にドロップしてください。",
+    "loadMore": "シェルをさらに読み込む"
   },
   "viewer": {
     "headline": "参照する管理シェルを選択",

@@ -268,7 +268,8 @@
     "new": "Neues Paket",
     "undo": "Rückgängig",
     "redo": "Wiederholen",
-    "more": "Paketaktionen"
+    "more": "Paketaktionen",
+    "moreNamed": "Aktionen für {name}"
   },
   "variables": {
     "input": "Eingabevariablen",
@@ -877,7 +878,8 @@
     },
     "empty": "Noch keine Shells",
     "emptyText": "Dieses Ziel hat noch keine Shells.",
-    "emptyTextImport": "Importieren Sie eine AASX-, JSON- oder XML-Datei, oder legen Sie sie auf dieser Liste ab."
+    "emptyTextImport": "Importieren Sie eine AASX-, JSON- oder XML-Datei, oder legen Sie sie auf dieser Liste ab.",
+    "loadMore": "Weitere Verwaltungsschalen laden"
   },
   "viewer": {
     "headline": "Wählen Sie eine Verwaltungsschale",
