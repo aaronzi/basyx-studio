@@ -5,9 +5,10 @@
        this order. Paste is listed when nothing fits too, with how to copy. -->
   <v-menu>
     <template #activator="{ props: activator }">
+      <!-- Attributes such as `class` style the button, not the menu. -->
       <v-btn
         v-if="compact"
-        v-bind="activator"
+        v-bind="{ ...$attrs, ...activator }"
         append-icon="mdi-chevron-down"
         prepend-icon="mdi-plus"
         size="small"
@@ -16,7 +17,7 @@
 
       <v-btn-secondary
         v-else
-        v-bind="activator"
+        v-bind="{ ...$attrs, ...activator }"
         append-icon="mdi-chevron-down"
         :block="block"
         prepend-icon="mdi-plus"
@@ -59,6 +60,8 @@
 
 <script lang="ts" setup>
   import type { CopyResourceType } from '#shared/contract'
+
+  defineOptions({ inheritAttrs: false })
 
   defineProps<{
     /** What is added, as the button says it: "Shell", "Submodel". */
