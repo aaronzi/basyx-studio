@@ -79,9 +79,13 @@ much longer than the others, move a file to another shard or name a new one in
 both `web.config.ts` and the matrix in `ci.yml`. Locally, all files run when
 `STUDIO_E2E_SHARD` is not set.
 
-The end-to-end jobs start the test environment in the background first
-(`.github/scripts/testenv.sh start`), so it boots while they install
-dependencies and download the build, and wait for it just before the tests.
+The shards start together with the build job, not after it. Each one starts
+the test environment in the background (`.github/scripts/testenv.sh start`),
+installs dependencies and the browser, and then waits until the build job has
+uploaded its artifact (`.github/scripts/wait-for-artifact.sh`); it fails as
+soon as the build job ends without one. The runner image has Chromium's
+libraries, so their packages are installed only if Chromium does not start:
+apt mirrors sometimes take minutes for them.
 
 ## Duration
 

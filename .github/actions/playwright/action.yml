@@ -1,5 +1,5 @@
 name: Install the Playwright browser
-description: Chromium for the installed Playwright version, cached per version, with its system dependencies. Needs the installed dependencies.
+description: Chromium for the installed Playwright version, cached per version. Needs the installed dependencies.
 
 runs:
   using: composite
@@ -15,7 +15,13 @@ runs:
         path: ~/.cache/ms-playwright
         key: ${{ runner.os }}-${{ runner.arch }}-playwright-${{ steps.playwright.outputs.version }}
 
-    # Downloads Chromium only on a cache miss; the system packages are always installed.
+    # Downloads Chromium only on a cache miss. The runner image has its
+    # libraries; their packages are installed only if Chromium does not
+    # start, as apt mirrors sometimes take minutes for optional fonts.
     - name: Install Playwright browser
       shell: bash
-      run: pnpm exec playwright install --with-deps chromium
+      run: |
+        pnpm exec playwright install chromium
+        if ! node -e "import('@playwright/test').then(({ chromium }) => chromium.launch()).then(browser => browser.close())"; then
+          pnpm exec playwright install-deps chromium
+        fi
