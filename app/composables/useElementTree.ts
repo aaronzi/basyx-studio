@@ -123,6 +123,7 @@ export function useElementTree (options: ElementTreeOptions) {
 
   // Structure editing (MVP-5 plan, U3, U4, U6, C1)
   const clipboardStore = useClipboardStore()
+  const copies = useCopyActions()
   const drafts = useDraftStore()
   const structure = useStructureEdits(() => targetId.value)
   const creating = ref<CreatingElement | null>(null)
@@ -632,6 +633,10 @@ export function useElementTree (options: ElementTreeOptions) {
         const item = selectedItem.value
         if (item?.elementKey && !item.draft && !item.variableGroup) {
           return { title: t('palette.structure.copy', { name: item.title }), run: () => copyElement(item) }
+        }
+        // A selected submodel row copies the submodel, not the page's shell.
+        if (item && !item.elementKey && item.modelType === 'Submodel' && !item.unavailable && selectedId.value !== options.subject?.()) {
+          return { title: t('palette.structure.copy', { name: item.title }), run: () => copies.copySubmodel(targetId.value, item.submodelKey, item.title) }
         }
         return page.copy?.() ?? null
       },
