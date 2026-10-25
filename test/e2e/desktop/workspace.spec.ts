@@ -33,7 +33,13 @@ async function chooseFiles (open: string, save?: string) {
 /** Edits SerialNumber; `select` clicks it in the tree (a second click would deselect it). */
 async function editSerialNumber (value: string, select = true) {
   if (select) {
-    await window.getByRole('tree').getByText('SerialNumber', { exact: true }).click()
+    // The tree selects the first submodel once the package opens, which can
+    // replace a click that came just before; click until it is selected.
+    const item = window.getByRole('treeitem', { name: /^SerialNumber / })
+    await expect(async () => {
+      await item.getByText('SerialNumber', { exact: true }).click()
+      await expect(item).toHaveAttribute('aria-selected', 'true', { timeout: 2000 })
+    }).toPass()
   }
   // Values are edited in Studio's edit mode only; the app bar switches it.
   const edit = window.getByRole('banner').getByRole('button', { name: 'Edit', exact: true })
