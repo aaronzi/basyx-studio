@@ -78,8 +78,10 @@ test.afterAll(async ({ request }) => {
 })
 
 test('installs and uninstalls an app while another user has Studio open (DoD 1, 7)', async ({ page, browser }) => {
-  test.setTimeout(150_000)
   const alice = await (await browser.newContext()).newPage()
+  // Open pages refetch the installed apps every 30 seconds; Alice's clock
+  // jumps there instead of the test waiting for it.
+  await alice.clock.install()
   await signIn(alice, 'alice')
   await alice.goto(overviewUrl(openTargetId, motorShell))
   // The bundled nameplate app is always there; the test view is not installed yet.
@@ -109,8 +111,9 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
 
   // Alice's open page picks the app up without a reload. Views span the row
   // at this width, so the new one is below the fold; frames load in sight.
-  await alice.getByRole('button', { name: 'Actions for Test view' }).scrollIntoViewIfNeeded({ timeout: 45_000 })
-  await expect(alice.locator('iframe[title="App: Test view"]')).toBeVisible({ timeout: 45_000 })
+  await alice.clock.fastForward('00:31')
+  await alice.getByRole('button', { name: 'Actions for Test view' }).scrollIntoViewIfNeeded()
+  await expect(alice.locator('iframe[title="App: Test view"]')).toBeVisible()
   await expect(appFrame(alice, 'Test view').locator('#submodel')).toHaveText(motorNameplate)
 
   // Bundled apps have no uninstall button; row actions show on hover.
@@ -118,7 +121,8 @@ test('installs and uninstalls an app while another user has Studio open (DoD 1, 
   await page.getByRole('button', { name: 'Uninstall' }).click()
   await page.getByRole('dialog').getByRole('button', { name: 'Uninstall' }).click()
   await expect(page.getByText('org.example.nameplate-test-view')).toHaveCount(0)
-  await expect(alice.locator('iframe[title="App: Test view"]')).toHaveCount(0, { timeout: 45_000 })
+  await alice.clock.fastForward('00:31')
+  await expect(alice.locator('iframe[title="App: Test view"]')).toHaveCount(0)
   await alice.context().close()
 })
 
