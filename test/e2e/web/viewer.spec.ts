@@ -107,7 +107,11 @@ test('exports a shell and imports the export again', async ({ page }) => {
 test('deletes a shell only in edit mode and after confirmation', async ({ page }) => {
   const fixture = await readFile(new URL('../../../test-setup/fixtures/open/IESEDriveMotorDM3000.aasx', import.meta.url))
   await page.goto(`/targets/${targetId}/shells/${key(motorShell)}`)
-  await expect(page.getByRole('button', { name: 'More actions' })).toHaveCount(0)
+  // View mode offers copying, never deleting.
+  await page.getByRole('button', { name: 'More actions' }).click()
+  await expect(page.getByRole('listitem').filter({ hasText: 'Copy shell' })).toBeVisible()
+  await expect(page.getByText('Delete shell')).toHaveCount(0)
+  await page.keyboard.press('Escape')
   await setMode(page, 'Edit')
   await page.getByRole('button', { name: 'More actions' }).click()
   await page.getByText('Delete shell').click()

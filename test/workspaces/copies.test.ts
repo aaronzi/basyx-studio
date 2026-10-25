@@ -1,7 +1,5 @@
 import type { CopyDependencies } from '#shared/contract'
 import type { JsonObject } from '~~/server/lib/aas/outline'
-import type { AasTarget, BinaryContent } from '~~/server/lib/targets/aas-target'
-import type { PackageFiles } from '~~/server/lib/workspaces/model'
 import { describe, expect, it } from 'vitest'
 import { toAasXml } from '~~/server/lib/aas/xml'
 import { packagedFilePaths, rewriteReferences, semanticIdsOf } from '~~/server/lib/copies/content'
@@ -10,88 +8,16 @@ import { planCopy } from '~~/server/lib/copies/plan'
 import { allRoots, collectEnvironment, exportEnvironment } from '~~/server/lib/copies/serialize'
 import { EnvironmentReader } from '~~/server/lib/copies/source'
 import { parsePastedText } from '~~/server/lib/copies/text'
-import { workspaceCapabilities } from '~~/server/lib/targets/capabilities'
 import { WorkspaceModel } from '~~/server/lib/workspaces/model'
 import { extractEnvironment, packEnvironment } from '~~/server/lib/workspaces/package'
+import { copyEnvironment, copyIds, manual, memoryFiles, packageTarget } from '../support/copies'
 
-const shellId = 'urn:test:aas:motor'
-const nameplateId = 'urn:test:sm:nameplate'
-const documentsId = 'urn:test:sm:documents'
-const conceptId = 'urn:test:cd:serial'
+const { shellId, nameplateId, documentsId, conceptId } = copyIds()
 const scheme = { type: 'uuid', prefix: '' } as const
 const dependencies: CopyDependencies = { submodels: 'referenced', conceptDescriptions: 'referenced', supplementaryFiles: 'referenced' }
 const noSync = { registry: false, submodelRegistry: false, discovery: false }
-
-function environment (): JsonObject {
-  return {
-    assetAdministrationShells: [{
-      modelType: 'AssetAdministrationShell',
-      id: shellId,
-      idShort: 'Motor',
-      assetInformation: { assetKind: 'Instance', globalAssetId: 'urn:test:asset:motor' },
-      submodels: [nameplateId, documentsId, 'urn:test:sm:missing'].map(value => ({ type: 'ModelReference', keys: [{ type: 'Submodel', value }] })),
-    }],
-    submodels: [
-      {
-        modelType: 'Submodel',
-        id: nameplateId,
-        idShort: 'Nameplate',
-        submodelElements: [
-          { modelType: 'Property', idShort: 'SerialNumber', valueType: 'xs:string', value: 'SN-1', semanticId: { type: 'ExternalReference', keys: [{ type: 'GlobalReference', value: conceptId }] } },
-          { modelType: 'Property', idShort: 'Other', valueType: 'xs:string', semanticId: { type: 'ExternalReference', keys: [{ type: 'GlobalReference', value: 'urn:eclass:not-here' }] } },
-          {
-            modelType: 'ReferenceElement',
-            idShort: 'SeeDocuments',
-            value: { type: 'ModelReference', keys: [{ type: 'Submodel', value: documentsId }] },
-          },
-        ],
-      },
-      {
-        modelType: 'Submodel',
-        id: documentsId,
-        idShort: 'Documents',
-        submodelElements: [{
-          modelType: 'SubmodelElementList',
-          idShort: 'Files',
-          typeValueListElement: 'File',
-          value: [{ modelType: 'File', contentType: 'application/pdf', value: '/aasx/manual.pdf' }],
-        }],
-      },
-    ],
-    conceptDescriptions: [{ modelType: 'ConceptDescription', id: conceptId, idShort: 'SerialNumber' }],
-  }
-}
-
-function memoryFiles (initial: Array<[string, BinaryContent]> = []): PackageFiles & { parts: Map<string, BinaryContent> } {
-  const parts = new Map(initial)
-  return {
-    parts,
-    read: async path => parts.get(path) ?? null,
-    write: async (fileName, file) => {
-      const path = `/aasx-suppl/${parts.size}/${fileName}`
-      parts.set(path, file)
-      return path
-    },
-    thumbnail: async () => null,
-  }
-}
-
-const manual: BinaryContent = { bytes: new Uint8Array([1, 2, 3]), contentType: 'application/pdf', fileName: 'manual.pdf' }
-
-/** A package as a target, as the copy reads and writes it in the worker. */
-function targetOf (model: WorkspaceModel): AasTarget {
-  return new Proxy({}, {
-    get: (_, name: string) => {
-      if (name === 'capabilities') {
-        return workspaceCapabilities
-      }
-      if (name === 'registerShells' || name === 'registerSubmodels') {
-        return async () => []
-      }
-      return async (...args: unknown[]) => (model as unknown as Record<string, (...a: unknown[]) => unknown>)[name]!(...args)
-    },
-  }) as AasTarget
-}
+const environment = () => copyEnvironment()
+const targetOf = packageTarget
 
 function packages () {
   const sourceModel = new WorkspaceModel(environment(), memoryFiles([['/aasx/manual.pdf', manual]]))

@@ -106,6 +106,21 @@ export async function setMode (page: Page, mode: 'View' | 'Edit'): Promise<void>
   await page.getByRole('banner').getByRole('button', { name: mode, exact: true }).click()
 }
 
+/**
+ * Runs an action of the shell or submodel header: inline where the content
+ * area is wide enough, else from its menu (package editing plan, H3).
+ */
+export async function headerAction (page: Page, name: string): Promise<void> {
+  const header = page.getByRole('main').locator('.v-card').first()
+  const inline = header.getByRole('button', { name, exact: true })
+  if (await inline.isVisible()) {
+    await inline.click()
+    return
+  }
+  await header.getByRole('button', { name: 'More actions' }).click()
+  await page.getByRole('listitem').filter({ hasText: new RegExp(`^${name}$`) }).click()
+}
+
 /** The secured target, accessed with Studio's service account (client credentials). */
 export function registerSecuredServiceTarget (page: Page, name: string): Promise<string> {
   return registerTarget(page, name, securedTargetUrl, {

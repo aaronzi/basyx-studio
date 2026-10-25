@@ -1,6 +1,6 @@
-# Package editing plan: details pane, headers, several packages, clipboard and transfers
+# Package editing plan: details pane, headers, several packages, clipboard and copies
 
-- Status: Proposed
+- Status: Implemented
 - Date: 2026-10-25
 - Depends on:
   - the editor of [MVP-5](mvp-5-plan.md) (implemented), whose clipboard
@@ -67,7 +67,7 @@ Feedback from testing the desktop app found three areas to improve:
 
   *Insert from JSON* exists for elements, submodels and concept descriptions.
 - **Cross-target copy** of whole shells (DATA-012 to DATA-015) was left for a
-  Transfer MVP of its own (MVP-5, out of scope). This plan provides it.
+  Transfer MVP of its own (MVP-5, out of scope). This plan provides it as copy plans.
 
 ## Decisions
 
@@ -98,18 +98,18 @@ Feedback from testing the desktop app found three areas to improve:
 | M4 | Opening | *Open package* accepts several files at once (`multiSelections`). Each file opens as its own target. The target switcher lists open packages first, each with its unsaved marker. |
 | M5 | Desktop only | Packages exist only on desktop (ADR 0014). Hosted Studio shows no groups. |
 
-### Clipboard and transfers
+### Clipboard and copies
 
 | # | Topic | Decision |
 | --- | --- | --- |
 | K1 | Typed entries | The clipboard holds one entry: a shell, a submodel, a submodel element, a concept description or a reference. An entry names its kind, its source target and keys, and a label. An element entry keeps its AAS JSON (MVP-5 C1). For identifiables, the source is read when pasting, so the paste copies its current state and its files. |
 | K2 | Where it pastes | An element pastes into a submodel, a collection, an entity's statements or an annotated relationship's annotations. Into a list it pastes only where its type matches the list's `typeValueListElement`. A submodel pastes into a target as a standalone submodel, and optionally also into the selected shell's references. A shell pastes into a target. A concept description pastes into a target's concept description repository. A reference pastes into reference fields. *Paste* appears only where the entry fits, with the reason in a tooltip where it does not. |
-| K3 | Transfer API | Identifiables paste through `POST /transfers/plans` and `POST /transfers`, between any packages and infrastructures (DATA-012). `server/lib/transfers` builds both on the `AasTarget` interface, so live targets and workspaces need no code of their own. Routes check edit mode, rights and `createResources` on the destination. |
+| K3 | Copy plans | Identifiables paste through `POST /copy-plans` and `POST /copy-plans/{id}/executions`, between any packages and infrastructures (DATA-012), as the [endpoint overview](../api/endpoints.md#cross-target-copy) sketched them. `server/lib/copies` builds both on the `AasTarget` interface, so live targets and workspaces need no code of their own. Routes open source and destination with the user's rights and check `createResources` on the destination. |
 | K4 | Plan first | The plan lists each resource that would be written: the shell, the submodels it references and the concept descriptions their semantic IDs name. For each it gives the state (new, exists, unchanged, not readable) and the files it carries. The user selects the dependencies, then chooses a policy for identifier collisions: *skip*, *replace*, or *new identifiers*. Validation findings from AAS Core show before anything is written (DATA-013). |
 | K5 | New identifiers | *New identifiers* gives each copied shell and submodel a new ID. It rewrites the references inside the copied set: the shell's submodel references and `derivedFrom`. Concept descriptions keep their IDs, because an ID names the concept. A colliding concept description is skipped unless the user chooses *replace*. Pasting a shell or submodel into its own target always uses new identifiers. |
 | K6 | Files | Attachments and thumbnails are copied where both sides have `files`. Otherwise the File keeps its path and the report names it. |
-| K7 | Report | The transfer runs resource by resource: concept descriptions, then submodels, then the shell. The report names each resource as created, replaced, skipped or failed, because independent infrastructures give no atomicity (DATA-014). After a transfer into an infrastructure, the registries are kept in step as after an upload (DATA-020). Into a package, the transfer is one entry in the undo log. |
-| K8 | Safe retry | The plan has an ID, and executing it is idempotent. A retried plan skips resources the first run created, so an interrupted transfer does not create duplicates (DATA-015). |
+| K7 | Report | The copy runs resource by resource: concept descriptions, then submodels with their files, then shells with their thumbnails. The report names each resource as created, replaced, skipped or failed, because independent infrastructures give no atomicity (DATA-014). After a copy into an infrastructure, the registries are kept in step as after an upload (DATA-020). Into a package, each written resource is an entry of the undo log, as with the shell wizard. |
+| K8 | Safe retry | A plan has an ID and is kept in memory for 30 minutes, for the user who made it. A repeated `Idempotency-Key` answers with the first report; running the plan again skips the resources an earlier run wrote and keeps the identifiers it gave, so an interrupted copy does not create duplicates (DATA-015). |
 | K9 | System clipboard | *Copy* also writes the AAS JSON to the system clipboard. *Paste from text* reads AAS JSON or XML from it, either an environment or a single element, and validates it with AAS Core. An environment then goes through the same plan. |
 | K10 | Keyboard | ⌘C and ⌘V (Ctrl on Windows and Linux) copy and paste in the tree and the lists while they have focus. Paste needs edit mode (UX-006). |
 
@@ -117,47 +117,54 @@ Feedback from testing the desktop app found three areas to improve:
 
 | # | Topic | Decision |
 | --- | --- | --- |
-| E1 | Import into packages | *Import* takes an AASX, JSON or XML file into a package too. The Workspace Worker parses the file (`inspect`, ADR 0014), and its content becomes the source of a transfer plan, so collisions are resolved as in K4. Infrastructures keep the BaSyx upload. |
-| E2 | Export from Studio | `server/lib/transfers/serialize.ts` writes a set of resources as an AAS environment: JSON and XML with AAS Core, AASX with the package library and the files. Packages use it, where BaSyx `/serialization` does not exist. All targets use it for what BaSyx cannot export: a submodel as AASX (with its concept descriptions and files), and elements and concept descriptions as JSON or XML. |
-| E3 | Export menu | Each export menu lists the formats its resource supports: shells AASX, JSON, XML; submodels AASX, JSON, XML; elements and concept descriptions JSON, XML. The package bar adds *Export package as* AASX, JSON or XML. |
-| E4 | Capabilities | Workspaces report `export: true`. `upload` stays reserved for the BaSyx upload, and packages import through transfers (`createResources`). |
+| E1 | Import into packages | *Import* takes an AASX, JSON or XML file into a package too (`POST /copy-plans/uploads`). The Workspace Worker reads the file with its supplementary files (`extract`, ADR 0014), and its content becomes the source of a copy plan, so collisions are resolved as in K4. Infrastructures keep the BaSyx upload. |
+| E2 | Export from Studio | `server/lib/copies/serialize.ts` writes a set of resources as an AAS environment: JSON and XML with AAS Core, AASX in the Workspace Worker (`pack`) with the files. Packages use it, where BaSyx `/serialization` does not exist. All targets use it for what BaSyx cannot export: a submodel as AASX, with its concept descriptions and files. Elements and concept descriptions export as JSON or XML from the details drawers, as before. |
+| E3 | Export menu | Each export menu lists the formats its resource supports: shells AASX, JSON, XML; submodels AASX, JSON, XML. The package bar adds *Export package as* AASX, JSON or XML (`GET /workspaces/{id}/download`), unsaved changes included. |
+| E4 | Capabilities | Workspaces report `export: true`. `upload` stays reserved for the BaSyx upload, and packages import through copy plans (`createResources`). |
 
 ## Delivery
 
 One pull request, with one commit for each step:
 
 1. **Details pane:** D1 and D2.
-2. **Headers:** H1 to H5.
+2. **Headers and package bar:** H1 to H5.
 3. **Several packages:** M1 to M5.
-4. **Transfers:** K3 to K8, the server library, routes and tests against
-   workspaces and the test environment.
-5. **Clipboard:** K1, K2, K9 and K10, and the plan and report dialogs.
-6. **Import and export:** E1 to E4.
+4. **Copy plans:** K3 to K9 and E1 on the server, the library
+   `server/lib/copies` and the `/copy-plans` routes.
+5. **Clipboard:** K1, K2, K9 and K10, the plan and report dialog, and the
+   import into packages (E1).
+6. **Export:** E2 to E4.
 
 ## Tests
 
-- **Unit tests** for `server/lib/transfers`:
-  - plan and execute between in-memory workspaces;
+- **Unit tests** (`test/workspaces/copies.test.ts`), between in-memory
+  packages:
+  - plans and executions;
   - every collision policy;
   - identifier rewriting;
-  - retry of a half-run plan.
-- **Integration tests** (`pnpm test:integration`): a transfer from a
-  package into `basyx-open`, and from `basyx-open` into a package, with the
-  registries kept in step.
-- **Desktop end-to-end test:** open two packages, copy a shell from one into
-  the other, save, and reopen the package.
-- **Web end-to-end tests:**
-  - the header at three content widths, with and without the drawers;
-  - the details pane opens only with content and closes on a tab change.
+  - a second run of a plan;
+  - pasted text;
+  - pack and extract;
+  - exports.
+- **Integration tests** (`test/integration/live-target-copies.test.ts`, with
+  `pnpm test:integration`): a copy from a package into `basyx-open` with its
+  file, concept description and registry entries, and back into a package.
+- **Web end-to-end tests** (`test/e2e/web/layout.spec.ts`):
+  - the details pane opens only with content and closes on another tab;
+  - the shell header is wide, medium or narrow by the content area.
+- **Desktop end-to-end test:** `workspace.spec.ts` follows Save as and Close
+  into the package bar. A test that opens two packages and copies between
+  them is still to come; it needs the packaged app.
 
 ## Risks
 
 | Risk | Mitigation |
 | --- | --- |
-| Large closures (a shell with many submodels) make the plan slow | The plan reads metadata only; contents are read while executing, one resource at a time |
-| A source changes between plan and execution | Execution compares revisions with the plan and reports a changed resource as failed |
+| Large closures (a shell with many submodels) make the plan slow | The plan reads each resource once to find its concept descriptions and files; contents are read again while executing, one resource at a time |
+| A source changes between plan and execution | Execution reads the source again, so the copy has its current state, and checks collisions again before writing |
 | Rewritten identifiers miss a reference | Only references inside the copied set are rewritten, as K5 lists them; the plan says so |
 | Grouped lists load many targets | Collapsed groups load nothing (M3) |
+| BaSyx exports AAS 3.2 XML inside its AASX, which Studio does not read yet | Importing such a package names the limit; the JSON export of the same shell imports |
 
 ## Out of scope
 

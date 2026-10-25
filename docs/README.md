@@ -52,7 +52,7 @@ ADRs are normative for architecture. If a later decision changes an accepted ADR
 - [Time series plan](development/time-series-plan.md): the Time Series Data view and connections on infrastructures
 - [External apps plan](development/external-apps-plan.md): published SDK and app kit, signed packages and updates, and a pilot app from another repository
 - [External apps follow-up plan](development/external-apps-follow-up-plan.md): what a multi-page app still misses after the pilot: shell summaries, settings per installation, history, localization, viewer size, views of other apps
-- [Package editing plan](development/package-editing-plan.md): details pane and headers, several open AASX packages, a typed clipboard with transfers between targets, import and export formats
+- [Package editing plan](development/package-editing-plan.md): details pane and headers, several open AASX packages, a typed clipboard with copies between targets, import and export formats
 - [Test environment](../test-setup/README.md): local IdP and BaSyx targets for dev, build, and Electron testing
 
 ## Document authority

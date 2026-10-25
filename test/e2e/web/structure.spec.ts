@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
-import { key, openTargetUrl, registerOpenTarget, setMode, signIn } from './support'
+import { headerAction, key, openTargetUrl, registerOpenTarget, setMode, signIn } from './support'
 
 // MVP-5 definition of done in the hosted build: the creation wizard, adding,
 // renaming and deleting elements, metadata forms, and JSON insert, against the
@@ -125,7 +125,7 @@ test('adds, renames and deletes an element, and edits the shell', async ({ page 
   await expect(page.locator('.v-treeview-item', { hasText: 'Temperature' })).toHaveCount(0)
 
   // The shell form: change the display name.
-  await page.getByRole('main').getByRole('button', { name: 'Edit', exact: true }).click()
+  await headerAction(page, 'Edit')
   await expect(page.getByText('Edit shell')).toBeVisible()
   await page.getByText('Names and description', { exact: true }).click()
   await page.getByRole('button', { name: 'Add text' }).first().click()

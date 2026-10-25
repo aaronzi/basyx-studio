@@ -159,23 +159,31 @@ After opening, AAS reads and mutations run through the normal
 Status MVP-2: Implemented are `POST /workspaces` (opens an AASX from a file
 handle), `POST /workspaces/{workspaceId}/saves`,
 `POST /workspaces/{workspaceId}/exports` (save as) and
-`DELETE /workspaces/{workspaceId}?force=`. Only the Electron main process issues
+`DELETE /workspaces/{workspaceId}?force=`. `GET /workspaces/{workspaceId}/download?format=`
+returns the whole package, unsaved changes included, as AASX, JSON or XML.
+Only the Electron main process issues
 file handles, through `POST /desktop/file-grants`
 ([ADR 0015](../adr/0015-desktop-native-bridge-and-file-grants.md)); details and
 deviations are in the [MVP-2 plan](../development/mvp-2-plan.md#results).
 
 ## Cross-target copy
 
+Copy and paste of shells, submodels and concept descriptions, between any
+targets, from AAS JSON or XML text and from imported files
+([package editing plan](../development/package-editing-plan.md), K3 to K9,
+E1).
+
 | Method and path | Purpose |
 | --- | --- |
-| `POST /copy-plans` | Creates a read-only preflight plan with source and destination rights, capabilities, dependency closure, collisions, findings, size estimate and actions. |
-| `GET /copy-plans/{copyPlanId}` | Reads the versioned, expiring plan again. |
-| `POST /copy-plans/{copyPlanId}/executions` | Confirms the policy and visible consequences; starts the execution idempotently as an operation. The source stays unchanged; atomicity is not claimed. |
-| `GET /copy-operations/{operationId}/report` | Returns `created`, `skipped`, `replaced` or `failed` per resource, including validation and partial success. |
-| `POST /copy-operations/{operationId}/retries` | Retries only safe, failed or incomplete resources. |
+| `POST /copy-plans` | Plans a copy from resources of a target, or from AAS JSON or XML text, into a target: the chosen resources, a shell's submodels, the concept descriptions the source has for their semantic IDs and their files, with their state at the destination and AAS Core findings. Writes nothing; the plan expires after 30 minutes. |
+| `POST /copy-plans/uploads?destinationTargetId=&fileName=` | Plans the import of an AASX, JSON or XML file (the body) as a copy. Packages import this way. |
+| `GET /copy-plans/{copyPlanId}` | Reads the plan again. |
+| `POST /copy-plans/{copyPlanId}/executions` | Runs the plan with the confirmed collision policy and answers with the report: `created`, `replaced`, `skipped` or `failed` per resource, and the registry entries. The source stays unchanged; atomicity is not claimed. The same `Idempotency-Key` answers with the first report; running the plan again skips what an earlier run wrote. |
 
-The default collision policy is `fail_without_changes`; `skip_existing` and
-`replace` are allowed only with the capability and permission.
+The collision policies are `fail_without_changes` (the default),
+`skip_existing`, `replace` (with structural writes, not within one target) and
+`new_identifiers`, which gives copied shells and submodels new identifiers and
+rewrites the references inside the copied set (the default within one target).
 
 ## Views, widgets and bindings
 
