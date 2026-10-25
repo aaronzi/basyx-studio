@@ -22,7 +22,8 @@
     "legalNotice": "Colofon",
     "privacyPolicy": "Privacybeleid",
     "mainNavigation": "Hoofdnavigatie",
-    "toggleSubmodelList": "Submodellenlijst tonen of verbergen"
+    "toggleSubmodelList": "Submodellenlijst tonen of verbergen",
+    "packages": "Geopende pakketten"
   },
   "qr": {
     "title": "QR-code van het asset",
@@ -188,7 +189,8 @@
     "closeTitle": "{name} sluiten?",
     "closeText": "Het pakket heeft niet-opgeslagen wijzigingen. Die gaan verloren als je het nu sluit.",
     "closeWithoutSaving": "Sluiten zonder opslaan",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "more": "Pakketacties"
   },
   "variables": {
     "input": "Invoervariabelen",

@@ -23,7 +23,8 @@
     "legalNotice": "Legal notice",
     "privacyPolicy": "Privacy policy",
     "mainNavigation": "Main navigation",
-    "toggleSubmodelList": "Show or hide the submodel list"
+    "toggleSubmodelList": "Show or hide the submodel list",
+    "packages": "Open packages"
   },
   "qr": {
     "title": "QR code of the asset",
@@ -266,7 +267,8 @@
     "cancel": "Cancel",
     "new": "New package",
     "undo": "Undo",
-    "redo": "Redo"
+    "redo": "Redo",
+    "more": "Package actions"
   },
   "variables": {
     "input": "Input variables",

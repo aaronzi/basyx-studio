@@ -22,7 +22,8 @@
     "legalNotice": "Aviso legal",
     "privacyPolicy": "Política de privacidad",
     "mainNavigation": "Navegación principal",
-    "toggleSubmodelList": "Mostrar u ocultar la lista de submodelos"
+    "toggleSubmodelList": "Mostrar u ocultar la lista de submodelos",
+    "packages": "Paquetes abiertos"
   },
   "qr": {
     "title": "Código QR del activo",
@@ -188,7 +189,8 @@
     "closeTitle": "¿Cerrar {name}?",
     "closeText": "El paquete tiene cambios sin guardar. Se perderán si lo cierras ahora.",
     "closeWithoutSaving": "Cerrar sin guardar",
-    "cancel": "Cancelar"
+    "cancel": "Cancelar",
+    "more": "Acciones del paquete"
   },
   "variables": {
     "input": "Variables de entrada",

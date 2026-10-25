@@ -22,7 +22,8 @@
     "legalNotice": "法的情報",
     "privacyPolicy": "プライバシーポリシー",
     "mainNavigation": "メインナビゲーション",
-    "toggleSubmodelList": "サブモデル一覧の表示/非表示"
+    "toggleSubmodelList": "サブモデル一覧の表示/非表示",
+    "packages": "開いているパッケージ"
   },
   "qr": {
     "title": "アセットの QR コード",
@@ -188,7 +189,8 @@
     "closeTitle": "{name} を閉じますか？",
     "closeText": "このパッケージには未保存の変更があります。今閉じると変更は失われます。",
     "closeWithoutSaving": "保存せずに閉じる",
-    "cancel": "キャンセル"
+    "cancel": "キャンセル",
+    "more": "パッケージの操作"
   },
   "variables": {
     "input": "入力変数",

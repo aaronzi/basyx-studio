@@ -52,153 +52,18 @@
       <v-skeleton-loader v-else-if="!metadata.data.value" type="card, article" />
 
       <template v-else>
-        <!-- Submodel header: title and a muted meta line, then the identifiers
-             and the shells that reference it. Phones keep a menu. -->
-        <v-card class="mb-3">
-          <v-card-item class="pa-3">
-            <template #prepend>
-              <v-avatar
-                class="me-1"
-                :color="isTemplate ? 'warning' : 'primary'"
-                :size="smAndUp ? 48 : 40"
-                variant="tonal"
-              >
-                <v-icon :icon="modelTypeIcon('Submodel')" :size="smAndUp ? 28 : 24" />
-              </v-avatar>
-            </template>
-
-            <v-card-title class="ma-0 text-wrap text-break" :class="smAndUp ? 'text-title-large' : 'text-title-medium'" tag="h1">{{ submodelLabel }}</v-card-title>
-
-            <div class="d-flex flex-wrap align-center gc-3 text-body-small text-medium-emphasis">
-              <span v-for="item in headerMeta" :key="item.text" class="d-inline-flex align-center ga-1" :class="item.class">
-                <v-icon :icon="item.icon" size="14" />
-                {{ item.text }}
-              </span>
-            </div>
-
-            <template #append>
-              <div class="d-flex align-center ga-1">
-                <WorkspaceActions
-                  v-if="target.data.value.workspace"
-                  :target="target.data.value"
-                  @error="error => (actionError = error)"
-                  @restored="afterChange"
-                />
-
-                <template v-if="smAndUp">
-                  <v-btn v-if="canEdit" prepend-icon="mdi-pencil-outline" :text="t('submodels.edit')" @click="tree.select(submodelKey)" />
-
-                  <v-btn
-                    v-if="canCreate && isTemplate"
-                    prepend-icon="mdi-file-replace-outline"
-                    :text="t('edit.convert')"
-                    @click="convertTarget = submodelItem"
-                  />
-
-                  <v-menu>
-                    <template #activator="{ props: activator }">
-                      <v-btn
-                        v-bind="activator"
-                        append-icon="mdi-chevron-down"
-                        color="primary"
-                        prepend-icon="mdi-download"
-                        :text="t('shell.export')"
-                        variant="tonal"
-                      />
-                    </template>
-
-                    <v-card>
-                      <v-list>
-                        <v-list-item
-                          v-for="format in exportFormats"
-                          :key="format.value"
-                          :href="format.href"
-                          :prepend-icon="format.icon"
-                          :subtitle="format.subtitle"
-                          :title="format.title"
-                        />
-                      </v-list>
-                    </v-card>
-                  </v-menu>
-                </template>
-
-                <!-- Everything else; on phones also editing, export and the identifiers. -->
-                <v-menu v-if="!smAndUp || canCreate">
-                  <template #activator="{ props: activator }">
-                    <v-btn v-bind="activator" :aria-label="t('shell.more')" icon="mdi-dots-vertical" />
-                  </template>
-
-                  <v-card>
-                    <v-list>
-                      <template v-if="!smAndUp">
-                        <v-list-item v-if="canEdit" prepend-icon="mdi-pencil-outline" :title="t('submodels.edit')" @click="tree.select(submodelKey)" />
-
-                        <v-list-item
-                          v-if="canCreate && isTemplate"
-                          prepend-icon="mdi-file-replace-outline"
-                          :title="t('edit.convert')"
-                          @click="convertTarget = submodelItem"
-                        />
-
-                        <v-list-subheader :title="t('shell.export')" />
-
-                        <v-list-item
-                          v-for="format in exportFormats"
-                          :key="format.value"
-                          :href="format.href"
-                          :prepend-icon="format.icon"
-                          :title="format.title"
-                        />
-
-                        <v-divider class="my-1" />
-
-                        <v-list-item
-                          :prepend-icon="showIdentifiers ? 'mdi-information-off-outline' : 'mdi-information-outline'"
-                          :title="showIdentifiers ? t('shell.hideIdentifiers') : t('shell.showIdentifiers')"
-                          @click="showIdentifiers = !showIdentifiers"
-                        />
-                      </template>
-
-                      <template v-if="canCreate">
-                        <v-list-item prepend-icon="mdi-link-variant-plus" :title="t('submodels.addToShell')" @click="pickShellOpen = true" />
-
-                        <v-divider class="my-1" />
-                        <v-list-item base-color="error" prepend-icon="mdi-delete-outline" :title="t('submodels.delete')" @click="openDelete" />
-                      </template>
-                    </v-list>
-                  </v-card>
-                </v-menu>
-              </div>
-            </template>
-          </v-card-item>
-
-          <!-- Identifiers: label column, value and its copy button side by side.
-               Phones stack label and value and show them on request. -->
-          <template v-if="smAndUp || showIdentifiers">
-            <v-divider />
-
-            <div class="px-3 py-2">
-              <div
-                v-for="row in identifiers"
-                :key="row.label"
-                class="d-flex text-body-small"
-                :class="smAndUp ? 'align-center' : 'flex-column mb-1'"
-              >
-                <v-sheet
-                  class="d-flex align-center ga-2 flex-shrink-0 text-medium-emphasis text-no-wrap"
-                  color="transparent"
-                  :width="smAndUp ? 136 : undefined"
-                >
-                  <v-icon :icon="row.icon" size="16" />
-                  {{ row.label }}
-                </v-sheet>
-
-                <div class="d-flex align-center ga-1 overflow-hidden">
-                  <span :class="smAndUp ? 'text-truncate' : 'text-break'" :title="row.value">{{ row.value }}</span>
-                  <v-btn :aria-label="t('common.copyLabel', { label: row.label })" icon="mdi-content-copy" size="x-small" @click="copy(row.value, row.label)" />
-                </div>
-              </div>
-            </div>
+        <!-- Submodel header: title, meta line, actions and identifiers, then
+             the shells that reference it (package editing plan, H1). -->
+        <ResourceHeader :actions="headerActions" :identifiers="identifiers" :meta="headerMeta" :title="submodelLabel">
+          <template #avatar="{ large }">
+            <v-avatar
+              class="me-1"
+              :color="isTemplate ? 'warning' : 'primary'"
+              :size="large ? 48 : 40"
+              variant="tonal"
+            >
+              <v-icon :icon="modelTypeIcon('Submodel')" :size="large ? 28 : 24" />
+            </v-avatar>
           </template>
 
           <!-- The shells that reference the submodel, each a link to it on the shell page. -->
@@ -244,7 +109,7 @@
               />
             </template>
           </div>
-        </v-card>
+        </ResourceHeader>
 
         <ProblemAlert v-if="actionError" class="mb-4" :error="actionError" />
 
@@ -388,6 +253,7 @@
 
 <script lang="ts" setup>
   import type { DeleteResult, ElementDetail, ShellSummary, SubmodelDetail, SubmodelOwners, SubmodelRef, TargetCapabilities } from '#shared/contract'
+  import type { HeaderAction } from '~/utils/resource-header'
   import { useQuery } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { semanticLabel } from '#shared/aas/semantic-label'
@@ -408,10 +274,9 @@
   const studioUrl = useStudioUrl()
   const invalidate = useInvalidate()
   const ui = useUiStore()
-  const copy = useClipboard()
   const preferences = usePreferences()
   const notifications = useNotificationsStore()
-  const { smAndUp, mdAndUp } = useDisplay()
+  const { mdAndUp } = useDisplay()
 
   const targetId = computed(() => String(route.params.targetId))
   const submodelKey = computed(() => typeof route.query.submodel === 'string' ? route.query.submodel : null)
@@ -463,7 +328,7 @@
       ...(submodelJson.value.idShort && submodelJson.value.idShort !== submodelLabel.value ? [{ text: String(submodelJson.value.idShort), icon: modelTypeIcon('Submodel'), class: undefined }] : []),
       { text: t(`editor.kinds.${isTemplate.value ? 'Template' : 'Instance'}`), icon: 'mdi-shape-outline', class: isTemplate.value ? 'text-warning' : undefined },
       ...(template ? [{ text: template, icon: 'mdi-file-certificate-outline', class: undefined }] : []),
-      ...(target.data.value ? [{ text: target.data.value.name, icon: 'mdi-server-network', class: undefined }] : []),
+      ...(target.data.value ? [{ text: target.data.value.name, icon: target.data.value.workspace ? 'mdi-package-variant-closed' : 'mdi-server-network', class: undefined }] : []),
     ]
   })
 
@@ -472,7 +337,6 @@
     ...(semanticId.value ? [{ label: t('submodels.semanticId'), value: semanticId.value, icon: 'mdi-tag-outline' }] : []),
     ...(administration.value.templateId ? [{ label: t('submodels.templateId'), value: administration.value.templateId, icon: 'mdi-file-certificate-outline' }] : []),
   ])
-  const showIdentifiers = ref(false)
 
   const exportFormats = computed(() => [
     { value: 'json', title: t('shell.formats.json'), subtitle: '.json', icon: 'mdi-code-json', href: studioUrl.api(`/targets/${targetId.value}/submodels/${submodelKey.value}?content=full&download=true`) },
@@ -514,6 +378,15 @@
   /** The submodel's row of the tree, for the conversion dialog. */
   const submodelItem = computed(() => submodelKey.value ? tree.trees.lookup(submodelKey.value) : null)
 
+  // The header's actions, by how long they stay inline (H3).
+  const headerActions = computed<HeaderAction[]>(() => [
+    ...(canEdit.value ? [{ id: 'edit', title: t('submodels.edit'), icon: 'mdi-pencil-outline', rank: 1, onClick: () => tree.select(submodelKey.value) }] : []),
+    ...(canCreate.value && isTemplate.value ? [{ id: 'convert', title: t('edit.convert'), icon: 'mdi-file-replace-outline', rank: 3, onClick: () => (convertTarget.value = submodelItem.value) }] : []),
+    { id: 'export', title: t('shell.export'), icon: 'mdi-download', rank: 2, primary: true, items: exportFormats.value },
+    ...(canCreate.value ? [{ id: 'add-to-shell', title: t('submodels.addToShell'), icon: 'mdi-link-variant-plus', rank: 4, menuOnly: true, onClick: () => (pickShellOpen.value = true) }] : []),
+    ...(canCreate.value ? [{ id: 'delete', title: t('submodels.delete'), icon: 'mdi-delete-outline', rank: 5, danger: true, onClick: openDelete }] : []),
+  ])
+
   const tab = computed({
     get: () => {
       const value = typeof route.query.tab === 'string' ? route.query.tab : 'elements'
@@ -542,6 +415,8 @@
     await invalidate(['targets', targetId.value])
     await tree.trees.reload()
   }
+  // Undo and redo are the package bar's (package editing plan, H5).
+  onWorkspaceRestored(() => targetId.value, afterChange)
 
   async function onElementChanged (detail: ElementDetail) {
     await tree.onElementChanged(detail)

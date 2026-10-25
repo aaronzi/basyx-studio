@@ -23,7 +23,8 @@
     "legalNotice": "Impressum",
     "privacyPolicy": "Datenschutz",
     "mainNavigation": "Hauptnavigation",
-    "toggleSubmodelList": "Liste der Teilmodelle ein- oder ausblenden"
+    "toggleSubmodelList": "Liste der Teilmodelle ein- oder ausblenden",
+    "packages": "Geöffnete Pakete"
   },
   "qr": {
     "title": "QR-Code des Assets",
@@ -266,7 +267,8 @@
     "cancel": "Abbrechen",
     "new": "Neues Paket",
     "undo": "Rückgängig",
-    "redo": "Wiederholen"
+    "redo": "Wiederholen",
+    "more": "Paketaktionen"
   },
   "variables": {
     "input": "Eingabevariablen",

@@ -16,6 +16,12 @@ export const useUiStore = defineStore('ui', () => {
   const uploadFile = shallowRef<File | null>(null)
   /** Easter egg: the arcade theme, toggled with the Konami code until the next reload. */
   const arcade = ref(false)
+  /** The last undo or redo of a package (`onWorkspaceRestored`); a new object each time. */
+  const restored = shallowRef<{ targetId: string } | null>(null)
+
+  function workspaceRestored (targetId: string) {
+    restored.value = { targetId }
+  }
 
   const editing = computed(() => mode.value === 'edit')
 
@@ -28,5 +34,5 @@ export const useUiStore = defineStore('ui', () => {
     uploadOpen.value = true
   }
 
-  return { mode, editing, commandOpen, listDrawer, detailsDrawer, uploadOpen, uploadFile, arcade, toggleMode, openUpload }
+  return { mode, editing, commandOpen, listDrawer, detailsDrawer, uploadOpen, uploadFile, arcade, restored, toggleMode, openUpload, workspaceRestored }
 })

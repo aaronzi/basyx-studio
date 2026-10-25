@@ -45,36 +45,58 @@
              a menu button like the other app bar controls, its name from sm up. -->
         <v-menu v-if="targetItems.length > 0">
           <template #activator="{ props }">
-            <v-btn
-              v-if="smAndUp"
-              v-bind="props"
-              append-icon="mdi-chevron-down"
-              :aria-label="t('app.targetNamed', { name: target?.name ?? '' })"
-              border
+            <!-- Unsaved changes of a package show here where the package bar has no room for its chip. -->
+            <v-badge
               class="me-2"
-              :max-width="mdAndUp ? 280 : 200"
-              prepend-icon="mdi-server-network"
+              color="warning"
+              dot
+              :model-value="Boolean(target?.workspace?.unsavedChanges) && !lgAndUp"
             >
-              <span class="text-truncate">{{ target?.name }}</span>
-            </v-btn>
+              <v-btn
+                v-if="smAndUp"
+                v-bind="props"
+                append-icon="mdi-chevron-down"
+                :aria-label="t('app.targetNamed', { name: target?.name ?? '' })"
+                border
+                :max-width="mdAndUp ? 280 : 200"
+                :prepend-icon="target?.workspace ? 'mdi-package-variant-closed' : 'mdi-server-network'"
+              >
+                <span class="text-truncate">{{ target?.name }}</span>
+              </v-btn>
 
-            <v-btn v-else v-bind="props" :aria-label="t('app.targetNamed', { name: target?.name ?? '' })" icon="mdi-server-network" />
+              <v-btn
+                v-else
+                v-bind="props"
+                :aria-label="t('app.targetNamed', { name: target?.name ?? '' })"
+                :icon="target?.workspace ? 'mdi-package-variant-closed' : 'mdi-server-network'"
+              />
+            </v-badge>
           </template>
 
           <v-card min-width="240">
             <v-list :selected="[activeTargetId]">
-              <v-list-subheader>{{ t('app.target') }}</v-list-subheader>
+              <!-- Open packages first, each with its unsaved changes (package editing plan, M4). -->
+              <template v-for="group in targetGroups" :key="group.title">
+                <v-list-subheader>{{ group.title }}</v-list-subheader>
 
-              <v-list-item
-                v-for="item in targetItems"
-                :key="item.value"
-                :title="item.title"
-                :value="item.value"
-                @click="switchTarget(item.value)"
-              />
+                <v-list-item
+                  v-for="item in group.items"
+                  :key="item.value"
+                  :prepend-icon="item.icon"
+                  :title="item.title"
+                  :value="item.value"
+                  @click="switchTarget(item.value)"
+                >
+                  <template v-if="item.unsaved" #append>
+                    <v-icon v-tooltip="t('workspace.unsaved')" color="warning" icon="mdi-circle-medium" />
+                  </template>
+                </v-list-item>
+              </template>
             </v-list>
           </v-card>
         </v-menu>
+
+        <WorkspaceBar v-if="target?.workspace" :target="target" />
 
         <!-- Applied-but-unfinished work of this target stays visible (MVP-5 plan, W7). -->
         <v-chip
@@ -419,7 +441,17 @@
       ui.mode = 'view'
     }
   }, { immediate: true })
-  const targetItems = computed(() => (targets.data.value?.items ?? []).map(target => ({ title: target.name, value: target.id })))
+  const targetItems = computed(() => (targets.data.value?.items ?? []).map(target => ({
+    title: target.name,
+    value: target.id,
+    icon: target.workspace ? 'mdi-package-variant-closed' : 'mdi-server-network',
+    unsaved: Boolean(target.workspace?.unsavedChanges),
+    workspace: Boolean(target.workspace),
+  })))
+  const targetGroups = computed(() => [
+    { title: t('app.packages'), items: targetItems.value.filter(item => item.workspace) },
+    { title: targetItems.value.some(item => item.workspace) ? t('app.infrastructures') : t('app.target'), items: targetItems.value.filter(item => !item.workspace) },
+  ].filter(group => group.items.length > 0))
 
   function switchTarget (id: string) {
     // Another target never shows this target's shell or selection (UX-001).

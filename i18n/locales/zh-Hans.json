@@ -22,7 +22,8 @@
     "legalNotice": "法律声明",
     "privacyPolicy": "隐私政策",
     "mainNavigation": "主导航",
-    "toggleSubmodelList": "显示或隐藏子模型列表"
+    "toggleSubmodelList": "显示或隐藏子模型列表",
+    "packages": "已打开的包"
   },
   "qr": {
     "title": "资产二维码",
@@ -188,7 +189,8 @@
     "closeTitle": "关闭 {name}？",
     "closeText": "此包有未保存的更改。如果现在关闭，这些更改将会丢失。",
     "closeWithoutSaving": "不保存并关闭",
-    "cancel": "取消"
+    "cancel": "取消",
+    "more": "包操作"
   },
   "variables": {
     "input": "输入变量",

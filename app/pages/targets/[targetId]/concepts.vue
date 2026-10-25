@@ -17,12 +17,6 @@
         <!-- The search bar of the link picker too: text, source filters, advanced query (S1). -->
         <ConceptDescriptionSearchBar :state="cds" :target-id="targetId">
           <template #append>
-            <WorkspaceActions
-              v-if="target.data.value?.workspace"
-              :target="target.data.value"
-              @error="value => (actionError = value)"
-              @restored="onRestored"
-            />
 
             <!-- Creating needs edit mode (UX-006): new, or from JSON. -->
             <v-btn-group v-if="canWrite">
@@ -362,6 +356,8 @@
     await cds.reload()
     await queryCache.invalidateQueries({ key: ['targets', targetId.value, 'concept-descriptions'] })
   }
+  // Undo and redo are the package bar's (package editing plan, H5).
+  onWorkspaceRestored(() => targetId.value, onRestored)
 
   // The palette offers the page's actions in edit mode (L6).
   watch([canWrite, selectedKey], ([writable, key]) => {

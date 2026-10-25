@@ -84,7 +84,7 @@ Feedback from testing the desktop app found three areas to improve:
 | --- | --- | --- |
 | H1 | One component | `ResourceHeader` renders the header of shells and submodels: avatar, title, meta line, identifiers and actions. The pages pass their actions as data. |
 | H2 | Width of the content | The header measures the width it actually has: the window width (`useDisplay`) minus the drawers and the rail (`useLayout().mainRect`). It does not use viewport breakpoints. Three widths: wide, medium and narrow. |
-| H3 | Actions by priority | Each action has a priority. Wide shows the first few inline, medium fewer, and narrow shows only the ⋮ menu; the rest go into ⋮. In edit mode *Edit* ranks first. *Export* folds in last, because it is the one action of view mode. *Delete* always stays in ⋮ (UX-003). |
+| H3 | Actions by rank | Each action has a rank. Wide shows the three lowest ranks inline, medium two, and narrow shows only the ⋮ menu; the rest go into ⋮. *Edit* ranks first and *Export* second, as Export is the one action of view mode. *Delete* always stays in ⋮ (UX-003), and the QR code joins ⋮ at narrow width, where the identifiers are hidden. |
 | H4 | Title and meta | At medium and narrow width the actions move to their own row below the title, so the title gets the card's full width and wraps at word boundaries only. The meta line stays on one line, truncated, with the full text in a tooltip. Vuetify has no line-clamp utility, and the project allows no custom CSS, so titles are not clamped. |
 | H5 | Package bar | `WorkspaceActions` moves out of the resource headers into a package bar in the app bar, next to the target switcher. It shows while a package is the current target. The headers keep only actions on their own resource. |
 

@@ -1,19 +1,15 @@
 <template>
-  <div>
-    <div class="d-flex flex-wrap align-center ga-2">
-      <TargetChips :target="target" />
-      <WorkspaceActions v-if="target.workspace" :target="target" @error="error => (actionError = error)" />
+  <!-- A package's Save and Close are the package bar's (package editing plan, H5). -->
+  <div class="d-flex flex-wrap align-center ga-2">
+    <TargetChips :target="target" />
 
-      <v-btn
-        v-if="target.authenticationState === 'authenticated'"
-        prepend-icon="mdi-account-cancel-outline"
-        size="small"
-        :text="t('target.revoke')"
-        @click="revoke"
-      />
-    </div>
-
-    <ProblemAlert v-if="actionError" class="mt-4" :error="actionError" />
+    <v-btn
+      v-if="target.authenticationState === 'authenticated'"
+      prepend-icon="mdi-account-cancel-outline"
+      size="small"
+      :text="t('target.revoke')"
+      @click="revoke"
+    />
   </div>
 </template>
 
@@ -25,7 +21,6 @@
   const { t } = useI18n()
   const api = useStudioApi()
   const invalidate = useInvalidate()
-  const actionError = ref<unknown>(null)
 
   async function revoke () {
     await api(`/targets/${props.target.id}/authorization`, { method: 'DELETE' })
