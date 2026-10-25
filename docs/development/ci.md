@@ -14,7 +14,7 @@ change is skipped by fixed path rules; `CI result` sums up the run.
 | Typecheck | `pnpm typecheck` | Always |
 | Unit tests | `pnpm test` | Always |
 | Build hosted Studio | `pnpm build`; hands the build to the end-to-end jobs | Always |
-| Integration tests against the test environment | `pnpm testenv:smoke`, `pnpm test:integration` | Studio's code, `test/integration`, `test/support`, `test-setup` |
+| Integration tests against the test environment | `pnpm testenv:smoke`, `pnpm test:integration`, with the PostgreSQL cases of unit tests | Studio's code, `test/integration`, `test/support`, `test-setup`, and the unit tests that use the test environment |
 | End-to-end tests, hosted web (4 shards) | `pnpm test:e2e:web`, `pnpm test:e2e:origins` on the build | Studio's code, the web and origins tests, `test/apps`, `test-setup`, `examples/apps` |
 | Build the unpacked desktop app | `pnpm build:electron:dir`; hands the app to the desktop end-to-end jobs | Studio's code, `electron`, `build`, the desktop tests, `test/apps`, `test-setup/fixtures`, `examples/apps` |
 | End-to-end tests of the packaged desktop app (2 shards) | `pnpm test:e2e:desktop` on the unpacked Linux app | As the desktop build |
@@ -37,8 +37,9 @@ them. A change to a rule changes this document in the same pull request.
    when the run starts, so after adding the label, choose *Re-run all jobs*.
 3. If the changed files are unknown, every job runs.
 4. The changed files are those that merging the pull request would change,
-   over all of its commits. Documentation (`docs/**`, `**/*.md`) does not
-   count; a pull request with nothing else starts no run at all.
+   over all of its commits; a moved file counts at its old and its new path.
+   Documentation (`docs/**`, `**/*.md`) does not count; a pull request with
+   nothing else starts no run at all.
 5. If one of them is a file at the repository root (`package.json`,
    `pnpm-lock.yaml`, `nuxt.config.ts`, `Dockerfile`, …), under `patches/`, or
    part of CI (`ci.yml`, `.github/actions`, `.github/scripts`,

@@ -31,7 +31,9 @@ export const jobs = {
   'typecheck': 'always',
   'unit': 'always',
   'build': 'always',
-  'integration': [...studio, 'test/integration/**', 'test/support/**', 'test-setup/**'],
+  // With the PostgreSQL cases of unit tests that use the test environment
+  // (test/support/testenv.ts); test/ci/changes.test.ts finds them all.
+  'integration': [...studio, 'test/integration/**', 'test/support/**', 'test-setup/**', 'test/database/migrate.test.ts', 'test/apps/updates.test.ts'],
   'e2e-web': [...studio, 'test/e2e/web/**', 'test/e2e/origins/**', 'test/e2e/web.config.ts', 'test/e2e/origins.config.ts', 'test/apps/**', 'test-setup/**', 'examples/apps/**'],
   'desktop-build': desktop,
   'desktop-e2e': desktop,
@@ -122,15 +124,18 @@ export function verdict ({ needs, planned }) {
   return problems
 }
 
-function changedFiles () {
+/** The files a pull request changes, or undefined when they are unknown. */
+export function changedFiles (cwd = process.cwd()) {
   try {
     // A pull request run checks out the merge commit: its first parent is
     // the base branch, so the diff is what merging would change.
-    const parents = execFileSync('git', ['rev-list', '--parents', '-n', '1', 'HEAD'], { encoding: 'utf8' }).trim().split(' ')
+    const parents = execFileSync('git', ['rev-list', '--parents', '-n', '1', 'HEAD'], { cwd, encoding: 'utf8' }).trim().split(' ')
     if (parents.length !== 3) {
       return undefined
     }
-    return execFileSync('git', ['diff', '--name-only', 'HEAD^1', 'HEAD'], { encoding: 'utf8' }).split('\n').filter(Boolean)
+    // Without rename detection, a moved file counts at its old path as well,
+    // so moving it out of a job's paths still runs that job.
+    return execFileSync('git', ['diff', '--name-only', '--no-renames', 'HEAD^1', 'HEAD'], { cwd, encoding: 'utf8' }).split('\n').filter(Boolean)
   } catch {
     return undefined
   }
