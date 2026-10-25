@@ -106,3 +106,9 @@ Before this layout, a pull request took about 20 minutes: the integration
 job waited for lint, typecheck, unit tests and build, then ran the test
 environment, the container tests, a second build and all end-to-end tests one
 after another.
+
+With every job running and the bundled apps from the cache, a run takes about
+5 minutes (October 2026). The path to the result is the hosted build (about
+2.5 minutes) followed by the longest web shard (about 2 minutes); the image
+job takes about as long, but runs only when its paths change. Without the
+cache, the build takes about 45 seconds longer.
