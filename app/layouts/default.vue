@@ -389,7 +389,7 @@
 <script lang="ts" setup>
   import type { Target } from '#shared/contract'
   import type { PanelName } from '~/composables/usePanel'
-  import { useQuery } from '@pinia/colada'
+  import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay, useHotkey, useTheme } from 'vuetify'
   import { sectionOf } from '~/stores/navigation'
   import { phoneNavLayout } from '~/utils/navigation'
@@ -430,7 +430,17 @@
     query: ({ signal }) => api<{ items: Target[] }>('/targets', { signal }),
     enabled: () => !session.needsLogin && rememberedTargetId.value !== null,
   })
-  const target = computed(() => targets.data.value?.items.find(item => item.id === rememberedTargetId.value) ?? null)
+  const listedTarget = computed(() => targets.data.value?.items.find(item => item.id === rememberedTargetId.value) ?? null)
+  // The route's own query is fresher than the list: an applied edit changes a
+  // package's unsaved state there first (the package bar, H5).
+  const target = computed(() => routeTarget.data.value?.id === listedTarget.value?.id ? (routeTarget.data.value ?? listedTarget.value) : listedTarget.value)
+  // The list follows, so the target menu and the package groups mark it too (M1).
+  const queryCache = useQueryCache()
+  watch(() => JSON.stringify(routeTarget.data.value?.workspace ?? null), (state, previous) => {
+    if (previous !== undefined && state !== previous) {
+      void queryCache.invalidateQueries({ key: ['targets'], exact: true })
+    }
+  })
   // A remembered target that was removed or is no longer listed is not current.
   const activeTargetId = computed(() => targetId.value ?? target.value?.id ?? null)
   const draftCount = computed(() => activeTargetId.value ? drafts.countFor(activeTargetId.value) : 0)
