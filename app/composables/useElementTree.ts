@@ -238,6 +238,22 @@ export function useElementTree (options: ElementTreeOptions) {
     ui.detailsDrawer = true
   }
 
+  /**
+   * The drawer belongs to the tree's tab (`home`): other tabs close it, and
+   * the Overview opens it only from a tile. Back on the tree's tab it is
+   * open again if it was when the user left, or if a tile opened it.
+   */
+  function followTabs (tab: () => string, home: string) {
+    let openAtHome = ui.detailsDrawer
+    watch(tab, (value, previous) => {
+      const open = ui.detailsDrawer
+      if (previous === home) {
+        openAtHome = open
+      }
+      ui.detailsDrawer = value === home && (openAtHome || open)
+    })
+  }
+
   // The page's own submodel is the tree's selection only while the drawer shows it.
   const activated = computed({
     get: () => {
@@ -655,6 +671,7 @@ export function useElementTree (options: ElementTreeOptions) {
     detailsView,
     select,
     openFromOverview,
+    followTabs,
     onElementChanged,
     // Structure editing
     creating,

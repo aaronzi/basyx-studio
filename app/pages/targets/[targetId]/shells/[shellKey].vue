@@ -517,6 +517,7 @@
     },
     set: (value: string) => router.replace({ query: { ...route.query, tab: value === 'submodels' ? undefined : value } }),
   })
+  tree.followTabs(() => tab.value, 'submodels')
 
   watch([targetId, shellKey], () => tree.resetView())
   // Remembered once the shell is loaded, with the title the user saw.

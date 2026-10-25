@@ -521,6 +521,7 @@
     },
     set: (value: string) => router.replace({ query: { ...route.query, tab: value === 'elements' ? undefined : value } }),
   })
+  tree.followTabs(() => tab.value, 'elements')
 
   const full = useQuery({
     key: () => ['targets', targetId.value, 'submodels', submodelKey.value ?? '', 'full', asOfIso.value ?? ''],

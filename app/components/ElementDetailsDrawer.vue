@@ -1,12 +1,15 @@
 <template>
-  <!-- Selecting an element changes the URL; that must not close the drawer. -->
+  <!-- Selecting an element changes the URL; that must not close the drawer.
+       Open only with something to show, and never by a change of breakpoint. -->
   <v-navigation-drawer
-    v-model="ui.detailsDrawer"
     :border="covering ? 0 : 's'"
+    disable-resize-watcher
     disable-route-watcher
     location="end"
+    :model-value="ui.detailsDrawer && hasContent"
     :temporary="!lgAndUp"
     :width="drawerWidth"
+    @update:model-value="open => (ui.detailsDrawer = open)"
   >
     <!-- A new element: its form takes the drawer until it is created or cancelled (U4). -->
     <div v-if="creating" class="d-flex flex-column h-100">
@@ -301,14 +304,6 @@
       </div>
     </div>
 
-    <v-empty-state
-      v-else
-      icon="mdi-cursor-default-click-outline"
-      size="64"
-      :text="t('details.nothingText')"
-      :title="t('details.nothing')"
-    />
-
     <!-- Apply and Discard of the open form, always in view (FormActions). -->
     <template #append>
       <div id="details-form-actions" />
@@ -393,6 +388,7 @@
   const { smAndUp, mdAndUp, lgAndUp, width } = useDisplay()
 
   const targetId = computed(() => props.target.id)
+  const hasContent = computed(() => Boolean(props.creating || (props.editingShell && props.shellDetail) || props.item))
 
   // Widened to the whole content area; a layout choice kept in this browser (P1).
   const wideKey = 'studio.detailsDrawer.wide'
