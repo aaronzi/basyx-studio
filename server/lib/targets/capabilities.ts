@@ -90,7 +90,8 @@ export const workspaceCapabilities: TargetCapabilities = {
   queryTarget: null,
   elementSearch: true,
   discovery: false,
-  export: false,
+  // Studio writes the export (package editing plan, E4); imports are copies.
+  export: true,
   upload: false,
   history: false,
   changeFeed: false,

@@ -1,14 +1,18 @@
 import type { SubmodelDetail } from '#shared/contract'
 import { decodeKey } from '~~/server/lib/aas/keys'
 import { toAasXml } from '~~/server/lib/aas/xml'
+import { exportEnvironment } from '~~/server/lib/copies/serialize'
+import { StudioProblem } from '~~/server/lib/problem'
 import { revisionOf } from '~~/server/lib/targets/revision'
 import { sendBinary } from '~~/server/utils/files'
 import { defineStudioHandler, queryValidated, routeParam } from '~~/server/utils/handler'
+import { useStudio } from '~~/server/utils/studio'
 import { openTarget, requireCapability } from '~~/server/utils/target'
 import { submodelQuerySchema } from '#shared/contract'
 
 /**
- * A submodel's metadata, or the whole submodel as JSON or AAS XML, now or
+ * A submodel's metadata, or the whole submodel as JSON, AAS XML or (now
+ * only) an AASX package with its concept descriptions and files, now or
  * (with `at`) as it was at a point in time; with `download`, the JSON as a
  * file.
  */
@@ -24,6 +28,16 @@ export default defineStudioHandler(async (event): Promise<SubmodelDetail | Uint8
     const metadata = await opened.target.submodelMetadata(submodelId)
     event.res.headers.set('ETag', `"${revisionOf(metadata)}"`)
     return { key, submodel: metadata, revision: revisionOf(metadata) }
+  }
+  if (format === 'aasx' && !at) {
+    const studio = await useStudio()
+    const inspector = studio.inspector
+    if (!inspector) {
+      throw new StudioProblem('unsupported_operation', 'Packages need the Workspace Worker, which is not available.')
+    }
+    const file = await exportEnvironment(opened.target, [{ type: 'submodel', id: submodelId }], 'aasx', (environment, files) => inspector.request({ op: 'pack', environment, files }))
+    const metadata = await opened.target.submodelMetadata(submodelId)
+    return sendBinary(event, { ...file, fileName: `${String(metadata.idShort ?? 'submodel').replaceAll(/[^\w-]/g, '_')}.aasx` })
   }
   const submodel = at
     ? await opened.target.submodelAt(submodelId, new Date(at).toISOString())

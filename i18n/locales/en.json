@@ -269,7 +269,8 @@
     "undo": "Undo",
     "redo": "Redo",
     "more": "Package actions",
-    "moreNamed": "Actions of {name}"
+    "moreNamed": "Actions of {name}",
+    "exportAs": "Export package as"
   },
   "variables": {
     "input": "Input variables",

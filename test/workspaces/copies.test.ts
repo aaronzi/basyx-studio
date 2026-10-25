@@ -7,6 +7,7 @@ import { toAasXml } from '~~/server/lib/aas/xml'
 import { packagedFilePaths, rewriteReferences, semanticIdsOf } from '~~/server/lib/copies/content'
 import { executeCopy, newCopyRun } from '~~/server/lib/copies/execute'
 import { planCopy } from '~~/server/lib/copies/plan'
+import { allRoots, collectEnvironment, exportEnvironment } from '~~/server/lib/copies/serialize'
 import { EnvironmentReader } from '~~/server/lib/copies/source'
 import { parsePastedText } from '~~/server/lib/copies/text'
 import { workspaceCapabilities } from '~~/server/lib/targets/capabilities'
@@ -248,5 +249,35 @@ describe('packages of copied content', () => {
     expect(extracted.files).toEqual([{ path: '/aasx/manual.pdf', contentType: 'application/pdf', bytes: manual.bytes }])
     const reader = new EnvironmentReader(extracted.environment, extracted.files)
     expect((await reader.attachment(documentsId, 'Files[0]')).bytes).toEqual(manual.bytes)
+  })
+})
+
+describe('exports', () => {
+  it('collects a shell with its readable submodels, the concepts it names and its files', async () => {
+    const { source } = packages()
+    const { environment, files } = await collectEnvironment(source, [{ type: 'shell', id: shellId }])
+    expect((environment.submodels as JsonObject[]).map(submodel => submodel.id)).toEqual([nameplateId, documentsId])
+    expect((environment.conceptDescriptions as JsonObject[]).map(cd => cd.id)).toEqual([conceptId])
+    expect(files).toEqual([{ path: '/aasx/manual.pdf', contentType: 'application/pdf', bytes: manual.bytes }])
+  })
+
+  it('writes JSON and XML that read back as the same environment', async () => {
+    const { source } = packages()
+    const pack = async () => new Uint8Array()
+    const json = await exportEnvironment(source, [{ type: 'submodel', id: nameplateId }], 'json', pack)
+    const xml = await exportEnvironment(source, [{ type: 'submodel', id: nameplateId }], 'xml', pack)
+    const fromJson = parsePastedText('json', new TextDecoder().decode(json.bytes))
+    const fromXml = parsePastedText('xml', new TextDecoder().decode(xml.bytes))
+    expect(fromXml.environment).toEqual(fromJson.environment)
+    expect((fromJson.environment.conceptDescriptions as JsonObject[])[0]!.id).toBe(conceptId)
+  })
+
+  it('lists every resource of a package once, with referenced submodels under their shell', async () => {
+    const model = new WorkspaceModel({ ...environment(), submodels: [...(environment().submodels as JsonObject[]), { modelType: 'Submodel', id: 'urn:test:sm:alone', idShort: 'Alone' }] })
+    expect(await allRoots(targetOf(model))).toEqual([
+      { type: 'shell', id: shellId },
+      { type: 'submodel', id: 'urn:test:sm:alone' },
+      { type: 'conceptDescription', id: conceptId },
+    ])
   })
 })

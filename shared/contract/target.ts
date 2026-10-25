@@ -385,8 +385,9 @@ export const elementQuerySchema = pointInTimeQuerySchema.extend({
  */
 export const submodelQuerySchema = pointInTimeQuerySchema.extend({
   content: z.enum(['metadata', 'full']).default('metadata'),
-  format: z.enum(['json', 'xml']).default('json'),
-  /** The whole submodel as a JSON file to save (the submodel view's export); XML always is one. */
+  /** `aasx`: the submodel with its concept descriptions and files as a package (package editing plan, E2). */
+  format: z.enum(['json', 'xml', 'aasx']).default('json'),
+  /** The whole submodel as a JSON file to save (the submodel view's export); XML and AASX always are one. */
   download: z.enum(['true', 'false']).default('false').transform(value => value === 'true'),
 })
 

@@ -339,6 +339,7 @@
   ])
 
   const exportFormats = computed(() => [
+    { value: 'aasx', title: t('shell.formats.aasx'), subtitle: '.aasx', icon: 'mdi-package-variant-closed', href: studioUrl.api(`/targets/${targetId.value}/submodels/${submodelKey.value}?content=full&format=aasx`) },
     { value: 'json', title: t('shell.formats.json'), subtitle: '.json', icon: 'mdi-code-json', href: studioUrl.api(`/targets/${targetId.value}/submodels/${submodelKey.value}?content=full&download=true`) },
     { value: 'xml', title: t('shell.formats.xml'), subtitle: '.xml', icon: 'mdi-xml', href: studioUrl.api(`/targets/${targetId.value}/submodels/${submodelKey.value}?content=full&format=xml`) },
   ])

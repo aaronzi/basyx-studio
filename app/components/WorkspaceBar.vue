@@ -89,6 +89,18 @@
             @click="actions.saveAs()"
           />
 
+          <!-- The package as it is now, unsaved changes included (package editing plan, E3). -->
+          <v-divider class="my-1" />
+          <v-list-subheader :title="t('workspace.exportAs')" />
+
+          <v-list-item
+            v-for="format in exportFormats"
+            :key="format.value"
+            :href="studioUrl.api(`/workspaces/${target.id}/download?format=${format.value}`)"
+            :prepend-icon="format.icon"
+            :title="format.title"
+          />
+
           <v-divider class="my-1" />
 
           <v-list-item
@@ -124,4 +136,10 @@
   const ui = useUiStore()
   const { smAndUp, mdAndUp, lgAndUp } = useDisplay()
   const actions = useWorkspaceActions(() => props.target)
+  const studioUrl = useStudioUrl()
+  const exportFormats = computed(() => [
+    { value: 'aasx', title: t('shell.formats.aasx'), icon: 'mdi-package-variant-closed' },
+    { value: 'json', title: t('shell.formats.json'), icon: 'mdi-code-json' },
+    { value: 'xml', title: t('shell.formats.xml'), icon: 'mdi-xml' },
+  ])
 </script>

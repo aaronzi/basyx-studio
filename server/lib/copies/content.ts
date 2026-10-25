@@ -16,21 +16,26 @@ function childrenOf (container: JsonObject): JsonObject[] {
   return Array.isArray(value) ? value.filter(isObject) : []
 }
 
-/** The idShortPaths of File elements whose value is a file inside the source (not a URL). */
-export function packagedFilePaths (submodel: JsonObject): string[] {
-  const paths: string[] = []
+/** File elements whose value is a file inside the source (not a URL): their idShortPath and that value. */
+export function packagedFiles (submodel: JsonObject): Array<{ idShortPath: string, location: string }> {
+  const files: Array<{ idShortPath: string, location: string }> = []
   const visit = (container: JsonObject, prefix: string) => {
     const named = hasNamedChildren(String(container.modelType))
     for (const [index, child] of childrenOf(container).entries()) {
       const path = named ? (prefix ? `${prefix}.${String(child.idShort)}` : String(child.idShort)) : `${prefix}[${index}]`
       if (child.modelType === 'File' && isPackagePath(child.value)) {
-        paths.push(path)
+        files.push({ idShortPath: path, location: child.value })
       }
       visit(child, path)
     }
   }
   visit(submodel, '')
-  return paths
+  return files
+}
+
+/** The idShortPaths of File elements whose value is a file inside the source. */
+export function packagedFilePaths (submodel: JsonObject): string[] {
+  return packagedFiles(submodel).map(file => file.idShortPath)
 }
 
 /** Whether a shell's default thumbnail is a file inside the source. */

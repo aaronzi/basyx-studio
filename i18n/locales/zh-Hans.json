@@ -191,7 +191,8 @@
     "closeWithoutSaving": "不保存并关闭",
     "cancel": "取消",
     "more": "包操作",
-    "moreNamed": "{name} 的操作"
+    "moreNamed": "{name} 的操作",
+    "exportAs": "将包导出为"
   },
   "variables": {
     "input": "输入变量",

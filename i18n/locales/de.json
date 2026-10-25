@@ -269,7 +269,8 @@
     "undo": "Rückgängig",
     "redo": "Wiederholen",
     "more": "Paketaktionen",
-    "moreNamed": "Aktionen für {name}"
+    "moreNamed": "Aktionen für {name}",
+    "exportAs": "Paket exportieren als"
   },
   "variables": {
     "input": "Eingabevariablen",

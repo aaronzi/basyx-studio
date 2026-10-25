@@ -191,7 +191,8 @@
     "closeWithoutSaving": "保存せずに閉じる",
     "cancel": "キャンセル",
     "more": "パッケージの操作",
-    "moreNamed": "{name} の操作"
+    "moreNamed": "{name} の操作",
+    "exportAs": "パッケージをエクスポート"
   },
   "variables": {
     "input": "入力変数",

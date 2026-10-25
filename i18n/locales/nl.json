@@ -191,7 +191,8 @@
     "closeWithoutSaving": "Sluiten zonder opslaan",
     "cancel": "Annuleren",
     "more": "Pakketacties",
-    "moreNamed": "Acties voor {name}"
+    "moreNamed": "Acties voor {name}",
+    "exportAs": "Pakket exporteren als"
   },
   "variables": {
     "input": "Invoervariabelen",

@@ -191,7 +191,8 @@
     "closeWithoutSaving": "Fermer sans enregistrer",
     "cancel": "Annuler",
     "more": "Actions du paquet",
-    "moreNamed": "Actions de {name}"
+    "moreNamed": "Actions de {name}",
+    "exportAs": "Exporter le paquet en"
   },
   "variables": {
     "input": "Variables d'entrée",
