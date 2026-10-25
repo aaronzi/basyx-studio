@@ -125,7 +125,7 @@
 
 <script lang="ts" setup>
   import type { Page, ShellSummary, SubmodelSummary, Target } from '#shared/contract'
-  import type { LocationQueryRaw } from 'vue-router'
+  import type { LocationQueryRaw, RouteLocationRaw } from 'vue-router'
   import { useInfiniteQuery } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { langText, modelTypeIcon } from '~/utils/aas'
@@ -161,6 +161,15 @@
   onMounted(() => (mounted.value = true))
 
   type Summary = ShellSummary | SubmodelSummary
+  interface Row {
+    key: string
+    id: string
+    title: string
+    /** The shell of a shell row, for its avatar. */
+    shell: ShellSummary | null
+    marker: string | null
+    to: RouteLocationRaw
+  }
   const list = useInfiniteQuery({
     key: () => expression.value
       ? ['targets', props.target.id, props.kind, 'search', expression.value]
@@ -178,7 +187,7 @@
     enabled: () => open.value && mounted.value,
   })
 
-  const rows = computed(() => (list.data.value?.pages.flatMap(page => page.items) ?? []).flatMap(item => {
+  const rows = computed<Row[]>(() => (list.data.value?.pages.flatMap(page => page.items) ?? []).flatMap((item): Row[] => {
     const title = langText(item.displayName) ?? item.idShort ?? item.id
     if (props.kind === 'shells') {
       const shell = item as ShellSummary

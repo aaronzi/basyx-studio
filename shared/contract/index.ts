@@ -3,6 +3,7 @@
 export * from './apps'
 export * from './connections'
 export * from './containers'
+export * from './copies'
 export * from './infrastructure'
 export * from './preferences'
 export * from './problem'

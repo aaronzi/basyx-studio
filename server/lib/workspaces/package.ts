@@ -102,6 +102,28 @@ function diagnosticsOf (environment: types.Environment): string[] {
 
 export type UploadFormat = 'aasx' | SpecFormat
 
+/** The format of an uploaded file by its name or media type, or `null` if it is none of them. */
+export function uploadFormatOf (fileName: string | null, contentType: string): UploadFormat | null {
+  const extension = fileName?.split('.').pop()?.toLowerCase()
+  if (extension === 'aasx' || contentType.includes('aasx') || contentType.includes('package')) {
+    return 'aasx'
+  }
+  if (extension === 'json' || contentType.endsWith('json')) {
+    return 'json'
+  }
+  if (extension === 'xml' || contentType.endsWith('xml')) {
+    return 'xml'
+  }
+  return null
+}
+
+/** A file inside an AASX package, by its path in the package. */
+export interface PackagedFile {
+  path: string
+  contentType: string
+  bytes: Uint8Array
+}
+
 export interface InspectedEnvironment {
   shellIds: string[]
   diagnostics: string[]
@@ -126,6 +148,70 @@ export async function inspectEnvironment (bytes: Uint8Array, format: UploadForma
   }
   const shells = Array.isArray(environment.assetAdministrationShells) ? environment.assetAdministrationShells as JsonObject[] : []
   return { shellIds: shells.map(shell => String(shell.id)), diagnostics }
+}
+
+/** An environment with the files of its package, for a copy into another target (package editing plan, E1). */
+export interface ExtractedEnvironment {
+  environment: JsonObject
+  files: PackagedFile[]
+  diagnostics: string[]
+}
+
+/** Reads an AASX, JSON or XML file as `inspectEnvironment` checks it, with the package's supplementary files and thumbnail. */
+export async function extractEnvironment (bytes: Uint8Array, format: UploadFormat, limits: ArchiveLimits = defaultArchiveLimits): Promise<ExtractedEnvironment> {
+  if (format !== 'aasx') {
+    const parsed = parseEnvironment(format, bytes)
+    return { environment: jsonization.toJsonable(parsed) as JsonObject, files: [], diagnostics: diagnosticsOf(parsed) }
+  }
+  const opened = await readPackage(bytes, limits)
+  try {
+    const parts = await opened.pkg.SupplementariesFor(opened.spec)
+    const thumbnail = await opened.pkg.Thumbnail()
+    const files = [...parts, ...(thumbnail ? [thumbnail] : [])].map(part => ({
+      path: decodeURIComponent(part.URI.pathname),
+      contentType: part.ContentType || 'application/octet-stream',
+      bytes: part.ReadAllBytes(),
+    }))
+    return { environment: opened.environment, files, diagnostics: opened.diagnostics }
+  } finally {
+    opened.pkg.Close()
+  }
+}
+
+/**
+ * A new AASX package of an environment and its files (E2): the environment
+ * as the JSON spec part, each file as a supplementary part at its path.
+ */
+export async function packEnvironment (environment: JsonObject, files: readonly PackagedFile[]): Promise<Uint8Array> {
+  const parsed = jsonization.environmentFromJsonable(environment as jsonization.JsonValue)
+  if (parsed.error) {
+    throw new StudioProblem('validation_failed', `The environment cannot be serialized: ${parsed.error.message} (${parsed.error.path.toString()})`)
+  }
+  let stored: Uint8Array = new Uint8Array(0)
+  const stream = {
+    readAll: () => stored,
+    writeAll: (data: Uint8Array) => {
+      stored = data
+    },
+  }
+  const pkg = await NewPackaging().CreateInStream(stream)
+  const spec = await pkg.PutPart(
+    new URL('file:///aasx/data.json'),
+    'application/json',
+    new TextEncoder().encode(JSON.stringify(jsonization.toJsonable(parsed.mustValue()), null, 2)),
+  )
+  await pkg.MakeSpec(spec)
+  const written = new Set<string>()
+  for (const file of files) {
+    const path = `/${file.path.replace(/^\/+/, '')}`
+    if (written.has(path)) {
+      continue
+    }
+    written.add(path)
+    const part = await pkg.PutPart(new URL(`file://${encodeURI(path)}`), file.contentType, file.bytes)
+    await pkg.RelateSupplementaryToSpec(part, spec)
+  }
+  return pkg.Flush()
 }
 
 /** The bytes of a new package: an empty environment as the JSON spec part, ready to open. */

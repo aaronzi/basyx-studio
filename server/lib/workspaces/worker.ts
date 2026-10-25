@@ -9,7 +9,7 @@ import { basename, dirname, join } from 'node:path'
 import { StudioProblem } from '../problem'
 import { defaultArchiveLimits } from './archive'
 import { WorkspaceModel } from './model'
-import { inspectEnvironment, newPackageBytes, readPackage, writePackage } from './package'
+import { extractEnvironment, inspectEnvironment, newPackageBytes, packEnvironment, readPackage, writePackage } from './package'
 
 /** Operations that change the environment; each one goes into the undo log (W8). */
 const mutating = new Set<string>([
@@ -106,6 +106,12 @@ export class WorkspaceWorker {
       }
       case 'inspect': {
         return inspectEnvironment(request.bytes, request.format)
+      }
+      case 'extract': {
+        return extractEnvironment(request.bytes, request.format)
+      }
+      case 'pack': {
+        return packEnvironment(request.environment, request.files)
       }
       case 'close': {
         this.#workspaces.delete(request.workspaceId)

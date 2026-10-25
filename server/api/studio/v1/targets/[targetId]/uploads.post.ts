@@ -3,6 +3,7 @@ import type { UploadFormat } from '~~/server/lib/workspaces/package'
 import { setResponseStatus } from 'nuxt/server'
 import { toShellSummary } from '~~/server/lib/aas/shells'
 import { StudioProblem } from '~~/server/lib/problem'
+import { uploadFormatOf } from '~~/server/lib/workspaces/package'
 import { requireCsrf } from '~~/server/utils/auth'
 import { readFileBody } from '~~/server/utils/files'
 import { defineStudioHandler } from '~~/server/utils/handler'
@@ -16,20 +17,6 @@ const uploadTypes: Record<UploadFormat, string> = {
   xml: 'application/xml',
 }
 
-function formatOf (fileName: string | null, contentType: string): UploadFormat | null {
-  const extension = fileName?.split('.').pop()?.toLowerCase()
-  if (extension === 'aasx' || contentType.includes('aasx') || contentType.includes('package')) {
-    return 'aasx'
-  }
-  if (extension === 'json' || contentType.endsWith('json')) {
-    return 'json'
-  }
-  if (extension === 'xml' || contentType.endsWith('xml')) {
-    return 'xml'
-  }
-  return null
-}
-
 /**
  * Adds the content of an AASX, JSON or XML file to the target. The file is
  * checked in the Workspace Worker first (D16), so the target only receives
@@ -39,7 +26,7 @@ export default defineStudioHandler(async (event): Promise<UploadResult> => {
   await requireCsrf(event)
   const studio = await useStudio()
   const file = await readFileBody(event, studio.config.uploadMaxBytes)
-  const format = formatOf(file.fileName, file.contentType)
+  const format = uploadFormatOf(file.fileName, file.contentType)
   if (!format) {
     throw new StudioProblem('invalid_request', 'Upload an .aasx, .json or .xml file.')
   }

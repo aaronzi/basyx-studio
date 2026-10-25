@@ -14,6 +14,7 @@ import { configurationWarnings, loadStudioConfig } from '../lib/config'
 import { systemDiscoveryEnvironment } from '../lib/containers/discovery'
 import { infrastructureInputOf } from '../lib/containers/infrastructure'
 import { ContainerManager } from '../lib/containers/manager'
+import { CopyPlanStore } from '../lib/copies/store'
 import { SecretCipher } from '../lib/crypto/cipher'
 import { openDatabase } from '../lib/database/client'
 import { applyMigrations } from '../lib/database/migrate'
@@ -42,6 +43,8 @@ export interface StudioRuntime extends StudioDeps {
   embedKey: Buffer
   /** Files the user chose in native dialogs for local BaSyx instances (desktop). */
   fileGrants: FileGrantStore
+  /** Copy plans between targets, from pasted text and imported files (DATA-012 to DATA-015). */
+  copies: CopyPlanStore
   /** Local BaSyx instances on Docker or Podman (ADR 0033); `null` when hosted. */
   containers: ContainerManager | null
   close: () => Promise<void>
@@ -183,6 +186,7 @@ async function initialize (): Promise<StudioRuntime> {
       capabilityKey: capabilityTokenKey(config.dataKey),
       embedKey: embedTokenKey(config.dataKey),
       fileGrants,
+      copies: new CopyPlanStore(),
       containers,
       close: async () => {
         backends?.dispose()
