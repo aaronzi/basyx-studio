@@ -13,7 +13,7 @@ change is skipped by fixed path rules; `CI result` sums up the run.
 | Lint and translations | `pnpm lint`, `pnpm i18n:check` | Always |
 | Typecheck | `pnpm typecheck` | Always |
 | Unit tests | `pnpm test` | Always |
-| Build hosted Studio and the example apps | `pnpm build`, `pnpm apps:build`; hands the build to the end-to-end jobs | Always |
+| Build hosted Studio | `pnpm build`; hands the build to the end-to-end jobs | Always |
 | Integration tests against the test environment | `pnpm testenv:smoke`, `pnpm test:integration` | Studio's code, `test/integration`, `test/support`, `test-setup` |
 | End-to-end tests, hosted web (4 shards) | `pnpm test:e2e:web`, `pnpm test:e2e:origins` on the build | Studio's code, the web and origins tests, `test/apps`, `test-setup`, `examples/apps` |
 | Build the unpacked desktop app | `pnpm build:electron:dir`; hands the app to the desktop end-to-end jobs | Studio's code, `electron`, `build`, the desktop tests, `test/apps`, `test-setup/fixtures`, `examples/apps` |
@@ -84,9 +84,15 @@ The desktop tests run in two shards in the same way
 (`test/e2e/desktop.config.ts`): `containers` (`containers.spec.ts`) and
 `other`, every other file.
 
+Both build jobs take the bundled apps (`server/bundled-apps`) from the cache
+when nothing they are built from changed (`.github/actions/bundled-apps`): the
+apps, the packages, the dependency set and the build script. The cache has no
+fallback keys, so any change to these builds them again.
+
 The shards start together with the build job, not after it. Each one starts
 the test environment in the background (`.github/scripts/testenv.sh start`),
-installs dependencies and the browser, and then waits until the build job has
+installs dependencies and the browser, builds the example apps (`pnpm
+apps:build`), and then waits until the build job has
 uploaded its artifact (`.github/scripts/wait-for-artifact.sh`); it fails as
 soon as the build job ends without one. The desktop shards wait for the
 desktop build likewise and install their display and keyring packages in the

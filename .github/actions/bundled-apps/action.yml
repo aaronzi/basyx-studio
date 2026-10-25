@@ -1,0 +1,22 @@
+name: Restore the bundled apps
+description: >-
+  server/bundled-apps from the cache, keyed by everything the bundled apps are
+  built from (scripts/build-example-apps.mjs): their sources, the packages they
+  use and the dependency set. Runs before the install, so that the key hashes
+  only checked-in files. No fallback keys: any change builds them again, with
+  `pnpm apps:bundle` when `cache-hit` is not true.
+
+outputs:
+  cache-hit:
+    description: Whether the bundled apps came from the cache.
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: composite
+  steps:
+    - name: Restore the bundled apps
+      id: cache
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: server/bundled-apps/*.zip
+        key: ${{ runner.os }}-bundled-apps-${{ hashFiles('apps/**', 'packages/**', 'package.json', 'pnpm-lock.yaml', 'pnpm-workspace.yaml', 'patches/**', 'scripts/build-example-apps.mjs') }}

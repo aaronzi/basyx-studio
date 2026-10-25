@@ -116,7 +116,7 @@ jobs:
         run: pnpm test
 
   build:
-    name: Build hosted Studio and the example apps
+    name: Build hosted Studio
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -125,20 +125,25 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: ./.github/actions/bundled-apps
+        id: bundled-apps
+
       - uses: ./.github/actions/setup
+
+      # `pnpm build` is `pnpm apps:bundle && nuxt build`; the bundled apps
+      # come from the cache when nothing they are built from changed.
+      - name: Build the bundled apps
+        if: steps.bundled-apps.outputs.cache-hit != 'true'
+        run: pnpm apps:bundle
 
       # The build also proves the server bundle: inlined aas-core and the
       # traced PGlite WebAssembly assets (ADR 0011).
       - name: Build
-        run: pnpm build
-
-      # Installable packages of the example apps, used by the app tests (MVP-3).
-      - name: Build example apps
-        run: pnpm apps:build
+        run: pnpm exec nuxt build
 
       # One file, uploaded without zipping, for the end-to-end jobs.
       - name: Pack the build
-        run: tar --zstd -cf studio-build.tar.zst .output examples/apps/dist
+        run: tar --zstd -cf studio-build.tar.zst .output
 
       - name: Upload the build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -260,8 +265,13 @@ jobs:
 
       - uses: ./.github/actions/playwright
 
+      # Installable packages of the example apps, used by the app tests
+      # (MVP-3); built here while the build job still runs.
+      - name: Build example apps
+        run: pnpm apps:build
+
       - name: Wait for the build
-        run: bash .github/scripts/wait-for-artifact.sh studio-build.tar.zst "Build hosted Studio and the example apps"
+        run: bash .github/scripts/wait-for-artifact.sh studio-build.tar.zst "Build hosted Studio"
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -324,10 +334,21 @@ jobs:
         with:
           persist-credentials: false
 
+      - uses: ./.github/actions/bundled-apps
+        id: bundled-apps
+
       - uses: ./.github/actions/setup
 
+      # `pnpm build:electron:dir` without the bundled apps when they came from
+      # the cache.
+      - name: Build the bundled apps
+        if: steps.bundled-apps.outputs.cache-hit != 'true'
+        run: pnpm apps:bundle
+
       - name: Build the unpacked desktop app
-        run: pnpm build:electron:dir --linux --x64
+        run: |
+          pnpm exec nuxt build --envName electron
+          pnpm exec electron-builder --dir --publish never --linux --x64
 
       - name: Pack the desktop app
         run: tar --zstd -cf studio-desktop.tar.zst dist/linux-unpacked
