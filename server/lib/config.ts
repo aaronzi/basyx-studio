@@ -1,10 +1,12 @@
 import type { DeploymentMode } from '#shared/contract'
 import type { TrustStore } from './apps/trust'
+import type { OutboundProxy } from './network/proxy'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, extname, isAbsolute, resolve } from 'node:path'
 import { z } from 'zod'
 import { appsHostOf, installationPlaceholder } from './apps/origins'
 import { emptyTrustStore, parseTrustStore, TrustStoreError } from './apps/trust'
+import { parseOutboundProxy, ProxyConfigurationError } from './network/proxy'
 
 const csv = z
   .string()
@@ -138,6 +140,11 @@ export interface StudioConfig {
    * the browser may not read them (ADR 0042); `*` for any.
    */
   externalFileOrigins: '*' | string[]
+  /**
+   * The HTTP proxy for outbound requests (HTTP_PROXY, HTTPS_PROXY, NO_PROXY;
+   * ADR 0052); `null` when every request goes direct.
+   */
+  outboundProxy: OutboundProxy | null
   secureCookies: boolean
   apps: StudioAppsConfig
   /**
@@ -346,6 +353,7 @@ export function loadStudioConfig (env: NodeJS.ProcessEnv, deploymentMode: Deploy
     sessionTtlMs: values.STUDIO_SESSION_TTL_HOURS * 60 * 60 * 1000,
     allowPrivateNetworkTargets: (values.STUDIO_PRIVATE_NETWORK_TARGETS ?? (deploymentMode === 'desktop' ? 'allow' : 'deny')) === 'allow',
     externalFileOrigins: externalFileOrigins(values.STUDIO_EXTERNAL_FILE_ORIGINS, deploymentMode),
+    outboundProxy: outboundProxyOf(env),
     secureCookies: publicUrl.startsWith('https://'),
     apps: {
       baseUrl: appsBaseUrl,
@@ -393,6 +401,17 @@ function appsOriginOf (value: string, publicUrl: string): string {
 function externalFileOrigins (entries: string[] | undefined, mode: DeploymentMode): '*' | string[] {
   const listed = entries ?? (mode === 'desktop' ? ['*'] : [])
   return listed.includes('*') ? '*' : listed.map(entry => new URL(entry).origin)
+}
+
+function outboundProxyOf (env: NodeJS.ProcessEnv): OutboundProxy | null {
+  try {
+    return parseOutboundProxy(env)
+  } catch (error) {
+    if (error instanceof ProxyConfigurationError) {
+      throw new ConfigurationError(error.message)
+    }
+    throw error
+  }
 }
 
 /** Settings that work but deserve a line in the log at startup. */

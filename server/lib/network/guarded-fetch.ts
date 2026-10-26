@@ -1,11 +1,14 @@
 import type { AddressPolicy } from './address-policy'
+import type { OutboundProxy } from './proxy'
 import type { LookupAddress } from 'node:dns'
-import type { Response as UndiciResponse } from 'undici'
+import type { ConnectionOptions, TLSSocket } from 'node:tls'
+import type { Dispatcher, Response as UndiciResponse } from 'undici'
 import { lookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
 import { connect as tlsConnect } from 'node:tls'
-import { Agent, fetch as undiciFetch } from 'undici'
+import { Agent, Client, ProxyAgent, fetch as undiciFetch } from 'undici'
 import { rejectAddress, rejectUrl } from './address-policy'
+import { proxyFor, redactProxyUrl } from './proxy'
 
 /**
  * A TLS client certificate (mutual TLS). `identity` names the certificate for
@@ -98,19 +101,49 @@ function createGuardedAgent (policy: AddressPolicy, protocol: string, certificat
   })
 }
 
-const agents = new Map<string, Agent>()
-
-/** The agent cache key of a request: one agent per address policy, protocol and client certificate. */
-export function agentKey (policy: OutboundPolicy, protocol: string): string {
-  const certificate = protocol === 'https:' ? policy.clientCertificate : undefined
-  return `${policy.allowPrivateNetwork}:${protocol}:${certificate ? `cert:${certificate.identity}` : ''}`
+// Tunnels https requests with CONNECT and forwards http requests to the
+// proxy. Studio never connects to the target itself, so no lookup guards the
+// target's address at connect time; the pre-flight check in `checkHost` does
+// (ADR 0052). The proxy is connected to as configured: its own address is
+// the deployment's choice, not a target.
+function createProxyAgent (proxy: URL, protocol: string, certificate: ClientCertificate | undefined): ProxyAgent {
+  return new ProxyAgent({
+    uri: proxy.href,
+    ...(certificate && protocol === 'https:' ? { requestTls: { key: certificate.key, cert: certificate.cert } } : {}),
+  })
 }
 
-function agentFor (policy: OutboundPolicy, protocol: string): Agent {
-  const key = agentKey(policy, protocol)
+const agents = new Map<string, Dispatcher>()
+
+let outboundProxy: OutboundProxy | null = null
+
+/**
+ * Sets the deployment's outbound proxy (ADR 0052), once at startup; `null`
+ * sends every request direct. Closes the agents made for the previous one.
+ */
+export function configureOutboundProxy (proxy: OutboundProxy | null): void {
+  outboundProxy = proxy
+  for (const agent of agents.values()) {
+    agent.close().catch(() => {})
+  }
+  agents.clear()
+}
+
+/**
+ * The agent cache key of a request: one agent per address policy, protocol,
+ * client certificate, and whether it goes through the proxy.
+ */
+export function agentKey (policy: OutboundPolicy, protocol: string, proxied = false): string {
+  const certificate = protocol === 'https:' ? policy.clientCertificate : undefined
+  return `${policy.allowPrivateNetwork}:${protocol}:${certificate ? `cert:${certificate.identity}` : ''}${proxied ? ':proxy' : ''}`
+}
+
+function agentFor (policy: OutboundPolicy, protocol: string, proxy: URL | null): Dispatcher {
+  const key = agentKey(policy, protocol, proxy !== null)
   let agent = agents.get(key)
   if (!agent) {
-    agent = createGuardedAgent(policy, protocol, protocol === 'https:' ? policy.clientCertificate : undefined)
+    const certificate = protocol === 'https:' ? policy.clientCertificate : undefined
+    agent = proxy ? createProxyAgent(proxy, protocol, certificate) : createGuardedAgent(policy, protocol, certificate)
     agents.set(key, agent)
   }
   return agent
@@ -160,35 +193,56 @@ function errorCode (error: unknown): string | undefined {
  * connection that the server closed right after its alert as "other side
  * closed" when the close arrives first, so a failed HTTPS request is
  * diagnosed with one more handshake (same address guard and certificate, no
- * HTTP request). Resolves with the alert error; with `ESTUDIOTLSCLOSED` if
- * the server closed the connection right after the handshake without an
- * alert, as Node's TLS servers do; or undefined.
+ * HTTP request), through a tunnel of the outbound proxy if the request went
+ * through it. Resolves with the alert error; with `ESTUDIOTLSCLOSED` if the
+ * server closed the connection right after the handshake without an alert,
+ * as Node's TLS servers do; or undefined.
  */
-function readTlsAlert (url: URL, policy: OutboundPolicy): Promise<unknown> {
+function readTlsAlert (url: URL, policy: OutboundPolicy, proxy: URL | null): Promise<unknown> {
   const host = url.hostname.replace(/^\[|\]$/g, '')
+  const port = Number(url.port || 443)
   const certificate = policy.clientCertificate
   return new Promise(resolve => {
-    const socket = tlsConnect({
-      host,
-      port: Number(url.port || 443),
-      servername: isIP(host) ? undefined : host,
-      lookup: guardedLookup(policy, 'https:'),
-      ...(certificate ? { key: certificate.key, cert: certificate.cert } : {}),
-    })
+    let socket: TLSSocket | undefined
+    let tunnel: Client | undefined
     const settle = (error?: unknown) => {
       clearTimeout(timer)
-      socket.destroy()
+      socket?.destroy()
+      tunnel?.destroy().catch(() => {})
       resolve(error)
     }
     // A server that accepts the certificate stays silent until the request.
     const timer = setTimeout(settle, Math.min(policy.timeoutMs, 2000))
-    let secured = false
-    socket.on('secureConnect', () => {
-      secured = true
-    })
-    socket.on('error', settle)
-    socket.on('close', () => settle(secured ? Object.assign(new Error('closed after the handshake'), { code: 'ESTUDIOTLSCLOSED' }) : undefined))
+    const handshake = (connection: ConnectionOptions) => {
+      socket = tlsConnect({
+        ...connection,
+        servername: isIP(host) ? undefined : host,
+        ...(certificate ? { key: certificate.key, cert: certificate.cert } : {}),
+      })
+      let secured = false
+      socket.on('secureConnect', () => {
+        secured = true
+      })
+      socket.on('error', settle)
+      socket.on('close', () => settle(secured ? Object.assign(new Error('closed after the handshake'), { code: 'ESTUDIOTLSCLOSED' }) : undefined))
+    }
+    if (!proxy) {
+      handshake({ host, port, lookup: guardedLookup(policy, 'https:') })
+      return
+    }
+    tunnel = new Client(proxy.origin)
+    tunnel.connect({ path: `${url.hostname}:${port}`, headers: { host: `${url.hostname}:${port}`, ...proxyAuthorization(proxy) } })
+      .then(({ socket: raw, statusCode }) => statusCode === 200 ? handshake({ socket: raw }) : settle(), () => settle())
   })
+}
+
+/** The Proxy-Authorization header for the credentials in a proxy URL, as undici's ProxyAgent sends it. */
+function proxyAuthorization (proxy: URL): Record<string, string> {
+  if (!proxy.username && !proxy.password) {
+    return {}
+  }
+  const credentials = `${decodeURIComponent(proxy.username)}:${decodeURIComponent(proxy.password)}`
+  return { 'proxy-authorization': `Basic ${Buffer.from(credentials).toString('base64')}` }
 }
 
 /** Maps TLS alerts about the client certificate to typed failures. */
@@ -212,7 +266,12 @@ function certificateFailure (error: unknown, origin: string, presented: boolean)
   return undefined
 }
 
-/** Resolves a host and checks every address against the policy. */
+/**
+ * Resolves a host and checks every address against the policy. A name that
+ * only the outbound proxy can resolve passes for https: the proxy resolves
+ * it, and IP literals are checked all the same (ADR 0052). Plain HTTP must
+ * resolve here, because it may only reach private networks.
+ */
 export async function checkHost (url: URL, policy: AddressPolicy): Promise<void> {
   const staticReason = rejectUrl(url)
   if (staticReason) {
@@ -222,6 +281,9 @@ export async function checkHost (url: URL, policy: AddressPolicy): Promise<void>
   try {
     addresses = await lookup(url.hostname.replace(/^\[|\]$/g, ''), { all: true, verbatim: true })
   } catch (error) {
+    if (url.protocol === 'https:' && proxyFor(url, outboundProxy)) {
+      return
+    }
     throw new NetworkFailure('unreachable', `host ${url.hostname} could not be resolved`, { cause: error })
   }
   for (const address of addresses) {
@@ -259,11 +321,26 @@ function limitBody (response: UndiciResponse, maxBytes: number, onExceeded: (fai
   return new Response(limited, init)
 }
 
+/** Why a request through the outbound proxy failed, with the proxy's status if it refused the tunnel. */
+function proxyFailureMessage (url: URL, proxy: URL, error: unknown): string {
+  let current = error
+  for (let depth = 0; current && depth < 5; depth++) {
+    const status = /Proxy response \((\d{3})\)/.exec((current as Error).message ?? '')?.[1]
+    if (status) {
+      return `the outbound proxy ${redactProxyUrl(proxy)} refused the connection to ${url.origin} with HTTP ${status}`
+    }
+    current = (current as { cause?: unknown }).cause
+  }
+  return `request to ${url.origin} through the outbound proxy ${redactProxyUrl(proxy)} failed`
+}
+
 /**
  * A fetch implementation for all outbound Studio requests (AAS targets and
  * IdPs). It enforces the origin allowlist and address policy, never follows
  * redirects, and bounds time and response size. There is no generic proxy:
- * callers only obtain a guarded fetch for a configured target or IdP.
+ * callers only obtain a guarded fetch for a configured target or IdP. The
+ * deployment's outbound proxy (ADR 0052), if any, carries the request after
+ * these checks.
  *
  * A redirect is a failure, unless `returnRedirects` hands it to a caller that
  * reads it as an answer; it is never followed either way.
@@ -294,6 +371,7 @@ export function createGuardedFetch (
       headers.set(name, value)
     }
 
+    const proxy = proxyFor(url, outboundProxy)
     const signals = [AbortSignal.timeout(policy.timeoutMs)]
     if (init?.signal) {
       signals.push(init.signal)
@@ -310,7 +388,7 @@ export function createGuardedFetch (
         body: request.body,
         redirect: 'manual',
         signal: AbortSignal.any(signals),
-        dispatcher: agentFor(policy, url.protocol),
+        dispatcher: agentFor(policy, url.protocol, proxy),
         duplex: request.body ? 'half' : undefined,
       })
     } catch (error) {
@@ -321,7 +399,7 @@ export function createGuardedFetch (
       const presented = url.protocol === 'https:' && policy.clientCertificate !== undefined
       let tlsFailure = certificateFailure(error, url.origin, presented)
       if (!tlsFailure && url.protocol === 'https:' && errorCode(error) === 'UND_ERR_SOCKET') {
-        tlsFailure = certificateFailure(await readTlsAlert(url, policy), url.origin, presented)
+        tlsFailure = certificateFailure(await readTlsAlert(url, policy, proxy), url.origin, presented)
       }
       if (tlsFailure) {
         return fail(tlsFailure)
@@ -329,7 +407,7 @@ export function createGuardedFetch (
       if ((error as Error).name === 'TimeoutError') {
         return fail(new NetworkFailure('timeout', `no response within ${policy.timeoutMs} ms`, { cause: error }))
       }
-      return fail(new NetworkFailure('unreachable', `request to ${url.origin} failed`, { cause: error }))
+      return fail(new NetworkFailure('unreachable', proxy ? proxyFailureMessage(url, proxy, error) : `request to ${url.origin} failed`, { cause: error }))
     }
 
     if (response.status >= 300 && response.status < 400) {
