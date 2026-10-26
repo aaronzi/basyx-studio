@@ -21,6 +21,8 @@ import { applyMigrations } from '../lib/database/migrate'
 import { FileGrantStore } from '../lib/desktop/grants'
 import { parseInfrastructureSources } from '../lib/infrastructure-file'
 import { createInfrastructure, deleteInfrastructure, reconcileManagedInfrastructures } from '../lib/infrastructures'
+import { configureOutboundProxy } from '../lib/network/guarded-fetch'
+import { describeOutboundProxy } from '../lib/network/proxy'
 import { ensureDesktopSession } from '../lib/sessions'
 import { CredentialBroker } from '../lib/targets/credentials'
 import { studioPath } from '../lib/urls'
@@ -118,6 +120,10 @@ async function initialize (): Promise<StudioRuntime> {
   const config = loadStudioConfig(process.env, deploymentMode, app.baseURL)
   for (const warning of configurationWarnings(config, process.env)) {
     console.warn(`[studio] ${warning}`)
+  }
+  configureOutboundProxy(config.outboundProxy)
+  if (config.outboundProxy) {
+    console.info(`[studio] ${describeOutboundProxy(config.outboundProxy)}`)
   }
   const handle = await openDatabase(config.database)
   try {

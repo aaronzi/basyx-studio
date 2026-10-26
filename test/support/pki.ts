@@ -21,7 +21,7 @@ function keyPair (): { privateKey: forge.pki.rsa.PrivateKey, publicKey: forge.pk
 function issue (
   commonName: string,
   issuer: TestIdentity | null,
-  options: { ca?: boolean, server?: boolean, notAfter?: Date } = {},
+  options: { ca?: boolean, server?: boolean, notAfter?: Date, dnsNames?: string[] } = {},
 ): TestIdentity {
   const { privateKey, publicKey } = keyPair()
   const cert = forge.pki.createCertificate()
@@ -36,7 +36,7 @@ function issue (
     { name: 'basicConstraints', cA: options.ca === true },
     { name: 'keyUsage', keyCertSign: options.ca === true, digitalSignature: true, keyEncipherment: true },
     ...(options.ca ? [] : [{ name: 'extKeyUsage', serverAuth: options.server === true, clientAuth: options.server !== true }]),
-    ...(options.server ? [{ name: 'subjectAltName', altNames: [{ type: 7, ip: '127.0.0.1' }] }] : []),
+    ...(options.server ? [{ name: 'subjectAltName', altNames: [{ type: 7, ip: '127.0.0.1' }, ...(options.dnsNames ?? []).map(value => ({ type: 2, value }))] }] : []),
   ])
   cert.sign(issuer?.key ?? privateKey, forge.md.sha256.create())
   return { key: privateKey, cert, keyPem: forge.pki.privateKeyToPem(privateKey), certPem: forge.pki.certificateToPem(cert) }
@@ -46,8 +46,9 @@ export function createCa (commonName: string): TestIdentity {
   return issue(commonName, null, { ca: true })
 }
 
-export function issueServer (ca: TestIdentity): TestIdentity {
-  return issue('127.0.0.1', ca, { server: true })
+/** A server certificate for 127.0.0.1 and, e.g. for targets behind a proxy, `dnsNames`. */
+export function issueServer (ca: TestIdentity, dnsNames: string[] = []): TestIdentity {
+  return issue('127.0.0.1', ca, { server: true, dnsNames })
 }
 
 export function issueClient (ca: TestIdentity, commonName: string, notAfter?: Date): TestIdentity {

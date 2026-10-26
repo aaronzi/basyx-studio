@@ -97,6 +97,7 @@ holds the value (for Docker and Kubernetes secrets); set one or the other.
 | `STUDIO_UPLOAD_MAX_BYTES` | 100 MiB | Largest AASX, JSON or XML file users may upload. |
 | `STUDIO_PRIVATE_NETWORK_TARGETS` | `deny` | `allow` lets infrastructures on private or loopback addresses be used (each also needs `allowPrivateNetwork`). Needed for services on the same Compose or cluster network. |
 | `STUDIO_EXTERNAL_FILE_ORIGINS` | none (desktop: `*`) | Origins, comma-separated, whose files Studio's server fetches when AAS content names a file there and the browser may not read it (no CORS headers), e.g. `https://c1.api.wago.com`. `*` allows any public HTTPS origin, never private addresses. See [ADR 0042](../adr/0042-external-files-through-studio.md). |
+| `HTTP_PROXY`, `HTTPS_PROXY`, `NO_PROXY` | none | Proxy for Studio's outbound requests, also in lower case, which takes precedence ([below](#outbound-proxy)). |
 
 ### Login
 
@@ -163,6 +164,42 @@ not add `X-Frame-Options` or a `Content-Security-Policy`, and must keep the
 CORS headers Studio sets ([deployment variants](../architecture/deployment-variants.md#apps-origin-and-backend-runtime-mvp-3)).
 Two Studios under different paths of one origin keep separate session
 cookies.
+
+## Outbound proxy
+
+Where pods reach external hosts only through an HTTP proxy, set the
+conventional variables; Studio reads them at startup
+([ADR 0052](../adr/0052-outbound-http-proxy.md)):
+
+| Variable | Description |
+| --- | --- |
+| `HTTPS_PROXY` | Proxy for https targets, e.g. `http://proxy.example.org:3128`; CONNECT tunnels keep TLS end to end with the target. Without it, `HTTP_PROXY` serves https targets too. |
+| `HTTP_PROXY` | Proxy for plain http targets. |
+| `NO_PROXY` | Targets that go direct, separated by commas: hosts with their subdomains (`example.org`, `.svc`), subdomains only (`*.example.org`), IP addresses, CIDR ranges for IP targets (`10.0.0.0/8`), each optionally with a port (`aas.example.org:8443`), or `*` for all. |
+
+They cover every request of Studio's server: infrastructures and their
+registries, the login and token exchange at the IdP, connections and
+external files. Loopback always goes direct. The browser uses its own proxy
+settings. The proxy URL may contain credentials
+(`http://user:password@proxy:3128`); Studio logs it as `http://***@proxy:3128`.
+Lower-case variants (`https_proxy`) win over upper-case ones.
+
+List every in-cluster target in `NO_PROXY`, or its requests go to the proxy:
+
+```sh
+HTTPS_PROXY=http://proxy.example.org:3128
+HTTP_PROXY=http://proxy.example.org:3128
+NO_PROXY=.svc,.cluster.local,aas-env,keycloak,10.0.0.0/8
+```
+
+Short service names such as `aas-env` contain no dot and must be listed
+exactly. The allowlists, the private-network policy, redirect checks,
+timeouts and size limits apply to the target as before; the proxy's own
+address is not checked against `STUDIO_PRIVATE_NETWORK_TARGETS`. Studio
+still resolves a proxied name to check its addresses. Where the pod cannot
+resolve external names, https requests go on and the proxy resolves them,
+so restrict the proxy to external destinations; plain http targets must
+resolve in the pod.
 
 ## Apps origins
 
@@ -557,5 +594,7 @@ For a Helm chart (planned in `eclipse-basyx/charts`):
 - Ingress: the Studio host (path `STUDIO_BASE_PATH`) and, with apps, the apps
   host, both to the same service. With one origin per installation, the apps
   host is a wildcard (`*.apps.example.org`) with a wildcard certificate.
+- Egress proxy: `HTTPS_PROXY`, `HTTP_PROXY` and a `NO_PROXY` that lists the
+  cluster's domains, service names and CIDR ranges ([above](#outbound-proxy)).
 - Shutdown: Studio stops on `SIGTERM`; startup with an invalid configuration
   exits with code 1.

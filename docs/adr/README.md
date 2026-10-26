@@ -59,6 +59,7 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0049](0049-structural-writes-and-attachments-for-apps.md) | Proposed | Structural writes and attachment uploads for apps on the editor's paths; edit mode checked on the server |
 | [0050](0050-pdfjs-for-the-file-system-view.md) | Proposed | PDF.js in the bundled FileSystem view for PDF previews, on the page, without worker or WebAssembly |
 | [0051](0051-views-of-other-apps.md) | Proposed | Other apps' submodel views in Studio's dialog (`studio.ui.openView`) and, with an origin per installation, read-only inline (`studio.ui.embedView`); no chart component in the app kit |
+| [0052](0052-outbound-http-proxy.md) | Proposed | Outbound requests through the `HTTP_PROXY`/`HTTPS_PROXY` proxy, except loopback and `NO_PROXY` (hosts, suffixes, ports, CIDR ranges); the guards apply to the target, not the proxy |
 
 ## Template
 
