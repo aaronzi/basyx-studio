@@ -32,7 +32,7 @@
                     :key="model.path"
                     color="primary"
                     data-test="model"
-                    prepend-icon="mdi-cube-outline"
+                    :prepend-icon="model.icon"
                     :text="`${model.fileName} · ${modelFormatLabels[model.format]}`"
                   />
 

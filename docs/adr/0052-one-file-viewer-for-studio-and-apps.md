@@ -42,9 +42,13 @@ looked alike.
   - `./markdown`: Markdown rendering. `./monaco`: the languages Monaco needs.
   - `./pdf`: PDF.js.
 - **Its components import the Vuetify components they use**, so they run in
-  Studio and in apps without registration. They are published as source
-  (`.vue`), which the consumer's Vite compiles. The texts come with the
-  package in Studio's seven locales; the host passes its locale.
+  Studio and in apps without registration. In the workspace, Studio and the
+  bundled apps compile them from source; for publishing, `tsc` builds the
+  core and a Vite library build the Vue entries, with declarations from
+  `vue-tsc`, so the package holds built output only (ADR 0043), as
+  `scripts/check-app-tarballs.mjs` checks. Vue, Vuetify and the libraries
+  stay imports. The texts come with the package in Studio's seven locales;
+  the host passes its locale.
 - **The host loads Monaco** (`provideFileViewer({ monaco })`), because only
   its bundler can load Monaco's workers. Studio passes its own setup. An app
   without Monaco shows texts without highlighting.

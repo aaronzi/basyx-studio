@@ -56,5 +56,6 @@ await view.load(async () => (await client.ui.readFile(submodelId, path)).bytes, 
 
 `./vue` stays light: thumbnails and the state only. `./viewer` loads PDF.js
 and the 3D viewer when a file needs them, so a build that imports it holds
-them. The components import the Vuetify components they use and are
-published as `.vue` source for the app's Vite to compile.
+them. The components import the Vuetify components they use, so an app need
+not register them; the published package holds them built, with Vue,
+Vuetify and the libraries as imports.
