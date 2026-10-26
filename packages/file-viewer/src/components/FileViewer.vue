@@ -141,7 +141,7 @@
         </v-empty-state>
 
         <v-empty-state
-          v-else-if="state.content.value?.bytes.length === 0"
+          v-else-if="state.content.value?.bytes.length === 0 && info.kind !== 'text'"
           data-test="file-viewer-empty"
           icon="mdi-file-outline"
           size="56"
@@ -296,7 +296,6 @@
   const info = computed(() => props.state.info.value)
   /** The text editor shows: a text without a second view, or its source. */
   const showsText = computed(() => props.state.status.value === 'ready'
-    && (props.state.content.value?.bytes.length ?? 0) > 0
     && ((info.value.kind === 'text' && (!info.value.alternate || props.state.showSource.value)) || (info.value.alternate === 'svg' && props.state.showSource.value)))
   const primaryViewLabel = computed(() => {
     switch (info.value.alternate) {

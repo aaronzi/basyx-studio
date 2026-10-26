@@ -1,7 +1,7 @@
 import type { FileContent, FileSource } from '../../packages/file-viewer/src/state'
 import { describe, expect, it } from 'vitest'
 import { effectScope, nextTick, shallowRef } from 'vue'
-import { FileConflictError, useFileViewerState } from '../../packages/file-viewer/src/state'
+import { FileConflictError, useFileViewerState, withCachedContent } from '../../packages/file-viewer/src/state'
 
 // The file viewer's state (packages/file-viewer/src/state.ts, ADR 0052): one
 // file as every view of it shows it, read once, with its unsaved text.
@@ -85,6 +85,74 @@ describe('useFileViewerState', () => {
     state.setText('Größe?')
     expect(await state.save()).toBe(false)
     expect(state.saveError.value).toBeInstanceOf(FileConflictError)
+    expect(state.dirty.value).toBe(true)
+  })
+})
+
+describe('useFileViewerState while saving, restoring and sharing', () => {
+  it('keeps the text read-only while a save is on its way', async () => {
+    let finish!: () => void
+    const current = shallowRef(source({ save: () => new Promise<void>(resolve => (finish = resolve)) }))
+    const state = inScope(() => useFileViewerState(current))
+    await state.load()
+    state.setText('Hello A')
+    const saving = state.save()
+    expect(state.writable.value).toBe(false)
+    // What the editor would send while saving does not replace the text being saved.
+    state.setText('Hello B')
+    expect(state.text.value).toBe('Hello A')
+    finish()
+    expect(await saving).toBe(true)
+    expect(state.writable.value).toBe(true)
+    expect(state.dirty.value).toBe(false)
+  })
+
+  it('keeps a restored draft on the version it was made on', async () => {
+    const drafts = new Map<string, { version: string, text: string }>()
+    const store = { get: (key: string) => drafts.get(key), set: (key: string, draft?: { version: string, text: string }) => (draft ? drafts.set(key, draft) : drafts.delete(key)) }
+    drafts.set('notes', { version: '1', text: 'Hello, from version 1' })
+    const newer = () => shallowRef(source({ key: 'a2', draft: { key: 'notes', version: '2' }, save: async () => {} }))
+    const first = inScope(() => useFileViewerState(newer(), { drafts: store }))
+    await first.load()
+    await nextTick()
+    expect(drafts.get('notes')?.version).toBe('1')
+    first.setText('Hello, from version 1, edited')
+    await nextTick()
+    expect(drafts.get('notes')).toEqual({ version: '1', text: 'Hello, from version 1, edited' })
+    // Coming back still warns.
+    const second = inScope(() => useFileViewerState(newer(), { drafts: store }))
+    await second.load()
+    expect(second.draftOutdated.value).toBe(true)
+  })
+
+  it('reads a shared file even when the first reader went away', async () => {
+    let reads = 0
+    const shared = withCachedContent(source({
+      load: async signal => {
+        reads++
+        await new Promise(resolve => setTimeout(resolve, 5))
+        if (signal.aborted) {
+          throw new DOMException('aborted', 'AbortError')
+        }
+        return text('Hello')
+      },
+    }))
+    const thumbnail = new AbortController()
+    const first = shared.load(thumbnail.signal)
+    // The thumbnail unmounts; the view asks for the same bytes.
+    thumbnail.abort()
+    const second = await shared.load(new AbortController().signal)
+    expect(new TextDecoder().decode(second.bytes)).toBe('Hello')
+    await expect(first).resolves.toBe(second)
+    expect(reads).toBe(1)
+  })
+
+  it('lets an empty text file be edited', async () => {
+    const state = inScope(() => useFileViewerState(shallowRef(source({ load: async () => text(''), save: async () => {} }))))
+    await state.load()
+    expect(state.info.value.kind).toBe('text')
+    expect(state.editable.value).toBe(true)
+    state.setText('First line')
     expect(state.dirty.value).toBe(true)
   })
 })

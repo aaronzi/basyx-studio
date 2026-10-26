@@ -15,7 +15,7 @@ export function useFilePreview (targetId: () => string | null) {
   const queryCache = useQueryCache()
   const target = useTarget(() => targetId() ?? '')
 
-  const shown = shallowRef<{ submodelKey: string, detail: ElementDetail } | null>(null)
+  const shown = shallowRef<{ submodelKey: string, detail: ElementDetail, readOnly: boolean } | null>(null)
   const elementPath = () => `/targets/${targetId()}/submodels/${shown.value?.submodelKey}/elements/${shown.value?.detail.key}`
 
   async function reread () {
@@ -34,15 +34,16 @@ export function useFilePreview (targetId: () => string | null) {
     detail: () => shown.value?.detail ?? null,
     editable: () => {
       const capabilities = target.data.value?.capabilities
-      if (!ui.editing || !capabilities?.write) {
+      if (!ui.editing || !capabilities?.write || shown.value?.readOnly) {
         return false
       }
       return (shown.value?.detail.value as Record<string, unknown> | undefined)?.modelType === 'Blob'
         ? capabilities.writeStructure
         : capabilities.files && (session.context?.features.uploads ?? true)
     },
-    onSaved: detail => {
-      if (shown.value) {
+    onSaved: (detail, origin) => {
+      // Only the file the save started from: another may show by now.
+      if (shown.value && shown.value.submodelKey === origin.submodelKey && shown.value.detail.key === origin.elementKey) {
         shown.value = { ...shown.value, detail }
       }
       // The details pane and app views read the element again.
@@ -51,13 +52,13 @@ export function useFilePreview (targetId: () => string | null) {
     onConflict: () => void reread(),
   })
 
-  /** Opens the viewer once the element is read; fails for elements without content. */
-  return async function previewFile (submodelKey: string, elementKey: string): Promise<void> {
+  /** Opens the viewer once the element is read; fails for elements without content. `readOnly` for embedded views. */
+  return async function previewFile (submodelKey: string, elementKey: string, options: { readOnly?: boolean } = {}): Promise<void> {
     const detail = await api<ElementDetail>(`/targets/${targetId()}/submodels/${submodelKey}/elements/${elementKey}`)
     if (!hasFileContent(detail.value as Record<string, unknown>)) {
       throw new StudioApiError({ type: 'about:blank', title: 'The element is no File or Blob with content.', status: 422, code: 'unsupported_operation', requestId: '', retryable: false })
     }
-    shown.value = { submodelKey, detail }
+    shown.value = { submodelKey, detail, readOnly: options.readOnly ?? false }
     dialog.open(state, () => (shown.value = null))
   }
 }

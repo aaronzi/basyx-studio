@@ -81,6 +81,8 @@ test('describes a file in the details tab and shows it in the Visualization tab'
   const before = await views.boundingBox()
   await views.getByRole('button', { name: 'Source' }).click()
   await expect(viewer(page).locator('[data-test="file-viewer-text"] .monaco-editor')).toContainText('# Bracket BR-60', { timeout: 30_000 })
+  // Highlighted: the production build keeps the languages @basyx/file-viewer/monaco registers.
+  await expect.poll(() => viewer(page).locator('[data-test="file-viewer-text"] .view-line span span').evaluateAll(spans => new Set(spans.map(span => span.className)).size)).toBeGreaterThan(1)
   expect((await views.boundingBox())?.x).toBe(before?.x)
 
   // Full-screen, Close is the last button, after the toggle.

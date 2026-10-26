@@ -46,13 +46,18 @@ export interface FileDraftStore {
   set: (key: string, draft: { version: string, text: string } | undefined) => void
 }
 
-/** Reads each source's bytes once, also when a view and a thumbnail ask for them. */
+/**
+ * Reads each source's bytes once, also when a view and a thumbnail ask for
+ * them. The shared read has a lifetime of its own: a thumbnail that goes away
+ * (and aborts its signal) does not cancel it for a view that shows the file
+ * next. Each caller checks its own signal once the bytes are there.
+ */
 export function withCachedContent (source: FileSource): FileSource {
   let pending: Promise<FileContent> | null = null
   return {
     ...source,
-    load: signal => {
-      pending ??= source.load(signal).catch(error => {
+    load: () => {
+      pending ??= source.load(new AbortController().signal).catch(error => {
         pending = null
         throw error
       })
@@ -111,10 +116,18 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     return decoded.value && decoded.value.encoding === null ? 'encoding' : null
   })
   const editable = computed(() => info.value.kind === 'text' && decoded.value !== null && readOnlyReason.value === null)
+  /** The text can change now: editable, and not while a save is on its way (what is typed then would be lost). */
+  const writable = computed(() => editable.value && !saving.value)
 
   // Sources are compared by key: a host may build a new source object for the
   // same file whenever something it depends on changes (e.g. permissions).
   let controller: AbortController | null = null
+  /**
+   * The version the unsaved text is based on: kept from a restored draft
+   * until it is saved or discarded, so restoring an older draft never marks
+   * it current.
+   */
+  let draftBase: string | null = null
 
   function reset () {
     controller?.abort()
@@ -124,6 +137,7 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     content.value = null
     text.value = ''
     draftOutdated.value = false
+    draftBase = null
     saveError.value = null
     showSource.value = false
     page.value = 1
@@ -133,9 +147,11 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     const draft = source.value?.draft
     const stored = draft ? options.drafts?.get(draft.key) : undefined
     if (stored && decoded.value && stored.text !== decoded.value.text) {
+      draftBase = stored.version
       text.value = stored.text
       draftOutdated.value = stored.version !== draft!.version
     } else {
+      draftBase = null
       text.value = decoded.value?.text ?? ''
       draftOutdated.value = false
     }
@@ -190,7 +206,13 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     if (!draft || !options.drafts || status.value !== 'ready' || !decoded.value) {
       return
     }
-    options.drafts.set(draft.key, value === decoded.value.text ? undefined : { version: draft.version, text: value })
+    if (value === decoded.value.text) {
+      draftBase = null
+      options.drafts.set(draft.key, undefined)
+      return
+    }
+    draftBase ??= draft.version
+    options.drafts.set(draft.key, { version: draftBase, text: value })
   })
 
   function discard () {
@@ -198,6 +220,7 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     if (draft) {
       options.drafts?.set(draft.key, undefined)
     }
+    draftBase = null
     text.value = decoded.value?.text ?? ''
     draftOutdated.value = false
     saveError.value = null
@@ -206,7 +229,7 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
   /** Saves the text in the file's encoding; on success the file is the saved bytes. */
   async function save (): Promise<boolean> {
     const current = source.value
-    if (!current?.save || !decoded.value?.encoding || !dirty.value) {
+    if (!current?.save || !decoded.value?.encoding || !dirty.value || saving.value) {
       return false
     }
     saving.value = true
@@ -217,6 +240,7 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
       if (current.draft) {
         options.drafts?.set(current.draft.key, undefined)
       }
+      draftBase = null
       if (current.key === source.value?.key) {
         content.value = { bytes, contentType: content.value?.contentType ?? current.contentType }
         text.value = decoded.value?.text ?? text.value
@@ -232,7 +256,11 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
   }
 
   // Setters for the views, which get the state as a prop.
-  const setText = (value: string) => (text.value = value)
+  const setText = (value: string) => {
+    if (!saving.value) {
+      text.value = value
+    }
+  }
   const setShowSource = (value: boolean) => (showSource.value = value)
   const toggleWrap = () => (wrap.value = !wrap.value)
   const setPage = (value: number) => (page.value = value)
@@ -250,6 +278,7 @@ export function useFileViewerState (sourceRef: MaybeRefOrGetter<FileSource | nul
     dirty,
     draftOutdated,
     editable,
+    writable,
     readOnlyReason,
     showSource,
     wrap,

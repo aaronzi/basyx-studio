@@ -480,7 +480,15 @@
     submodelKey: () => props.item?.elementKey ? props.item.submodelKey : null,
     detail: () => props.item?.elementKey ? detail.value : null,
     editable: () => props.canWrite && (value.value.modelType === 'Blob' ? props.capabilities.writeStructure : fileUploads.value),
-    onSaved: onChanged,
+    onSaved: (saved, origin) => {
+      // The selection may have changed while the save was on its way.
+      if (origin.targetId === targetId.value && props.item?.submodelKey === origin.submodelKey && props.item.elementKey === origin.elementKey) {
+        onChanged(saved)
+      } else {
+        void queryCache.invalidateQueries({ key: ['targets', origin.targetId, 'details'] })
+        emit('changed', saved)
+      }
+    },
     onConflict: () => void details.refetch(),
   })
   const fileView = computed(() => Boolean(props.item?.elementKey && hasFileContent(value.value)))

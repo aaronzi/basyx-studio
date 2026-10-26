@@ -618,8 +618,9 @@ export interface Methods {
    * full-screen file viewer (ADR 0052): images, PDFs, text, Markdown, CSV,
    * 3D models, audio and video, for internal files and http(s) addresses
    * alike. Studio reads the element as the user; in its edit mode, texts
-   * can be edited and saved there. Resolves once the viewer is open
-   * (Studio app API 0.1.12).
+   * can be edited and saved there, except from a view embedded in another
+   * app's page, for which the viewer is read-only. Resolves once the viewer
+   * is open (Studio app API 0.1.12).
    */
   'studio.ui.previewFile': { params: { submodelId: string, idShortPath: string }, result: null }
   /**

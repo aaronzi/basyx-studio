@@ -11,14 +11,24 @@ import { fileDraftKey } from '~/stores/fileDrafts'
 // its value. Saving writes the attachment or the Blob's value with the
 // element's revision.
 
+/** The File or Blob element a save started from. */
+export interface ElementFileOrigin {
+  targetId: string
+  submodelKey: string
+  elementKey: string
+}
+
 export interface ElementFileOptions {
   targetId: () => string
   submodelKey: () => string | null
   detail: () => ElementDetail | null
   /** The user may change the content: edit mode, rights, and uploads for Files. */
   editable: () => boolean
-  /** The element after a save, e.g. to update the details. */
-  onSaved?: (detail: ElementDetail) => void
+  /**
+   * The element after a save, with the file the save started from: the
+   * selection may have changed while the request was on its way.
+   */
+  onSaved?: (detail: ElementDetail, origin: ElementFileOrigin) => void
   /** A save found a newer revision; the details should be read again. */
   onConflict?: () => void
 }
@@ -97,9 +107,10 @@ export function useElementFileSource (options: ElementFileOptions) {
     const external = externalFile(element)
     const editable = options.editable() && Boolean(detail.revision) && !external
     const draft = { key: fileDraftKey(targetId, submodelKey, detail.key), version: revision }
+    const origin: ElementFileOrigin = { targetId, submodelKey, elementKey: detail.key }
     const save = async (request: () => Promise<ElementDetail>) => {
       try {
-        options.onSaved?.(await request())
+        options.onSaved?.(await request(), origin)
       } catch (error) {
         throw conflictOr(error)
       }

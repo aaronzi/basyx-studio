@@ -46,8 +46,9 @@
     folding: true,
     fontSize: 13,
     wordWrap: props.state.wrap.value ? 'on' : 'off',
-    readOnly: !props.state.editable.value,
-    domReadOnly: !props.state.editable.value,
+    // Read-only while a save is on its way, so nothing typed then gets lost.
+    readOnly: !props.state.writable.value,
+    domReadOnly: !props.state.writable.value,
     renderValidationDecorations: props.state.editable.value ? 'on' : 'off',
     ariaLabel: props.state.source.value?.name ?? t('kinds.text'),
     theme: theme.current.value.dark ? 'vs-dark' : 'vs',
@@ -78,7 +79,7 @@
       model = api.editor.createModel(props.state.text.value, language.value, uri)
       instance = api.editor.create(host.value, { ...options.value, model })
       model.onDidChangeContent(() => {
-        if (!applying && model && props.state.editable.value) {
+        if (!applying && model && props.state.writable.value) {
           props.state.setText(model.getValue())
         }
       })
