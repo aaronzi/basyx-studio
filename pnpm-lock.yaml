@@ -260,9 +260,6 @@ importers:
       '@basyx/file-viewer':
         specifier: workspace:*
         version: link:packages/file-viewer
-      '@basyx/model-viewer':
-        specifier: workspace:*
-        version: link:packages/model-viewer
       '@basyx/studio-app-kit':
         specifier: workspace:*
         version: link:packages/studio-app-kit
@@ -474,9 +471,6 @@ importers:
       '@basyx/file-viewer':
         specifier: workspace:*
         version: link:../../packages/file-viewer
-      '@basyx/model-viewer':
-        specifier: workspace:*
-        version: link:../../packages/model-viewer
       '@basyx/studio-app-kit':
         specifier: workspace:*
         version: link:../../packages/studio-app-kit
@@ -664,9 +658,9 @@ importers:
 
   examples/apps/inventory:
     dependencies:
-      '@basyx/model-viewer':
+      '@basyx/file-viewer':
         specifier: workspace:*
-        version: link:../../../packages/model-viewer
+        version: link:../../../packages/file-viewer
       '@basyx/studio-app-kit':
         specifier: workspace:*
         version: link:../../../packages/studio-app-kit
@@ -764,19 +758,28 @@ importers:
 
   packages/file-viewer:
     dependencies:
-      '@basyx/model-viewer':
-        specifier: workspace:^
-        version: link:../model-viewer
       dompurify:
         specifier: ^3.4.15
         version: 3.4.15
       markdown-it:
         specifier: ^15.0.3
         version: 15.0.3
+      occt-import-js:
+        specifier: ^0.0.23
+        version: 0.0.23
       pdfjs-dist:
         specifier: 6.4.299
         version: 6.4.299
+      three:
+        specifier: ^0.186.1
+        version: 0.186.1
+      web-ifc:
+        specifier: ^0.0.78
+        version: 0.0.78
     devDependencies:
+      '@types/three':
+        specifier: ^0.186.0
+        version: 0.186.0
       '@vitejs/plugin-vue':
         specifier: ^6.0.10
         version: 6.0.10(vite@8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
@@ -798,31 +801,6 @@ importers:
       vuetify:
         specifier: ^4.2.6
         version: 4.2.6(patch_hash=b38d9461aa6dd0e33f8dde3a31e3cc6edbb1acfc432894b391b1750f568c4687)(@floating-ui/dom@1.8.0)(typescript@6.0.3)(vue-i18n@11.4.13(vue@3.5.44(typescript@6.0.3)))(vue@3.5.44(typescript@6.0.3))
-
-  packages/model-viewer:
-    dependencies:
-      occt-import-js:
-        specifier: ^0.0.23
-        version: 0.0.23
-      three:
-        specifier: ^0.186.1
-        version: 0.186.1
-      web-ifc:
-        specifier: ^0.0.78
-        version: 0.0.78
-    devDependencies:
-      '@types/three':
-        specifier: ^0.186.0
-        version: 0.186.0
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vite:
-        specifier: ^8.3.5
-        version: 8.3.5(@types/node@26.6.5)(esbuild@0.28.2)(jiti@2.7.0)(sass@1.106.1)(terser@5.51.2)(tsx@4.23.15)(yaml@2.9.1)
-      vue:
-        specifier: ^3.5.44
-        version: 3.5.44(typescript@6.0.3)
 
   packages/studio-app-kit:
     dependencies:

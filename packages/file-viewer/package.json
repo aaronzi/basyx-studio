@@ -1,7 +1,7 @@
 {
   "name": "@basyx/file-viewer",
   "version": "0.1.10",
-  "description": "File viewer of BaSyx Studio and its apps: text in Monaco, Markdown, CSV, images, PDF, 3D models, audio and video",
+  "description": "File viewer of BaSyx Studio and its apps: text in Monaco, Markdown, CSV, images, PDF, 3D models (STL, OBJ, glTF, IFC, STEP), audio and video",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -10,11 +10,20 @@
   },
   "homepage": "https://github.com/eclipse-basyx/basyx-studio/tree/main/packages/file-viewer#readme",
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": [
+    "./src/monaco.ts",
+    "./dist/monaco.js"
+  ],
   "exports": {
     ".": "./src/index.ts",
     "./markdown": "./src/markdown.ts",
     "./model": "./src/model.ts",
+    "./model/ifc": "./src/model/ifc.ts",
+    "./model/step": "./src/model/step.ts",
+    "./model/viewer": "./src/model/viewer.ts",
+    "./model/viewer/core": "./src/model/viewer-core.ts",
+    "./model/vue": "./src/model/vue.ts",
+    "./model/vue/core": "./src/model/vue-core.ts",
     "./monaco": "./src/monaco.ts",
     "./pdf": "./src/pdf.ts",
     "./viewer": "./src/viewer.ts",
@@ -30,12 +39,15 @@
     "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@basyx/model-viewer": "workspace:^",
     "dompurify": "^3.4.15",
     "markdown-it": "^15.0.3",
-    "pdfjs-dist": "6.4.299"
+    "occt-import-js": "^0.0.23",
+    "pdfjs-dist": "6.4.299",
+    "three": "^0.186.1",
+    "web-ifc": "^0.0.78"
   },
   "devDependencies": {
+    "@types/three": "^0.186.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "monaco-editor": "^0.57.0",
     "typescript": "^6.0.3",
@@ -51,6 +63,12 @@
   },
   "peerDependenciesMeta": {
     "monaco-editor": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    },
+    "vuetify": {
       "optional": true
     }
   },
@@ -69,6 +87,30 @@
       "./model": {
         "types": "./dist/model.d.ts",
         "default": "./dist/model.js"
+      },
+      "./model/ifc": {
+        "types": "./dist/model/ifc.d.ts",
+        "default": "./dist/model/ifc.js"
+      },
+      "./model/step": {
+        "types": "./dist/model/step.d.ts",
+        "default": "./dist/model/step.js"
+      },
+      "./model/viewer": {
+        "types": "./dist/model/viewer.d.ts",
+        "default": "./dist/model/viewer.js"
+      },
+      "./model/viewer/core": {
+        "types": "./dist/model/viewer-core.d.ts",
+        "default": "./dist/model/viewer-core.js"
+      },
+      "./model/vue": {
+        "types": "./dist/model/vue.d.ts",
+        "default": "./dist/model/vue.js"
+      },
+      "./model/vue/core": {
+        "types": "./dist/model/vue-core.d.ts",
+        "default": "./dist/model/vue-core.js"
       },
       "./monaco": {
         "types": "./dist/monaco.d.ts",

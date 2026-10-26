@@ -19,7 +19,7 @@ import { ParserClient } from './parsers/client.ts'
 // Authors, MIT License. It renders only when something changed. STL, OBJ
 // and glTF are built in; IFC and STEP need their parsers registered
 // (`parsers`), so an app's build holds only the WebAssembly it uses.
-// `@basyx/model-viewer/viewer` registers both.
+// `@basyx/file-viewer/model/viewer` registers both.
 
 /** Colors of the scene, as CSS colors (e.g. from the Vuetify theme). */
 export interface ViewerTheme {
@@ -34,7 +34,7 @@ export interface ModelViewerOptions {
   theme: ViewerTheme
   /** An IFC element was picked (its express ID), or the selection was cleared (`null`). */
   onSelect?: (expressId: number | null) => void
-  /** The parsers of IFC and STEP to use, e.g. `[ifcParser]` of `@basyx/model-viewer/ifc`. */
+  /** The parsers of IFC and STEP to use, e.g. `[ifcParser]` of `@basyx/file-viewer/model/ifc`. */
   parsers?: readonly ModelParser[]
 }
 

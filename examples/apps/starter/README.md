@@ -10,8 +10,7 @@ submodels, and the 3D models they hold.
 | --- | --- |
 | [`@basyx/studio-sdk`](../../../packages/studio-sdk/README.md) | The client (`connect`), and the test Studio (`@basyx/studio-sdk/testing`) |
 | [`@basyx/studio-app-kit`](../../../packages/studio-app-kit/README.md) | `mountApp` with Studio's look, AAS and i18n helpers, the `studioApp()` Vite preset, `studio-app` |
-| [`@basyx/model-viewer`](../../../packages/model-viewer/README.md) | Which File elements hold 3D models |
-| [`@basyx/file-viewer`](../../../packages/file-viewer/README.md) | The icon of each file, as Studio's file viewer shows it |
+| [`@basyx/file-viewer`](../../../packages/file-viewer/README.md) | Which File elements hold 3D models, and the icon of each, as Studio's file viewer shows it |
 
 Copy this folder into a new repository; it is not part of Studio's pnpm
 workspace.

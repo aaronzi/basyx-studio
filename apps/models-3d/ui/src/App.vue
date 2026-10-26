@@ -66,8 +66,8 @@
 <script lang="ts" setup>
   import type { Model3DEntry } from './models3d'
   import type { AppContext, StudioClient } from '@basyx/studio-sdk'
+  import { viewerThemeOf } from '@basyx/file-viewer'
   import { provideFileViewer } from '@basyx/file-viewer/vue'
-  import { viewerThemeOf } from '@basyx/model-viewer'
   import { loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, reactive, ref } from 'vue'

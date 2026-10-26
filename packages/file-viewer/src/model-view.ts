@@ -1,7 +1,7 @@
-import type { ModelFormat, ViewerTheme } from '@basyx/model-viewer'
-import { useModelViewer } from '@basyx/model-viewer/vue'
+import type { ModelFormat, ViewerTheme } from './model/index.ts'
 import { computed, shallowRef } from 'vue'
 import { useFileViewerContext } from './i18n.ts'
+import { useModelViewer } from './model/vue.ts'
 
 // The 3D view's state, shared by Studio's file view and apps that draw their
 // own frame around it (the 3D Models app): the viewer, the element it draws

@@ -44,8 +44,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { ModelFormat } from '@basyx/model-viewer'
-  import { modelFormatLabels, viewerThemeOf } from '@basyx/model-viewer'
+  import type { ModelFormat } from '../model/index.ts'
   import { onMounted, watch } from 'vue'
   import { useTheme } from 'vuetify'
   import { VAlert } from 'vuetify/components/VAlert'
@@ -55,6 +54,7 @@
   import { VSheet } from 'vuetify/components/VSheet'
   import { useFileViewerContext } from '../i18n.ts'
   import { useModelView } from '../model-view.ts'
+  import { modelFormatLabels, viewerThemeOf } from '../model/index.ts'
   import ModelCanvas from './ModelCanvas.vue'
   import ModelElementPanel from './ModelElementPanel.vue'
 

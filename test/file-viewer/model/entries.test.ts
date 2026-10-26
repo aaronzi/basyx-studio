@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest'
 // app that registers only `ifcParser` builds without occt-import-js's
 // WebAssembly and the STEP worker. Built as `pnpm apps:build` builds it.
 
-const example = fileURLToPath(new URL('../../examples/apps/inventory', import.meta.url))
+const example = fileURLToPath(new URL('../../../examples/apps/inventory', import.meta.url))
 
 describe('an IFC-only build', () => {
   it('holds web-ifc and its worker, and nothing of STEP', () => {

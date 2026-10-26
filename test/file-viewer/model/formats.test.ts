@@ -1,11 +1,11 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { detectModelFormat, fileExtension, refineModelFormat } from '../../packages/model-viewer/src/formats'
-import { externalResources, gltfJson, withoutExternalImages } from '../../packages/model-viewer/src/gltf'
+import { detectModelFormat, fileExtension, refineModelFormat } from '../../../packages/file-viewer/src/model/formats'
+import { externalResources, gltfJson, withoutExternalImages } from '../../../packages/file-viewer/src/model/gltf'
 
-// Which files the 3D view offers and reads (packages/model-viewer).
+// Which files the 3D view offers and reads (packages/file-viewer/src/model).
 
-const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../../test-setup/fixtures/models3d/${name}`, import.meta.url)))
+const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../../../test-setup/fixtures/models3d/${name}`, import.meta.url)))
 
 describe('fileExtension', () => {
   it('reads the extension of names, paths and URLs', () => {

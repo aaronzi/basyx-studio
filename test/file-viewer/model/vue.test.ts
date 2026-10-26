@@ -1,19 +1,19 @@
-import type { ModelParser } from '../../packages/model-viewer/src/types'
+import type { ModelParser } from '../../../packages/file-viewer/src/model/types'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { ref } from 'vue'
-import { ifcParser } from '../../packages/model-viewer/src/ifc'
-import { useModelViewer } from '../../packages/model-viewer/src/vue'
-import { useModelViewer as useViewerCore } from '../../packages/model-viewer/src/vue-core'
+import { ifcParser } from '../../../packages/file-viewer/src/model/ifc'
+import { useModelViewer } from '../../../packages/file-viewer/src/model/vue'
+import { useModelViewer as useViewerCore } from '../../../packages/file-viewer/src/model/vue-core'
 
 // The viewer's life in Vue components: only the latest load changes what
-// is shown (packages/model-viewer/src/vue.ts). The renderer is mocked.
+// is shown (packages/file-viewer/src/model/vue.ts). The renderer is mocked.
 
 /** The parsers each viewer was created with. */
 const created: (readonly ModelParser[] | undefined)[] = []
 /** The container of each viewer, and whether it was disposed. */
 const viewers: { container: HTMLElement, disposed: boolean }[] = []
 
-vi.mock('../../packages/model-viewer/src/viewer-core', () => ({
+vi.mock('../../../packages/file-viewer/src/model/viewer-core', () => ({
   ModelViewer: class {
     readonly #record: { container: HTMLElement, disposed: boolean }
 

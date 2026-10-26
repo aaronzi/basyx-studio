@@ -71,7 +71,7 @@
 <script lang="ts" setup>
   import type { ModelFile } from './shells'
   import type { ShellSummary, StudioClient, SubmodelSummary } from '@basyx/studio-sdk'
-  import { modelFormatLabels } from '@basyx/model-viewer'
+  import { modelFormatLabels } from '@basyx/file-viewer'
   import { langText } from '@basyx/studio-app-kit'
   import { computed, ref, watch } from 'vue'
   import { provideI18n } from './i18n'

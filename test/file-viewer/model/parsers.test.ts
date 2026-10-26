@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
-import { IfcModel } from '../../packages/model-viewer/src/parsers/ifc'
-import { readStep } from '../../packages/model-viewer/src/parsers/step'
+import { IfcModel } from '../../../packages/file-viewer/src/model/parsers/ifc'
+import { readStep } from '../../../packages/file-viewer/src/model/parsers/step'
 
 // The IFC (web-ifc) and STEP (OpenCascade) parsers of the 3D view, run in
 // Node on the fixtures of test-setup/fixtures/generate-models3d.mjs.
 
-const require = createRequire(new URL('../../packages/model-viewer/package.json', import.meta.url))
-const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../../test-setup/fixtures/models3d/${name}`, import.meta.url)))
+const require = createRequire(new URL('../../../packages/file-viewer/package.json', import.meta.url))
+const fixture = (name: string) => new Uint8Array(readFileSync(new URL(`../../../test-setup/fixtures/models3d/${name}`, import.meta.url)))
 
 function bounds (positions: Float32Array) {
   const min = [Infinity, Infinity, Infinity]

@@ -28,8 +28,8 @@ describes:
   numbers and dates are formatted with `formatLocale`, in the language of
   the texts.
 - `ui/src/pages/ShellPage.vue` registers only the IFC parser of
-  `@basyx/model-viewer` (`/vue/core` with `ifcParser`), so the package holds
-  web-ifc's WebAssembly and none of STEP's.
+  `@basyx/file-viewer` (`/model/vue/core` with `ifcParser`), so the package
+  holds web-ifc's WebAssembly and none of STEP's.
 - `ui/src/dev.ts` is a test Studio built from `studio-app.json`
   (`createTestStudio({ manifest })`) with a few shells and the IFC model of
   Studio's test fixtures.

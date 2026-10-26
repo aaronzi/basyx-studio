@@ -25,22 +25,29 @@ looked alike.
 
 ## Decision
 
-- **One package, `@basyx/file-viewer`** (MIT, published like
-  `@basyx/model-viewer`), with these entry points:
+- **One package, `@basyx/file-viewer`** (MIT), which holds the 3D viewer of
+  ADR 0039 (`src/model`), shows every kind of file. Its entry points:
   - `.`: what a file is shown as (`detectViewerKind`, refined by the bytes'
-    signature), text decoding and encoding, and CSV.
+    signature, and `detectModelFormat`), text decoding and encoding, and
+    CSV, without Vue or three.js.
   - `./vue`: `provideFileViewer()`, a viewer state per file, and
     `FileThumbnail`. It stays light, without PDF.js or three.js.
   - `./viewer`: `FileViewer`, which shows images (an SVG also as source),
     PDFs (PDF.js), text in Monaco, rendered Markdown, CSV as a table, 3D
-    models (`@basyx/model-viewer`), audio and video.
+    models, audio and video.
   - `./model`: the 3D view in parts (`useModelView`, `ModelCanvas`,
     `ModelElementPanel`) for an app that draws its own frame around it. The
     *3D Models* app keeps its card, controls and preview toggle, and takes
     the canvas, the loading state, the picked IFC element and the problem
     texts from here, as Studio's file view does.
+  - `./model/vue`, `./model/viewer` (and `/core` without parsers),
+    `./model/ifc`, `./model/step`: the 3D engine of ADR 0039, unchanged
+    (`useModelViewer`, `ModelViewer`, the IFC and STEP parsers), for apps
+    with a 3D UI of their own.
   - `./markdown`: Markdown rendering. `./monaco`: the languages Monaco needs.
   - `./pdf`: PDF.js.
+- **Vue and Vuetify are optional peer dependencies**: the core and the 3D
+  engine without Vue (`./model/viewer`) run without them.
 - **Its components import the Vuetify components they use**, so they run in
   Studio and in apps without registration. In the workspace, Studio and the
   bundled apps compile them from source; for publishing, `tsc` builds the
@@ -106,9 +113,10 @@ looked alike.
 - New dependencies that need Eclipse IP review: `markdown-it` (MIT) and
   `dompurify` (Apache-2.0 / MPL-2.0). `pdfjs-dist` (ADR 0050) is now also a
   dependency of Studio.
-- A build that imports `./viewer` holds the 3D viewer's WebAssembly parsers,
-  as `@basyx/model-viewer/vue` does. Apps that only need thumbnails import
-  `./vue`.
+- A build that imports `./viewer`, `./model` or `./model/vue` holds the 3D
+  viewer's WebAssembly parsers. Apps that only need thumbnails import
+  `./vue`; apps that need fewer formats register their parsers with
+  `./model/vue/core` or `./model/viewer/core`.
 - BaSyx Go drops the `charset` of a File's content type, so 8-bit texts are
   decoded as windows-1252 when they are not valid UTF-8.
 

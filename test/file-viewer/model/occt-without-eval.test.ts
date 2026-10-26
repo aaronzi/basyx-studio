@@ -9,10 +9,10 @@ import { describe, expect, it } from 'vitest'
 // which use `new Function`, with closures (@basyx/studio-app-kit/vite). A context
 // that refuses code generation from strings stands in for the CSP.
 
-const require = createRequire(new URL('../../packages/model-viewer/package.json', import.meta.url))
+const require = createRequire(new URL('../../../packages/file-viewer/package.json', import.meta.url))
 const source = readFileSync(require.resolve('occt-import-js'), 'utf8')
 const wasmBinary = readFileSync(require.resolve('occt-import-js/dist/occt-import-js.wasm'))
-const step = new Uint8Array(readFileSync(new URL('../../test-setup/fixtures/models3d/bracket.step', import.meta.url)))
+const step = new Uint8Array(readFileSync(new URL('../../../test-setup/fixtures/models3d/bracket.step', import.meta.url)))
 
 interface Occt {
   ReadStepFile: (content: Uint8Array, params: Record<string, unknown> | null) => { success: boolean, meshes: unknown[] }

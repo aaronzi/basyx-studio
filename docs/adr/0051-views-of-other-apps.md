@@ -189,7 +189,7 @@ popups (`allow-popups`) would each need their own decision on sandbox flags.
 ### Versions
 
 - `openView` is an optional method: the app API becomes **0.1.10**, and
-  `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer`
+  `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/file-viewer`
   **0.1.9** (`@basyx/studio-sdk/testing` records opened views in
   `openedViews` and sets `context.fullscreenOpen`). An app that calls it
   declares `"studioApi": "^0.1.10"`; an older Studio refuses the call as an

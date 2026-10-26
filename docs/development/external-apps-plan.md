@@ -55,7 +55,7 @@ shipped as its own image. As a Studio app, it needs neither.
   cannot run in a plain dev server or in unit tests.
 - **App helpers:** `apps/shared` (`mountApp`, Vuetify defaults, theme sync,
   i18n, the Vite plugin that compiles Vuetify with Studio's Sass settings and
-  patches embind) imports from `app/` and `shared/`. `@basyx/model-viewer`
+  patches embind) imports from `app/` and `shared/`. `@basyx/file-viewer`
   (three, web-ifc, occt) is private.
 - **Packaging:** `scripts/build-example-apps.mjs` builds and zips the apps in
   this repository. There is no tool for other repositories.
@@ -107,7 +107,7 @@ Decided on 2026-10-20.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
-| P1 | Packages | Three packages, published from this repository. `@basyx/studio-sdk`: built ESM with type declarations, `protocol`, `backend` types, the manifest schema and `testing` (P5). `@basyx/studio-app-kit`: what is now `apps/shared` (`mountApp`, Vuetify defaults, theme sync, i18n helper) plus a Vite preset with Studio's Sass settings and the embind patch, and the `studio-app` command (P4). `@basyx/model-viewer`: the 3D viewer, made public. |
+| P1 | Packages | Three packages, published from this repository. `@basyx/studio-sdk`: built ESM with type declarations, `protocol`, `backend` types, the manifest schema and `testing` (P5). `@basyx/studio-app-kit`: what is now `apps/shared` (`mountApp`, Vuetify defaults, theme sync, i18n helper) plus a Vite preset with Studio's Sass settings and the embind patch, and the `studio-app` command (P4). `@basyx/file-viewer`: the 3D viewer, made public. |
 | P2 | One source | `apps/shared` moves to `packages/studio-app-kit`. Studio's Sass settings and `shared/vuetify-defaults.ts` are copied into the kit at build time, so Studio and the apps keep one source. Bundled apps import the kit like any external app. |
 | P3 | Release | A GitHub Actions workflow publishes on tags `sdk-v*`, with pnpm and npm trusted publishing (provenance). The packages are versioned together and independently of Studio, as `0.x` until the app API is stable. The README has a table: package version → app API version (`studioAppApiVersion`) → first Studio release. |
 | P4 | Command | `studio-app pack` validates `studio-app.json` against the schema and the checks of `server/lib/apps/manifest.ts` (shared code), applies the package limits of ADR 0016, and writes `<id>-<version>.zip`. `studio-app sign --key` writes the signature of U1. `studio-app verify` checks both. |
@@ -152,7 +152,7 @@ Decided on 2026-10-20.
 - **`packages/studio-app-kit/`:** from `apps/shared`, plus the Vite preset and
   `bin/studio-app` (`pack`, `sign`, `verify`). Manifest checks are shared with
   `server/lib/apps/manifest.ts`.
-- **`packages/model-viewer/`:** made public, with a build step.
+- **`packages/file-viewer/`:** made public, with a build step.
 - **`server/lib/apps/`:**
   - `signature.ts`: signature verification (`node:crypto`, no new dependency);
   - `trust.ts`: the trust store, key patterns and reserved permissions;

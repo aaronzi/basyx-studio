@@ -72,7 +72,6 @@
   },
   "devDependencies": {
     "@basyx/file-viewer": "workspace:*",
-    "@basyx/model-viewer": "workspace:*",
     "@basyx/studio-app-kit": "workspace:*",
     "@basyx/studio-sdk": "workspace:*",
     "@electric-sql/pglite-tools": "^0.4.11",

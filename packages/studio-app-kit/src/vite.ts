@@ -165,10 +165,11 @@ export function studioApp (options: StudioAppOptions = {}): PluginOption[] {
         build: { outDir: `${depth}/dist/${root}`, emptyOutDir: true },
         worker: { format: 'es', plugins: () => [occtWithoutEval()] },
         optimizeDeps: {
-          exclude: ['vuetify', '@basyx/studio-app-kit', '@basyx/model-viewer'],
-          // The viewer is served as it is (its WebAssembly and worker URLs are
-          // Vite imports); its one CommonJS dependency is pre-bundled.
-          include: hasPackage('@basyx/model-viewer') ? ['@basyx/model-viewer > occt-import-js'] : [],
+          exclude: ['vuetify', '@basyx/studio-app-kit', '@basyx/file-viewer'],
+          // The file viewer is served as it is (its 3D view's WebAssembly and
+          // worker URLs are Vite imports); its one CommonJS dependency of
+          // the 3D view is pre-bundled.
+          include: hasPackage('@basyx/file-viewer') ? ['@basyx/file-viewer > occt-import-js'] : [],
         },
       }),
     },

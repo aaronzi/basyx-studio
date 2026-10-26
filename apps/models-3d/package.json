@@ -9,7 +9,6 @@
   },
   "dependencies": {
     "@basyx/file-viewer": "workspace:*",
-    "@basyx/model-viewer": "workspace:*",
     "@basyx/studio-app-kit": "workspace:*",
     "@basyx/studio-sdk": "workspace:*",
     "@mdi/font": "7.4.47",

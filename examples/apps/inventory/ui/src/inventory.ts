@@ -1,6 +1,6 @@
 import type { Node } from '@basyx/studio-app-kit/aas'
 import type { JsonObject, ShellSummary, StudioClient } from '@basyx/studio-sdk'
-import { detectModelFormat } from '@basyx/model-viewer'
+import { detectModelFormat } from '@basyx/file-viewer'
 import { childrenOf } from '@basyx/studio-app-kit/aas'
 
 // What the pages show, without Vue: unit-tested in Studio's test/apps.

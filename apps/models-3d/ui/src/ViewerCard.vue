@@ -138,11 +138,11 @@
 
 <script lang="ts" setup>
   import type { Model3DVersion } from './models3d'
-  import type { ViewerTheme } from '@basyx/model-viewer'
+  import type { ViewerTheme } from '@basyx/file-viewer'
   import type { StudioClient } from '@basyx/studio-sdk'
+  import { modelFormatLabels } from '@basyx/file-viewer'
   import { ModelCanvas, ModelElementPanel, useModelView } from '@basyx/file-viewer/model'
   import { useFileViewerContext } from '@basyx/file-viewer/vue'
-  import { modelFormatLabels } from '@basyx/model-viewer'
   import { computed, onMounted, ref, watch } from 'vue'
   import { useI18n } from './i18n'
   import { externalModel, viewerFormat } from './models3d'

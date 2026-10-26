@@ -6,7 +6,7 @@ import { onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 
 // The viewer's life in a Vue component, shared by Studio and its apps: each
 // draws its own Vuetify controls around the container. With the parsers the
-// app registers; `@basyx/model-viewer/vue` registers all.
+// app registers; `@basyx/file-viewer/model/vue` registers all.
 
 export type ModelViewerStatus = 'idle' | 'downloading' | 'processing' | 'ready' | 'error'
 
@@ -18,7 +18,7 @@ export interface ModelViewerProblem {
 }
 
 export interface UseModelViewerOptions {
-  /** The parsers of IFC and STEP to use, e.g. `[ifcParser]` of `@basyx/model-viewer/ifc`. */
+  /** The parsers of IFC and STEP to use, e.g. `[ifcParser]` of `@basyx/file-viewer/model/ifc`. */
   parsers?: readonly ModelParser[]
 }
 

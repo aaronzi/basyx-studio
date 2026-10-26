@@ -100,7 +100,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
-    // The 3D viewer's parser worker (packages/model-viewer) is a module, so
+    // The 3D viewer's parser worker (packages/file-viewer/src/model) is a module, so
     // it can load the IFC and STEP parsers on demand.
     worker: { format: 'es' },
   },

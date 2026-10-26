@@ -1,8 +1,7 @@
-import type { ModelFormat } from '@basyx/model-viewer'
+import type { ModelFormat } from '@basyx/file-viewer'
 import type { Node } from '@basyx/studio-app-kit/aas'
 import type { JsonObject } from '@basyx/studio-sdk'
-import { detectViewerKind, viewerKindIcon } from '@basyx/file-viewer'
-import { detectModelFormat } from '@basyx/model-viewer'
+import { detectModelFormat, detectViewerKind, viewerKindIcon } from '@basyx/file-viewer'
 import { childrenOf } from '@basyx/studio-app-kit/aas'
 
 // What the app shows, without Vue: unit-tested in test/.
@@ -16,7 +15,7 @@ export interface ModelFile {
   icon: string
 }
 
-/** Every File element of a submodel that holds a 3D model `@basyx/model-viewer` reads. */
+/** Every File element of a submodel that holds a 3D model `@basyx/file-viewer` reads. */
 export function modelFiles (submodel: JsonObject): ModelFile[] {
   const found: ModelFile[] = []
   const visit = (node: Node | JsonObject) => {

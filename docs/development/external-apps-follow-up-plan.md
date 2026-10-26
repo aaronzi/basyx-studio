@@ -50,7 +50,7 @@ Verified on `main` (d8a77e0) for each gap the pilot reported:
 | 1 | Shells by asset type, related through a specific asset ID | `ShellSummary` has `id`, `idShort`, `displayName`, `assetKind` and `globalAssetId` (`packages/studio-sdk/src/protocol.ts`). Studio reads whole shells or descriptors for the list (`server/lib/aas/shells.ts`) and drops the rest, so an app calls `getShell` for every shell | R1, R2 |
 | 2 | Asset types, semantic IDs, idShorts and external IDs per deployment | Compiled into the app. The manifest has no settings, and the context none (`AppContext`) | G1–G3 |
 | 3 | An app whose first language is not English | `provideI18n(client, en, translations)` treats the base catalog as English and falls back to it; the locale for numbers and dates is Studio's even where texts fall back; keys are `section.key` only (`packages/studio-app-kit/src/i18n.ts`) | L1–L3 |
-| 4 | Size of an IFC-only package | `@basyx/model-viewer` has one entry, and its parser client imports both WebAssembly files as Vite assets (`src/parsers/client.ts`). Every build ships occt-import-js's 7.6 MB WebAssembly, a large share of the 20 MiB package limit (ADR 0016), even where STEP is never loaded | B1 |
+| 4 | Size of an IFC-only package | `@basyx/file-viewer`'s 3D viewer has one entry, and its parser client imports both WebAssembly files as Vite assets (`src/parsers/client.ts`). Every build ships occt-import-js's 7.6 MB WebAssembly, a large share of the 20 MiB package limit (ADR 0016), even where STEP is never loaded | B1 |
 | 5 | The back button in a multi-page module | `studio.ui.navigate` ends in `router.replace` (`app/components/AppModuleView.vue`), so back leaves the module | N1 |
 | 6 | `studio.ui.readFile` on a File without a value | Workspaces answer 404 (`server/lib/workspaces/model.ts`); live targets ask the AAS server anyway (`LiveTarget.attachment`), which fails with 500, and Studio answers 502 | R3 |
 | 7 | Layout of a full-page module with its own navigation | The app kit's defaults (`src/defaults.ts`) cover cards, buttons, fields, lists and menus, not `VAppBar`, `VNavigationDrawer`, `VMain` or `VToolbar`, which Studio does configure (`vuetify.config.ts`). No helper connects an app's router to its sub-path, and no documented pattern places a module's own bar and navigation next to Studio's rail | N2, N3 |
@@ -111,7 +111,7 @@ which names the second scope `infrastructure`.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
-| B1 | Viewer per format | `@basyx/model-viewer` gets entries per parser (`/ifc`, `/step`; STL, OBJ and glTF need no WebAssembly) that an app registers with the viewer. Only registered formats bring their WebAssembly and worker into the build. The current entry keeps registering all formats. ADR 0039 stays as it is. |
+| B1 | Viewer per format | `@basyx/file-viewer` gets entries per parser (`/model/ifc`, `/model/step`; STL, OBJ and glTF need no WebAssembly) that an app registers with the viewer. Only registered formats bring their WebAssembly and worker into the build. The current entry keeps registering all formats. ADR 0039 stays as it is. |
 | W1 | Test Studio from the manifest | `createTestStudio({ manifest })` takes the manifest as imported from JSON and uses its permissions, connections (refusing undeclared operations as Studio does) and declared settings defaults (G1). Unknown permissions in the manifest fail the test. `permissions` stays for tests that narrow them. |
 | W2 | Signing on GitLab | `examples/deployment/signed-app/ci/` gains `.gitlab-ci.yml` and the README a section on other CI systems: store the key base64-encoded in a masked variable and decode it into the variable cosign reads with `env://`; install cosign's release binary with its checksum in a job image that has a shell, because cosign's image has none. Without cosign, `studio-app sign` reads a PEM key from a file. Documentation only. |
 
@@ -132,7 +132,7 @@ Not new features: they close phases B and D of the external apps plan.
 
 | # | Topic | Proposal |
 | --- | --- | --- |
-| O1 | Packages on npm | `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer` are published by `sdk-release.yml` with provenance once the `@basyx` scope and trusted publishing are granted. Until then, apps build against the packed tarballs. |
+| O1 | Packages on npm | `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/file-viewer` are published by `sdk-release.yml` with provenance once the `@basyx` scope and trusted publishing are granted. Until then, apps build against the packed tarballs. |
 | O2 | Studio release | A released Studio image with app API 0.1.6 or later, so deployments need neither snapshots nor own builds for HTTP connections, structural writes and full-page modules. The README's version table gets its first release column entries. |
 
 ## Requirement changes
@@ -158,7 +158,7 @@ APP-018 stays as it is; R2 relies on it.
 - **`packages/studio-app-kit/`:** `i18n.ts` (L1–L3), `defaults.ts` and
   `vuetify-defaults.ts` (N2), a router history module (N3), the manifest
   checks for `settings` (G1).
-- **`packages/model-viewer/`:** per-format entries and registration (B1).
+- **`packages/file-viewer/`:** per-format entries and registration (B1).
 - **`server/lib/aas/shells.ts`, `server/lib/apps/calls.ts`:** summary fields
   (R1).
 - **`server/lib/targets/live-target.ts`:** the empty File check (R3).
@@ -202,7 +202,7 @@ APP-018 stays as it is; R2 relies on it.
 | N2 | Done | `layoutDefaults` in `vuetify-defaults.ts` (`VAppBar`, `VNavigationDrawer`, `VToolbar`, `VTabs`), used by `vuetify.config.ts` and the kit's `appDefaults`. Studio's in-page toolbars were all compact and transparent, so that became `VToolbar`'s default and the templates no longer state it; the app bar keeps its surface (`color: 'surface'`), because it renders a `VToolbar` itself. `VMain` gets no default: Studio sets none, and a scrollable `VMain` would keep a standard module's frame from growing with its content |
 | N3 | Done | `@basyx/studio-app-kit/router` (`createStudioHistory(client, { history: 'push' })`), `mountApp`'s `setup`, the kit README's *Modules with pages*, and `examples/apps/inventory`: a full-page module with an overview, a list of shells and a page per shell, checked against the kit's defaults by `eslint.config.js`. Pushing is opt-in, because it needs app API 0.1.8 (N1); without it the history replaces Studio's entry. A sandboxed frame cannot move the browser's history (checked in Chromium), so `router.back()` moves through the pages the history visited. Unit tests run the example's router on the test Studio, including the browser's back and forward buttons |
 | W1 | Done, without settings | `createTestStudio({ manifest })` in `packages/studio-sdk/src/testing.ts`: permissions (unknown ones fail, `permissions` narrows them), connections and operations refused before any handler, the app ID and first contribution in the context. The starter's dev Studio uses it. Declared settings defaults (G1) came with phase D |
-| B1 | Done | `@basyx/model-viewer/ifc`, `/step`, `/viewer/core` and `/vue/core`, one worker per parser; `/viewer` and `/vue` register both, so existing imports are unchanged. A unit test builds the example, which registers only `ifcParser`, and finds web-ifc's WebAssembly and worker and nothing of STEP; the bundled 3D Models app still holds both |
+| B1 | Done | `@basyx/file-viewer/model/ifc`, `/model/step`, `/model/viewer/core` and `/model/vue/core`, one worker per parser; `/model/viewer` and `/model/vue` register both, so existing imports are unchanged. A unit test builds the example, which registers only `ifcParser`, and finds web-ifc's WebAssembly and worker and nothing of STEP; the bundled 3D Models app still holds both |
 
 ### Phase D status
 

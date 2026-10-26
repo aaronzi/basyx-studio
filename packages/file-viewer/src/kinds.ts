@@ -1,5 +1,5 @@
-import type { ModelFormat } from '@basyx/model-viewer'
-import { detectModelFormat } from '@basyx/model-viewer'
+import type { ModelFormat } from './model/index.ts'
+import { detectModelFormat } from './model/index.ts'
 import { looksLikeText } from './text.ts'
 
 // What the viewer shows a file as, from its content type and name, and once

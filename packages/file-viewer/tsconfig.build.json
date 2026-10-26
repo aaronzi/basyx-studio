@@ -15,6 +15,7 @@
     "src/markdown.ts",
     "src/monaco.ts",
     "src/pdf.ts",
-    "src/pdf-worker.d.ts"
+    "src/pdf-worker.d.ts",
+    "src/model/**/*.ts"
   ]
 }

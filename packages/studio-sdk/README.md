@@ -23,7 +23,7 @@ is an app in its own repository that uses both
 
 ## Versions
 
-The SDK, `@basyx/studio-app-kit` and `@basyx/model-viewer` are released
+The SDK, `@basyx/studio-app-kit` and `@basyx/file-viewer` are released
 together, independently of Studio, and stay `0.x` until the app API is
 stable. A package version provides one app API version
 (`studioAppApiVersion`); a manifest's `studioApi` range says which Studio
@@ -38,11 +38,11 @@ runs the app, whatever the package version.
 | 0.1.4 | 0.1.6: `connections`, `studio.connections.call`, permission `studio.connections` | next release |
 | 0.1.5 | 0.1.7: `ui.openFullscreen(state, { header: false })`, `ui.closeFullscreen` and `context.fullscreenOpen`; `<v-btn-toggle-icon>` in the app kit | next release |
 | 0.1.6 | 0.1.8: `assetType` and `specificAssetIds` in `aas.listShells`; `ui.navigate(subPath, { history: 'push' })`; `navigations`, `back` and `forward` in `testing` | next release |
-| 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the model viewer (`./viewer/core`, `./vue/core`, `./ifc`, `./step`) | next release |
+| 0.1.7 | 0.1.8 (unchanged): `createTestStudio({ manifest })` in `testing`; in the app kit, `provideI18n` with `baseLocale`, `formatLocale` and nested keys, `createStudioHistory` (`./router`), the layout defaults and `mountApp`'s `setup`; per-format parsers of the file viewer's 3D viewer (`./model/viewer/core`, `./model/vue/core`, `./model/ifc`, `./model/step`) | next release |
 | 0.1.8 | 0.1.9: `settings` in the manifest, `context.settings` and `context.connections`, `settings` and `connections` in a backend's context; `checkSettingValue` and `checkSettingValues` in the app kit | next release |
 | 0.1.9 | 0.1.10: `ui.openView`; `openedViews` in `testing` | next release |
 | 0.1.10 | 0.1.11: `ui.embedView`, `context.embedded`; `connect()` of views embedded in other apps' pages; `embeddedViews` in `testing` | next release |
-| 0.1.11 | 0.1.12: `ui.previewFile`, `context.fills`; `previewedFiles` in `testing`; the file viewer `@basyx/file-viewer` | next release |
+| 0.1.11 | 0.1.12: `ui.previewFile`, `context.fills`; `previewedFiles` in `testing`; in the file viewer, every kind of file (`./vue`, `./viewer`) and the 3D view in parts (`./model`) | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions

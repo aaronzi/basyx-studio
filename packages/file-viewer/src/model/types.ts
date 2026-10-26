@@ -52,8 +52,8 @@ export type OpenModel = (bytes: Uint8Array, wasmUrl: string, onProgress: Progres
 
 /**
  * A format whose parser runs WebAssembly in a worker, registered with the
- * viewer: `ifcParser` of `@basyx/model-viewer/ifc`, `stepParser` of
- * `@basyx/model-viewer/step`. Only registered parsers, with their worker and
+ * viewer: `ifcParser` of `@basyx/file-viewer/model/ifc`, `stepParser` of
+ * `@basyx/file-viewer/model/step`. Only registered parsers, with their worker and
  * WebAssembly, are part of an app's build.
  */
 export interface ModelParser {
