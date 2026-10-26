@@ -82,6 +82,15 @@ test('describes a file in the details tab and shows it in the Visualization tab'
   await views.getByRole('button', { name: 'Source' }).click()
   await expect(viewer(page).locator('[data-test="file-viewer-text"] .monaco-editor')).toContainText('# Bracket BR-60', { timeout: 30_000 })
   expect((await views.boundingBox())?.x).toBe(before?.x)
+
+  // Full-screen, Close is the last button, after the toggle.
+  await viewer(page).locator('[data-test="file-viewer-maximize"]').click()
+  const fullscreenViews = dialog(page).locator('[data-test="file-viewer-views"]')
+  const close = dialog(page).locator('[data-test="file-viewer-close"]')
+  await expect(close).toBeVisible({ timeout: 30_000 })
+  expect((await close.boundingBox())!.x).toBeGreaterThan((await fullscreenViews.boundingBox())!.x)
+  await close.click()
+  await expect(dialog(page)).toBeHidden()
 })
 
 test('shows CSV as a table and pages through a PDF, also full-screen', async ({ page }) => {

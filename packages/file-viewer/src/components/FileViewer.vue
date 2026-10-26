@@ -12,7 +12,8 @@
       <template #append>
         <div class="d-flex align-center ga-1 me-2">
           <!-- Buttons that come and go (text, unsaved changes) stay left of the
-               fixed ones, so the toggle at the far right never moves. -->
+               fixed ones, so the toggle never moves: it is the last button
+               inline, and only Close follows it full-screen. -->
           <template v-if="showsText">
             <v-btn
               v-tooltip="t('actions.find')"
@@ -65,17 +66,7 @@
           />
 
           <v-btn
-            v-if="fullscreen"
-            v-tooltip="t('actions.close')"
-            :aria-label="t('actions.close')"
-            data-test="file-viewer-close"
-            icon="mdi-close"
-            size="small"
-            @click="emit('close')"
-          />
-
-          <v-btn
-            v-else-if="maximizable"
+            v-if="maximizable && !fullscreen"
             v-tooltip="t('actions.maximize')"
             :aria-label="t('actions.maximize')"
             data-test="file-viewer-maximize"
@@ -94,6 +85,17 @@
             <v-btn :text="primaryViewLabel" :value="false" />
             <v-btn :text="t('views.source')" :value="true" />
           </v-btn-toggle>
+
+          <!-- Full-screen, closing is always the last button. -->
+          <v-btn
+            v-if="fullscreen"
+            v-tooltip="t('actions.close')"
+            :aria-label="t('actions.close')"
+            data-test="file-viewer-close"
+            icon="mdi-close"
+            size="small"
+            @click="emit('close')"
+          />
         </div>
       </template>
     </v-toolbar>
