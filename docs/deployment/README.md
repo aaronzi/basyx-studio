@@ -196,10 +196,12 @@ Short service names such as `aas-env` contain no dot and must be listed
 exactly. The allowlists, the private-network policy, redirect checks,
 timeouts and size limits apply to the target as before; the proxy's own
 address is not checked against `STUDIO_PRIVATE_NETWORK_TARGETS`. Studio
-still resolves a proxied name to check its addresses. Where the pod cannot
-resolve external names, https requests go on and the proxy resolves them,
-so restrict the proxy to external destinations; plain http targets must
-resolve in the pod.
+still resolves a proxied name to check its addresses, and refuses IP
+addresses in forbidden or private ranges before it contacts the proxy. As
+the proxy connects to the target, Studio cannot check the address again at
+connect time. Where the pod cannot resolve external names, https requests
+go on and the proxy resolves them, so restrict the proxy to external
+destinations; plain http targets must resolve in the pod.
 
 ## Apps origins
 
