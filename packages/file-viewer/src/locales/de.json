@@ -1,0 +1,87 @@
+{
+  "kinds": {
+    "image": "Bild",
+    "pdf": "PDF",
+    "text": "Text",
+    "model3d": "3D-Modell",
+    "video": "Video",
+    "audio": "Audio",
+    "none": "Datei"
+  },
+  "views": {
+    "rendered": "Darstellung",
+    "source": "Quelltext",
+    "table": "Tabelle",
+    "image": "Bild"
+  },
+  "actions": {
+    "download": "Herunterladen",
+    "openExternal": "Im Browser öffnen",
+    "maximize": "Vollbild",
+    "close": "Schließen",
+    "find": "Suchen",
+    "wrap": "Zeilen umbrechen",
+    "noWrap": "Zeilen nicht umbrechen",
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "save": "Speichern",
+    "discard": "Änderungen verwerfen",
+    "retry": "Erneut versuchen",
+    "reload": "Aktuelle Version laden",
+    "keepMine": "Meine trotzdem speichern",
+    "downloadMine": "Meine Version herunterladen"
+  },
+  "status": {
+    "loading": "Datei wird geladen…",
+    "failed": "Die Datei konnte nicht geladen werden",
+    "empty": "Die Datei ist leer.",
+    "noPreview": "Keine Vorschau für diese Datei",
+    "noPreviewText": "Laden Sie die Datei herunter, um sie in einem anderen Programm zu öffnen.",
+    "noPreviewExternal": "Öffnen Sie die Datei unter ihrer Adresse, um sie anzusehen.",
+    "external": "An einer anderen Adresse gespeichert",
+    "unsaved": "Ungespeicherte Änderungen",
+    "saving": "Wird gespeichert…",
+    "saved": "Gespeichert",
+    "truncated": "Die Datei ist {size} groß; die ersten {shown} werden schreibgeschützt angezeigt.",
+    "readOnlyExternal": "Eine Datei an einer anderen Adresse kann hier nicht geändert werden.",
+    "readOnlyEncoding": "Die Kodierung der Datei kann nicht zurückgeschrieben werden, daher kann sie hier nicht geändert werden.",
+    "conflict": "Jemand anderes hat die Datei geändert, seit Sie mit der Bearbeitung begonnen haben. Laden Sie die aktuelle Version (Ihre Änderungen gehen verloren, wenn Sie sie nicht zuerst herunterladen), oder speichern Sie Ihre Version darüber.",
+    "draftOutdated": "Ihre ungespeicherten Änderungen beruhen auf einer älteren Version der Datei.",
+    "unencodable": "Der Text enthält „{character}“, das die Kodierung der Datei nicht darstellen kann."
+  },
+  "table": {
+    "truncated": "Nur die ersten {count} Zeilen werden angezeigt.",
+    "empty": "Die Tabelle ist leer."
+  },
+  "pdf": {
+    "page": "Seite {page} von {pages}",
+    "previous": "Vorherige Seite",
+    "next": "Nächste Seite",
+    "zoomIn": "Vergrößern",
+    "zoomOut": "Verkleinern",
+    "fit": "An die Ansicht anpassen",
+    "failed": "Das PDF kann nicht angezeigt werden. Laden Sie es herunter, um es in einem anderen Programm zu öffnen."
+  },
+  "image": {
+    "failed": "Das Bild kann nicht angezeigt werden."
+  },
+  "media": {
+    "failed": "Der Browser kann diese Datei nicht abspielen."
+  },
+  "model3d": {
+    "triangles": "{count} Dreieck | {count} Dreiecke",
+    "resetView": "Ansicht zurücksetzen",
+    "processing": "3D-Modell wird vorbereitet…",
+    "failed": "Das 3D-Modell kann nicht angezeigt werden",
+    "missingImages": "Texturen in anderen Dateien werden nicht angezeigt: {files}",
+    "clearSelection": "Auswahl aufheben",
+    "pickHint": "Klicken Sie auf ein Element, um seine Eigenschaften zu sehen.",
+    "noProperties": "Dieses Element hat keine Eigenschaften.",
+    "errors": {
+      "webgl": "Dieser Browser kann keine 3D-Grafik darstellen (WebGL ist ausgeschaltet oder wird nicht unterstützt).",
+      "missingBuffers": "Die glTF-Datei speichert ihre Geometrie in anderen Dateien, die eine einzelne Datei nicht mitbringen kann: {files}. Verwenden Sie eine .glb-Datei oder eine .gltf-Datei mit eingebetteten Daten.",
+      "download": "Die Datei konnte nicht geladen werden: {message}",
+      "parse": "Die Datei konnte nicht als 3D-Modell gelesen werden: {message}"
+    }
+  }
+}

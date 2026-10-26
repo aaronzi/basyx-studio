@@ -85,6 +85,8 @@ export type TestOpenedView = Methods['studio.ui.openView']['params']
 
 export type TestEmbeddedView = Methods['studio.ui.embedView']['params']
 
+export type TestPreviewedFile = Methods['studio.ui.previewFile']['params']
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -115,6 +117,8 @@ export interface TestStudio {
    * `about:blank#studio-embed=<n>`, which shows nothing.
    */
   readonly embeddedViews: TestEmbeddedView[]
+  /** The File and Blob elements the app showed with `studio.ui.previewFile`. */
+  readonly previewedFiles: TestPreviewedFile[]
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -293,6 +297,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   let entry = 0
   const openedViews: TestOpenedView[] = []
   const embeddedViews: TestEmbeddedView[] = []
+  const previewedFiles: TestPreviewedFile[] = []
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -326,6 +331,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     'studio.ui.openView': view => {
       openedViews.push(view)
       setContext({ fullscreenOpen: true })
+      return null
+    },
+    'studio.ui.previewFile': file => {
+      previewedFiles.push(file)
       return null
     },
     'studio.ui.embedView': view => {
@@ -439,6 +448,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     forward: () => go(1),
     openedViews,
     embeddedViews,
+    previewedFiles,
     setContext,
     close: () => transport.close(),
   }

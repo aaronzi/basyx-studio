@@ -58,20 +58,5 @@
     "loadFailed": "De bestanden konden niet worden gelezen.",
     "expand": "{name} uitklappen",
     "collapse": "{name} inklappen"
-  },
-  "preview": {
-    "close": "Voorbeeld sluiten",
-    "noneTitle": "Geen voorbeeld beschikbaar",
-    "none": "Dit type bestand kan hier niet worden getoond. Download het om het op uw computer te openen.",
-    "failedTitle": "Het bestand kan niet worden getoond",
-    "empty": "Dit bestand heeft nog geen inhoud.",
-    "failed": "Het bestand kon niet worden gelezen.",
-    "external": "Dit bestand staat op {url}.",
-    "truncated": "Alleen de eerste {size} worden getoond.",
-    "pdfFailed": "Deze pdf kan niet worden weergegeven. Open of download hem.",
-    "pdfPage": "Pagina {page} van {pages}",
-    "previousPage": "Vorige pagina",
-    "nextPage": "Volgende pagina",
-    "gone": "Dit bestand bestaat niet meer."
   }
 }

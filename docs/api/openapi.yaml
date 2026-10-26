@@ -6084,6 +6084,7 @@ components:
             - studio.ui.openFullscreen
             - studio.ui.closeFullscreen
             - studio.ui.readExternalFile
+            - studio.ui.previewFile
             - studio.ui.openTarget
             - studio.ui.openShell
             - studio.ui.openView

@@ -1,64 +1,7 @@
 <template>
   <v-app>
-    <!-- A frame Studio opened for a preview shows only the preview, over the dimmed page. -->
-    <v-card-fullscreen
-      v-if="previewMode"
-      class="d-flex flex-column"
-      color="transparent"
-      data-test="preview"
-      height="100vh"
-      theme="dark"
-    >
-      <v-toolbar class="ps-3 flex-shrink-0" density="default">
-        <template v-if="previewed">
-          <v-icon :color="iconColorOf(previewed)" :icon="iconOf(previewed)" />
-          <v-toolbar-title class="text-title-medium text-white" data-test="preview-name">{{ previewed.name }}</v-toolbar-title>
-        </template>
-
-        <v-spacer />
-
-        <template v-if="previewed && !previewed.external">
-          <v-btn
-            :aria-label="t('fs.open')"
-            color="white"
-            data-test="preview-open"
-            icon="mdi-open-in-new"
-            @click="openFile(previewed, false)"
-          />
-
-          <v-btn :aria-label="t('fs.download')" color="white" icon="mdi-download" @click="openFile(previewed, true)" />
-        </template>
-
-        <v-btn
-          :aria-label="t('preview.close')"
-          color="white"
-          data-test="preview-close"
-          icon="mdi-close"
-          @click="closePreview"
-        />
-      </v-toolbar>
-
-      <file-preview
-        v-if="previewed"
-        :client="client"
-        :file="previewed"
-        :locale="locale"
-        :submodel-id="submodelId"
-        @close="closePreview"
-        @download="openFile(previewed, true)"
-      />
-
-      <div v-else class="d-flex flex-grow-1 align-center justify-center" @click.self="closePreview">
-        <v-progress-circular v-if="loading" color="primary" indeterminate size="64" />
-
-        <v-sheet v-else class="pa-6" max-width="500" rounded="lg">
-          <v-empty-state data-test="preview-error" icon="mdi-alert-circle" :text="loadError ?? t('preview.gone')" :title="t('preview.failedTitle')" />
-        </v-sheet>
-      </div>
-    </v-card-fullscreen>
-
-    <!-- Studio's card shows the view's title; in Studio's full-screen dialog, the card fills the frame. -->
-    <v-view-card v-else :class="fullscreen ? 'd-flex flex-column' : undefined" :height="fullscreen ? '100vh' : undefined">
+    <!-- Studio's card shows the view's title; where the frame fills its space (Visualization tab, full screen), the card fills the frame. -->
+    <v-view-card :class="fills ? 'd-flex flex-column' : undefined" :height="fills ? '100vh' : undefined">
       <v-progress-linear v-if="loading" />
 
       <v-alert
@@ -73,9 +16,9 @@
       <v-sheet
         v-else
         class="position-relative d-flex flex-column"
-        :class="fullscreen ? 'flex-grow-1 overflow-hidden' : undefined"
+        :class="fills ? 'flex-grow-1 overflow-hidden' : undefined"
         color="transparent"
-        :height="fullscreen ? undefined : 560"
+        :height="fills ? undefined : 560"
         @dragleave="onAreaDragLeave"
         @dragover="onAreaDragOver"
         @drop="onAreaDrop"
@@ -181,7 +124,7 @@
             :entries="entries"
             :folder="folder"
             :selected="selected"
-            :thumbnails="thumbnails"
+            :sources="sources"
             @action="onAction"
             @create-folder="startDialog('newFolder')"
             @drag-leave="onDragLeave"
@@ -318,11 +261,12 @@
 
 <script lang="ts" setup>
   import type { Entry, EntryAction, FileEntry } from './fileSystem'
+  import type { FileSource } from '@basyx/file-viewer/vue'
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
+  import { provideFileViewer, withCachedContent } from '@basyx/file-viewer/vue'
   import { putAttachmentMaxBytes, StudioError } from '@basyx/studio-sdk'
   import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-  import FilePreview from './FilePreview.vue'
-  import { childrenAt, findEntry, flatten, folders, iconColorOf, iconOf, isWithin, parentOf, previewKind, readFileSystem, trail } from './fileSystem'
+  import { childrenAt, findEntry, flatten, folders, iconColorOf, iconOf, isWithin, parentOf, readFileSystem, trail } from './fileSystem'
   import GalleryView from './GalleryView.vue'
   import { provideI18n } from './i18n'
   import ListView from './ListView.vue'
@@ -339,16 +283,19 @@
 
   const props = defineProps<{ client: StudioClient }>()
   const { t, locale } = provideI18n(props.client)
+  provideFileViewer({ locale: () => locale.value })
 
   const context = ref(props.client.context)
   props.client.onContext(value => (context.value = value))
   const fullscreen = computed(() => context.value.fullscreen ?? false)
+  /** The frame fills its space (Visualization tab, full screen): the view fills the window; on the Overview it keeps its size. */
+  const fills = computed(() => context.value.fills ?? fullscreen.value)
   const canEdit = computed(() => (context.value.target?.write ?? false) && context.value.mode === 'edit')
   const submodelId = computed(() => context.value.submodel!.id)
   const writer = computed(() => new FileSystemWriter(props.client, submodelId.value))
 
-  /** What the full-screen dialog opens with: the folder, and the file to preview. */
-  interface ViewState { folder?: string, preview?: string }
+  /** What the full-screen dialog opens with: the folder. */
+  interface ViewState { folder?: string }
   function initialState (): ViewState {
     try {
       const state = JSON.parse(context.value.viewState || '{}') as ViewState
@@ -367,9 +314,6 @@
 
   const view = ref<'grid' | 'list'>(storedView())
   const folder = ref(state.folder ?? '')
-  /** The file this frame previews: Studio opened it for that, without its header. */
-  const previewPath = fullscreen.value ? (state.preview ?? null) : null
-  const previewMode = previewPath !== null
   const selected = ref<Set<string>>(new Set())
 
   const tree = computed(() => submodel.value ? readFileSystem(submodel.value, locale.value) : [])
@@ -377,10 +321,6 @@
   /** The selected entries, also in folders expanded in the list; inside a selected folder, only the folder. */
   const selectedEntries = computed(() => flatten(tree.value).filter(entry => selected.value.has(entry.path)
     && ![...selected.value].some(path => path !== entry.path && isWithin(entry.path, path))))
-  const previewed = computed(() => {
-    const entry = previewPath ? findEntry(tree.value, previewPath) : null
-    return entry?.kind === 'file' ? entry : null
-  })
   const breadcrumbs = computed(() => [
     { title: t('fs.root'), value: '', disabled: !folder.value },
     ...trail(tree.value, folder.value).map(entry => ({ title: entry.name, value: entry.path, disabled: entry.path === folder.value })),
@@ -424,16 +364,13 @@
   }
 
   /**
-   * Previews a file as the Web UI does, filling the window: Studio opens the
-   * view again without its header, over the dimmed page, and that frame
-   * shows only the preview.
+   * Previews a file as the Web UI does, filling the window: in Studio's
+   * file viewer, which shows every kind of file the same way (ADR 0052).
    */
   function preview (entry: FileEntry) {
-    void props.client.ui.openFullscreen(JSON.stringify({ folder: folder.value, preview: entry.path } satisfies ViewState), { header: false })
-  }
-
-  function closePreview () {
-    void props.client.ui.closeFullscreen()
+    void props.client.ui.previewFile(submodelId.value, entry.path).catch((error_: unknown) => {
+      notice.value = { type: 'error', text: describe(error_) }
+    })
   }
 
   function openFile (entry: FileEntry, download: boolean) {
@@ -472,37 +409,24 @@
     }
   })
 
-  // Thumbnails of the folder's images, read through Studio as the Web UI reads them.
-  const thumbnails = ref<Record<string, string>>({})
-  const thumbnailKeys = new Map<string, string>()
-  watch(entries, async current => {
-    if (previewMode) {
-      return
+  // The files as the file viewer's thumbnails read them, through Studio as
+  // the Web UI reads them; each is read once, when its card is in view.
+  const sourceCache = new Map<string, FileSource>()
+  const sources = computed(() => Object.fromEntries(entries.value.filter(entry => entry.kind === 'file').map(entry => {
+    const key = `${entry.path}:${JSON.stringify(entry.element.value ?? null)}`
+    let source = sourceCache.get(key)
+    if (!source) {
+      source = withCachedContent({
+        key,
+        name: entry.fileName,
+        contentType: entry.contentType,
+        external: entry.external,
+        load: () => props.client.ui.readFile(submodelId.value, entry.path),
+      })
+      sourceCache.set(key, source)
     }
-    for (const entry of current) {
-      if (entry.kind !== 'file' || entry.external || previewKind(entry.contentType) !== 'image') {
-        continue
-      }
-      const key = JSON.stringify(entry.element.value ?? null)
-      if (thumbnailKeys.get(entry.path) === key) {
-        continue
-      }
-      thumbnailKeys.set(entry.path, key)
-      try {
-        const content = await props.client.ui.readFile(submodelId.value, entry.path)
-        const previous = thumbnails.value[entry.path]
-        thumbnails.value = { ...thumbnails.value, [entry.path]: URL.createObjectURL(new Blob([content.bytes as BlobPart], { type: content.contentType || entry.contentType })) }
-        if (previous) {
-          URL.revokeObjectURL(previous)
-        }
-      } catch {
-        // No thumbnail: the card shows the image icon.
-      }
-    }
-  }, { immediate: true })
-  onBeforeUnmount(() => {
-    for (const url of Object.values(thumbnails.value)) URL.revokeObjectURL(url)
-  })
+    return [entry.path, source]
+  })))
 
   function describe (cause: unknown): string {
     if (cause instanceof TooLargeError) {
@@ -805,20 +729,11 @@
     }
   }
 
-  // The preview closes on Escape, as a dialog does; Studio's page does not get the frame's keys.
-  function onKeydown (event: KeyboardEvent) {
-    if (previewMode && event.key === 'Escape') {
-      closePreview()
-    }
-  }
-
   onMounted(() => {
     window.addEventListener('dragend', endDrag)
-    window.addEventListener('keydown', onKeydown)
     void load()
   })
   onBeforeUnmount(() => {
     window.removeEventListener('dragend', endDrag)
-    window.removeEventListener('keydown', onKeydown)
   })
 </script>

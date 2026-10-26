@@ -16,21 +16,9 @@
     "openExternalAt": "{host} のファイルを開く",
     "external": "このモデルはこの管理シェルの外部（{host}）に保存されています。Studio はプレビュー画像を表示します。",
     "externalFailed": "このモデルはこの管理シェルの外部（{host}）に保存されていますが、そのホストは Studio にファイルを渡しませんでした。Studio はプレビュー画像を表示します。",
-    "loading": "ファイルを読み込んでいます…",
-    "processing": "3Dモデルを準備しています…",
     "unsupported": "{format} は3Dで表示できません。ファイルをダウンロードして開いてください。",
     "noFile": "このバージョンには3Dファイルがありません。",
-    "failed": "3Dプレビューを利用できません",
-    "pickHint": "要素をクリックするとプロパティが表示されます。",
-    "clearSelection": "選択を解除",
-    "noProperties": "この要素にはプロパティがありません。",
-    "missingImages": "他のファイルにあるテクスチャは表示されません: {files}"
-  },
-  "errors": {
-    "webgl": "このブラウザーでは3Dグラフィックスを表示できません（WebGLが無効か、サポートされていません）。",
-    "missingBuffers": "このglTFファイルはジオメトリを別のファイルに保存していますが、File要素はそれらを保持できません: {files}。",
-    "download": "ファイルを読み込めませんでした: {message}",
-    "parse": "ファイルを3Dモデルとして読み取れませんでした: {message}"
+    "failed": "3Dプレビューを利用できません"
   },
   "summary": {
     "levelOfDetail": "詳細度",

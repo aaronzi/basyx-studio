@@ -1,0 +1,87 @@
+{
+  "kinds": {
+    "image": "Afbeelding",
+    "pdf": "PDF",
+    "text": "Tekst",
+    "model3d": "3D-model",
+    "video": "Video",
+    "audio": "Audio",
+    "none": "Bestand"
+  },
+  "views": {
+    "rendered": "Weergave",
+    "source": "Bron",
+    "table": "Tabel",
+    "image": "Afbeelding"
+  },
+  "actions": {
+    "download": "Downloaden",
+    "openExternal": "Openen in browser",
+    "maximize": "Volledig scherm",
+    "close": "Sluiten",
+    "find": "Zoeken",
+    "wrap": "Regels laten teruglopen",
+    "noWrap": "Regels niet laten teruglopen",
+    "copy": "Kopiëren",
+    "copied": "Gekopieerd",
+    "save": "Opslaan",
+    "discard": "Wijzigingen verwerpen",
+    "retry": "Opnieuw proberen",
+    "reload": "Huidige versie laden",
+    "keepMine": "Mijn versie toch opslaan",
+    "downloadMine": "Mijn versie downloaden"
+  },
+  "status": {
+    "loading": "Bestand wordt geladen…",
+    "failed": "Het bestand kon niet worden geladen",
+    "empty": "Het bestand is leeg.",
+    "noPreview": "Geen voorbeeld voor dit bestand",
+    "noPreviewText": "Download het bestand om het in een ander programma te openen.",
+    "noPreviewExternal": "Open het bestand op zijn adres om het te bekijken.",
+    "external": "Opgeslagen op een ander adres",
+    "unsaved": "Niet-opgeslagen wijzigingen",
+    "saving": "Opslaan…",
+    "saved": "Opgeslagen",
+    "truncated": "Het bestand is {size}; de eerste {shown} worden getoond, alleen-lezen.",
+    "readOnlyExternal": "Een bestand op een ander adres kan hier niet worden gewijzigd.",
+    "readOnlyEncoding": "De codering van het bestand kan niet worden teruggeschreven, dus het kan hier niet worden gewijzigd.",
+    "conflict": "Iemand anders heeft het bestand gewijzigd sinds u met bewerken begon. Laad de huidige versie (uw wijzigingen gaan verloren, tenzij u ze eerst downloadt), of sla uw versie eroverheen op.",
+    "draftOutdated": "Uw niet-opgeslagen wijzigingen zijn gebaseerd op een oudere versie van het bestand.",
+    "unencodable": "De tekst bevat “{character}”, dat de codering van het bestand niet kan bevatten."
+  },
+  "table": {
+    "truncated": "Alleen de eerste {count} rijen worden getoond.",
+    "empty": "De tabel is leeg."
+  },
+  "pdf": {
+    "page": "Pagina {page} van {pages}",
+    "previous": "Vorige pagina",
+    "next": "Volgende pagina",
+    "zoomIn": "Inzoomen",
+    "zoomOut": "Uitzoomen",
+    "fit": "Aanpassen aan de weergave",
+    "failed": "De pdf kon niet worden weergegeven. Download hem om hem in een ander programma te openen."
+  },
+  "image": {
+    "failed": "De afbeelding kon niet worden getoond."
+  },
+  "media": {
+    "failed": "De browser kan dit bestand niet afspelen."
+  },
+  "model3d": {
+    "triangles": "{count} driehoek | {count} driehoeken",
+    "resetView": "Weergave herstellen",
+    "processing": "3D-model wordt voorbereid…",
+    "failed": "Het 3D-model kan niet worden getoond",
+    "missingImages": "Texturen in andere bestanden worden niet getoond: {files}",
+    "clearSelection": "Selectie wissen",
+    "pickHint": "Klik op een element om de eigenschappen te zien.",
+    "noProperties": "Dit element heeft geen eigenschappen.",
+    "errors": {
+      "webgl": "Deze browser kan geen 3D-graphics tonen (WebGL is uitgeschakeld of wordt niet ondersteund).",
+      "missingBuffers": "Het glTF-bestand bewaart zijn geometrie in andere bestanden, die een enkel bestand niet kan meenemen: {files}. Gebruik een .glb-bestand of een .gltf met ingesloten gegevens.",
+      "download": "Het bestand kon niet worden geladen: {message}",
+      "parse": "Het bestand kon niet als 3D-model worden gelezen: {message}"
+    }
+  }
+}

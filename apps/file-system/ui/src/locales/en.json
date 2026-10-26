@@ -58,20 +58,5 @@
     "loadFailed": "The files could not be read.",
     "expand": "Expand {name}",
     "collapse": "Collapse {name}"
-  },
-  "preview": {
-    "close": "Close the preview",
-    "noneTitle": "No preview available",
-    "none": "This type of file cannot be shown here. Download it to open it on your computer.",
-    "failedTitle": "The file could not be shown",
-    "empty": "This file has no content yet.",
-    "failed": "The file could not be read.",
-    "external": "This file is stored at {url}.",
-    "truncated": "Only the first {size} are shown.",
-    "pdfFailed": "This PDF could not be shown. Open or download it.",
-    "pdfPage": "Page {page} of {pages}",
-    "previousPage": "Previous page",
-    "nextPage": "Next page",
-    "gone": "This file is no longer here."
   }
 }

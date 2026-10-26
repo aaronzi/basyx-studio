@@ -76,7 +76,7 @@
           :editable="editable"
           :entry="entry"
           :selected="selected.has(entry.path)"
-          :thumbnail="thumbnails[entry.path] ?? null"
+          :source="sources[entry.path] ?? null"
           @action="emit('action', entry, $event)"
           @dragstart="emit('drag-start', entry, $event)"
           @preview="emit('preview', entry)"
@@ -91,6 +91,7 @@
 
 <script lang="ts" setup>
   import type { Entry, EntryAction, FileEntry, FolderEntry } from './fileSystem'
+  import type { FileSource } from '@basyx/file-viewer/vue'
   import { computed } from 'vue'
   import FileCard from './FileCard.vue'
   import { parentOf } from './fileSystem'
@@ -106,7 +107,7 @@
     editable: boolean
     selected: ReadonlySet<string>
     dropTarget: string | null
-    thumbnails: Record<string, string>
+    sources: Record<string, FileSource>
   }>()
   const emit = defineEmits<{
     'open': [path: string]

@@ -2,8 +2,8 @@
   <div class="d-flex flex-column ga-2">
     <v-sheet border class="overflow-hidden" data-test="viewer-card" rounded="lg">
       <v-responsive :aspect-ratio="4 / 3" max-height="560" min-height="260">
-        <!-- The canvas fills the box; absolute, so its pixel size never stretches it. -->
-        <div v-show="showModel" ref="host" class="position-absolute top-0 left-0 w-100 h-100" data-test="viewer-canvas" />
+        <!-- The shared 3D view's canvas and loading state (@basyx/file-viewer/model). -->
+        <ModelCanvas data-test="viewer-canvas" :hidden="!showModel" :view="view" />
 
         <div v-if="!showModel" class="d-flex flex-column align-center justify-center h-100 w-100">
           <PreviewImage
@@ -14,14 +14,6 @@
             icon-size="64"
             :submodel-id="submodelId"
           />
-        </div>
-
-        <div
-          v-if="showModel && (viewer.status.value === 'downloading' || viewer.status.value === 'processing')"
-          class="position-absolute top-0 left-0 w-100 h-100 d-flex flex-column align-center justify-center ga-3 bg-surface text-medium-emphasis"
-        >
-          <v-progress-circular :indeterminate="viewer.progress.value === null" :model-value="(viewer.progress.value ?? 0) * 100" />
-          <span class="text-body-medium">{{ viewer.status.value === 'downloading' ? t('viewer.loading') : t('viewer.processing') }}</span>
         </div>
 
         <v-chip
@@ -135,37 +127,12 @@
     <v-alert
       v-if="viewer.result.value && viewer.result.value.missingImages.length > 0"
       density="compact"
-      :text="t('viewer.missingImages', { files: viewer.result.value.missingImages.join(', ') })"
+      :text="viewerText('model3d.missingImages', { files: viewer.result.value.missingImages.join(', ') })"
       type="warning"
     />
 
     <!-- IFC: the picked element's attributes and property sets. -->
-    <v-card v-if="showModel && viewer.result.value?.pickable" data-test="viewer-element">
-      <v-progress-linear v-if="viewer.selecting.value" />
-
-      <template v-else-if="viewer.selected.value">
-        <v-card-item
-          :subtitle="[viewer.selected.value.type, viewer.selected.value.globalId].filter(Boolean).join(' · ')"
-          :title="viewer.selected.value.name ?? viewer.selected.value.type"
-        >
-          <template #append>
-            <v-btn :aria-label="t('viewer.clearSelection')" icon="mdi-close" size="small" @click="viewer.clearSelection()" />
-          </template>
-        </v-card-item>
-
-        <v-expansion-panels v-if="viewer.selected.value.groups.length > 0" multiple static variant="accordion">
-          <v-expansion-panel v-for="group in viewer.selected.value.groups" :key="group.name" :title="group.name">
-            <v-expansion-panel-text>
-              <DefinitionList :rows="group.properties.map(property => ({ label: property.name, value: property.value }))" />
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
-
-        <v-card-text v-else class="text-medium-emphasis">{{ t('viewer.noProperties') }}</v-card-text>
-      </template>
-
-      <v-card-text v-else class="text-medium-emphasis">{{ t('viewer.pickHint') }}</v-card-text>
-    </v-card>
+    <ModelElementPanel v-if="showModel" data-test="viewer-element" :view="view" />
   </div>
 </template>
 
@@ -173,10 +140,10 @@
   import type { Model3DVersion } from './models3d'
   import type { ViewerTheme } from '@basyx/model-viewer'
   import type { StudioClient } from '@basyx/studio-sdk'
+  import { ModelCanvas, ModelElementPanel, useModelView } from '@basyx/file-viewer/model'
+  import { useFileViewerContext } from '@basyx/file-viewer/vue'
   import { modelFormatLabels } from '@basyx/model-viewer'
-  import { useModelViewer } from '@basyx/model-viewer/vue'
   import { computed, onMounted, ref, watch } from 'vue'
-  import DefinitionList from './DefinitionList.vue'
   import { useI18n } from './i18n'
   import { externalModel, viewerFormat } from './models3d'
   import { formatLabel } from './presentation'
@@ -184,7 +151,9 @@
 
   // A version's model in 3D (the Web UI's Models3DViewerCard and CADPreview),
   // its preview image where it has no file the viewer reads, and a link to
-  // an external host where the file is only there.
+  // an external host where the file is only there. The canvas, its loading
+  // state, the picked IFC element and the problem texts are the file
+  // viewer's 3D view (ADR 0052); the frame and controls are the app's.
   const props = defineProps<{
     client: StudioClient
     submodelId: string
@@ -200,8 +169,9 @@
   }>()
 
   const { t } = useI18n()
-  const host = ref<HTMLElement | null>(null)
-  const viewer = useModelViewer(host, () => props.theme)
+  const { t: viewerText } = useFileViewerContext()
+  const view = useModelView(() => props.theme)
+  const viewer = view.viewer
 
   const showImage = ref(false)
   // A file of its own, else one at another host, which Studio's page fetches (`readExternalFile`).
@@ -226,26 +196,7 @@
     }
     return canView.value ? '' : t('viewer.unsupported', { format: formatLabel(props.version) || props.version.fileName })
   })
-  const problemText = computed(() => {
-    const problem = viewer.problem.value
-    switch (problem?.code) {
-      case undefined: {
-        return ''
-      }
-      case 'webgl': {
-        return t('errors.webgl')
-      }
-      case 'missing-buffers': {
-        return t('errors.missingBuffers', { files: problem.details.join(', ') })
-      }
-      case 'download': {
-        return t('errors.download', { message: problem.message })
-      }
-      default: {
-        return t('errors.parse', { message: problem?.message ?? '' })
-      }
-    }
-  })
+  const problemText = computed(() => view.problemText.value)
 
   async function load () {
     const version = props.version
@@ -254,10 +205,10 @@
     }
     if (version?.digital) {
       const path = version.digital.path
-      await viewer.load(async () => (await props.client.ui.readFile(props.submodelId, path)).bytes, format.value)
+      await view.load(async () => (await props.client.ui.readFile(props.submodelId, path)).bytes, format.value)
     } else if (external.value) {
       const path = external.value.file.urlPath
-      await viewer.load(async () => (await props.client.ui.readExternalFile(props.submodelId, path)).bytes, format.value)
+      await view.load(async () => (await props.client.ui.readExternalFile(props.submodelId, path)).bytes, format.value)
     }
   }
 

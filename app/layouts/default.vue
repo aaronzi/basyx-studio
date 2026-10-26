@@ -373,6 +373,9 @@
     <!-- The plan and report of a paste or an import (package editing plan, K4). -->
     <CopyPlanDialog />
 
+    <!-- The one full-screen file viewer: from the details pane and from apps (ADR 0052). -->
+    <FileViewerDialog />
+
     <!-- One import dialog for the current target: the dashboard, the shell list,
          drops and the command palette open it through the UI store. -->
     <UploadDialog
@@ -444,7 +447,8 @@
   })
   // A remembered target that was removed or is no longer listed is not current.
   const activeTargetId = computed(() => targetId.value ?? target.value?.id ?? null)
-  const draftCount = computed(() => activeTargetId.value ? drafts.countFor(activeTargetId.value) : 0)
+  const fileDrafts = useFileDraftStore()
+  const draftCount = computed(() => activeTargetId.value ? drafts.countFor(activeTargetId.value) + fileDrafts.countFor(activeTargetId.value) : 0)
   /** Edit mode only where the target allows some change (not in a read-only deployment). */
   const canEdit = computed(() => {
     const capabilities = target.value?.capabilities

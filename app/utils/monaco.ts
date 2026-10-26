@@ -1,12 +1,12 @@
 // The Monaco editor for code views (MVP-4: JSON, XML, PlantUML source and the
-// advanced query; YAML for infrastructure imports), set up as in the BaSyx AAS Web UI
-// (aas-web-ui/src/components/Code/monacoRuntime.ts). Loaded on first use only,
-// in the browser.
+// advanced query; YAML for infrastructure imports) and the file viewer's text
+// view (ADR 0052, the languages of @basyx/file-viewer/monaco), set up as in
+// the BaSyx AAS Web UI (aas-web-ui/src/components/Code/monacoRuntime.ts).
+// Loaded on first use only, in the browser.
 import editorWorker from 'monaco-editor/editor/editor.worker?worker'
 import jsonWorker from 'monaco-editor/language/json/json.worker?worker'
 import { jsonDefaults } from 'monaco-editor/languages/features/json/register'
-import 'monaco-editor/languages/definitions/xml/register'
-import 'monaco-editor/languages/definitions/yaml/register'
+import '@basyx/file-viewer/monaco'
 // Monaco 0.56's JSON worker manager uses the editor features (find, folding,
 // suggestions); register them before an editor is created.
 import 'monaco-editor/features/register.all'

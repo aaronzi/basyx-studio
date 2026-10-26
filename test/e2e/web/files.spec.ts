@@ -110,30 +110,28 @@ test('manages files and folders as the Web UI does, in edit mode, and previews t
   // Images get a thumbnail.
   await expect(card(page, 'file', 'photo.png').locator('img')).toBeVisible()
 
-  // A file opens in a full-screen preview without Studio's header, as in the Web UI: the PDF drawn by PDF.js.
+  // A file opens in Studio's full-screen file viewer (ADR 0052), as the Web UI previews it: the PDF drawn by PDF.js.
   await card(page, 'file', 'Manual.pdf').locator('.v-card-item').click()
-  const preview = page.frameLocator('.v-dialog iframe[title="App: Files"]')
-  await expect(preview.locator('[data-test="preview-name"]')).toHaveText('Manual.pdf', { timeout: 30_000 })
-  await expect(page.locator('[data-test="app-fullscreen-close"]')).toHaveCount(0)
-  await expect.poll(() => preview.locator('[data-test="pdf-preview"] canvas').evaluate((canvas: HTMLCanvasElement) => {
+  const viewer = page.locator('[data-test="file-viewer-dialog"]')
+  await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('Manual.pdf', { timeout: 30_000 })
+  await expect.poll(() => viewer.locator('[data-test="file-viewer-pdf"] canvas').evaluate((canvas: HTMLCanvasElement) => {
     // Some pixel of the page is not white: the text was drawn.
     const data = canvas.getContext('2d')!.getImageData(0, 0, canvas.width, canvas.height).data
     return canvas.width > 0 && data.some((value, index) => index % 4 !== 3 && value < 200)
   }), { timeout: 30_000 }).toBe(true)
-  // The preview closes itself, also on Escape.
-  await waitUntilSettled(page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').last())
-  await preview.locator('[data-test="preview-close"]').click()
-  await expect(page.locator('[data-test="app-fullscreen"]:visible')).toHaveCount(0)
+  // The viewer closes with its button, and on Escape.
+  await viewer.locator('[data-test="file-viewer-close"]').click()
+  await expect(viewer).toBeHidden()
   await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(0)
   await card(page, 'file', 'readme.txt').locator('.v-card-item').click()
-  await expect(preview.locator('[data-test="text-preview"]')).toHaveText('Hello from the Files app', { timeout: 30_000 })
-  await waitUntilSettled(page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').last())
-  await preview.locator('[data-test="text-preview"]').click()
+  await expect(viewer.locator('[data-test="file-viewer-text"]')).toContainText('Hello from the Files app', { timeout: 30_000 })
+  // Escape with the focus in the dialog, not in the editor, which keeps Escape for itself.
+  await viewer.locator('[data-test="file-viewer-name"]').click()
   await page.keyboard.press('Escape')
-  await expect(page.locator('[data-test="app-fullscreen"]:visible')).toHaveCount(0)
+  await expect(viewer).toBeHidden()
   await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(0)
 
-  // From the explorer in Studio's full-screen dialog, the preview opens above it and returns to it.
+  // From the explorer in Studio's full-screen dialog, the viewer opens above it and returns to it.
   await page.locator('iframe[title="App: Files"]').first().scrollIntoViewIfNeeded()
   await page.getByRole('button', { name: 'Full screen', exact: true }).click()
   const explorer = page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').first().contentFrame()
@@ -141,13 +139,11 @@ test('manages files and folders as the Web UI does, in edit mode, and previews t
   await expect(photo).toBeVisible({ timeout: 30_000 })
   await waitUntilSettled(page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').first())
   await photo.click()
-  // Dialogs are teleported side by side; the preview is the last one shown.
-  const stacked = page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').last().contentFrame()
-  await expect(stacked.locator('[data-test="image-preview"]')).toBeVisible({ timeout: 30_000 })
-  await waitUntilSettled(page.locator('[data-test="app-fullscreen"]:visible iframe[title="App: Files"]').last())
-  await stacked.locator('[data-test="preview-close"]').click()
+  await expect(viewer.locator('[data-test="file-viewer-image"] img')).toBeVisible({ timeout: 30_000 })
+  await viewer.locator('[data-test="file-viewer-close"]').click()
+  await expect(viewer).toBeHidden()
   await expect(page.locator('[data-test="app-fullscreen"]:visible')).toHaveCount(1)
-  // Only the explorer's dialog is left, not the preview's fading backdrop.
+  // Only the explorer's dialog is left, not the viewer's fading backdrop.
   await expect(page.locator('.v-overlay__scrim:visible')).toHaveCount(1)
 
   // What changes in the full-screen dialog shows in the embedded view once it closes.

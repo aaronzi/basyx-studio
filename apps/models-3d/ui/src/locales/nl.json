@@ -16,21 +16,9 @@
     "openExternalAt": "Bestand bij {host} openen",
     "external": "Het model staat buiten deze AAS, bij {host}. Studio toont de voorbeeldafbeelding.",
     "externalFailed": "Het model staat buiten deze AAS, bij {host}, dat het niet aan Studio heeft geleverd. Studio toont de voorbeeldafbeelding.",
-    "loading": "Bestand wordt geladen…",
-    "processing": "3D-model wordt voorbereid…",
     "unsupported": "{format} kan niet in 3D worden getoond; download het bestand om het te openen.",
     "noFile": "Deze versie bevat geen 3D-bestand.",
-    "failed": "3D-voorbeeld niet beschikbaar",
-    "pickHint": "Klik op een element om de eigenschappen te zien.",
-    "clearSelection": "Selectie wissen",
-    "noProperties": "Dit element heeft geen eigenschappen.",
-    "missingImages": "Texturen in andere bestanden worden niet getoond: {files}"
-  },
-  "errors": {
-    "webgl": "Deze browser kan geen 3D-graphics tonen (WebGL is uitgeschakeld of wordt niet ondersteund).",
-    "missingBuffers": "Het glTF-bestand bewaart zijn geometrie in andere bestanden, die een File-element niet kan bevatten: {files}.",
-    "download": "Het bestand kon niet worden geladen: {message}",
-    "parse": "Het bestand kon niet als 3D-model worden gelezen: {message}"
+    "failed": "3D-voorbeeld niet beschikbaar"
   },
   "summary": {
     "levelOfDetail": "Detailniveau",

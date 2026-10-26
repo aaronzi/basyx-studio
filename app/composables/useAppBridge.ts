@@ -132,6 +132,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   const desktop = useDesktopBridge()
   const studioUrl = useStudioUrl()
   const readExternalFile = useExternalFile()
+  const previewFile = useFilePreview(() => options.targetId)
   const connected = ref(false)
   /** Content height the app asked for (`studio.ui.setHeight`), or `null`. */
   const height = ref<number | null>(null)
@@ -346,6 +347,15 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         }
         const content = await readExternalFile(url, { targetId: options.targetId, submodelKey: resourceKey(file.submodelId), elementKey: resourceKey(file.idShortPath) })
         return { result: content, transfer: [content.bytes.buffer] }
+      }
+      case 'studio.ui.previewFile': {
+        // Studio's own viewer, with the element as the user reads it (ADR 0052).
+        if (!options.targetId) {
+          throw hostProblem('invalid_request', 'This app frame is not bound to a target.', 400)
+        }
+        const file = appMethodParamsSchemas['studio.ui.previewFile'].parse(params)
+        await previewFile(resourceKey(file.submodelId), resourceKey(file.idShortPath))
+        break
       }
       case 'studio.ui.navigate': {
         if (contribution.kind === 'module') {

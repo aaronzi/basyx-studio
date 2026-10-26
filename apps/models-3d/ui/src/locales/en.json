@@ -16,21 +16,9 @@
     "openExternalAt": "Open the file at {host}",
     "external": "The model is stored outside this shell, at {host}. Studio shows its preview image.",
     "externalFailed": "The model is stored outside this shell, at {host}, which did not hand it to Studio. Studio shows its preview image.",
-    "loading": "Loading the file…",
-    "processing": "Preparing the 3D model…",
     "unsupported": "{format} cannot be shown in 3D; download the file to open it.",
     "noFile": "No 3D file in this version.",
-    "failed": "3D preview unavailable",
-    "pickHint": "Click an element to see its properties.",
-    "clearSelection": "Clear selection",
-    "noProperties": "This element has no properties.",
-    "missingImages": "Textures in other files are not shown: {files}"
-  },
-  "errors": {
-    "webgl": "This browser cannot draw 3D graphics (WebGL is turned off or not supported).",
-    "missingBuffers": "The glTF file keeps its geometry in other files, which a File element cannot hold: {files}.",
-    "download": "The file could not be loaded: {message}",
-    "parse": "The file could not be read as a 3D model: {message}"
+    "failed": "3D preview unavailable"
   },
   "summary": {
     "levelOfDetail": "Level of detail",

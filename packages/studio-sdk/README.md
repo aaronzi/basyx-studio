@@ -42,6 +42,7 @@ runs the app, whatever the package version.
 | 0.1.8 | 0.1.9: `settings` in the manifest, `context.settings` and `context.connections`, `settings` and `connections` in a backend's context; `checkSettingValue` and `checkSettingValues` in the app kit | next release |
 | 0.1.9 | 0.1.10: `ui.openView`; `openedViews` in `testing` | next release |
 | 0.1.10 | 0.1.11: `ui.embedView`, `context.embedded`; `connect()` of views embedded in other apps' pages; `embeddedViews` in `testing` | next release |
+| 0.1.11 | 0.1.12: `ui.previewFile`, `context.fills`; `previewedFiles` in `testing`; the file viewer `@basyx/file-viewer` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions

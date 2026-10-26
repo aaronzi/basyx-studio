@@ -13,6 +13,7 @@
 </template>
 
 <script lang="ts" setup>
+  import { provideFileViewer } from '@basyx/file-viewer/vue'
   import { useDisplay, useTheme } from 'vuetify'
   import { accentShade, roundedDefaults, themeColors, withOnColors } from '#shared/appearance'
   import { locales } from '#shared/i18n/locales'
@@ -22,6 +23,8 @@
   // from shared/i18n/locales.ts: the module's tag for hidden dialects is only
   // for detection (nuxt.config.ts).
   const { locale, localeCodes, setLocale } = useI18n()
+  // The file viewer (ADR 0052) in the UI locale, with Studio's Monaco.
+  provideFileViewer({ locale: () => locale.value, monaco: async () => (await import('~/utils/monaco')).monaco })
   useHead(() => ({ htmlAttrs: { lang: locales.find(entry => entry.code === locale.value)?.language ?? 'en-US', dir: 'ltr' } }))
 
   // Public files under the deployment's base path. The layer order must come

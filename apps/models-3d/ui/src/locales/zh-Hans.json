@@ -16,21 +16,9 @@
     "openExternalAt": "打开 {host} 上的文件",
     "external": "该模型存储在此管理壳之外（{host}）。Studio 显示其预览图像。",
     "externalFailed": "该模型存储在此管理壳之外（{host}），该主机未将其提供给 Studio。Studio 显示其预览图像。",
-    "loading": "正在加载文件…",
-    "processing": "正在准备 3D 模型…",
     "unsupported": "无法以 3D 方式显示 {format}；请下载文件后打开。",
     "noFile": "此版本不包含 3D 文件。",
-    "failed": "3D 预览不可用",
-    "pickHint": "单击某个元素以查看其属性。",
-    "clearSelection": "清除选择",
-    "noProperties": "此元素没有属性。",
-    "missingImages": "不显示其他文件中的纹理：{files}"
-  },
-  "errors": {
-    "webgl": "此浏览器无法显示 3D 图形（WebGL 已关闭或不受支持）。",
-    "missingBuffers": "此 glTF 文件将几何数据保存在其他文件中，而 File 元素无法包含这些文件：{files}。",
-    "download": "无法加载文件：{message}",
-    "parse": "无法将文件读取为 3D 模型：{message}"
+    "failed": "3D 预览不可用"
   },
   "summary": {
     "levelOfDetail": "细节层次",

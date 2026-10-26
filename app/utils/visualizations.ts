@@ -1,6 +1,3 @@
-import type { ModelFormat } from '@basyx/model-viewer'
-import { detectModelFormat } from '@basyx/model-viewer'
-
 /** A view Studio itself offers in the Visualization tab, before the app views. */
 export interface BuiltInView {
   id: string
@@ -8,13 +5,8 @@ export interface BuiltInView {
   icon: string
 }
 
-/** The 3D view of a File element (STL, OBJ, glTF, IFC, STEP). */
-export const model3dViewId = 'studio:model-3d'
+/** The file view of a File or Blob element (ADR 0052): images, PDF, text, 3D models and more. */
+export const fileViewId = 'studio:file'
 
-/** The 3D format of a File element with content, or `null`. */
-export function fileModelFormat (element: Record<string, unknown>): ModelFormat | null {
-  if (element.modelType !== 'File' || typeof element.value !== 'string' || element.value === '') {
-    return null
-  }
-  return detectModelFormat({ contentType: typeof element.contentType === 'string' ? element.contentType : null, fileName: element.value })
-}
+/** View ids of earlier versions, still in links: the 3D view became the file view. */
+export const legacyViewIds: Record<string, string> = { 'studio:model-3d': fileViewId }

@@ -401,6 +401,9 @@ export class WorkspaceModel {
     if (!location) {
       throw new StudioProblem('target_resource_not_found', 'The File element has no value.')
     }
+    if (/^https?:\/\//i.test(location)) {
+      throw new StudioProblem('unsupported_operation', 'The File names a file at another address; read it as an external file (studio.ui.readExternalFile).')
+    }
     const file = await this.files.read(location)
     if (!file) {
       throw new StudioProblem('target_resource_not_found', 'The file is not part of the package.')

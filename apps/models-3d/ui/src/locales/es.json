@@ -16,21 +16,9 @@
     "openExternalAt": "Abrir el archivo en {host}",
     "external": "El modelo se guarda fuera de esta AAS, en {host}. Studio muestra su imagen de vista previa.",
     "externalFailed": "El modelo se guarda fuera de esta AAS, en {host}, que no se lo entregó a Studio. Studio muestra su imagen de vista previa.",
-    "loading": "Cargando el archivo…",
-    "processing": "Preparando el modelo 3D…",
     "unsupported": "{format} no se puede mostrar en 3D; descargue el archivo para abrirlo.",
     "noFile": "Esta versión no contiene ningún archivo 3D.",
-    "failed": "Vista previa 3D no disponible",
-    "pickHint": "Haga clic en un elemento para ver sus propiedades.",
-    "clearSelection": "Borrar la selección",
-    "noProperties": "Este elemento no tiene propiedades.",
-    "missingImages": "Las texturas de otros archivos no se muestran: {files}"
-  },
-  "errors": {
-    "webgl": "Este navegador no puede mostrar gráficos 3D (WebGL está desactivado o no es compatible).",
-    "missingBuffers": "El archivo glTF guarda su geometría en otros archivos, que un elemento File no puede contener: {files}.",
-    "download": "No se pudo cargar el archivo: {message}",
-    "parse": "No se pudo leer el archivo como modelo 3D: {message}"
+    "failed": "Vista previa 3D no disponible"
   },
   "summary": {
     "levelOfDetail": "Nivel de detalle",

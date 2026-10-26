@@ -1,0 +1,81 @@
+{
+  "name": "@basyx/file-viewer",
+  "version": "0.1.10",
+  "description": "File viewer of BaSyx Studio and its apps: text in Monaco, Markdown, CSV, images, PDF, 3D models, audio and video",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eclipse-basyx/basyx-studio.git",
+    "directory": "packages/file-viewer"
+  },
+  "homepage": "https://github.com/eclipse-basyx/basyx-studio/tree/main/packages/file-viewer#readme",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts",
+    "./markdown": "./src/markdown.ts",
+    "./model": "./src/model.ts",
+    "./monaco": "./src/monaco.ts",
+    "./pdf": "./src/pdf.ts",
+    "./viewer": "./src/viewer.ts",
+    "./vue": "./src/vue.ts"
+  },
+  "files": [
+    "dist",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-package.mjs",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@basyx/model-viewer": "workspace:^",
+    "dompurify": "^3.4.15",
+    "markdown-it": "^15.0.3",
+    "pdfjs-dist": "6.4.299"
+  },
+  "devDependencies": {
+    "monaco-editor": "^0.57.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.3.5",
+    "vue": "^3.5.44",
+    "vue-tsc": "^3.3.12",
+    "vuetify": "^4.2.6"
+  },
+  "peerDependencies": {
+    "monaco-editor": "^0.57.0",
+    "vue": "^3.5.44",
+    "vuetify": "^4.2.6"
+  },
+  "peerDependenciesMeta": {
+    "monaco-editor": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true,
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "./markdown": {
+        "types": "./dist/markdown.d.ts",
+        "default": "./dist/markdown.js"
+      },
+      "./model": "./src/model.ts",
+      "./monaco": {
+        "types": "./dist/monaco.d.ts",
+        "default": "./dist/monaco.js"
+      },
+      "./pdf": {
+        "types": "./dist/pdf.d.ts",
+        "default": "./dist/pdf.js"
+      },
+      "./viewer": "./src/viewer.ts",
+      "./vue": "./src/vue.ts"
+    }
+  }
+}

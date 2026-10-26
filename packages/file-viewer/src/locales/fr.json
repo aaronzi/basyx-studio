@@ -1,0 +1,87 @@
+{
+  "kinds": {
+    "image": "Image",
+    "pdf": "PDF",
+    "text": "Texte",
+    "model3d": "Modèle 3D",
+    "video": "Vidéo",
+    "audio": "Audio",
+    "none": "Fichier"
+  },
+  "views": {
+    "rendered": "Rendu",
+    "source": "Source",
+    "table": "Tableau",
+    "image": "Image"
+  },
+  "actions": {
+    "download": "Télécharger",
+    "openExternal": "Ouvrir dans le navigateur",
+    "maximize": "Plein écran",
+    "close": "Fermer",
+    "find": "Rechercher",
+    "wrap": "Renvoyer à la ligne",
+    "noWrap": "Ne pas renvoyer à la ligne",
+    "copy": "Copier",
+    "copied": "Copié",
+    "save": "Enregistrer",
+    "discard": "Abandonner les modifications",
+    "retry": "Réessayer",
+    "reload": "Charger la version actuelle",
+    "keepMine": "Enregistrer la mienne quand même",
+    "downloadMine": "Télécharger ma version"
+  },
+  "status": {
+    "loading": "Chargement du fichier…",
+    "failed": "Le fichier n’a pas pu être chargé",
+    "empty": "Le fichier est vide.",
+    "noPreview": "Aucun aperçu pour ce fichier",
+    "noPreviewText": "Téléchargez le fichier pour l’ouvrir dans un autre programme.",
+    "noPreviewExternal": "Ouvrez le fichier à son adresse pour le voir.",
+    "external": "Stocké à une autre adresse",
+    "unsaved": "Modifications non enregistrées",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré",
+    "truncated": "Le fichier fait {size} ; ses premiers {shown} sont affichés, en lecture seule.",
+    "readOnlyExternal": "Un fichier situé à une autre adresse ne peut pas être modifié ici.",
+    "readOnlyEncoding": "L’encodage du fichier ne permet pas de le réécrire, il ne peut donc pas être modifié ici.",
+    "conflict": "Quelqu’un d’autre a modifié le fichier depuis que vous avez commencé à le modifier. Chargez la version actuelle (vos modifications sont perdues si vous ne les téléchargez pas d’abord), ou enregistrez la vôtre par-dessus.",
+    "draftOutdated": "Vos modifications non enregistrées reposent sur une version plus ancienne du fichier.",
+    "unencodable": "Le texte contient « {character} », que l’encodage du fichier ne peut pas représenter."
+  },
+  "table": {
+    "truncated": "Seules les {count} premières lignes sont affichées.",
+    "empty": "Le tableau est vide."
+  },
+  "pdf": {
+    "page": "Page {page} sur {pages}",
+    "previous": "Page précédente",
+    "next": "Page suivante",
+    "zoomIn": "Zoom avant",
+    "zoomOut": "Zoom arrière",
+    "fit": "Ajuster à la vue",
+    "failed": "Le PDF n’a pas pu être affiché. Téléchargez-le pour l’ouvrir dans un autre programme."
+  },
+  "image": {
+    "failed": "L’image n’a pas pu être affichée."
+  },
+  "media": {
+    "failed": "Le navigateur ne peut pas lire ce fichier."
+  },
+  "model3d": {
+    "triangles": "{count} triangle | {count} triangles",
+    "resetView": "Réinitialiser la vue",
+    "processing": "Préparation du modèle 3D…",
+    "failed": "Le modèle 3D ne peut pas être affiché",
+    "missingImages": "Les textures d’autres fichiers ne sont pas affichées : {files}",
+    "clearSelection": "Effacer la sélection",
+    "pickHint": "Cliquez sur un élément pour voir ses propriétés.",
+    "noProperties": "Cet élément n’a pas de propriétés.",
+    "errors": {
+      "webgl": "Ce navigateur ne peut pas afficher de graphismes 3D (WebGL est désactivé ou non pris en charge).",
+      "missingBuffers": "Le fichier glTF conserve sa géométrie dans d’autres fichiers, qu’un fichier unique ne peut pas emporter : {files}. Utilisez un fichier .glb ou un .gltf avec des données intégrées.",
+      "download": "Le fichier n'a pas pu être chargé : {message}",
+      "parse": "Le fichier n’a pas pu être lu comme modèle 3D : {message}"
+    }
+  }
+}

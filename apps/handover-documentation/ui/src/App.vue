@@ -14,12 +14,24 @@
           :disabled="!document.file"
           :subtitle="document.subtitle"
           :title="document.title"
-          @click="open(document.file, false)"
+          @click="preview(document.file)"
         >
           <template #prepend>
-            <v-avatar :color="document.pdf ? 'error' : 'primary'" rounded="lg" variant="tonal">
-              <v-icon :icon="document.pdf ? 'mdi-file-pdf-box' : 'mdi-file-document-outline'" />
-            </v-avatar>
+            <!-- The document's preview image, else its file's (ADR 0052); its type's icon without one. -->
+            <file-thumbnail
+              :alt="document.title"
+              class="me-4"
+              cover
+              height="48"
+              :source="document.thumbnail"
+              width="48"
+            >
+              <template #icon>
+                <v-avatar :color="document.pdf ? 'error' : 'primary'" rounded="lg" variant="tonal">
+                  <v-icon :icon="document.pdf ? 'mdi-file-pdf-box' : 'mdi-file-document-outline'" />
+                </v-avatar>
+              </template>
+            </file-thumbnail>
           </template>
 
           <template v-if="document.file" #append>
@@ -39,8 +51,10 @@
 </template>
 
 <script lang="ts" setup>
+  import type { FileSource } from '@basyx/file-viewer/vue'
   import type { Node } from '@basyx/studio-app-kit'
   import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
+  import { FileThumbnail, provideFileViewer, withCachedContent } from '@basyx/file-viewer/vue'
   import { child, childrenOf, loadSubmodel, textOf } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, ref } from 'vue'
@@ -50,7 +64,25 @@
   const loading = ref(true)
   const error = ref<string | null>(null)
   const submodel = ref<JsonObject | null>(null)
-  const locale = computed(() => props.client.context.locale)
+  const context = ref(props.client.context)
+  props.client.onContext(value => (context.value = value))
+  const locale = computed(() => context.value.locale)
+  provideFileViewer({ locale: () => locale.value })
+
+  /** A File element as the file viewer's thumbnail reads it. */
+  function sourceOf (file: Node | undefined): FileSource | null {
+    const value = file?.element.value
+    if (!file || typeof value !== 'string' || value === '') {
+      return null
+    }
+    return withCachedContent({
+      key: `${file.path}:${value}`,
+      name: value.split('/').pop() ?? '',
+      contentType: typeof file.element.contentType === 'string' ? file.element.contentType : '',
+      external: /^https?:\/\//i.test(value) ? value : null,
+      load: () => props.client.ui.readFile(props.client.context.submodel!.id, file.path),
+    })
+  }
 
   /** First entry of a list (v2: `DocumentVersions`) or the collection itself (v1.2: `DocumentVersion`). */
   function first (node: Node | undefined, plural: string, singular: string): Node | undefined {
@@ -67,6 +99,7 @@
     return entries.map(document => {
       const version = first(document, 'DocumentVersions', 'DocumentVersion')
       const file = first(version, 'DigitalFiles', 'DigitalFile')
+      const previewFile = child(version, 'PreviewFile')
       const classification = first(document, 'DocumentClassifications', 'DocumentClassification')
       const contentType = typeof file?.element.contentType === 'string' ? file.element.contentType : ''
       const className = textOf(child(classification, 'ClassName'), locale.value)
@@ -76,10 +109,20 @@
         title: textOf(child(version, 'Title'), locale.value) || String(document.element.idShort),
         subtitle: [className, versionName && `Version ${versionName}`].filter(Boolean).join(' · '),
         file: file?.path ?? null,
+        thumbnail: sourceOf(previewFile) ?? sourceOf(file),
         pdf: contentType === 'application/pdf',
       }
     })
   })
+
+  /** Shows the document in Studio's file viewer, full-screen. */
+  function preview (path: string | null) {
+    if (path) {
+      void props.client.ui.previewFile(props.client.context.submodel!.id, path).catch((error_: unknown) => {
+        error.value = error_ instanceof StudioError ? error_.message : String(error_)
+      })
+    }
+  }
 
   function open (path: string | null, download: boolean) {
     if (path) {

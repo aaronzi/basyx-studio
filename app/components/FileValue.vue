@@ -1,46 +1,56 @@
 <template>
-  <v-card border="0" color="surface-light">
-    <v-list-item class="py-3" :subtitle="String(element.contentType ?? '')" :title="fileName || t('details.noFile')">
+  <v-card border="0" color="surface-light" data-test="file-value">
+    <v-list-item class="py-3" :subtitle="subtitle" :title="title">
       <template #prepend>
-        <v-avatar :color="isPdf ? 'error' : 'primary'" variant="tonal">
-          <v-icon :icon="icon" />
+        <v-avatar :color="kind.kind === 'pdf' ? 'error' : 'primary'" variant="tonal">
+          <v-icon :icon="viewerKindIcon(kind)" />
         </v-avatar>
       </template>
     </v-list-item>
 
-    <!-- External files load from their own address: BaSyx Go answers them with
-         a redirect, which Studio does not follow. -->
-    <v-img
-      v-if="isImage && fileName"
-      class="mx-4 mb-2"
-      max-height="200"
-      :referrerpolicy="external ? 'no-referrer' : undefined"
-      :src="external ?? url"
-    />
+    <!-- A small picture only; the file itself shows in the Visualization tab or full-screen. -->
+    <div v-if="source" class="px-4 pb-2">
+      <FileThumbnail :source="source" />
+    </div>
 
-    <v-card-actions v-if="fileName">
+    <v-card-actions v-if="source">
+      <v-btn data-test="file-show-preview" prepend-icon="mdi-eye-outline" :text="t('details.showPreview')" @click="emit('preview')" />
+
       <v-btn
-        v-if="modelFormat"
-        data-test="file-view-3d"
-        prepend-icon="mdi-rotate-3d-variant"
-        :text="t('model3d.view')"
-        @click="emit('visualize')"
+        v-tooltip="t('details.fullScreen')"
+        :aria-label="t('details.fullScreen')"
+        data-test="file-maximize"
+        icon="mdi-fullscreen"
+        @click="emit('maximize')"
       />
 
       <v-btn
-        :href="external ?? url"
-        prepend-icon="mdi-eye-outline"
-        :rel="external ? 'noreferrer' : undefined"
+        v-if="external"
+        v-tooltip="t('details.openExternal')"
+        :aria-label="t('details.openExternal')"
+        :href="external"
+        icon="mdi-open-in-new"
+        rel="noopener noreferrer"
         target="_blank"
-        :text="t('details.preview')"
       />
 
-      <v-btn color="primary" :href="external ?? `${url}?download`" prepend-icon="mdi-download" :text="t('details.download')" />
+      <v-btn
+        v-tooltip="t('details.download')"
+        :aria-label="t('details.download')"
+        data-test="file-download"
+        :download="downloadUrl ? source.name : undefined"
+        :href="external ?? downloadUrl ?? `${attachmentUrl}?download`"
+        icon="mdi-download"
+        :rel="external ? 'noopener noreferrer' : undefined"
+        :target="external ? '_blank' : undefined"
+      />
+
       <v-spacer />
-      <v-btn v-if="canReplace" prepend-icon="mdi-upload" :text="t('details.replace')" @click="dialog = true" />
+
+      <v-btn v-if="canReplace && isFile" prepend-icon="mdi-upload" :text="t('details.replace')" @click="dialog = true" />
     </v-card-actions>
 
-    <v-card-actions v-else-if="canReplace">
+    <v-card-actions v-else-if="canReplace && isFile">
       <v-spacer />
       <v-btn prepend-icon="mdi-upload" :text="t('details.replace')" @click="dialog = true" />
     </v-card-actions>
@@ -61,35 +71,55 @@
 
 <script lang="ts" setup>
   import type { ElementDetail } from '#shared/contract'
-  import { fileModelFormat } from '~/utils/visualizations'
+  import type { FileSource } from '@basyx/file-viewer/vue'
+  import { detectViewerKind, viewerKindIcon } from '@basyx/file-viewer'
+  import { FileThumbnail } from '@basyx/file-viewer/vue'
+  import { externalFile, fileNameOf } from '~/composables/useElementFile'
 
-  const props = defineProps<{ targetId: string, submodelKey: string, detail: ElementDetail, canReplace: boolean }>()
-  const emit = defineEmits<{ changed: [detail: ElementDetail], visualize: [] }>()
+  // A File or Blob element in the details tab (ADR 0052): what it is, a
+  // thumbnail, and the ways to see it — the Visualization tab's file view,
+  // full-screen — download it or, for a File, replace it.
+  const props = defineProps<{
+    targetId: string
+    submodelKey: string
+    detail: ElementDetail
+    /** The file viewer's source of the element, or `null` without content. */
+    source: FileSource | null
+    canReplace: boolean
+  }>()
+  const emit = defineEmits<{ changed: [detail: ElementDetail], preview: [], maximize: [] }>()
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const api = useStudioApi()
   const notifications = useNotificationsStore()
 
   const element = computed(() => props.detail.value as Record<string, unknown>)
-  const fileName = computed(() => typeof element.value.value === 'string' ? element.value.value.split('/').pop() ?? '' : '')
+  const isFile = computed(() => element.value.modelType === 'File')
   const contentType = computed(() => String(element.value.contentType ?? ''))
-  // SVG too: as an image, a browser runs none of its scripts.
-  const isImage = computed(() => contentType.value.startsWith('image/'))
-  const external = computed(() => typeof element.value.value === 'string' && /^https?:\/\//i.test(element.value.value) ? element.value.value : null)
-  const isPdf = computed(() => contentType.value === 'application/pdf')
-  /** A 3D model the Visualization tab can show. */
-  const modelFormat = computed(() => fileModelFormat(element.value))
-  const icon = computed(() => {
-    if (isImage.value) {
-      return 'mdi-file-image-outline'
-    }
-    if (isPdf.value) {
-      return 'mdi-file-pdf-box'
-    }
-    return modelFormat.value ? 'mdi-cube-outline' : 'mdi-file-outline'
+  const external = computed(() => externalFile(element.value))
+  const kind = computed(() => detectViewerKind({ contentType: contentType.value, fileName: props.source?.name ?? fileNameOf(element.value) }))
+  /** A Blob's size from its base64 value. */
+  const blobBytes = computed(() => {
+    const value = element.value.value
+    return !isFile.value && typeof value === 'string' && value ? Math.floor(value.replace(/=+$/, '').length * 3 / 4) : null
   })
+  const title = computed(() => {
+    if (isFile.value) {
+      return fileNameOf(element.value) || t('details.noFile')
+    }
+    return blobBytes.value === null ? t('details.blobEmpty') : t('details.bytes', { size: blobBytes.value.toLocaleString(locale.value) })
+  })
+  const subtitle = computed(() => [
+    isFile.value ? null : t('details.blob', { type: contentType.value }),
+    isFile.value ? contentType.value : null,
+    external.value ? t('details.externalFile', { host: URL.parse(external.value)?.host ?? external.value }) : null,
+  ].filter(Boolean).join(' · '))
   const studioUrl = useStudioUrl()
-  const url = computed(() => studioUrl.api(`/targets/${props.targetId}/submodels/${props.submodelKey}/elements/${props.detail.key}/attachment`))
+  const attachmentUrl = computed(() => studioUrl.api(`/targets/${props.targetId}/submodels/${props.submodelKey}/elements/${props.detail.key}/attachment`))
+  /** A Blob downloads from its value. */
+  const downloadUrl = computed(() => (!isFile.value && typeof element.value.value === 'string' && element.value.value
+    ? `data:${contentType.value || 'application/octet-stream'};base64,${element.value.value}`
+    : null))
 
   const dialog = ref(false)
   const file = ref<File | null>(null)

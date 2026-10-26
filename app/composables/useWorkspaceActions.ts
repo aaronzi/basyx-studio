@@ -17,6 +17,7 @@ export function useWorkspaceActions (target: () => Target) {
   const api = useStudioApi()
   const ui = useUiStore()
   const drafts = useDraftStore()
+  const fileDrafts = useFileDraftStore()
   const queryCache = useQueryCache()
   const notifications = useNotificationsStore()
 
@@ -93,6 +94,7 @@ export function useWorkspaceActions (target: () => Target) {
       }
       confirmClose.value = false
       drafts.discardTarget(id)
+      fileDrafts.discardTarget(id)
       for (const entry of queryCache.getEntries({ key: ['targets', id] })) {
         queryCache.remove(entry)
       }

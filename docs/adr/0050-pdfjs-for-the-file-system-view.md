@@ -1,6 +1,6 @@
 # 0050: PDF.js for the FileSystem view's PDF preview
 
-- Status: Proposed
+- Status: Proposed, amended by [ADR 0052](0052-one-file-viewer-for-studio-and-apps.md): the PDF view moved into `@basyx/file-viewer`, used by Studio and its apps
 - Date: 2026-10-20
 - Deciders: BaSyx Studio maintainers
 - Requirements: PROD-001, ARCH-002, ARCH-005

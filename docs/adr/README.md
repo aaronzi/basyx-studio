@@ -57,8 +57,9 @@ changes one, add a new ADR with `Supersedes` and mark the old record
 | [0047](0047-http-connections-for-apps.md) | Proposed | `http` connections bound to app connections; declared OpenAPI operations; `studio.connections.call`; token exchange for the signed-in user |
 | [0048](0048-app-settings-and-connection-status.md) | Proposed | Declared app settings per installation and per infrastructure (dialog, declared YAML), resolved into the context with each connection's `{ bound }`; not for secrets |
 | [0049](0049-structural-writes-and-attachments-for-apps.md) | Proposed | Structural writes and attachment uploads for apps on the editor's paths; edit mode checked on the server |
-| [0050](0050-pdfjs-for-the-file-system-view.md) | Proposed | PDF.js in the bundled FileSystem view for PDF previews, on the page, without worker or WebAssembly |
+| [0050](0050-pdfjs-for-the-file-system-view.md) | Proposed, amended by 0052 | PDF.js in the bundled FileSystem view for PDF previews, on the page, without worker or WebAssembly |
 | [0051](0051-views-of-other-apps.md) | Proposed | Other apps' submodel views in Studio's dialog (`studio.ui.openView`) and, with an origin per installation, read-only inline (`studio.ui.embedView`); no chart component in the app kit |
+| [0052](0052-one-file-viewer-for-studio-and-apps.md) | Proposed | One file viewer (`@basyx/file-viewer`) for Studio and apps: text in Monaco, Markdown, CSV, PDF.js, images, 3D, media; Studio's one full-screen dialog (`studio.ui.previewFile`) |
 | [0052](0052-outbound-http-proxy.md) | Proposed | Outbound requests through the `HTTP_PROXY`/`HTTPS_PROXY` proxy, except loopback and `NO_PROXY` (hosts, suffixes, ports, CIDR ranges); the guards apply to the target, not the proxy |
 
 ## Template

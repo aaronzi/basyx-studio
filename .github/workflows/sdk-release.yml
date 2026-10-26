@@ -1,12 +1,12 @@
 name: SDK Release
 
-# A tag sdk-v<version> publishes @basyx/studio-sdk, @basyx/studio-app-kit and
-# @basyx/model-viewer at that version to npm (ADR 0043). The packages are
-# versioned together, independently of Studio; the SDK's README maps each
-# version to its app API. Publishing uses npm trusted publishing: each
-# package's trusted publisher on npmjs.com names this repository and this
-# workflow file, so no token is stored. Every version carries a provenance
-# statement.
+# A tag sdk-v<version> publishes @basyx/studio-sdk, @basyx/studio-app-kit,
+# @basyx/model-viewer and @basyx/file-viewer at that version to npm (ADR 0043,
+# ADR 0052). The packages are versioned together, independently of Studio;
+# the SDK's README maps each version to its app API. Publishing uses npm
+# trusted publishing: each package's trusted publisher on npmjs.com names
+# this repository and this workflow file, so no token is stored. Every
+# version carries a provenance statement.
 
 on:
   push:
@@ -44,13 +44,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The tag names the version of all three packages, and the SDK's
+      # The tag names the version of all four packages, and the SDK's
       # README says which app API it provides.
       - name: Versions match the tag
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#sdk-v}"
-          for package in studio-sdk studio-app-kit model-viewer; do
+          for package in studio-sdk studio-app-kit model-viewer file-viewer; do
             actual="$(node -p "require('./packages/${package}/package.json').version")"
             if [[ "${actual}" != "${version}" ]]; then
               echo "packages/${package} is at ${actual}; the tag names ${version}." >&2

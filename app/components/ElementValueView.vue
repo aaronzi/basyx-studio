@@ -64,13 +64,15 @@
   </v-card>
 
   <FileValue
-    v-else-if="modelType === 'File'"
+    v-else-if="modelType === 'File' || modelType === 'Blob'"
     :can-replace="canReplace"
     :detail="detail"
+    :source="fileSource"
     :submodel-key="submodelKey"
     :target-id="targetId"
     @changed="value => emit('changed', value)"
-    @visualize="emit('visualize')"
+    @maximize="emit('maximize')"
+    @preview="emit('preview')"
   />
 
   <OperationPanel
@@ -112,6 +114,7 @@
 
 <script lang="ts" setup>
   import type { ElementDetail, LangString } from '#shared/contract'
+  import type { FileSource } from '@basyx/file-viewer/vue'
   import type { ShellTreeItem } from '~/composables/useShellTrees'
   import { useTheme } from 'vuetify'
   import { ownUnit } from '#shared/aas/iec61360'
@@ -127,12 +130,16 @@
     refreshing: boolean
     canReplace: boolean
     canInvoke: boolean
+    /** The content of a File or Blob for the file viewer. */
+    fileSource: FileSource | null
   }>()
   const emit = defineEmits<{
     changed: [detail: ElementDetail]
     select: [id: string]
-    /** Show a File element's content in the Visualization tab (3D models). */
-    visualize: []
+    /** Show a File's or Blob's content in the Visualization tab. */
+    preview: []
+    /** Show it in the full-screen file viewer. */
+    maximize: []
   }>()
 
   const { t } = useI18n()
@@ -154,7 +161,7 @@
   const unitOf = useConceptUnits(() => props.targetId, () => Boolean(target.data.value?.capabilities.conceptDescriptions) && ['Property', 'Range'].includes(modelType.value))
   const unit = computed(() => ownUnit(element.value) ?? unitOf(element.value.semanticId?.keys?.[0]?.value))
   const children = computed(() => (props.item?.children ?? []).filter(child => !child.more))
-  const structureTypes = ['Blob', 'ReferenceElement', 'RelationshipElement', 'AnnotatedRelationshipElement', 'BasicEventElement', 'Entity', 'Capability']
+  const structureTypes = ['ReferenceElement', 'RelationshipElement', 'AnnotatedRelationshipElement', 'BasicEventElement', 'Entity', 'Capability']
   // Collections and lists show only their children; other types show them below their own view.
   const isContainer = computed(() => ['SubmodelElementCollection', 'SubmodelElementList'].includes(modelType.value))
   const gradient = computed(() => {

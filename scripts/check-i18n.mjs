@@ -30,7 +30,7 @@ function defaultDirs () {
   const appDirs = readdirSync(apps, { withFileTypes: true })
     .filter(entry => entry.isDirectory())
     .map(entry => join(apps, entry.name, 'ui', 'src', 'locales'))
-  return [join(root, 'i18n', 'locales'), ...appDirs].filter(dir => existsSync(dir))
+  return [join(root, 'i18n', 'locales'), join(root, 'packages', 'file-viewer', 'src', 'locales'), ...appDirs].filter(dir => existsSync(dir))
 }
 
 /**
