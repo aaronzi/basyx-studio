@@ -2,7 +2,8 @@ import { BlockList, isIP } from 'node:net'
 
 /**
  * One NO_PROXY entry. `host` is lower-case without brackets or a trailing
- * dot; `subdomainsOnly` for `*.example.com`; `port` 0 for any port.
+ * dot; `subdomainsOnly` for `*.example.com`; IP addresses and CIDR ranges
+ * are `ranges`, compared by value; `port` 0 for any port.
  */
 export type NoProxyEntry
   = | { kind: 'any', port: number }
@@ -94,8 +95,16 @@ function parseNoProxyEntry (entry: string): NoProxyEntry {
     }
     return { kind: 'range', ranges, port }
   }
+  const address = unbracket(host)
+  const family = isIP(address)
+  if (family !== 0) {
+    // By value, as URLs canonicalize addresses: [fd00:0::1] is https://[fd00::1].
+    const ranges = new BlockList()
+    ranges.addAddress(address, family === 4 ? 'ipv4' : 'ipv6')
+    return { kind: 'range', ranges, port }
+  }
   const subdomainsOnly = host.startsWith('*.')
-  const name = unbracket(host).replace(/^\*?\./, '').replace(/\.$/, '').toLowerCase()
+  const name = address.replace(/^\*?\./, '').replace(/\.$/, '').toLowerCase()
   if (!name) {
     throw new ProxyConfigurationError(`NO_PROXY: ${entry} names no host.`)
   }

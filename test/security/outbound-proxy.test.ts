@@ -111,6 +111,14 @@ describe('proxy selection', () => {
     expect(proxied({ ...env, NO_PROXY: 'example.org,*' }, 'https://aas.example.com')).toBeNull()
   })
 
+  it('compares IP addresses by value, not by spelling', () => {
+    const noProxy = { ...env, NO_PROXY: '[fd00:0::1],2001:DB8:0:0:0:0:0:1,[fd00:0:0::2]:8443' }
+    expect(proxied(noProxy, 'https://[fd00::1]')).toBeNull()
+    expect(proxied(noProxy, 'https://[2001:db8::1]')).toBeNull()
+    expect(proxied(noProxy, 'https://[fd00::2]:8443')).toBeNull()
+    expect(proxied(noProxy, 'https://[fd00::2]')).toBe('http://tls-proxy:3128/')
+  })
+
   it('matches CIDR ranges and addresses against IP literals only', () => {
     const noProxy = { ...env, NO_PROXY: '10.0.0.0/8,192.168.1.10,fd00::/8,[2001:db8::1]' }
     expect(proxied(noProxy, 'https://10.43.2.7:8081')).toBeNull()
@@ -119,6 +127,7 @@ describe('proxy selection', () => {
     expect(proxied(noProxy, 'https://192.168.1.11')).toBe('http://tls-proxy:3128/')
     expect(proxied(noProxy, 'https://[fd12::7]')).toBeNull()
     expect(proxied(noProxy, 'https://[2001:db8::1]')).toBeNull()
+    expect(proxied(noProxy, 'https://[2001:db8::2]')).toBe('http://tls-proxy:3128/')
     // A name is never resolved to decide, even if it would resolve into a range.
     expect(proxied(noProxy, 'https://ten.example.com')).toBe('http://tls-proxy:3128/')
   })
