@@ -199,6 +199,12 @@ describe('links', () => {
     expect(linkUrl('http://example.com/')).toBeNull()
     expect(linkUrl('javascript:alert(1)')).toBeNull()
     expect(linkUrl('Video call')).toBeNull()
+    // Values that URL would take for IPv4 addresses or bare hosts are no links.
+    expect(linkUrl('40')).toBeNull()
+    expect(linkUrl('2006/42/EC')).toBeNull()
+    expect(linkUrl('I')).toBeNull()
+    expect(linkUrl('Install with the terminal box facing up.')).toBeNull()
+    expect(linkUrl('https://192.168.0.10/')).toBeNull()
   })
 
   it('lets Studio open email addresses and phone numbers (app API 0.1.14), and save text files', () => {

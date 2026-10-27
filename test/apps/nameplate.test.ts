@@ -173,6 +173,7 @@ describe('presentation', () => {
     expect(groups.map(group => group.title)).toEqual(['assetSpecific.general', 'assetSpecific.guideline{"value":"2006/42/EC"}', 'assetSpecific.guideline{"value":"2014/35/EU"}'])
     expect(groups[0]!.rows).toMatchObject([{ label: 'Rating plate', value: 'rating-plate.png', file: { path: 'AssetSpecificProperties.RatingPlate' } }])
     expect(groups[1]!.rows.map(row => [row.label, row.value])).toEqual([['Max ambient temperature', '40'], ['Installation note', 'Mit dem Klemmenkasten nach oben einbauen.']])
+    expect(groups.flatMap(group => group.rows).filter(row => row.url)).toEqual([])
     // In edit mode, the guideline is a row too.
     expect(propertyGroups(t, v3.assetSpecificProperties, 'en', true)[1]!.rows[0]!.label).toBe('Guideline for conformity declaration')
     expect(propertyGroups(t, v2.assetSpecificProperties, 'en', false).map(group => group.title)).toEqual(['assetSpecific.guideline{"value":"2006/42/EC"}'])

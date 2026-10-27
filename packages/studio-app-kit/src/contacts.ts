@@ -375,11 +375,19 @@ export function mailtoUrl (address: string): string | null {
   return /^[^\s/?#@]+@[^\s#/?@][^\s#./?@]*\.[^\s#/?@]+$/.test(value) ? `mailto:${value}` : null
 }
 
-/** An address of a contact's link as https URL, else `null`. */
+/**
+ * An address of a contact's link as https URL, else `null`: with `https://`,
+ * or a bare host name with a top-level domain (`example.com/contact`), not
+ * any text (`40` would be the IPv4 address 0.0.0.40).
+ */
 function webUrl (value: string): string | null {
   const trimmed = value.trim()
-  const url = URL.parse(/^[a-z][a-z\d+.-]*:/i.test(trimmed) ? trimmed : `https://${trimmed}`)
-  return url && url.protocol === 'https:' && url.hostname.includes('.') ? url.href : null
+  if (/\s/.test(trimmed)) {
+    return null
+  }
+  const explicit = /^[a-z][a-z\d+.-]*:/i.test(trimmed)
+  const url = URL.parse(explicit ? trimmed : `https://${trimmed}`)
+  return url && url.protocol === 'https:' && /^(?:[a-z\d-]+\.)+[a-z]{2,}$/i.test(url.hostname) ? url.href : null
 }
 
 /** The URL a link's address opens: https, email or phone; `null` for others. */
