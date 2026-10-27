@@ -1,0 +1,135 @@
+<template>
+  <v-table class="bg-transparent" density="compact">
+    <tbody>
+      <tr v-for="row in rows" :key="row.key" :data-field="row.field?.path" data-test="detail-row">
+        <td class="text-medium-emphasis text-no-wrap align-top py-2">
+          <v-icon v-if="row.icon" class="me-2" :icon="row.icon" size="16" />
+          {{ row.label }}
+        </td>
+
+        <td class="text-break align-top py-2 w-100">
+          <!-- Edited in place: a dialog would not fit a frame sized to its content.
+               No form: app frames may not submit forms (sandbox without allow-forms). -->
+          <div v-if="draft && draft.field.path === row.field?.path" data-test="edit-field">
+            <v-text-field
+              v-model="draft.value"
+              autofocus
+              :hint="draft.language ? t('edit.language', { language: draft.language }) : undefined"
+              :label="row.label"
+              :persistent-hint="Boolean(draft.language)"
+              @keydown.enter="editor.save"
+              @keydown.esc="editor.cancel"
+            />
+
+            <v-alert
+              v-if="draft.error"
+              class="mt-2"
+              data-test="edit-error"
+              density="compact"
+              :text="draft.error"
+              type="warning"
+            />
+
+            <div class="d-flex justify-end ga-2 mt-2">
+              <v-btn :text="t('edit.cancel')" @click="editor.cancel" />
+              <v-btn-primary :loading="editor.saving.value" :text="t('edit.save')" @click="editor.save" />
+            </div>
+          </div>
+
+          <div v-else class="d-flex align-start ga-1">
+            <div class="flex-grow-1">
+              <div class="d-flex flex-wrap align-center ga-2">
+                <!-- The frame cannot open links itself: Studio opens them in the browser, mail or phone app. -->
+                <v-btn
+                  v-if="row.url"
+                  :append-icon="linkIcon(row.url)"
+                  class="px-0 text-break"
+                  data-test="detail-link"
+                  size="small"
+                  :text="row.value"
+                  @click="open(row.url)"
+                />
+
+                <v-btn
+                  v-else-if="row.file && !row.field"
+                  append-icon="mdi-eye-outline"
+                  class="px-0 text-break"
+                  data-test="detail-file"
+                  size="small"
+                  :text="row.value"
+                  @click="preview(row.file)"
+                />
+
+                <div v-else-if="row.value">
+                  <div v-for="(line, index) in row.value.split('\n')" :key="index">{{ line }}</div>
+                </div>
+
+                <span v-else class="text-medium-emphasis">—</span>
+
+                <v-chip v-if="row.type" data-test="detail-type" size="x-small" :text="row.type" />
+              </div>
+
+              <div v-if="row.note" class="text-body-small text-medium-emphasis">{{ row.note }}</div>
+
+              <v-btn
+                v-if="row.map"
+                append-icon="mdi-open-in-new"
+                class="px-0 mt-1"
+                data-test="show-on-map"
+                prepend-icon="mdi-map-search-outline"
+                size="small"
+                :text="t('contact.showOnMap')"
+                @click="open(row.map)"
+              />
+            </div>
+
+            <v-btn
+              v-if="row.copy && !canEdit"
+              :aria-label="t('contact.copy', { label: row.label })"
+              data-test="detail-copy"
+              icon
+              size="small"
+              @click="copy(row.copy)"
+            >
+              <v-icon icon="mdi-content-copy" size="16" />
+              <v-tooltip activator="parent" location="bottom" :text="t('contact.copy', { label: row.label })" />
+            </v-btn>
+
+            <v-btn
+              v-if="canEdit && row.field"
+              :aria-label="t('edit.edit', { label: row.label })"
+              icon
+              size="small"
+              @click="editor.start(row.field, row.label)"
+            >
+              <v-icon icon="mdi-pencil-outline" size="16" />
+              <v-tooltip activator="parent" location="bottom" :text="t('edit.edit', { label: row.label })" />
+            </v-btn>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </v-table>
+</template>
+
+<script lang="ts" setup>
+  import type { DetailRow } from './presentation'
+  import { useRowActions } from './actions'
+  import { useI18n } from './i18n'
+
+  // Label and value rows, as the Documents app's definition list: links open
+  // through Studio, addresses in OpenStreetMap, values copy to the
+  // clipboard, and in edit mode each value changes in place.
+  defineProps<{ rows: DetailRow[] }>()
+
+  const { t } = useI18n()
+  const { canEdit, editor, open, copy, preview } = useRowActions()
+  const draft = editor.draft
+
+  function linkIcon (url: string): string {
+    if (url.startsWith('mailto:')) {
+      return 'mdi-email-outline'
+    }
+    return url.startsWith('tel:') ? 'mdi-phone-outline' : 'mdi-open-in-new'
+  }
+</script>

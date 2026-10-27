@@ -120,11 +120,18 @@ export class StudioClient {
     embedView: (submodelId: string, options: Omit<Methods['studio.ui.embedView']['params'], 'submodelId'> = {}) => this.call('studio.ui.embedView', { ...options, submodelId }),
     /**
      * Opens a URL in the system browser (needs studio.ui.navigation): https,
-     * or http to this computer. Call it from a click handler.
+     * or http to this computer; `mailto:` and `tel:` in the system's mail or
+     * phone app (Studio ≥ 0.1.14). Call it from a click handler.
      */
     openExternal: (url: string) => this.call('studio.ui.openExternal', { url }),
     /** Copies text to the clipboard (needs studio.ui.clipboard). Call it from a click handler. */
     copyText: (text: string) => this.call('studio.ui.copyText', { text }),
+    /**
+     * Saves a text file the app created, e.g. a vCard, to the user's
+     * computer (needs studio.ui.saveFiles; Studio ≥ 0.1.14). Call it from a
+     * click handler.
+     */
+    saveFile: (fileName: string, text: string, contentType = 'text/plain') => this.call('studio.ui.saveFile', { fileName, contentType, text }),
   }
 
   /** Local BaSyx instances on Docker or Podman; desktop and bundled apps only (ADR 0033). */

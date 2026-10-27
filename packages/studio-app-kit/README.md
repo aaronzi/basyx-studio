@@ -37,7 +37,8 @@ the app mounts.
 | Entry | What |
 | --- | --- |
 | `@basyx/studio-app-kit` | `mountApp`, `loadSubmodel`, and the AAS helpers below |
-| `@basyx/studio-app-kit/aas` | Reading AAS JSON without Vue: `childrenOf`, `child`, `langText`, `textOf`, `humanize` |
+| `@basyx/studio-app-kit/aas` | Reading AAS JSON without Vue: `childrenOf`, `child`, `langText`, `textOf`, `humanize`; elements of a template across its versions by idShort or semantic ID (`ElementSpec`, `childrenMatching`, `childMatching`, `matchesSpec`, `hasSpecName`, `conceptOf`; an idShort wins over a semantic ID) and `TextField`s to show and change (`textFieldOf`, `fieldText`) |
+| `@basyx/studio-app-kit/contacts` | IDTA 02002 contact information without Vue: `parseContactInformations`, `parseContactInformation` (also a nameplate's address), `contactName`, `addressLines`, `contactRows` in Studio's seven locales, value lists (`contactRole`, `channelType`), `telUrl`, `mailtoUrl`, `mapUrl`, `contactVCard` ([Contacts](#contacts)) |
 | `@basyx/studio-app-kit/i18n` | `provideI18n(client, base, translations, { baseLocale })` and `useI18n()`: texts that follow Studio's locale, the base catalog as fallback ([Texts](#texts)) |
 | `@basyx/studio-app-kit/router` | `createStudioHistory(client, { history })`: a Vue Router history over a module's sub-path ([Modules with pages](#modules-with-pages)) |
 | `@basyx/studio-app-kit/defaults` | The Vuetify defaults of `mountApp`, e.g. for lint rules |
@@ -76,6 +77,32 @@ new Intl.NumberFormat(formatLocale.value).format(1234.5)
 - Catalogs nest to any depth (`section.group.key`); a translation has the
   base catalog's keys, any of them missing (`PartialCatalog`). Two-level
   catalogs stay valid.
+
+## Contacts
+
+`@basyx/studio-app-kit/contacts` reads the contacts of IDTA 02002 Contact
+Information 1.0 and the manufacturer's address of the Digital Nameplate
+(`AddressInformation` in 3.0, `ContactInformation` in 2.0, `Address` in 1.0)
+by idShort or semantic ID, numbered or in lists, as Studio's Contacts and
+Digital Nameplate apps do:
+
+```ts
+import { contactName, contactRows, contactVCard, parseContactInformations, vCardFileName } from '@basyx/studio-app-kit/contacts'
+
+for (const contact of parseContactInformations(submodel)) {
+  contactName(contact, locale) // "Dr. Jane Doe"
+  contactRows(contact, locale) // role, company, address with map link, phone with tel: URL, …
+  await client.ui.saveFile(vCardFileName(contact, locale), contactVCard(contact, locale), 'text/vcard')
+}
+```
+
+Rows are labelled in Studio's seven UI locales, with the role and the
+types of phone, fax and email from their ECLASS value lists, countries and
+languages from `Intl`. `contactRows(contact, locale, { edit: true })` gives
+one row per element instead, each with the `TextField` to change through
+`aas.setElementValue`. The vCard is version 3.0 (RFC 2426); saving it needs
+`studio.ui.saveFiles`, opening `mailto:` and `tel:` URLs
+`studio.ui.navigation` (Studio app API 0.1.14).
 
 ## Modules with pages
 

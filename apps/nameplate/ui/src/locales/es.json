@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "Producto",
+    "logo": "Logotipo de {name}",
+    "fullscreen": "Pantalla completa"
+  },
+  "sections": {
+    "product": "Producto",
+    "manufacturer": "Fabricante",
+    "markings": "Marcados",
+    "assetSpecific": "Propiedades específicas del activo"
+  },
+  "fields": {
+    "uriOfTheProduct": "Página del producto",
+    "manufacturerName": "Fabricante",
+    "manufacturerProductDesignation": "Denominación del producto",
+    "manufacturerProductRoot": "Raíz del producto",
+    "manufacturerProductFamily": "Familia de productos",
+    "manufacturerProductType": "Tipo de producto",
+    "orderCodeOfManufacturer": "Código de pedido",
+    "productArticleNumberOfManufacturer": "Número de artículo",
+    "serialNumber": "Número de serie",
+    "batchNumber": "Número de lote",
+    "yearOfConstruction": "Año de fabricación",
+    "dateOfManufacture": "Fecha de fabricación",
+    "hardwareVersion": "Versión de hardware",
+    "firmwareVersion": "Versión de firmware",
+    "softwareVersion": "Versión de software",
+    "countryOfOrigin": "País de origen",
+    "uniqueFacilityIdentifier": "ID de la planta"
+  },
+  "product": {
+    "type": "Tipo {value}",
+    "serial": "N.º de serie {value}",
+    "hardwareVersion": "Hardware {version}",
+    "firmwareVersion": "Firmware {version}",
+    "softwareVersion": "Software {version}"
+  },
+  "marking": {
+    "untitled": "Marcado {number}",
+    "name": "Nombre",
+    "designation": "Certificado",
+    "issued": "Emitido",
+    "expires": "Válido hasta",
+    "expired": "Caducado",
+    "additionalText": "Nota",
+    "open": "Mostrar {name}"
+  },
+  "assetSpecific": {
+    "general": "General",
+    "guideline": "Directiva {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "Mostrar en el mapa",
+    "copy": "Copiar {label}",
+    "copied": "Copiado al portapapeles.",
+    "save": "Guardar contacto"
+  },
+  "edit": {
+    "edit": "Editar {label}",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saved": "{label} guardado.",
+    "conflict": "Otra persona cambió este valor mientras tanto. Cancela e inténtalo de nuevo.",
+    "forbidden": "No tienes permiso para cambiar este valor.",
+    "language": "Idioma: {language}"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "製品",
+    "logo": "{name} のロゴ",
+    "fullscreen": "全画面"
+  },
+  "sections": {
+    "product": "製品",
+    "manufacturer": "製造元",
+    "markings": "マーキング",
+    "assetSpecific": "資産固有のプロパティ"
+  },
+  "fields": {
+    "uriOfTheProduct": "製品ページ",
+    "manufacturerName": "製造元",
+    "manufacturerProductDesignation": "製品名",
+    "manufacturerProductRoot": "製品ルート",
+    "manufacturerProductFamily": "製品ファミリー",
+    "manufacturerProductType": "製品タイプ",
+    "orderCodeOfManufacturer": "注文コード",
+    "productArticleNumberOfManufacturer": "品番",
+    "serialNumber": "シリアル番号",
+    "batchNumber": "バッチ番号",
+    "yearOfConstruction": "製造年",
+    "dateOfManufacture": "製造日",
+    "hardwareVersion": "ハードウェアバージョン",
+    "firmwareVersion": "ファームウェアバージョン",
+    "softwareVersion": "ソフトウェアバージョン",
+    "countryOfOrigin": "原産国",
+    "uniqueFacilityIdentifier": "工場 ID"
+  },
+  "product": {
+    "type": "タイプ {value}",
+    "serial": "SN {value}",
+    "hardwareVersion": "ハードウェア {version}",
+    "firmwareVersion": "ファームウェア {version}",
+    "softwareVersion": "ソフトウェア {version}"
+  },
+  "marking": {
+    "untitled": "マーキング {number}",
+    "name": "名前",
+    "designation": "証明書",
+    "issued": "発行日",
+    "expires": "有効期限",
+    "expired": "期限切れ",
+    "additionalText": "備考",
+    "open": "{name} を表示"
+  },
+  "assetSpecific": {
+    "general": "一般",
+    "guideline": "指令 {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "地図で表示",
+    "copy": "{label} をコピー",
+    "copied": "クリップボードにコピーしました。",
+    "save": "連絡先を保存"
+  },
+  "edit": {
+    "edit": "{label} を編集",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "saved": "{label} を保存しました。",
+    "conflict": "この値はその間に他のユーザーによって変更されました。キャンセルしてもう一度お試しください。",
+    "forbidden": "この値を変更する権限がありません。",
+    "language": "言語: {language}"
+  }
+}

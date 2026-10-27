@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "Produit",
+    "logo": "Logo de {name}",
+    "fullscreen": "Plein écran"
+  },
+  "sections": {
+    "product": "Produit",
+    "manufacturer": "Fabricant",
+    "markings": "Marquages",
+    "assetSpecific": "Propriétés spécifiques de l’actif"
+  },
+  "fields": {
+    "uriOfTheProduct": "Page produit",
+    "manufacturerName": "Fabricant",
+    "manufacturerProductDesignation": "Désignation du produit",
+    "manufacturerProductRoot": "Racine du produit",
+    "manufacturerProductFamily": "Famille de produits",
+    "manufacturerProductType": "Type de produit",
+    "orderCodeOfManufacturer": "Code de commande",
+    "productArticleNumberOfManufacturer": "Numéro d’article",
+    "serialNumber": "Numéro de série",
+    "batchNumber": "Numéro de lot",
+    "yearOfConstruction": "Année de construction",
+    "dateOfManufacture": "Date de fabrication",
+    "hardwareVersion": "Version matérielle",
+    "firmwareVersion": "Version du firmware",
+    "softwareVersion": "Version logicielle",
+    "countryOfOrigin": "Pays d’origine",
+    "uniqueFacilityIdentifier": "ID du site"
+  },
+  "product": {
+    "type": "Type {value}",
+    "serial": "N° de série {value}",
+    "hardwareVersion": "Matériel {version}",
+    "firmwareVersion": "Firmware {version}",
+    "softwareVersion": "Logiciel {version}"
+  },
+  "marking": {
+    "untitled": "Marquage {number}",
+    "name": "Nom",
+    "designation": "Certificat",
+    "issued": "Délivré le",
+    "expires": "Valable jusqu’au",
+    "expired": "Expiré",
+    "additionalText": "Remarque",
+    "open": "Afficher {name}"
+  },
+  "assetSpecific": {
+    "general": "Général",
+    "guideline": "Directive {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "Afficher sur la carte",
+    "copy": "Copier {label}",
+    "copied": "Copié dans le presse-papiers.",
+    "save": "Enregistrer le contact"
+  },
+  "edit": {
+    "edit": "Modifier {label}",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "saved": "{label} enregistré.",
+    "conflict": "Quelqu’un d’autre a modifié cette valeur entre-temps. Annulez et réessayez.",
+    "forbidden": "Vous n’êtes pas autorisé à modifier cette valeur.",
+    "language": "Langue : {language}"
+  }
+}

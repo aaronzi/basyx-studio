@@ -2,21 +2,29 @@
   "$schema": "../../packages/studio-sdk/app-manifest.schema.json",
   "manifestVersion": 0,
   "id": "org.eclipse.basyx.studio.nameplate",
-  "version": "1.2.0",
+  "version": "2.0.0",
   "publisher": { "name": "Eclipse BaSyx" },
-  "title": { "en": "Digital Nameplate" },
-  "description": { "en": "Shows the Digital Nameplate (IDTA 02006) of an asset; in edit mode, its properties can be changed." },
-  "studioApi": "^0.1.0",
+  "title": { "en": "Digital Nameplate", "de": "Digitales Typenschild", "es": "Placa de características digital", "fr": "Plaque signalétique numérique", "ja": "デジタル銘板", "nl": "Digitaal typeplaatje", "zh-Hans": "数字铭牌" },
+  "description": {
+    "en": "Shows the Digital Nameplate of an asset (IDTA 02006 3.0 and 2.0, and the ZVEI nameplate 1.0): the product with its versions and product page, the manufacturer with logo, address on the map, phone, fax and email, and a contact card to save, the markings with their images, certificates and dates, and the asset specific properties. In edit mode, its values can be changed.",
+    "de": "Zeigt das Digitale Typenschild eines Assets (IDTA 02006 3.0 und 2.0 sowie das ZVEI-Typenschild 1.0): das Produkt mit seinen Versionen und seiner Produktseite, den Hersteller mit Logo, Adresse auf der Karte, Telefon, Fax und E-Mail sowie einer Kontaktkarte zum Speichern, die Kennzeichnungen mit ihren Bildern, Zertifikaten und Daten und die assetspezifischen Eigenschaften. Im Bearbeitungsmodus lassen sich die Werte ändern.",
+    "es": "Muestra la placa de características digital de un activo (IDTA 02006 3.0 y 2.0, y la placa ZVEI 1.0): el producto con sus versiones y su página, el fabricante con logotipo, dirección en el mapa, teléfono, fax y correo electrónico, y una tarjeta de contacto para guardar, los marcados con sus imágenes, certificados y fechas, y las propiedades específicas del activo. En el modo de edición se pueden cambiar sus valores.",
+    "fr": "Affiche la plaque signalétique numérique d'un actif (IDTA 02006 3.0 et 2.0, et la plaque ZVEI 1.0) : le produit avec ses versions et sa page produit, le fabricant avec son logo, son adresse sur la carte, téléphone, fax et e-mail, et une fiche contact à enregistrer, les marquages avec leurs images, certificats et dates, ainsi que les propriétés spécifiques de l'actif. En mode édition, ses valeurs peuvent être modifiées.",
+    "ja": "資産のデジタル銘板（IDTA 02006 3.0 および 2.0、ZVEI 銘板 1.0）を表示します。バージョンと製品ページを含む製品、ロゴ・地図上の住所・電話・FAX・メールと保存できる連絡先カードを含む製造元、画像・証明書・日付を含むマーキング、資産固有のプロパティです。編集モードでは値を変更できます。",
+    "nl": "Toont het digitale typeplaatje van een asset (IDTA 02006 3.0 en 2.0, en het ZVEI-typeplaatje 1.0): het product met zijn versies en productpagina, de fabrikant met logo, adres op de kaart, telefoon, fax en e-mail en een contactkaart om op te slaan, de markeringen met hun afbeeldingen, certificaten en data, en de assetspecifieke eigenschappen. In de bewerkingsmodus kunnen de waarden worden gewijzigd.",
+    "zh-Hans": "显示资产的数字铭牌（IDTA 02006 3.0 和 2.0，以及 ZVEI 铭牌 1.0）：产品及其版本和产品页面，制造商及其徽标、地图上的地址、电话、传真、电子邮件和可保存的联系人名片，带图片、证书和日期的标志，以及资产特定属性。在编辑模式下可以更改其值。"
+  },
+  "studioApi": "^0.1.14",
   "runtimes": ["hosted", "desktop"],
-  "permissions": ["studio.aas.read", "studio.aas.write", "studio.ui.notifications"],
+  "permissions": ["studio.aas.read", "studio.aas.write", "studio.ui.notifications", "studio.ui.navigation", "studio.ui.clipboard", "studio.ui.saveFiles"],
   "contributes": {
     "submodelViews": [
       {
         "id": "nameplate",
-        "title": { "en": "Digital Nameplate" },
+        "title": { "en": "Digital Nameplate", "de": "Digitales Typenschild", "es": "Placa de características digital", "fr": "Plaque signalétique numérique", "ja": "デジタル銘板", "nl": "Digitaal typeplaatje", "zh-Hans": "数字铭牌" },
         "entry": "ui/index.html",
         "semanticIds": ["https://admin-shell.io/idta/nameplate/3/0/Nameplate", "https://admin-shell.io/zvei/nameplate/2/0/Nameplate", "https://admin-shell.io/zvei/nameplate/1/0/Nameplate"],
-        "columns": { "md": 12, "lg": 6, "xxl": 4 }
+        "columns": { "md": 12, "xl": 6 }
       }
     ]
   }

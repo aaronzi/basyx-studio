@@ -1,0 +1,25 @@
+{
+  "contacts": {
+    "none": "Dit submodel heeft geen contacten.",
+    "untitled": "Contact {number}",
+    "search": "Contacten zoeken",
+    "filtered": "{count} van {total} contacten",
+    "noMatch": "Geen contact komt overeen met de zoekopdracht.",
+    "fullscreen": "Volledig scherm"
+  },
+  "contact": {
+    "showOnMap": "Op de kaart tonen",
+    "copy": "{label} kopiëren",
+    "copied": "Naar het klembord gekopieerd.",
+    "save": "Contact opslaan"
+  },
+  "edit": {
+    "edit": "{label} bewerken",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "saved": "{label} opgeslagen.",
+    "conflict": "Iemand anders heeft deze waarde intussen gewijzigd. Annuleer en probeer het opnieuw.",
+    "forbidden": "Je mag deze waarde niet wijzigen.",
+    "language": "Taal: {language}"
+  }
+}

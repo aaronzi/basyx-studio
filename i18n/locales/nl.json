@@ -543,6 +543,7 @@
       "studio_ui_navigation": "Het eigen paginaadres wijzigen, doelen en AAS'en openen, submodellen in de weergaven van andere apps tonen en links in je browser openen",
       "studio_backend": "Code aan de serverkant uitvoeren (geïsoleerd)",
       "studio_ui_clipboard": "Tekst naar het klembord kopiëren wanneer je klikt",
+      "studio_ui_saveFiles": "Bestanden die het maakt, zoals contacten, op je computer opslaan wanneer je klikt",
       "studio_containers": "Lokale BaSyx-instanties op Docker of Podman starten, stoppen, exporteren en verwijderen (alleen apps die met Studio worden meegeleverd)",
       "studio_timeseries_read": "Tijdreeksen lezen, ook uit de databases van de verbindingen van de infrastructuur (apps die met Studio worden meegeleverd en ondertekende apps waaraan de implementatie dit verleent)",
       "studio_ui_externalFiles": "Bestanden die de AAS bij andere hosts noemt in uw browser ophalen (die hosts zien uw adres)",

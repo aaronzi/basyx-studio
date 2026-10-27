@@ -1,0 +1,25 @@
+{
+  "contacts": {
+    "none": "此子模型没有联系人。",
+    "untitled": "联系人 {number}",
+    "search": "搜索联系人",
+    "filtered": "{total} 个联系人中的 {count} 个",
+    "noMatch": "没有与搜索匹配的联系人。",
+    "fullscreen": "全屏"
+  },
+  "contact": {
+    "showOnMap": "在地图上显示",
+    "copy": "复制{label}",
+    "copied": "已复制到剪贴板。",
+    "save": "保存联系人"
+  },
+  "edit": {
+    "edit": "编辑{label}",
+    "save": "保存",
+    "cancel": "取消",
+    "saved": "{label}已保存。",
+    "conflict": "此值已被他人更改。请取消后重试。",
+    "forbidden": "你无权更改此值。",
+    "language": "语言：{language}"
+  }
+}

@@ -44,6 +44,7 @@ runs the app, whatever the package version.
 | 0.1.10 | 0.1.11: `ui.embedView`, `context.embedded`; `connect()` of views embedded in other apps' pages; `embeddedViews` in `testing` | next release |
 | 0.1.11 | 0.1.12: `ui.previewFile`, `context.fills`; `previewedFiles` in `testing`; in the file viewer, every kind of file (`./vue`, `./viewer`) and the 3D view in parts (`./model`) | next release |
 | 0.1.12 | 0.1.13: `ui.setViewState`, which Studio's full-screen button on the Overview opens the view with, and `context.fullscreenControl`, where Studio shows that button; `viewState` in `testing` | next release |
+| 0.1.13 | 0.1.14: `ui.saveFile` and permission `studio.ui.saveFiles`; `mailto:` and `tel:` in `ui.openExternal`; `savedFiles` in `testing`; in the app kit, `./contacts` for IDTA 02002 contact information (names, addresses, channels, vCard) | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -107,9 +108,10 @@ reaches it as `context.subPath` with `onContext`, as with every change.
 | `studio.aas.read` | `aas.listShells`, `getShell`, `listSubmodels`, `getSubmodel`, `getSubmodelSnapshot`, `getElement` on the active target; `ui.openFile` and `ui.readFile` for its File elements |
 | `studio.aas.write` | `aas.setElementValue` (Property and MultiLanguageProperty values, with the revision read before); in edit mode, structural writes and attachments (Studio app API 0.1.5, see [Changing structure and files](#changing-structure-and-files)) |
 | `studio.ui.notifications` | `ui.notify` |
-| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser, or Studio's page of a shell; `ui.openView` and `ui.embedView`: show a submodel in another app's view, in Studio's dialog or in the app's page (Studio app API 0.1.10, 0.1.11) |
+| `studio.ui.navigation` | `ui.navigate`: change the module's own sub-path (nested routes); `ui.openTarget`, `ui.openExternal` and `ui.openShell`: open a target, a URL in the system browser (or an email address or phone number in the mail or phone app, Studio app API 0.1.14), or Studio's page of a shell; `ui.openView` and `ui.embedView`: show a submodel in another app's view, in Studio's dialog or in the app's page (Studio app API 0.1.10, 0.1.11) |
 | `studio.backend` | `backend.call`: call the app's own Deno backend |
 | `studio.ui.externalFiles` | `ui.readExternalFile`: files that elements name at other hosts, fetched by Studio's page; those hosts see the user's address |
+| `studio.ui.saveFiles` | `ui.saveFile`: save text the app created, e.g. a vCard, as a file on the user's computer after a click (Studio app API 0.1.14) |
 | `studio.timeseries.read` | `timeseries.read`: read a segment of an IDTA Time Series Data submodel of the active target, including LinkedSegments in a database that the infrastructure's connections reach (ADR 0040). Reserved for the apps shipped with Studio and for signed apps whose publisher the trust store grants it; Studio app API 0.1.2 |
 | `studio.connections` | `connections.call`: call the declared operations of the app's `connections`, where an administrator binds them to a connection of the target's infrastructure ([ADR 0047](../../docs/adr/0047-http-connections-for-apps.md)); Studio app API 0.1.6 |
 
@@ -718,8 +720,13 @@ entry and its encrypted credentials.
 
 Calls travel through `/app-calls`, never directly to the engine.
 `ui.openTarget(id)` and `ui.openExternal(url)` require `studio.ui.navigation`;
-`openExternal` accepts https, and http only to this computer.
-`ui.copyText(text)` requires `studio.ui.clipboard`. Both `openExternal` and
-`copyText` must be called from a click (or key press) in the app: the host
+`openExternal` accepts https, and http only to this computer, in the system
+browser, and `mailto:` and `tel:` in the system's mail or phone app (Studio
+app API 0.1.14). `ui.copyText(text)` requires `studio.ui.clipboard`.
+`ui.saveFile(fileName, text, contentType)` requires `studio.ui.saveFiles` and
+saves up to 1 MiB of text the app created, e.g. a contact as vCard, through
+the browser's download or the desktop app's save dialog: frames cannot
+download themselves (Studio app API 0.1.14). `openExternal`, `copyText` and
+`saveFile` must be called from a click (or key press) in the app: the host
 refuses them without a recent user activation. `presetSpec(preset, name)`
 returns the defaults the wizard starts from.

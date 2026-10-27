@@ -87,6 +87,8 @@ export type TestEmbeddedView = Methods['studio.ui.embedView']['params']
 
 export type TestPreviewedFile = Methods['studio.ui.previewFile']['params']
 
+export type TestSavedFile = Methods['studio.ui.saveFile']['params']
+
 export interface TestStudio {
   /** The client to hand to the app, as `connect()` would return it. */
   readonly client: StudioClient
@@ -119,6 +121,8 @@ export interface TestStudio {
   readonly embeddedViews: TestEmbeddedView[]
   /** The File and Blob elements the app showed with `studio.ui.previewFile`. */
   readonly previewedFiles: TestPreviewedFile[]
+  /** The files the app saved with `studio.ui.saveFile`. */
+  readonly savedFiles: TestSavedFile[]
   /** The state the app last reported with `studio.ui.setViewState`; empty before. */
   readonly viewState: string
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
@@ -301,6 +305,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const openedViews: TestOpenedView[] = []
   const embeddedViews: TestEmbeddedView[] = []
   const previewedFiles: TestPreviewedFile[] = []
+  const savedFiles: TestSavedFile[] = []
   let viewState = ''
   const listeners = new Set<(context: AppContext) => void>()
 
@@ -343,6 +348,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     },
     'studio.ui.previewFile': file => {
       previewedFiles.push(file)
+      return null
+    },
+    'studio.ui.saveFile': file => {
+      savedFiles.push(file)
       return null
     },
     'studio.ui.embedView': view => {
@@ -457,6 +466,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     openedViews,
     embeddedViews,
     previewedFiles,
+    savedFiles,
     get viewState () {
       return viewState
     },

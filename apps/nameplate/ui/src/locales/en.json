@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "Product",
+    "logo": "Logo of {name}",
+    "fullscreen": "Full screen"
+  },
+  "sections": {
+    "product": "Product",
+    "manufacturer": "Manufacturer",
+    "markings": "Markings",
+    "assetSpecific": "Asset specific properties"
+  },
+  "fields": {
+    "uriOfTheProduct": "Product page",
+    "manufacturerName": "Manufacturer",
+    "manufacturerProductDesignation": "Product designation",
+    "manufacturerProductRoot": "Product root",
+    "manufacturerProductFamily": "Product family",
+    "manufacturerProductType": "Product type",
+    "orderCodeOfManufacturer": "Order code",
+    "productArticleNumberOfManufacturer": "Article number",
+    "serialNumber": "Serial number",
+    "batchNumber": "Batch number",
+    "yearOfConstruction": "Year of construction",
+    "dateOfManufacture": "Date of manufacture",
+    "hardwareVersion": "Hardware version",
+    "firmwareVersion": "Firmware version",
+    "softwareVersion": "Software version",
+    "countryOfOrigin": "Country of origin",
+    "uniqueFacilityIdentifier": "Facility ID"
+  },
+  "product": {
+    "type": "Type {value}",
+    "serial": "SN {value}",
+    "hardwareVersion": "Hardware {version}",
+    "firmwareVersion": "Firmware {version}",
+    "softwareVersion": "Software {version}"
+  },
+  "marking": {
+    "untitled": "Marking {number}",
+    "name": "Name",
+    "designation": "Certificate",
+    "issued": "Issued",
+    "expires": "Expires",
+    "expired": "Expired",
+    "additionalText": "Note",
+    "open": "Show {name}"
+  },
+  "assetSpecific": {
+    "general": "General",
+    "guideline": "Guideline {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "Show on map",
+    "copy": "Copy {label}",
+    "copied": "Copied to the clipboard.",
+    "save": "Save contact"
+  },
+  "edit": {
+    "edit": "Edit {label}",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "{label} saved.",
+    "conflict": "Someone else changed this value in the meantime. Cancel and try again.",
+    "forbidden": "You are not permitted to change this value.",
+    "language": "Language: {language}"
+  }
+}

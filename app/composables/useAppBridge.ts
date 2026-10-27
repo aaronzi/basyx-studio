@@ -37,13 +37,47 @@ function hostProblem (code: Problem['code'], title: string, status: number): Stu
   return new StudioApiError({ type: 'about:blank', title, status, code, requestId: '', retryable: false })
 }
 
+/** Methods that do for a frame what it cannot do itself, after a click in it. */
+const frameExits = ['studio.ui.openExternal', 'studio.ui.copyText', 'studio.ui.saveFile'] as const
+type FrameExit = (typeof frameExits)[number]
+
+function isFrameExit (method: AppMethodName): method is FrameExit {
+  return (frameExits as readonly AppMethodName[]).includes(method)
+}
+
+/**
+ * Opens a URL an app may open (`studio.ui.openExternal`): https in the
+ * browser; `mailto:` and `tel:` in the mail or phone app, which the browser
+ * hands them to without leaving the page or opening a tab. The desktop app
+ * hands every new window to the system (electron/main.ts).
+ */
+function openExternal (url: string, desktop: boolean) {
+  if (desktop || /^https?:/i.test(url)) {
+    window.open(url, '_blank', 'noopener')
+    return
+  }
+  const link = document.createElement('a')
+  link.href = url
+  link.click()
+}
+
+/** Saves text an app created (`studio.ui.saveFile`): frames may not download, the sandbox has no allow-downloads. */
+function saveFile (file: { fileName: string, contentType: string, text: string }) {
+  const url = URL.createObjectURL(new Blob([file.text], { type: `${file.contentType};charset=utf-8` }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = file.fileName
+  link.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 /**
  * Methods that act outside the app's frame and so need a click or key press
  * in it just before: `openShell` leaves the app's page, and `openView`
  * covers it with another app's view, which only the user should decide, not
  * a timer or a page load.
  */
-const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell', 'studio.ui.openView'])
+const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.ui.openExternal', 'studio.ui.openShell', 'studio.ui.openView', 'studio.ui.saveFile'])
 
 /**
  * What a view embedded in an app's page may call through Studio (ADR 0051):
@@ -328,11 +362,27 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
     })
   }
 
+  /** What a frame cannot do itself, after a click in it: open a link, copy text, save a file. */
+  async function leaveFrame (method: FrameExit, params: unknown) {
+    if (method === 'studio.ui.openExternal') {
+      openExternal(appMethodParamsSchemas['studio.ui.openExternal'].parse(params).url, Boolean(desktop))
+    } else if (method === 'studio.ui.copyText') {
+      // Frames may not use the clipboard themselves.
+      await copy(appMethodParamsSchemas['studio.ui.copyText'].parse(params).text)
+    } else {
+      saveFile(appMethodParamsSchemas['studio.ui.saveFile'].parse(params))
+    }
+  }
+
   /**
    * Studio authorized the call; UI methods are carried out here. A returned
    * result replaces Studio's; its `transfer` buffers move to the frame.
    */
   async function carryOut (method: AppMethodName, params: unknown, result: unknown, contribution: AppContributionInfo, embedded: boolean): Promise<{ result: unknown, transfer?: Transferable[] } | null> {
+    if (isFrameExit(method)) {
+      await leaveFrame(method, params)
+      return null
+    }
     switch (method) {
       case 'studio.ui.notify': {
         const notice = appMethodParamsSchemas['studio.ui.notify'].parse(params)
@@ -420,15 +470,6 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         const embedded = embeddedViewSchema.parse(result)
         embeds.set(embedded.token, { view: embedded, channel: null, instance: null, fullscreen: null })
         return { result: { url: embedded.url } }
-      }
-      case 'studio.ui.openExternal': {
-        window.open(appMethodParamsSchemas['studio.ui.openExternal'].parse(params).url, '_blank', 'noopener')
-        break
-      }
-      case 'studio.ui.copyText': {
-        // Frames may not use the clipboard themselves.
-        await copy(appMethodParamsSchemas['studio.ui.copyText'].parse(params).text)
-        break
       }
       case 'studio.containers.pickFiles': {
         // Native dialogs of the BaSyx Docker app (ADR 0033), shown only after Studio authorized the pick.

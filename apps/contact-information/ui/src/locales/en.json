@@ -1,0 +1,25 @@
+{
+  "contacts": {
+    "none": "This submodel has no contacts.",
+    "untitled": "Contact {number}",
+    "search": "Search contacts",
+    "filtered": "{count} of {total} contacts",
+    "noMatch": "No contact matches the search.",
+    "fullscreen": "Full screen"
+  },
+  "contact": {
+    "showOnMap": "Show on map",
+    "copy": "Copy {label}",
+    "copied": "Copied to the clipboard.",
+    "save": "Save contact"
+  },
+  "edit": {
+    "edit": "Edit {label}",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saved": "{label} saved.",
+    "conflict": "Someone else changed this value in the meantime. Cancel and try again.",
+    "forbidden": "You are not permitted to change this value.",
+    "language": "Language: {language}"
+  }
+}

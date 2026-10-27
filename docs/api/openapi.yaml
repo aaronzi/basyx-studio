@@ -5766,6 +5766,7 @@ components:
         - studio.ui.navigation
         - studio.ui.clipboard
         - studio.ui.externalFiles
+        - studio.ui.saveFiles
         - studio.ui.commands
         - studio.ui.panels
         - studio.semantic.read
@@ -6092,6 +6093,7 @@ components:
             - studio.ui.embedView
             - studio.ui.openExternal
             - studio.ui.copyText
+            - studio.ui.saveFile
             - studio.containers.listEngines
             - studio.containers.selectEngine
             - studio.containers.listStacks

@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "Produkt",
+    "logo": "Logo von {name}",
+    "fullscreen": "Vollbild"
+  },
+  "sections": {
+    "product": "Produkt",
+    "manufacturer": "Hersteller",
+    "markings": "Kennzeichnungen",
+    "assetSpecific": "Assetspezifische Eigenschaften"
+  },
+  "fields": {
+    "uriOfTheProduct": "Produktseite",
+    "manufacturerName": "Hersteller",
+    "manufacturerProductDesignation": "Produktbezeichnung",
+    "manufacturerProductRoot": "Produkthauptgruppe",
+    "manufacturerProductFamily": "Produktfamilie",
+    "manufacturerProductType": "Produkttyp",
+    "orderCodeOfManufacturer": "Bestellcode",
+    "productArticleNumberOfManufacturer": "Artikelnummer",
+    "serialNumber": "Seriennummer",
+    "batchNumber": "Chargennummer",
+    "yearOfConstruction": "Baujahr",
+    "dateOfManufacture": "Herstellungsdatum",
+    "hardwareVersion": "Hardwareversion",
+    "firmwareVersion": "Firmwareversion",
+    "softwareVersion": "Softwareversion",
+    "countryOfOrigin": "Ursprungsland",
+    "uniqueFacilityIdentifier": "Werks-ID"
+  },
+  "product": {
+    "type": "Typ {value}",
+    "serial": "SN {value}",
+    "hardwareVersion": "Hardware {version}",
+    "firmwareVersion": "Firmware {version}",
+    "softwareVersion": "Software {version}"
+  },
+  "marking": {
+    "untitled": "Kennzeichnung {number}",
+    "name": "Name",
+    "designation": "Zertifikat",
+    "issued": "Ausgestellt",
+    "expires": "Gültig bis",
+    "expired": "Abgelaufen",
+    "additionalText": "Hinweis",
+    "open": "{name} anzeigen"
+  },
+  "assetSpecific": {
+    "general": "Allgemein",
+    "guideline": "Richtlinie {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "Auf der Karte zeigen",
+    "copy": "{label} kopieren",
+    "copied": "In die Zwischenablage kopiert.",
+    "save": "Kontakt speichern"
+  },
+  "edit": {
+    "edit": "{label} bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "saved": "{label} gespeichert.",
+    "conflict": "Dieser Wert wurde inzwischen anderweitig geändert. Bitte abbrechen und erneut versuchen.",
+    "forbidden": "Keine Berechtigung, diesen Wert zu ändern.",
+    "language": "Sprache: {language}"
+  }
+}

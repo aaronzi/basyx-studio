@@ -630,6 +630,7 @@
       "studio_ui_navigation": "Die eigene Seitenadresse ändern, Ziele und Verwaltungsschalen öffnen, Teilmodelle in den Ansichten anderer Apps zeigen und Links im Browser öffnen",
       "studio_backend": "Serverseitigen Code ausführen (isoliert)",
       "studio_ui_clipboard": "Text auf Klick in die Zwischenablage kopieren",
+      "studio_ui_saveFiles": "Selbst erstellte Dateien, etwa Kontakte, auf Klick auf dem Computer speichern",
       "studio_containers": "Lokale BaSyx-Instanzen mit Docker oder Podman starten, stoppen, exportieren und löschen (nur mit Studio ausgelieferte Apps)",
       "studio_timeseries_read": "Zeitreihen lesen, auch aus den Datenbanken der Verbindungen der Infrastruktur (mit Studio ausgelieferte Apps und signierte Apps, denen die Bereitstellung es gewährt)",
       "studio_ui_externalFiles": "Dateien, die die Verwaltungsschale bei anderen Hosts nennt, in Ihrem Browser abrufen (diese Hosts sehen Ihre Adresse)",

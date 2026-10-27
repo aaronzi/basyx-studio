@@ -1,0 +1,25 @@
+{
+  "contacts": {
+    "none": "Este submodelo no tiene contactos.",
+    "untitled": "Contacto {number}",
+    "search": "Buscar contactos",
+    "filtered": "{count} de {total} contactos",
+    "noMatch": "Ningún contacto coincide con la búsqueda.",
+    "fullscreen": "Pantalla completa"
+  },
+  "contact": {
+    "showOnMap": "Mostrar en el mapa",
+    "copy": "Copiar {label}",
+    "copied": "Copiado al portapapeles.",
+    "save": "Guardar contacto"
+  },
+  "edit": {
+    "edit": "Editar {label}",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "saved": "{label} guardado.",
+    "conflict": "Otra persona cambió este valor mientras tanto. Cancela e inténtalo de nuevo.",
+    "forbidden": "No tienes permiso para cambiar este valor.",
+    "language": "Idioma: {language}"
+  }
+}

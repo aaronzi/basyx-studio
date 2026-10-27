@@ -1,0 +1,25 @@
+{
+  "contacts": {
+    "none": "このサブモデルには連絡先がありません。",
+    "untitled": "連絡先 {number}",
+    "search": "連絡先を検索",
+    "filtered": "{total} 件中 {count} 件の連絡先",
+    "noMatch": "検索に一致する連絡先はありません。",
+    "fullscreen": "全画面"
+  },
+  "contact": {
+    "showOnMap": "地図で表示",
+    "copy": "{label} をコピー",
+    "copied": "クリップボードにコピーしました。",
+    "save": "連絡先を保存"
+  },
+  "edit": {
+    "edit": "{label} を編集",
+    "save": "保存",
+    "cancel": "キャンセル",
+    "saved": "{label} を保存しました。",
+    "conflict": "この値はその間に他のユーザーによって変更されました。キャンセルしてもう一度お試しください。",
+    "forbidden": "この値を変更する権限がありません。",
+    "language": "言語: {language}"
+  }
+}

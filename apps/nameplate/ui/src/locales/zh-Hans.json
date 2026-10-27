@@ -1,0 +1,69 @@
+{
+  "nameplate": {
+    "untitled": "产品",
+    "logo": "{name} 的徽标",
+    "fullscreen": "全屏"
+  },
+  "sections": {
+    "product": "产品",
+    "manufacturer": "制造商",
+    "markings": "标志",
+    "assetSpecific": "资产特定属性"
+  },
+  "fields": {
+    "uriOfTheProduct": "产品页面",
+    "manufacturerName": "制造商",
+    "manufacturerProductDesignation": "产品名称",
+    "manufacturerProductRoot": "产品根类",
+    "manufacturerProductFamily": "产品系列",
+    "manufacturerProductType": "产品型号",
+    "orderCodeOfManufacturer": "订货代码",
+    "productArticleNumberOfManufacturer": "物料编号",
+    "serialNumber": "序列号",
+    "batchNumber": "批号",
+    "yearOfConstruction": "制造年份",
+    "dateOfManufacture": "制造日期",
+    "hardwareVersion": "硬件版本",
+    "firmwareVersion": "固件版本",
+    "softwareVersion": "软件版本",
+    "countryOfOrigin": "原产国",
+    "uniqueFacilityIdentifier": "工厂 ID"
+  },
+  "product": {
+    "type": "型号 {value}",
+    "serial": "序列号 {value}",
+    "hardwareVersion": "硬件 {version}",
+    "firmwareVersion": "固件 {version}",
+    "softwareVersion": "软件 {version}"
+  },
+  "marking": {
+    "untitled": "标志 {number}",
+    "name": "名称",
+    "designation": "证书",
+    "issued": "签发日期",
+    "expires": "有效期至",
+    "expired": "已过期",
+    "additionalText": "备注",
+    "open": "显示 {name}"
+  },
+  "assetSpecific": {
+    "general": "常规",
+    "guideline": "指令 {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "在地图上显示",
+    "copy": "复制{label}",
+    "copied": "已复制到剪贴板。",
+    "save": "保存联系人"
+  },
+  "edit": {
+    "edit": "编辑{label}",
+    "save": "保存",
+    "cancel": "取消",
+    "saved": "{label}已保存。",
+    "conflict": "此值已被他人更改。请取消后重试。",
+    "forbidden": "你无权更改此值。",
+    "language": "语言：{language}"
+  }
+}
