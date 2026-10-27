@@ -3,6 +3,7 @@ import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core'
 import { mkdir } from 'node:fs/promises'
 import { sql } from 'drizzle-orm'
 import * as schema from '../../database/schema'
+import { lockDataDir } from './lock'
 
 export type StudioSchema = typeof schema
 export type StudioDatabase = PgDatabase<PgQueryResultHKT, StudioSchema>
@@ -33,16 +34,29 @@ export async function openDatabase (database: StudioConfig['database'] | { kind:
   // buffer pool is reduced from the 128 MB default.
   const startParams = [...PGlite.defaultStartParams.filter(param => param !== '-F'), '-c', 'shared_buffers=16MB']
   let client: InstanceType<typeof PGlite>
+  let unlock = async () => {}
   if (database.kind === 'memory') {
     client = new PGlite({ startParams })
   } else {
     await mkdir(database.dataDir, { recursive: true })
+    unlock = await lockDataDir(database.dataDir)
     client = new PGlite(database.dataDir, { startParams })
   }
-  await client.waitReady
+  try {
+    await client.waitReady
+  } catch (error) {
+    await unlock()
+    throw error
+  }
   return {
     db: drizzle(client, { schema }) as unknown as StudioDatabase,
-    close: () => client.close(),
+    close: async () => {
+      try {
+        await client.close()
+      } finally {
+        await unlock()
+      }
+    },
   }
 }
 
