@@ -4,7 +4,7 @@
          Nameplate plugins in the frame of the Documents app: the product at a
          glance, then cards for the product's facts and the manufacturer (side
          by side in a wide frame), the markings, which open their details, and
-         the asset specific properties. -->
+         the asset specific properties, these two below a heading. -->
     <v-view-card>
       <v-progress-linear v-if="loading" />
 
@@ -48,7 +48,7 @@
           </v-btn>
         </NameplateHeader>
 
-        <!-- Sections as cards with Studio's tinted headers; cards in a row are as tall as each other. -->
+        <!-- The product and the manufacturer as cards with Studio's tinted headers, as tall as each other. -->
         <v-row dense>
           <v-col v-if="product.length > 0" cols="12" md="6">
             <SectionCard data-test="product" icon="mdi-package-variant-closed" :title="t('sections.product')">
@@ -72,18 +72,15 @@
             </SectionCard>
           </v-col>
 
-          <v-col v-if="nameplate.markings.length > 0" cols="12">
-            <SectionCard data-test="markings" icon="mdi-check-decagram-outline" :title="t('sections.markings')">
-              <div class="pa-3">
-                <MarkingList :client="client" :markings="nameplate.markings" :submodel-id="submodelId" @open="openMarking" />
-              </div>
-            </SectionCard>
-          </v-col>
-
-          <v-col v-if="groups.length > 0" cols="12">
-            <AssetProperties v-model:open="propertiesOpen" :groups="groups" />
-          </v-col>
         </v-row>
+
+        <!-- The markings' cards and the property groups' tables are bordered themselves. -->
+        <section v-if="nameplate.markings.length > 0" data-test="markings">
+          <SectionHeading icon="mdi-check-decagram-outline" :title="t('sections.markings')" />
+          <MarkingList :client="client" :markings="nameplate.markings" :submodel-id="submodelId" @open="openMarking" />
+        </section>
+
+        <AssetProperties v-if="groups.length > 0" v-model:open="propertiesOpen" :groups="groups" />
       </div>
     </v-view-card>
   </v-app>
@@ -108,6 +105,7 @@
   import NameplateHeader from './NameplateHeader.vue'
   import { manufacturerRows, productRows, propertyGroups } from './presentation'
   import SectionCard from './SectionCard.vue'
+  import SectionHeading from './SectionHeading.vue'
 
   // The Digital Nameplate of an asset (IDTA 02006 3.0 and 2.0, ZVEI 1.0). In
   // Studio's edit mode, its values can be changed where the target and the

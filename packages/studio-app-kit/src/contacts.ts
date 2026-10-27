@@ -353,9 +353,9 @@ export function addressText (contact: ContactInformation, locale: string): strin
   return addressLines(contact, locale).join(', ')
 }
 
-/** OpenStreetMap's search for an address, to open in the browser. */
+/** Google Maps' search for an address (Maps URLs), to open in a new browser tab. */
 export function mapUrl (address: string): string {
-  return `https://www.openstreetmap.org/search?query=${encodeURIComponent(address)}`
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`
 }
 
 /** `+49 (0)631 1234-56` → `tel:+496311234-56`; `null` without digits. */
@@ -445,9 +445,9 @@ export interface ContactRow {
   note?: string
   /** What the value opens: an https, `mailto:` or `tel:` URL. */
   url?: string
-  /** The address in OpenStreetMap. */
+  /** The address in Google Maps. */
   map?: string
-  /** The text to copy; channels and addresses only. */
+  /** The text to copy; channels and links only (an address opens its map instead). */
   copy?: string
   /** The field that changing the row changes; every row in edit mode. */
   field?: TextField
@@ -506,7 +506,7 @@ export function contactRows (contact: ContactInformation, locale: string, option
     { key: 'role', label: label('labels.role'), value: roleText(contact, locale), icon: fieldIcons.roleOfContactPerson! },
     { key: 'company', label: label('labels.company'), value: text(contact, 'company', locale), icon: fieldIcons.company! },
     { key: 'department', label: label('labels.department'), value: text(contact, 'department', locale), icon: fieldIcons.department! },
-    { key: 'address', label: label('labels.address'), value: addressLines(contact, locale).join('\n'), icon: 'mdi-map-marker-outline', map: address ? mapUrl(address) : undefined, copy: addressLines(contact, locale).join('\n') },
+    { key: 'address', label: label('labels.address'), value: addressLines(contact, locale).join('\n'), icon: 'mdi-map-marker-outline', map: address ? mapUrl(address) : undefined },
     { key: 'remarks', label: label('labels.remarks'), value: text(contact, 'addressRemarks', locale), icon: fieldIcons.addressRemarks! },
     ...contact.channels.map((channel): ContactRow => {
       const value = fieldText(channel.value, locale)

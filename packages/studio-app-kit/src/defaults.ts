@@ -16,11 +16,15 @@ export const appDefaults = {
   // that sets the title apart from the content.
   VCardHeader: { class: 'bg-card-header' },
   // A part of a view in a card of its own (a nameplate's product, its
-  // manufacturer), as tall as its neighbours in a row; its label and value
-  // rows sit flush, the card is their border.
-  VCardSection: { class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent' } },
+  // manufacturer), bordered as every card and as tall as its neighbours in a
+  // row; its label and value rows sit flush, the card is their border. An
+  // alias takes none of VCard's defaults, so they are restated.
+  VCardSection: { flat: true, border: true, rounded: 'lg', class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent' } },
   // Dialogs as in Studio: their card keeps a shadow, so it stands out.
   VDialog: { VCard: { flat: false } },
+  // The actions of a dialog or card at Studio's button height: the view's
+  // buttons are comfortable (VBtn below), Studio's dialog buttons are not.
+  VCardActions: { VBtn: { density: 'default' }, VBtnPrimary: { density: 'default' }, VBtnSecondary: { density: 'default' } },
   // A view that fills the window, e.g. a preview opened without Studio's header.
   ...fullscreenDefaults,
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text', density: 'comfortable' },

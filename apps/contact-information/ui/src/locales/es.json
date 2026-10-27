@@ -10,7 +10,7 @@
     "open": "Mostrar {name}"
   },
   "contact": {
-    "showOnMap": "Mostrar en el mapa",
+    "showOnMap": "Abrir en Google Maps",
     "copy": "Copiar {label}",
     "copied": "Copiado al portapapeles.",
     "save": "Guardar contacto"

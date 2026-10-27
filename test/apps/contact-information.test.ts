@@ -102,6 +102,9 @@ describe('contactRows', () => {
     expect(rows.map(row => row.key)).toEqual(['role', 'company', 'department', 'address', 'phone', 'email', 'publicKey', 'link', 'languages', 'timeZone', 'details'])
     const byKey = Object.fromEntries(rows.map(row => [row.key, row]))
     expect(byKey.address).toMatchObject({ label: 'Address', value: 'Industriestraße 12\n67663 Kaiserslautern\nRhineland-Palatinate\nGermany', map: mapUrl('Industriestraße 12, 67663 Kaiserslautern, Rhineland-Palatinate, Germany') })
+    // An address opens its map, it is not copied.
+    expect(byKey.address!.copy).toBeUndefined()
+    expect(mapUrl('Industriestraße 12, Kaiserslautern')).toBe('https://www.google.com/maps/search/?api=1&query=Industriestra%C3%9Fe%2012%2C%20Kaiserslautern')
     expect(byKey.phone).toMatchObject({ value: '+49 (0)631 123456-21', type: 'Office mobile', note: 'Mon–Thu 9:00–16:00 CET', url: 'tel:+49631123456-21', copy: '+49 (0)631 123456-21' })
     expect(byKey.email).toMatchObject({ url: 'mailto:jane.doe@example.com', type: 'Office' })
     expect(byKey.publicKey).toMatchObject({ type: 'OpenPGP fingerprint' })

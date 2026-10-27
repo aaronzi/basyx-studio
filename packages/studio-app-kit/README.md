@@ -115,7 +115,8 @@ Studio): a `<v-card>` with a `<v-card-header>` that holds the title only, a
 `<v-card-actions>` with further actions on the left (`<v-btn-secondary>`), a
 `<v-spacer>`, and *Close* or *Cancel* and the main action on the right. They
 close from their actions, Esc or a click outside, not from an icon in the
-header.
+header. The buttons in `<v-card-actions>` are as tall as Studio's; elsewhere
+in a view they are comfortable, so the view stays compact.
 
 A view whose frame is only as tall as its content, such as a widget on a
 shell's Overview, shows a dialog with the window's size by opening itself

@@ -21,7 +21,6 @@
       <v-chip
         v-if="heading.role"
         class="mb-1"
-        color="primary"
         data-test="contact-role"
         prepend-icon="mdi-account-tie-outline"
         :text="heading.role"

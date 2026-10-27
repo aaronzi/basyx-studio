@@ -10,7 +10,7 @@
     "open": "{name} を表示"
   },
   "contact": {
-    "showOnMap": "地図で表示",
+    "showOnMap": "Google マップで開く",
     "copy": "{label} をコピー",
     "copied": "クリップボードにコピーしました。",
     "save": "連絡先を保存"

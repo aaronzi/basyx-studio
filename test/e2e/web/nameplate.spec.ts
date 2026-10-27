@@ -45,7 +45,7 @@ test.beforeEach(async ({ page }) => {
   await signIn(page, 'studio-admin')
   targetId = await registerOpenTarget(page, 'E2E nameplate target')
   // Map searches stay in the test: Studio opens them in a new tab.
-  await page.context().route('https://www.openstreetmap.org/**', route => route.fulfill({ contentType: 'text/plain', body: 'map' }))
+  await page.context().route('https://www.google.com/maps/**', route => route.fulfill({ contentType: 'text/plain', body: 'map' }))
 })
 
 test('shows the Digital Nameplate 3.0 with logo, product, manufacturer, markings and asset specific properties', async ({ page }) => {
@@ -68,8 +68,9 @@ test('shows the Digital Nameplate 3.0 with logo, product, manufacturer, markings
   await expect(manufacturer.locator('[data-test="detail-link"]').filter({ hasText: 'info@example.com' })).toBeVisible()
   await expect(manufacturer.locator('[data-test="detail-type"]').first()).toHaveText('Office')
 
-  // The address opens in OpenStreetMap, through Studio: the frame opens no windows.
-  const map = page.context().waitForEvent('request', request => request.isNavigationRequest() && request.url().startsWith('https://www.openstreetmap.org/search?query=Industriestra%C3%9Fe%2012'))
+  // The address opens in Google Maps, through Studio: the frame opens no windows. It has no copy button.
+  await expect(manufacturer.locator('[data-test="detail-row"]').filter({ hasText: 'Industriestraße 12' }).locator('[data-test="detail-copy"]')).toHaveCount(0)
+  const map = page.context().waitForEvent('request', request => request.isNavigationRequest() && request.url().startsWith('https://www.google.com/maps/search/?api=1&query=Industriestra%C3%9Fe%2012'))
   await clickIn(nameplateFrame(page), manufacturer.locator('[data-test="show-on-map"]'))
   await map
 

@@ -22,7 +22,7 @@ export interface DetailRow {
   chips?: Array<{ key: string, text: string, icon: string }>
   /** An https, `mailto:` or `tel:` URL the value opens. */
   url?: string
-  /** The address in OpenStreetMap. */
+  /** The address in Google Maps. */
   map?: string
   /** The text a copy button copies. */
   copy?: string

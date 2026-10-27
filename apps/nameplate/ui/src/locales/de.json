@@ -57,7 +57,7 @@
     "collapse": "Ausblenden"
   },
   "contact": {
-    "showOnMap": "Auf der Karte zeigen",
+    "showOnMap": "In Google Maps öffnen",
     "copy": "{label} kopieren",
     "copied": "In die Zwischenablage kopiert.",
     "save": "Kontakt speichern"

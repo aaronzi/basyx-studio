@@ -22,7 +22,7 @@
       <v-card-text class="pa-4 d-flex flex-column ga-3">
         <div v-if="heading.subtitle || (heading.role && !canEdit)" class="d-flex flex-wrap align-center ga-2">
           <span v-if="heading.subtitle" class="text-body-medium text-medium-emphasis">{{ heading.subtitle }}</span>
-          <v-chip v-if="heading.role && !canEdit" color="primary" prepend-icon="mdi-account-tie-outline" :text="heading.role" />
+          <v-chip v-if="heading.role && !canEdit" prepend-icon="mdi-account-tie-outline" :text="heading.role" />
         </div>
 
         <v-alert

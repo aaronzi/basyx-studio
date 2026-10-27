@@ -10,7 +10,7 @@
     "open": "显示 {name}"
   },
   "contact": {
-    "showOnMap": "在地图上显示",
+    "showOnMap": "在 Google 地图中打开",
     "copy": "复制{label}",
     "copied": "已复制到剪贴板。",
     "save": "保存联系人"

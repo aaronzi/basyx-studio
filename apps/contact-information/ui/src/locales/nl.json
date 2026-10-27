@@ -10,7 +10,7 @@
     "open": "{name} tonen"
   },
   "contact": {
-    "showOnMap": "Op de kaart tonen",
+    "showOnMap": "Openen in Google Maps",
     "copy": "{label} kopiëren",
     "copied": "Naar het klembord gekopieerd.",
     "save": "Contact opslaan"

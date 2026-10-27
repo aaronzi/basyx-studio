@@ -76,17 +76,20 @@
               </div>
 
               <div v-if="row.note" class="text-body-small text-medium-emphasis">{{ row.note }}</div>
-
-              <v-btn-link
-                v-if="row.map"
-                append-icon="mdi-open-in-new"
-                class="mt-1"
-                data-test="show-on-map"
-                prepend-icon="mdi-map-search-outline"
-                :text="t('contact.showOnMap')"
-                @click="open(row.map)"
-              />
             </div>
+
+            <!-- An address opens in Google Maps, in a new browser tab. -->
+            <v-btn
+              v-if="row.map && !canEdit"
+              :aria-label="t('contact.showOnMap')"
+              data-test="show-on-map"
+              icon
+              size="small"
+              @click="open(row.map)"
+            >
+              <v-icon icon="mdi-map-search-outline" size="16" />
+              <v-tooltip activator="parent" location="bottom" :text="t('contact.showOnMap')" />
+            </v-btn>
 
             <v-btn
               v-if="row.copy && !canEdit"
@@ -123,7 +126,7 @@
   import { useI18n } from './i18n'
 
   // Label and value rows, as the Documents app's definition list: links open
-  // through Studio, addresses in OpenStreetMap, values copy to the
+  // through Studio, addresses in Google Maps, values copy to the
   // clipboard, and in edit mode each value changes in place.
   defineProps<{ rows: DetailRow[] }>()
 
