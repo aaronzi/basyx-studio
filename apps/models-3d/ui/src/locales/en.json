@@ -11,7 +11,6 @@
     "showImage": "Show preview image",
     "showModel": "Show 3D model",
     "download": "Download 3D model",
-    "fullscreen": "Full screen",
     "openExternal": "Open external file",
     "openExternalAt": "Open the file at {host}",
     "external": "The model is stored outside this shell, at {host}. Studio shows its preview image.",

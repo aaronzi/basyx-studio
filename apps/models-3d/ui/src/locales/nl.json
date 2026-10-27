@@ -11,7 +11,6 @@
     "showImage": "Voorbeeldafbeelding tonen",
     "showModel": "3D-model tonen",
     "download": "3D-model downloaden",
-    "fullscreen": "Volledig scherm",
     "openExternal": "Extern bestand openen",
     "openExternalAt": "Bestand bij {host} openen",
     "external": "Het model staat buiten deze AAS, bij {host}. Studio toont de voorbeeldafbeelding.",

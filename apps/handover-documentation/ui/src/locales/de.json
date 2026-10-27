@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "Dieses Teilmodell enthält keine Dokumente.",
-    "untitled": "Dokument {number}",
-    "fullscreen": "Vollbild"
+    "untitled": "Dokument {number}"
   },
   "list": {
     "search": "Dokumente durchsuchen",
+    "filter": "{count} Filter",
+    "filters": "{count} Filter",
+    "removeFilters": "Filter entfernen",
+    "classes": "Klasse",
     "filtered": "{count} von {total} Dokumenten",
     "noMatch": "Kein Dokument passt zur Suche oder zum Filter."
   },

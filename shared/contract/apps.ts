@@ -331,6 +331,7 @@ export const appMethodParamsSchemas = {
   'studio.ui.previewFile': z.object({ submodelId: identifier, idShortPath }).strict(),
   'studio.ui.openFullscreen': z.object({ state: z.string().max(4000).optional(), header: z.boolean().default(true) }).strict(),
   'studio.ui.closeFullscreen': z.object({}).strict(),
+  'studio.ui.setViewState': z.object({ state: z.string().max(4000) }).strict(),
   'studio.aas.listShells': listQuerySchema.strict(),
   'studio.aas.getShell': z.object({ shellId: identifier }).strict(),
   'studio.aas.listSubmodels': z.object({ shellId: identifier }).strict(),

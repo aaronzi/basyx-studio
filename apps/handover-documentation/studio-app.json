@@ -14,7 +14,7 @@
     "nl": "Toont de overdrachtsdocumentatie van een asset (IDTA 02004, Handover Documentation 1.2 en 2.0, en VDI 2770): de documenten met zoeken en een klassefilter, de bestanden van elke versie in de bestandsviewer, en hun identificaties, classificaties en relaties.",
     "zh-Hans": "显示资产的交付文档（IDTA 02004，Handover Documentation 1.2 和 2.0，以及 VDI 2770）：可搜索并按类别筛选的文档、在文件查看器中显示的各版本文件，以及其标识符、分类和关联。"
   },
-  "studioApi": "^0.1.12",
+  "studioApi": "^0.1.13",
   "runtimes": ["hosted", "desktop"],
   "permissions": ["studio.aas.read", "studio.ui.navigation", "studio.ui.externalFiles"],
   "sandbox": { "webAssembly": true, "workers": true },

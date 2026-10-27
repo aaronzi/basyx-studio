@@ -6083,6 +6083,7 @@ components:
             - studio.backend.call
             - studio.ui.openFullscreen
             - studio.ui.closeFullscreen
+            - studio.ui.setViewState
             - studio.ui.readExternalFile
             - studio.ui.previewFile
             - studio.ui.openTarget

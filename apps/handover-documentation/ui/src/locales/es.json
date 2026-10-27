@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "Este submodelo no tiene documentos.",
-    "untitled": "Documento {number}",
-    "fullscreen": "Pantalla completa"
+    "untitled": "Documento {number}"
   },
   "list": {
     "search": "Buscar documentos",
+    "filter": "{count} filtro",
+    "filters": "{count} filtros",
+    "removeFilters": "Quitar los filtros",
+    "classes": "Clase",
     "filtered": "{count} de {total} documentos",
     "noMatch": "Ningún documento coincide con la búsqueda o el filtro."
   },

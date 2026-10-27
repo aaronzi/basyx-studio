@@ -11,7 +11,6 @@
     "showImage": "Mostrar la imagen de vista previa",
     "showModel": "Mostrar el modelo 3D",
     "download": "Descargar el modelo 3D",
-    "fullscreen": "Pantalla completa",
     "openExternal": "Abrir el archivo externo",
     "openExternalAt": "Abrir el archivo en {host}",
     "external": "El modelo se guarda fuera de esta AAS, en {host}. Studio muestra su imagen de vista previa.",

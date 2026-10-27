@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "Ce sous-modèle ne contient aucun document.",
-    "untitled": "Document {number}",
-    "fullscreen": "Plein écran"
+    "untitled": "Document {number}"
   },
   "list": {
     "search": "Rechercher des documents",
+    "filter": "{count} filtre",
+    "filters": "{count} filtres",
+    "removeFilters": "Supprimer les filtres",
+    "classes": "Classe",
     "filtered": "{count} documents sur {total}",
     "noMatch": "Aucun document ne correspond à la recherche ou au filtre."
   },

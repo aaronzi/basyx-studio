@@ -2,7 +2,7 @@ import type { JsonObject } from '@basyx/studio-sdk'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import { classificationKey, documentAt, documentTitle, irdiOf, latestVersion, mainClassification, matchesQuery, parseHandoverDocumentation, referencePath, sortVersions } from '../../apps/handover-documentation/ui/src/handoverDocumentation'
-import { dateText, documentSubtitle, fileLabel, statusColor, statusText, technicalGroups, titleText, versionFacts, versionLabel } from '../../apps/handover-documentation/ui/src/presentation'
+import { dateText, documentSubtitle, statusColor, statusText, technicalGroups, titleText, versionFacts, versionLabel } from '../../apps/handover-documentation/ui/src/presentation'
 
 // The Documents app's reading of IDTA 02004 Handover Documentation (2.0 and
 // 1.2) and VDI 2770, on the demo of the open infrastructure
@@ -236,12 +236,6 @@ describe('presentation', () => {
       ['facts.organization', 'Example Drives (Example Drives GmbH)'],
       ['facts.languages', 'English, German'],
     ])
-  })
-
-  it('labels files by extension or media type', () => {
-    const files = documents[3]!.versions[0]!.digitalFiles
-    expect(files.map(file => fileLabel(file))).toEqual(['PNG', 'SVG'])
-    expect(fileLabel({ path: 'x', contentType: 'application/x-yaml', value: 'config', name: 'config', external: false })).toBe('YAML')
   })
 
   it('groups the technical details and leaves out empty groups', () => {

@@ -1,14 +1,14 @@
 <template>
   <v-menu v-if="versions.length > 1">
     <template #activator="{ props: activator }">
-      <v-btn
+      <!-- A chip like the single version's, so both are the same height. -->
+      <v-chip
         v-bind="activator"
         append-icon="mdi-chevron-down"
         data-test="version-menu"
+        link
         prepend-icon="mdi-source-branch"
-        size="small"
         :text="label(selected)"
-        variant="tonal"
       />
     </template>
 
@@ -41,7 +41,12 @@
     </v-list>
   </v-menu>
 
-  <v-chip v-else-if="selected && (selected.version || selected.setDate)" prepend-icon="mdi-source-branch" :text="label(selected)" />
+  <v-chip
+    v-else-if="selected && (selected.version || selected.setDate)"
+    data-test="version-menu"
+    prepend-icon="mdi-source-branch"
+    :text="label(selected)"
+  />
 </template>
 
 <script lang="ts" setup>
@@ -51,7 +56,7 @@
   import { useI18n } from './i18n'
   import { dateText, statusColor, statusText, versionLabel } from './presentation'
 
-  // The document's versions, newest first; one version is a chip.
+  // The document's versions, newest first; one version is a plain chip.
   const props = defineProps<{
     versions: DocumentVersion[]
     selected: DocumentVersion | undefined

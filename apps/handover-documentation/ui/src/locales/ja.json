@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "このサブモデルにはドキュメントがありません。",
-    "untitled": "ドキュメント {number}",
-    "fullscreen": "全画面表示"
+    "untitled": "ドキュメント {number}"
   },
   "list": {
     "search": "ドキュメントを検索",
+    "filter": "{count} 件のフィルター",
+    "filters": "{count} 件のフィルター",
+    "removeFilters": "フィルターを解除",
+    "classes": "クラス",
     "filtered": "{total} 件中 {count} 件のドキュメント",
     "noMatch": "検索または絞り込みに一致するドキュメントはありません。"
   },

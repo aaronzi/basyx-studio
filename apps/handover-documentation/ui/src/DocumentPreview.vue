@@ -1,21 +1,33 @@
 <template>
   <div class="d-flex flex-column ga-2" data-test="document-preview">
-    <!-- The version's files and its preview image (the Web UI's "Preview File / Digital File" switch). -->
-    <v-btn-toggle
-      v-if="choices.length > 1"
-      v-model="choice"
-      class="align-self-start flex-wrap"
-      data-test="document-files"
-      mandatory
-    >
-      <v-btn
-        v-for="entry in choices"
-        :key="entry.file.path"
-        :prepend-icon="entry.preview ? 'mdi-image-outline' : undefined"
-        :text="entry.label"
-        :value="entry.file.path"
-      />
-    </v-btn-toggle>
+    <!-- The version's files and its preview image (the Web UI's "Preview File /
+         Digital File" switch), in a menu like the version's, for any number of files. -->
+    <v-menu v-if="choices.length > 1">
+      <template #activator="{ props: activator }">
+        <v-chip
+          v-bind="activator"
+          append-icon="mdi-chevron-down"
+          class="align-self-start"
+          data-test="document-files"
+          link
+          :prepend-icon="current?.icon"
+          :text="current?.title"
+        />
+      </template>
+
+      <v-list min-width="240">
+        <v-list-item
+          v-for="entry in choices"
+          :key="entry.file.path"
+          :active="entry.file.path === choice"
+          data-test="document-file"
+          :prepend-icon="entry.icon"
+          :subtitle="entry.subtitle"
+          :title="entry.title"
+          @click="choice = entry.file.path"
+        />
+      </v-list>
+    </v-menu>
 
     <v-sheet
       v-if="file"
@@ -36,12 +48,12 @@
   import type { DocumentVersion, FileRef } from './handoverDocumentation'
   import type { FileSource } from '@basyx/file-viewer/vue'
   import type { StudioClient } from '@basyx/studio-sdk'
+  import { detectViewerKind, viewerKindIcon } from '@basyx/file-viewer'
   import { FileViewer } from '@basyx/file-viewer/viewer'
   import { useFileViewerState, withCachedContent } from '@basyx/file-viewer/vue'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed } from 'vue'
   import { useI18n } from './i18n'
-  import { fileLabel } from './presentation'
 
   // A version's file in the file viewer: one of its digital files (a PDF, a
   // drawing, a text) or its preview image. Internal files are read through
@@ -59,15 +71,16 @@
 
   const { t } = useI18n()
 
+  /** The digital files, then the preview image, each with what the menu shows. */
   const choices = computed(() => {
-    const files = (props.version?.digitalFiles ?? []).map(file => ({ file, preview: false, label: '' }))
-    // Several files of one type are told apart by name.
-    for (const entry of files) {
-      const label = fileLabel(entry.file)
-      entry.label = files.filter(other => fileLabel(other.file) === label).length > 1 ? entry.file.name : label
-    }
+    const files = (props.version?.digitalFiles ?? []).map(file => ({
+      file,
+      title: file.name,
+      subtitle: file.contentType,
+      icon: viewerKindIcon(detectViewerKind({ contentType: file.contentType, fileName: file.name })),
+    }))
     const preview = props.version?.preview
-    return preview ? [...files, { file: preview, preview: true, label: t('preview.previewImage') }] : files
+    return preview ? [...files, { file: preview, title: t('preview.previewImage'), subtitle: preview.name, icon: 'mdi-image-outline' }] : files
   })
 
   const choice = computed({
@@ -76,22 +89,23 @@
       chosen.value = value
     },
   })
-  const file = computed<FileRef | undefined>(() => choices.value.find(entry => entry.file.path === choice.value)?.file)
+  const current = computed(() => choices.value.find(entry => entry.file.path === choice.value))
+  const file = computed<FileRef | undefined>(() => current.value?.file)
 
   const source = computed<FileSource | null>(() => {
-    const current = file.value
-    if (!current) {
+    const shown = file.value
+    if (!shown) {
       return null
     }
     const submodelId = props.submodelId
     return withCachedContent({
-      key: `${current.path}:${current.value}`,
-      name: current.name,
-      contentType: current.contentType,
-      external: current.external ? current.value : null,
-      load: () => (current.external
-        ? props.client.ui.readExternalFile(submodelId, current.path)
-        : props.client.ui.readFile(submodelId, current.path)),
+      key: `${shown.path}:${shown.value}`,
+      name: shown.name,
+      contentType: shown.contentType,
+      external: shown.external ? shown.value : null,
+      load: () => (shown.external
+        ? props.client.ui.readExternalFile(submodelId, shown.path)
+        : props.client.ui.readFile(submodelId, shown.path)),
     })
   })
   const state = useFileViewerState(source)

@@ -31,6 +31,12 @@ async function clickInApp (page: Page, target: Locator) {
   await target.click()
 }
 
+/** Opens the version's file menu and picks a file. */
+async function chooseFile (page: Page, frame: FrameLocator, name: string) {
+  await clickInApp(page, frame.locator('[data-test="document-files"]'))
+  await clickInApp(page, frame.locator('[data-test="document-file"]').filter({ hasText: name }))
+}
+
 test.beforeEach(async ({ page }) => {
   await signIn(page, 'studio-admin')
   targetId = await registerOpenTarget(page, 'E2E handover documentation target')
@@ -43,13 +49,14 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
   await expect(frame.locator('[data-test="document-status"]')).toHaveText('Released')
   await expect(frame.locator('[data-test="version-menu"]')).toHaveText('v2.0')
 
-  // The latest version's first file, inline; its second file and its preview image are a click away.
+  // The latest version's first file, inline; its second file and its preview image are in the file menu.
   const viewer = frame.locator('[data-test="file-viewer"]')
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-operating-manual-en.pdf', { timeout: 30_000 })
   await expect(viewer.locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 5', { timeout: 30_000 })
-  await clickInApp(page, frame.locator('[data-test="document-files"]').getByRole('button', { name: 'gm40-betriebsanleitung-de.pdf' }))
+  await chooseFile(page, frame, 'gm40-betriebsanleitung-de.pdf')
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-betriebsanleitung-de.pdf', { timeout: 30_000 })
-  await clickInApp(page, frame.locator('[data-test="document-files"]').getByRole('button', { name: 'Preview image' }))
+  await expect(frame.locator('[data-test="document-files"]')).toHaveText('gm40-betriebsanleitung-de.pdf')
+  await chooseFile(page, frame, 'Preview image')
   await expect(viewer.locator('[data-test="file-viewer-image"] img')).toBeVisible({ timeout: 30_000 })
 
   // An older version.
@@ -75,10 +82,14 @@ test('searches and filters documents, and follows relations between them', async
   await expect(frame.locator('[data-test="document-count"]')).toHaveText('1 of 9 documents')
   await frame.locator('[data-test="document-search"] input').fill('')
 
+  // The classes are in a menu that opens from the search field.
+  await clickInApp(page, frame.locator('[data-test="document-search"] input'))
   await clickInApp(page, frame.locator('[data-test="document-classes"]').getByText('Drawings, plans'))
   await expect(frame.locator('[data-test="document-item"]')).toHaveCount(1)
   await expect(frame.locator('[data-test="document-title"]')).toHaveText('Dimension drawing')
-  await clickInApp(page, frame.locator('[data-test="document-classes"]').getByText('Drawings, plans'))
+  await frame.locator('[data-test="document-search"] input').press('Escape')
+  await expect(frame.locator('[data-test="document-filters"]')).toHaveText('1 filter')
+  await clickInApp(page, frame.locator('[data-test="document-filters"] .v-chip__close'))
   await expect(frame.locator('[data-test="document-item"]')).toHaveCount(9)
 
   // The maintenance instructions in review refer to the spare parts list.
@@ -89,11 +100,16 @@ test('searches and filters documents, and follows relations between them', async
   await expect(frame.locator('[data-test="document-title"]')).toHaveText('Spare parts list')
 })
 
-test('opens the selected document and version in full screen', async ({ page }) => {
-  const frame = await openSubmodel(page, v2)
+test('opens the selected document and file in full screen from the Overview card', async ({ page }) => {
+  await page.goto(`/targets/${targetId}/shells/${key(shell)}?tab=overview`)
+  // The 2.0 submodel's card comes first, as the shell lists it.
+  const card = page.locator('[data-test="overview-widget-view"]').first()
+  const frame = card.frameLocator('iframe[title="App: Documents"]')
+  await expect(frame.locator('[data-test="document-item"]')).toHaveCount(9, { timeout: 30_000 })
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Dimension drawing' }))
-  await clickInApp(page, frame.locator('[data-test="document-files"]').getByRole('button', { name: 'SVG' }))
-  await clickInApp(page, frame.locator('[data-test="document-fullscreen"]'))
+  await chooseFile(page, frame, 'gm40-dimension-drawing.svg')
+  // The app reported what it shows (`studio.ui.setViewState`); the card's button opens it so.
+  await card.getByRole('button', { name: 'Full screen' }).click()
 
   const dialogFrame = page.frameLocator('.v-dialog iframe[title="App: Documents"]')
   await expect(dialogFrame.locator('[data-test="document-title"]')).toHaveText('Dimension drawing', { timeout: 30_000 })

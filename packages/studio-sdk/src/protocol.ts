@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.12'
+export const studioAppApiVersion = '0.1.13'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -638,6 +638,14 @@ export interface Methods {
   'studio.ui.openFullscreen': { params: { state?: string, header?: boolean }, result: null }
   /** Closes the full-screen dialog the view runs in; ignored elsewhere (Studio app API 0.1.7). */
   'studio.ui.closeFullscreen': { params: Record<string, never>, result: null }
+  /**
+   * Tells Studio what the view shows, as `state` of `openFullscreen` does
+   * (up to 4,000 characters): when Studio opens the view again full-screen
+   * itself, e.g. from the full-screen button of its Overview card, the view
+   * there gets it as `context.viewState`. Report it whenever the selection
+   * changes; the last one counts (Studio app API 0.1.13).
+   */
+  'studio.ui.setViewState': { params: { state: string }, result: null }
   'studio.aas.listShells': { params: { limit?: number, cursor?: string }, result: Page<ShellSummary> }
   'studio.aas.getShell': { params: { shellId: string }, result: JsonObject }
   'studio.aas.listSubmodels': { params: { shellId: string }, result: { items: SubmodelSummary[] } }
@@ -782,6 +790,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.previewFile': 'studio.aas.read',
   'studio.ui.openFullscreen': null,
   'studio.ui.closeFullscreen': null,
+  'studio.ui.setViewState': null,
   'studio.aas.listShells': 'studio.aas.read',
   'studio.aas.getShell': 'studio.aas.read',
   'studio.aas.listSubmodels': 'studio.aas.read',

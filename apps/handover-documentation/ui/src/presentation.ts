@@ -1,4 +1,4 @@
-import type { DocumentedEntity, DocumentVersion, FileRef, HandoverDocument, ReferenceKey } from './handoverDocumentation'
+import type { DocumentedEntity, DocumentVersion, HandoverDocument, ReferenceKey } from './handoverDocumentation'
 import type { Translate } from '@basyx/studio-app-kit/i18n'
 import { documentAt, documentTitle, mainClassification, pickText, referencedShell, referencePath } from './handoverDocumentation'
 
@@ -95,13 +95,6 @@ export function documentSubtitle (t: Translate, document: HandoverDocument, vers
   const classification = mainClassification(document)
   const index = version ? document.versions.indexOf(version) : -1
   return [classification && (pickText(classification.name, locale) || classification.id), version && versionLabel(t, version, index)].filter(Boolean).join(' · ')
-}
-
-/** A short label of a file for the file switch: its extension, else its media subtype, e.g. "PDF". */
-export function fileLabel (file: FileRef): string {
-  const extension = file.name.includes('.') ? file.name.split('.').pop() ?? '' : ''
-  const subtype = file.contentType.split(';', 1)[0]!.split('/', 2)[1] ?? ''
-  return (extension || subtype.replace(/^x-/, '') || file.name).toUpperCase()
 }
 
 function row (label: string, value: string | undefined, extra: Partial<DetailRow> = {}): DetailRow | null {

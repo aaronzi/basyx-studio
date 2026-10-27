@@ -30,7 +30,7 @@
               :client="client"
               :documents="filtered"
               :options="classOptions"
-              :searchable="documents.length > 5"
+              :searchable="documents.length > 1"
               :selected-key="selected?.key ?? ''"
               :submodel-id="submodelId"
               :title-of="listTitle"
@@ -55,18 +55,6 @@
 
                   <v-spacer />
                   <VersionMenu :selected="version" :versions="selected.versions" @select="key => (versionKeys[selected!.key] = key)" />
-
-                  <v-btn
-                    v-if="!fullscreen"
-                    :aria-label="t('document.fullscreen')"
-                    data-test="document-fullscreen"
-                    icon
-                    size="small"
-                    @click="openFullscreen"
-                  >
-                    <v-icon icon="mdi-fullscreen" />
-                    <v-tooltip activator="parent" location="bottom" :text="t('document.fullscreen')" />
-                  </v-btn>
                 </div>
 
                 <div v-if="subtitle" class="text-body-medium text-medium-emphasis">{{ subtitle }}</div>
@@ -100,7 +88,7 @@
   import { provideFileViewer } from '@basyx/file-viewer/vue'
   import { loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
-  import { computed, onMounted, reactive, ref, shallowRef } from 'vue'
+  import { computed, onMounted, reactive, ref, shallowRef, watch } from 'vue'
   import DocumentList from './DocumentList.vue'
   import DocumentPreview from './DocumentPreview.vue'
   import DocumentSummary from './DocumentSummary.vue'
@@ -130,7 +118,7 @@
   const parsed = shallowRef<ReturnType<typeof parseHandoverDocumentation>>({ documents: [], entities: [] })
   const documents = computed(() => parsed.value.documents)
 
-  /** What the full-screen view opens with: the selected document, versions, files and filter. */
+  /** What the view shows, for Studio's full-screen button: the selected document, versions, files and filter. */
   interface ViewState {
     document: string
     versions: Record<string, string>
@@ -206,11 +194,9 @@
     }
   }
 
-  /** Full screen shows the same document, version and file (`context.viewState`). */
-  function openFullscreen () {
-    const state: ViewState = { document: selected.value?.key ?? '', versions: { ...versionKeys }, files: { ...fileKeys }, query: query.value, classes: classes.value }
-    void props.client.ui.openFullscreen(JSON.stringify(state))
-  }
+  // Studio's full-screen button opens the same document, version and file (`context.viewState`).
+  const viewState = computed(() => JSON.stringify({ document: selected.value?.key ?? '', versions: { ...versionKeys }, files: { ...fileKeys }, query: query.value, classes: classes.value } satisfies ViewState))
+  watch(viewState, state => void props.client.ui.setViewState(state))
 
   function restore (viewState: string) {
     try {

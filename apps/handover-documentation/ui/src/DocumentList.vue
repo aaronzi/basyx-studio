@@ -1,25 +1,75 @@
 <template>
   <div class="d-flex flex-column ga-2">
-    <v-text-field
+    <!-- Search and the class filter as in Studio's lists (shells, targets):
+         the classes are in a menu that opens from the field (click or ↓);
+         one chip in the field says how many apply. -->
+    <v-menu
       v-if="searchable"
-      v-model="query"
-      :aria-label="t('list.search')"
-      clearable
-      data-test="document-search"
-      :placeholder="t('list.search')"
-      prepend-inner-icon="mdi-magnify"
-    />
-
-    <v-chip-group
-      v-if="options.length > 1"
-      v-model="classes"
-      column
-      data-test="document-classes"
-      filter
-      multiple
+      v-model="menu"
+      :close-on-content-click="false"
+      location="bottom start"
+      :open-on-click="false"
     >
-      <v-chip v-for="option in options" :key="option.value" :text="option.title" :value="option.value" />
-    </v-chip-group>
+      <template #activator="{ props: activator }">
+        <v-text-field
+          v-bind="activator"
+          v-model="query"
+          :aria-label="t('list.search')"
+          clearable
+          data-test="document-search"
+          density="compact"
+          :placeholder="t('list.search')"
+          prepend-inner-icon="mdi-magnify"
+          @click="menu = options.length > 1"
+          @keydown.down.prevent="menu = options.length > 1"
+          @keydown.esc="menu = false"
+          @update:model-value="menu = false"
+        >
+          <template v-if="classes.length > 0" #default>
+            <v-chip
+              :aria-label="t('list.removeFilters')"
+              class="ms-n1 me-2"
+              closable
+              color="primary"
+              data-test="document-filters"
+              prepend-icon="mdi-filter-variant"
+              :text="t(classes.length === 1 ? 'list.filter' : 'list.filters', { count: classes.length })"
+              @click.stop="menu = true"
+              @click:close.stop="classes = []"
+            />
+          </template>
+
+          <!-- A hint that the field has filters, not a second way to open them. -->
+          <template v-if="options.length > 1" #append-inner>
+            <v-icon :color="classes.length > 0 ? 'primary' : undefined" icon="mdi-filter-variant" />
+          </template>
+        </v-text-field>
+      </template>
+
+      <v-card min-width="280">
+        <v-list
+          v-model:selected="classes"
+          data-test="document-classes"
+          max-height="420"
+          select-strategy="leaf"
+          selectable
+        >
+          <v-list-subheader :title="t('list.classes')" />
+
+          <v-list-item
+            v-for="option in options"
+            :key="option.value"
+            prepend-icon="mdi-tag-outline"
+            :title="option.title"
+            :value="option.value"
+          >
+            <template #append="{ isSelected }">
+              <v-icon v-if="isSelected" color="primary" icon="mdi-check" size="small" />
+            </template>
+          </v-list-item>
+        </v-list>
+      </v-card>
+    </v-menu>
 
     <div v-if="documents.length < total" class="text-body-small text-medium-emphasis" data-test="document-count">
       {{ t('list.filtered', { count: documents.length, total }) }}
@@ -69,13 +119,14 @@
   import type { FileRef, HandoverDocument } from './handoverDocumentation'
   import type { StudioClient } from '@basyx/studio-sdk'
   import { detectViewerKind } from '@basyx/file-viewer'
+  import { ref } from 'vue'
   import { latestVersion } from './handoverDocumentation'
   import { useI18n } from './i18n'
   import { documentSubtitle } from './presentation'
   import PreviewImage from './PreviewImage.vue'
 
   // The documents: their preview, title, class and version, with a search
-  // and a filter by class where there are enough of them to need one.
+  // and a filter by class where there is more than one.
   withDefaults(defineProps<{
     client: StudioClient
     submodelId: string
@@ -93,6 +144,7 @@
   const classes = defineModel<string[]>('classes', { required: true })
 
   const { t, formatLocale } = useI18n()
+  const menu = ref(false)
 
   function subtitle (document: HandoverDocument): string {
     return documentSubtitle(t, document, latestVersion(document.versions), formatLocale.value)

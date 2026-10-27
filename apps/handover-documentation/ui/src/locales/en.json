@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "This submodel has no documents.",
-    "untitled": "Document {number}",
-    "fullscreen": "Full screen"
+    "untitled": "Document {number}"
   },
   "list": {
     "search": "Search documents",
+    "filter": "{count} filter",
+    "filters": "{count} filters",
+    "removeFilters": "Remove the filters",
+    "classes": "Class",
     "filtered": "{count} of {total} documents",
     "noMatch": "No document matches the search or filter."
   },

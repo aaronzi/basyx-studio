@@ -88,20 +88,6 @@
             <v-icon icon="mdi-open-in-new" />
             <v-tooltip activator="parent" location="bottom" :text="t('viewer.openExternalAt', { host: externalHost })" />
           </v-btn>
-
-          <v-btn
-            v-if="!fullscreen"
-            :aria-label="t('viewer.fullscreen')"
-            color="surface"
-            data-test="viewer-fullscreen"
-            icon
-            size="small"
-            variant="flat"
-            @click="emit('fullscreen')"
-          >
-            <v-icon icon="mdi-fullscreen" />
-            <v-tooltip activator="parent" location="bottom" :text="t('viewer.fullscreen')" />
-          </v-btn>
         </div>
       </v-responsive>
     </v-sheet>
@@ -160,12 +146,10 @@
     version: Model3DVersion | undefined
     title: string
     theme: ViewerTheme
-    fullscreen: boolean
   }>()
   const emit = defineEmits<{
     open: [url: string]
     download: [path: string]
-    fullscreen: []
   }>()
 
   const { t } = useI18n()

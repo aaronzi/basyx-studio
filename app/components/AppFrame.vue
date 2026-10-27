@@ -181,6 +181,8 @@
   const fullscreenState = ref('')
   /** Whether the dialog shows Studio's header with the view's title and a close button. */
   const fullscreenHeader = ref(true)
+  /** What the view last said it shows (`studio.ui.setViewState`); Studio's full-screen button opens it with that. */
+  const reportedState = ref('')
   function openFullscreen (state = '', header = true) {
     // Inside a full-screen dialog, only a header-less one opens above it.
     if (props.fullscreen && header) {
@@ -243,6 +245,9 @@
     onNavigate: (subPath, history) => emit('navigate', subPath, history),
     onOpenFullscreen: props.nested ? undefined : openFullscreen,
     onCloseFullscreen: props.fullscreen ? () => emit('close-fullscreen') : undefined,
+    onViewState: state => {
+      reportedState.value = state
+    },
     onOpenView: props.fullscreen ? undefined : openView,
     shownView: () => viewOpen.value ? openedView.value : null,
   })
@@ -251,7 +256,7 @@
       emit('content-height', value)
     }
   })
-  defineExpose({ openFullscreen: () => openFullscreen() })
+  defineExpose({ openFullscreen: () => openFullscreen(reportedState.value) })
   watch(connected, value => {
     if (value) {
       clearTimeout(startTimer)

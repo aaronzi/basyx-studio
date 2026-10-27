@@ -1,11 +1,14 @@
 {
   "document": {
     "none": "Dit submodel bevat geen documenten.",
-    "untitled": "Document {number}",
-    "fullscreen": "Volledig scherm"
+    "untitled": "Document {number}"
   },
   "list": {
     "search": "Documenten zoeken",
+    "filter": "{count} filter",
+    "filters": "{count} filters",
+    "removeFilters": "Filters verwijderen",
+    "classes": "Klasse",
     "filtered": "{count} van {total} documenten",
     "noMatch": "Geen document komt overeen met de zoekopdracht of het filter."
   },
