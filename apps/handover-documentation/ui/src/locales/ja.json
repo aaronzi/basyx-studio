@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "このサブモデルにはドキュメントがありません。",
+    "untitled": "ドキュメント {number}",
+    "fullscreen": "全画面表示"
+  },
+  "list": {
+    "search": "ドキュメントを検索",
+    "filtered": "{total} 件中 {count} 件のドキュメント",
+    "noMatch": "検索または絞り込みに一致するドキュメントはありません。"
+  },
+  "version": {
+    "number": "バージョン {number}",
+    "latest": "最新"
+  },
+  "preview": {
+    "previewImage": "プレビュー画像",
+    "noFile": "このバージョンにはファイルがありません。"
+  },
+  "facts": {
+    "version": "バージョン",
+    "status": "ステータス",
+    "date": "日付",
+    "organization": "組織",
+    "languages": "言語"
+  },
+  "details": {
+    "title": "技術的な詳細",
+    "identification": "識別",
+    "identifier": "識別子",
+    "primary": "主",
+    "classification": "分類",
+    "class": "クラス",
+    "files": "ファイル",
+    "digitalFile": "ドキュメントファイル",
+    "previewFile": "プレビュー画像",
+    "relations": "関連",
+    "refersTo": "参照先",
+    "basedOn": "基づく元",
+    "translationOf": "翻訳元",
+    "documentedEntity": "文書化の対象"
+  },
+  "values": {
+    "InReview": "レビュー中",
+    "Released": "リリース済み"
+  }
+}

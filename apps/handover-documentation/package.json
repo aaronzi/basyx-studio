@@ -1,10 +1,11 @@
 {
   "name": "@basyx/studio-app-handover-documentation",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build"
+    "build": "vite build",
+    "typecheck": "vue-tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@basyx/file-viewer": "workspace:*",

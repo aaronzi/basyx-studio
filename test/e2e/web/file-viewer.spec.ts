@@ -158,11 +158,14 @@ test('opens a handover document from the app in Studio\'s viewer', async ({ page
   await page.goto(`/targets/${targetId}/shells/${key(shell)}?submodel=${key(handover)}&mode=visualization`)
   const app = page.locator('iframe[title="App: Documents"]')
   const frame = app.contentFrame()
-  await expect(frame.getByText('Operating manual')).toBeVisible({ timeout: 30_000 })
+  await expect(frame.locator('[data-test="document-item"]').filter({ hasText: 'Operating manual' })).toBeVisible({ timeout: 30_000 })
   // Documents with a preview image show it.
   await expect(frame.locator('[data-test="file-thumbnail"] img').first()).toBeVisible({ timeout: 30_000 })
+  // The first document's file shows in the app's file viewer, maximize in Studio's.
+  await expect(frame.locator('[data-test="file-viewer-name"]')).toHaveText('operating-manual.pdf', { timeout: 30_000 })
+  await expect(frame.locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 5', { timeout: 30_000 })
   await waitUntilSettled(app)
-  await frame.getByText('Operating manual').click()
+  await frame.locator('[data-test="file-viewer-maximize"]').click()
   await expect(dialog(page).locator('[data-test="file-viewer-name"]')).toHaveText('operating-manual.pdf', { timeout: 30_000 })
   await expect(dialog(page).locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 5', { timeout: 30_000 })
   await dialog(page).locator('[data-test="file-viewer-close"]').click()

@@ -2,21 +2,30 @@
   "$schema": "../../packages/studio-sdk/app-manifest.schema.json",
   "manifestVersion": 0,
   "id": "org.eclipse.basyx.studio.handover-documentation",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "publisher": { "name": "Eclipse BaSyx" },
-  "title": { "en": "Documents" },
-  "description": { "en": "Lists the handover documentation (VDI 2770, IDTA 02004) of an asset with previews, and shows its files in Studio's file viewer." },
+  "title": { "en": "Documents", "de": "Dokumente", "es": "Documentos", "fr": "Documents", "ja": "ドキュメント", "nl": "Documenten", "zh-Hans": "文档" },
+  "description": {
+    "en": "Shows the handover documentation of an asset (IDTA 02004, Handover Documentation 1.2 and 2.0, and VDI 2770): its documents with search and class filter, each version's files in the file viewer, and their identifiers, classifications and relations.",
+    "de": "Zeigt die Herstellerdokumentation eines Assets (IDTA 02004, Handover Documentation 1.2 und 2.0, sowie VDI 2770): ihre Dokumente mit Suche und Klassenfilter, die Dateien jeder Version im Dateibetrachter sowie ihre Kennungen, Klassifikationen und Beziehungen.",
+    "es": "Muestra la documentación de entrega de un activo (IDTA 02004, Handover Documentation 1.2 y 2.0, y VDI 2770): sus documentos con búsqueda y filtro por clase, los archivos de cada versión en el visor de archivos, y sus identificadores, clasificaciones y relaciones.",
+    "fr": "Affiche la documentation de remise d'un actif (IDTA 02004, Handover Documentation 1.2 et 2.0, et VDI 2770) : ses documents avec recherche et filtre par classe, les fichiers de chaque version dans la visionneuse de fichiers, ainsi que leurs identifiants, classifications et relations.",
+    "ja": "資産の引き渡しドキュメント（IDTA 02004、Handover Documentation 1.2 および 2.0、VDI 2770）を表示します。検索とクラスによる絞り込みができるドキュメント一覧、各バージョンのファイルをファイルビューアーで、識別子、分類、関連とともに表示します。",
+    "nl": "Toont de overdrachtsdocumentatie van een asset (IDTA 02004, Handover Documentation 1.2 en 2.0, en VDI 2770): de documenten met zoeken en een klassefilter, de bestanden van elke versie in de bestandsviewer, en hun identificaties, classificaties en relaties.",
+    "zh-Hans": "显示资产的交付文档（IDTA 02004，Handover Documentation 1.2 和 2.0，以及 VDI 2770）：可搜索并按类别筛选的文档、在文件查看器中显示的各版本文件，以及其标识符、分类和关联。"
+  },
   "studioApi": "^0.1.12",
   "runtimes": ["hosted", "desktop"],
-  "permissions": ["studio.aas.read"],
+  "permissions": ["studio.aas.read", "studio.ui.navigation", "studio.ui.externalFiles"],
+  "sandbox": { "webAssembly": true, "workers": true },
   "contributes": {
     "submodelViews": [
       {
         "id": "handover-documentation",
-        "title": { "en": "Documents" },
+        "title": { "en": "Documents", "de": "Dokumente", "es": "Documentos", "fr": "Documents", "ja": "ドキュメント", "nl": "Documenten", "zh-Hans": "文档" },
         "entry": "ui/index.html",
         "semanticIds": ["0173-1#01-AHF578#003", "0173-1#01-AHF578#002", "0173-1#01-AHF578#001", "https://admin-shell.io/vdi/2770/1/0/Documentation"],
-        "columns": { "md": 12, "lg": 6, "xxl": 4 }
+        "columns": { "md": 12, "xl": 8 }
       }
     ]
   }

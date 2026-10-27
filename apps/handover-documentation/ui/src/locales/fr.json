@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "Ce sous-modèle ne contient aucun document.",
+    "untitled": "Document {number}",
+    "fullscreen": "Plein écran"
+  },
+  "list": {
+    "search": "Rechercher des documents",
+    "filtered": "{count} documents sur {total}",
+    "noMatch": "Aucun document ne correspond à la recherche ou au filtre."
+  },
+  "version": {
+    "number": "Version {number}",
+    "latest": "Dernière"
+  },
+  "preview": {
+    "previewImage": "Image d'aperçu",
+    "noFile": "Cette version ne contient aucun fichier."
+  },
+  "facts": {
+    "version": "Version",
+    "status": "Statut",
+    "date": "Date",
+    "organization": "Organisation",
+    "languages": "Langues"
+  },
+  "details": {
+    "title": "Détails techniques",
+    "identification": "Identification",
+    "identifier": "Identifiant",
+    "primary": "principal",
+    "classification": "Classification",
+    "class": "Classe",
+    "files": "Fichiers",
+    "digitalFile": "Fichier du document",
+    "previewFile": "Image d'aperçu",
+    "relations": "Relations",
+    "refersTo": "Fait référence à",
+    "basedOn": "Basé sur",
+    "translationOf": "Traduction de",
+    "documentedEntity": "Entité documentée"
+  },
+  "values": {
+    "InReview": "En revue",
+    "Released": "Publié"
+  }
+}

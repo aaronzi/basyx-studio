@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "This submodel has no documents.",
+    "untitled": "Document {number}",
+    "fullscreen": "Full screen"
+  },
+  "list": {
+    "search": "Search documents",
+    "filtered": "{count} of {total} documents",
+    "noMatch": "No document matches the search or filter."
+  },
+  "version": {
+    "number": "Version {number}",
+    "latest": "Latest"
+  },
+  "preview": {
+    "previewImage": "Preview image",
+    "noFile": "This version has no file."
+  },
+  "facts": {
+    "version": "Version",
+    "status": "Status",
+    "date": "Date",
+    "organization": "Organization",
+    "languages": "Languages"
+  },
+  "details": {
+    "title": "Technical details",
+    "identification": "Identification",
+    "identifier": "Identifier",
+    "primary": "primary",
+    "classification": "Classification",
+    "class": "Class",
+    "files": "Files",
+    "digitalFile": "Document file",
+    "previewFile": "Preview image",
+    "relations": "Relations",
+    "refersTo": "Refers to",
+    "basedOn": "Based on",
+    "translationOf": "Translation of",
+    "documentedEntity": "Documented entity"
+  },
+  "values": {
+    "InReview": "In review",
+    "Released": "Released"
+  }
+}

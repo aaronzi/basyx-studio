@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "Dit submodel bevat geen documenten.",
+    "untitled": "Document {number}",
+    "fullscreen": "Volledig scherm"
+  },
+  "list": {
+    "search": "Documenten zoeken",
+    "filtered": "{count} van {total} documenten",
+    "noMatch": "Geen document komt overeen met de zoekopdracht of het filter."
+  },
+  "version": {
+    "number": "Versie {number}",
+    "latest": "Nieuwste"
+  },
+  "preview": {
+    "previewImage": "Voorbeeldafbeelding",
+    "noFile": "Deze versie bevat geen bestand."
+  },
+  "facts": {
+    "version": "Versie",
+    "status": "Status",
+    "date": "Datum",
+    "organization": "Organisatie",
+    "languages": "Talen"
+  },
+  "details": {
+    "title": "Technische details",
+    "identification": "Identificatie",
+    "identifier": "Identificatie",
+    "primary": "primair",
+    "classification": "Classificatie",
+    "class": "Klasse",
+    "files": "Bestanden",
+    "digitalFile": "Documentbestand",
+    "previewFile": "Voorbeeldafbeelding",
+    "relations": "Relaties",
+    "refersTo": "Verwijst naar",
+    "basedOn": "Gebaseerd op",
+    "translationOf": "Vertaling van",
+    "documentedEntity": "Gedocumenteerde entiteit"
+  },
+  "values": {
+    "InReview": "In beoordeling",
+    "Released": "Vrijgegeven"
+  }
+}

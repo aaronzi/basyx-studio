@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "Dieses Teilmodell enthält keine Dokumente.",
+    "untitled": "Dokument {number}",
+    "fullscreen": "Vollbild"
+  },
+  "list": {
+    "search": "Dokumente durchsuchen",
+    "filtered": "{count} von {total} Dokumenten",
+    "noMatch": "Kein Dokument passt zur Suche oder zum Filter."
+  },
+  "version": {
+    "number": "Version {number}",
+    "latest": "Neueste"
+  },
+  "preview": {
+    "previewImage": "Vorschaubild",
+    "noFile": "Diese Version enthält keine Datei."
+  },
+  "facts": {
+    "version": "Version",
+    "status": "Status",
+    "date": "Datum",
+    "organization": "Organisation",
+    "languages": "Sprachen"
+  },
+  "details": {
+    "title": "Technische Details",
+    "identification": "Identifikation",
+    "identifier": "Kennung",
+    "primary": "primär",
+    "classification": "Klassifikation",
+    "class": "Klasse",
+    "files": "Dateien",
+    "digitalFile": "Dokumentdatei",
+    "previewFile": "Vorschaubild",
+    "relations": "Beziehungen",
+    "refersTo": "Verweist auf",
+    "basedOn": "Basiert auf",
+    "translationOf": "Übersetzung von",
+    "documentedEntity": "Dokumentierte Entität"
+  },
+  "values": {
+    "InReview": "In Prüfung",
+    "Released": "Freigegeben"
+  }
+}

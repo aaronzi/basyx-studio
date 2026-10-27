@@ -1,0 +1,47 @@
+{
+  "document": {
+    "none": "Este submodelo no tiene documentos.",
+    "untitled": "Documento {number}",
+    "fullscreen": "Pantalla completa"
+  },
+  "list": {
+    "search": "Buscar documentos",
+    "filtered": "{count} de {total} documentos",
+    "noMatch": "Ningún documento coincide con la búsqueda o el filtro."
+  },
+  "version": {
+    "number": "Versión {number}",
+    "latest": "Más reciente"
+  },
+  "preview": {
+    "previewImage": "Imagen de vista previa",
+    "noFile": "Esta versión no tiene ningún archivo."
+  },
+  "facts": {
+    "version": "Versión",
+    "status": "Estado",
+    "date": "Fecha",
+    "organization": "Organización",
+    "languages": "Idiomas"
+  },
+  "details": {
+    "title": "Detalles técnicos",
+    "identification": "Identificación",
+    "identifier": "Identificador",
+    "primary": "principal",
+    "classification": "Clasificación",
+    "class": "Clase",
+    "files": "Archivos",
+    "digitalFile": "Archivo del documento",
+    "previewFile": "Imagen de vista previa",
+    "relations": "Relaciones",
+    "refersTo": "Hace referencia a",
+    "basedOn": "Basado en",
+    "translationOf": "Traducción de",
+    "documentedEntity": "Entidad documentada"
+  },
+  "values": {
+    "InReview": "En revisión",
+    "Released": "Publicado"
+  }
+}
