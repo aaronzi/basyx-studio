@@ -43,7 +43,7 @@ test('shows the bundled apps on the overview', async ({ page }) => {
   // App frames load only once their widget scrolls into sight (ADR 0032).
   const view = async (title: string, text: string) => {
     await page.locator('[data-test="overview-widget-view"]').filter({ hasText: title }).first().scrollIntoViewIfNeeded()
-    await expect(page.frameLocator(`iframe[title="App: ${title}"]`).getByText(text)).toBeVisible()
+    await expect(page.frameLocator(`iframe[title="App: ${title}"]`).getByText(text).first()).toBeVisible()
   }
   await view('Digital Nameplate', 'SN-2024-DM3000-0042')
   await view('Technical Data', 'Rated power')
