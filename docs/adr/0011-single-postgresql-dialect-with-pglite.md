@@ -51,9 +51,11 @@ Use PostgreSQL as the only SQL dialect for Studio metadata.
   process access metadata only through the Studio Service. Electron enforces a
   single application instance per OS user so that two services never open the
   same data directory. PGlite itself does not lock its directory, so the
-  Studio Service also holds a lock file next to it: a second opener, such as
-  the next Nitro worker of `nuxt dev`, waits until the first has closed the
-  database.
+  Studio Service also holds a lock next to it: a second opener, such as the
+  next Nitro worker of `nuxt dev`, waits until the first has closed the
+  database. The lock is taken over only when its owner's local socket
+  refuses connections, which the OS guarantees once the owner's process or
+  worker thread has ended.
 - **Portable SQL in shared modules:** shared repository code uses PostgreSQL
   features that PGlite supports. Server-only capabilities may be used only in
   hosted-only modules behind an explicit deployment-capability check. Examples

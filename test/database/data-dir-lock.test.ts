@@ -3,12 +3,12 @@
 
 import type { StudioConfig } from '~~/server/lib/config'
 import type { StudioDeps } from '~~/server/lib/deps'
-import { spawnSync } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
-import { existsSync } from 'node:fs'
-import { mkdtemp, rm, utimes, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, mkdtemp, readdir, rm, writeFile } from 'node:fs/promises'
+import { hostname, tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { Worker } from 'node:worker_threads'
 import { afterEach, describe, expect, it } from 'vitest'
 import { installBundledApp, listInstallations } from '~~/server/lib/apps/store'
 import { SecretCipher } from '~~/server/lib/crypto/cipher'
@@ -20,6 +20,17 @@ import { manifestOf, zipApp } from '../apps/support'
 const migrationsDirectory = new URL('../../server/database/migrations', import.meta.url).pathname
 const config = { deploymentMode: 'desktop' } as StudioConfig
 
+// An owner in a worker thread: listens on its socket, then blocks its event
+// loop as a long synchronous operation or a debugger pause would.
+const ownerThread = `
+const { createServer } = require('node:net')
+const { parentPort, workerData } = require('node:worker_threads')
+createServer(socket => socket.destroy()).listen(workerData.address, () => {
+  parentPort.postMessage('listening')
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, workerData.blockMs)
+})
+`
+
 /** Resolves to whether the promise settled within the time. */
 async function settlesWithin (promise: Promise<unknown>, ms: number): Promise<boolean> {
   return Promise.race([promise.then(() => true, () => true), new Promise<boolean>(resolve => setTimeout(() => resolve(false), ms))])
@@ -27,65 +38,105 @@ async function settlesWithin (promise: Promise<unknown>, ms: number): Promise<bo
 
 describe('PGlite data directory lock', () => {
   const directories: string[] = []
-  async function dataDir () {
+  const workers: Worker[] = []
+  async function scratch () {
     const directory = await mkdtemp(join(tmpdir(), 'studio-lock-'))
     directories.push(directory)
-    return join(directory, 'db')
+    return directory
+  }
+
+  /** Records an owner of generation 1, as a previous Studio service would have. */
+  async function previousOwner (dataDir: string, address: string, host = hostname()) {
+    await mkdir(`${dataDir}.lock`, { recursive: true })
+    await writeFile(join(`${dataDir}.lock`, '1'), JSON.stringify({ pid: 4242, host, address }))
+  }
+
+  async function ownerInThread (address: string, blockMs: number) {
+    const worker = new Worker(ownerThread, { eval: true, workerData: { address, blockMs } })
+    workers.push(worker)
+    await new Promise(resolve => worker.once('message', resolve))
+    return worker
   }
 
   afterEach(async () => {
+    await Promise.all(workers.splice(0).map(worker => worker.terminate()))
     await Promise.all(directories.splice(0).map(directory => rm(directory, { recursive: true, force: true })))
   })
 
   it('lets a second opener wait until the first releases the folder', async () => {
-    const dir = await dataDir()
+    const dir = join(await scratch(), 'db')
     const release = await lockDataDir(dir, { pollMs: 10 })
     const second = lockDataDir(dir, { pollMs: 10 })
     expect(await settlesWithin(second, 200)).toBe(false)
     await release()
     const releaseSecond = await second
-    expect(existsSync(`${dir}.lock`)).toBe(true)
+    expect((await readdir(`${dir}.lock`)).filter(name => !name.endsWith('.sock'))).toEqual(['2'])
     await releaseSecond()
-    expect(existsSync(`${dir}.lock`)).toBe(false)
   })
 
   it('gives up with a clear error while a live owner keeps the folder', async () => {
-    const dir = await dataDir()
+    const dir = join(await scratch(), 'db')
     const release = await lockDataDir(dir)
     await expect(lockDataDir(dir, { timeoutMs: 200, pollMs: 10 })).rejects.toThrow(`The database folder ${dir} is in use by another Studio service (process ${process.pid})`)
     await release()
   })
 
-  it('takes over the lock of a process that has exited', async () => {
-    const dir = await dataDir()
-    const { pid } = spawnSync(process.execPath, ['-e', ''])
-    await writeFile(`${dir}.lock`, JSON.stringify({ pid, threadId: 0, token: 'gone' }))
-    const release = await lockDataDir(dir, { timeoutMs: 0 })
-    await release()
+  it('does not take over an owner that is blocked or paused', async () => {
+    const directory = await scratch()
+    const dir = join(directory, 'db')
+    const address = join(directory, 'owner.sock')
+    await ownerInThread(address, 5000)
+    await previousOwner(dir, address)
+    await expect(lockDataDir(dir, { timeoutMs: 1000, pollMs: 50 })).rejects.toThrow('is in use by another Studio service (process 4242)')
   })
 
-  it('takes over a lock its owner stopped refreshing, such as a terminated worker thread', async () => {
-    const dir = await dataDir()
-    await writeFile(`${dir}.lock`, JSON.stringify({ pid: process.pid, threadId: 99, token: 'terminated' }))
-    const past = new Date(Date.now() - 60_000)
-    await utimes(`${dir}.lock`, past, past)
-    const release = await lockDataDir(dir, { timeoutMs: 0 })
-    await release()
+  it('takes over from a worker thread that was terminated', async () => {
+    const directory = await scratch()
+    const dir = join(directory, 'db')
+    const address = join(directory, 'owner.sock')
+    const worker = await ownerInThread(address, 0)
+    await previousOwner(dir, address)
+    await worker.terminate()
+    await (await lockDataDir(dir, { timeoutMs: 0 }))()
   })
 
-  it('keeps a lock that has been taken over when the previous owner releases late', async () => {
-    const dir = await dataDir()
-    const releaseFirst = await lockDataDir(dir, { heartbeatMs: 60_000 })
-    const past = new Date(Date.now() - 60_000)
-    await utimes(`${dir}.lock`, past, past)
-    const releaseSecond = await lockDataDir(dir, { staleMs: 1000, timeoutMs: 0 })
-    await releaseFirst()
-    expect(existsSync(`${dir}.lock`)).toBe(true)
-    await releaseSecond()
+  it('takes over from a process that was killed', async () => {
+    const directory = await scratch()
+    const dir = join(directory, 'db')
+    const address = join(directory, 'owner.sock')
+    const owner = spawn(process.execPath, ['-e', `require('node:net').createServer().listen(${JSON.stringify(address)}, () => console.log('listening'))`], { stdio: ['ignore', 'pipe', 'inherit'] })
+    await new Promise(resolve => owner.stdout.once('data', resolve))
+    await previousOwner(dir, address)
+    owner.kill('SIGKILL')
+    await new Promise(resolve => owner.once('exit', resolve))
+    await (await lockDataDir(dir, { timeoutMs: 0 }))()
+  })
+
+  it('never takes over an owner on another host', async () => {
+    const directory = await scratch()
+    const dir = join(directory, 'db')
+    await previousOwner(dir, join(directory, 'owner.sock'), 'other-host')
+    await expect(lockDataDir(dir, { timeoutMs: 200, pollMs: 10 })).rejects.toThrow('(process 4242 on other-host)')
+  })
+
+  it('gives an abandoned folder to one opener at a time', async () => {
+    const directory = await scratch()
+    const dir = join(directory, 'db')
+    await previousOwner(dir, join(directory, 'gone.sock'))
+    let owners = 0
+    let most = 0
+    await Promise.all(Array.from({ length: 6 }, async () => {
+      const release = await lockDataDir(dir, { pollMs: 5 })
+      most = Math.max(most, ++owners)
+      await new Promise(resolve => setTimeout(resolve, 30))
+      owners--
+      await release()
+    }))
+    expect(most).toBe(1)
   })
 
   it('runs overlapping Studio starts on one folder one after the other', async () => {
-    const dir = await dataDir()
+    const dir = join(await scratch(), 'db')
     const migrations = await loadMigrationsFromDirectory(migrationsDirectory)
     const start = async (version: string) => {
       const handle = await openDatabase({ kind: 'pglite', dataDir: dir })
