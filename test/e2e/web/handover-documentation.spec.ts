@@ -70,10 +70,10 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-operating-manual-en-1.0.pdf', { timeout: 30_000 })
   await expect(viewer.locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 3', { timeout: 30_000 })
 
-  // The frame cannot download: the viewer's button has Studio save the file.
-  const download = page.waitForEvent('popup')
+  // The frame cannot download: the viewer's button has Studio save the file, in a new tab.
+  const download = page.context().waitForEvent('request', request => /\/attachment\?download$/.test(request.url()))
   await clickInApp(page, viewer.locator('[data-test="file-viewer-download"]'))
-  expect((await download).url()).toMatch(/\/attachment\?download$/)
+  await download
 
   // A CSV file, a document without a file.
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Spare parts list' }))
@@ -83,9 +83,10 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
 
   // A file at another host: Studio opens it in the browser.
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Data sheet (external)' }))
-  const external = page.waitForEvent('popup')
+  // A navigation in a new tab, unlike the app's own read of the file.
+  const external = page.context().waitForEvent('request', request => request.isNavigationRequest() && request.url().includes('compressed.tracemonkey-pldi-09.pdf'))
   await clickInApp(page, viewer.locator('[data-test="file-viewer-open-external"]'))
-  expect((await external).url()).toContain('compressed.tracemonkey-pldi-09.pdf')
+  await external
 })
 
 test('opens full screen with its own button where Studio shows none', async ({ page }) => {
