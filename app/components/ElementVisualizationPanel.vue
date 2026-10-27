@@ -17,15 +17,7 @@
     </v-tabs>
 
     <template v-if="activeBuiltIn">
-      <ModelView
-        v-if="activeBuiltIn.id === model3dViewId && model3d"
-        :key="`${target.id}:${model3d.submodelKey}:${model3d.elementKey}`"
-        :element="model3d.element"
-        :element-key="model3d.elementKey"
-        :format="model3d.format"
-        :submodel-key="model3d.submodelKey"
-        :target-id="target.id"
-      />
+      <FileView v-if="activeBuiltIn.id === fileViewId && file" :state="file" />
     </template>
 
     <template v-else-if="active">
@@ -47,13 +39,14 @@
 
 <script lang="ts" setup>
   import type { SubmodelViewContributionInfo, Target } from '#shared/contract'
-  import type { ModelFormat } from '@basyx/model-viewer'
+  import type { FileViewerState } from '@basyx/file-viewer/vue'
   import type { BuiltInView } from '~/utils/visualizations'
-  import { model3dViewId } from '~/utils/visualizations'
+  import { fileViewId, legacyViewIds } from '~/utils/visualizations'
 
-  // The selection's views, one at a time: Studio's own (the 3D view of a
-  // File element) first, then the app views of its submodel (MVP-4 plan, T2).
-  // The chosen view is in the URL as `view` (as in MVP-3).
+  // The selection's views, one at a time: Studio's own (the file view of a
+  // File or Blob element, ADR 0052) first, then the app views of its
+  // submodel (MVP-4 plan, T2). The chosen view is in the URL as `view` (as in
+  // MVP-3).
   const props = defineProps<{
     target: Target
     /** The open shell, or `null` in the submodel view. */
@@ -62,8 +55,8 @@
     submodelLabel: string
     views: SubmodelViewContributionInfo[]
     builtIns: BuiltInView[]
-    /** The File element the 3D view shows. */
-    model3d: { submodelKey: string, elementKey: string, element: Record<string, unknown>, format: ModelFormat } | null
+    /** The File or Blob element the file view shows. */
+    file: FileViewerState | null
   }>()
   const view = defineModel<string | null>('view', { required: true })
 
@@ -75,7 +68,10 @@
     ...props.builtIns,
     ...props.views.map(item => ({ id: viewIdOf(item), title: label(item.title), icon: undefined })),
   ])
-  const activeId = computed(() => tabs.value.find(tab => tab.id === view.value)?.id ?? tabs.value[0]?.id ?? null)
+  const activeId = computed(() => {
+    const requested = view.value ? (legacyViewIds[view.value] ?? view.value) : null
+    return tabs.value.find(tab => tab.id === requested)?.id ?? tabs.value[0]?.id ?? null
+  })
   const activeBuiltIn = computed(() => props.builtIns.find(item => item.id === activeId.value) ?? null)
   const active = computed(() => props.views.find(item => viewIdOf(item) === activeId.value) ?? null)
   const selected = computed({

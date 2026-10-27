@@ -1,7 +1,7 @@
-import type { ModelFormat } from '@basyx/model-viewer'
+import type { ModelFormat } from '@basyx/file-viewer'
 import type { Node } from '@basyx/studio-app-kit/aas'
 import type { JsonObject } from '@basyx/studio-sdk'
-import { detectModelFormat } from '@basyx/model-viewer'
+import { detectModelFormat } from '@basyx/file-viewer'
 import { childrenOf, langText } from '@basyx/studio-app-kit/aas'
 
 // Reading IDTA 02026-1-0 "Provision of 3D Models" (Models3D, templates 1.0,

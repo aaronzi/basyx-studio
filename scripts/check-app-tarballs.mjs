@@ -1,5 +1,5 @@
 // Builds examples/apps/starter as a repository of its own would (ADR 0043,
-// P6): packs @basyx/studio-sdk, @basyx/studio-app-kit and @basyx/model-viewer,
+// P6): packs @basyx/studio-sdk, @basyx/studio-app-kit and @basyx/file-viewer,
 // installs them from the tarballs into a copy of the example outside this
 // repository, runs its typecheck, unit tests and build, packs, signs and
 // verifies its package with `studio-app`, and opens its dev server in a
@@ -16,7 +16,7 @@ import { parseArgs } from 'node:util'
 
 const { values: options } = parseArgs({ options: { 'keep': { type: 'boolean' }, 'no-browser': { type: 'boolean' } } })
 const root = fileURLToPath(new URL('..', import.meta.url))
-const packages = ['studio-sdk', 'studio-app-kit', 'model-viewer']
+const packages = ['studio-sdk', 'studio-app-kit', 'file-viewer']
 const work = mkdtempSync(join(tmpdir(), 'studio-app-tarballs-'))
 const tarballs = join(work, 'tarballs')
 const app = join(work, 'app')

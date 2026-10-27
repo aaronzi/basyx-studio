@@ -58,20 +58,5 @@
     "loadFailed": "Les fichiers n’ont pas pu être lus.",
     "expand": "Déplier {name}",
     "collapse": "Replier {name}"
-  },
-  "preview": {
-    "close": "Fermer l’aperçu",
-    "noneTitle": "Aucun aperçu disponible",
-    "none": "Ce type de fichier ne peut pas être affiché ici. Téléchargez-le pour l’ouvrir sur votre ordinateur.",
-    "failedTitle": "Le fichier ne peut pas être affiché",
-    "empty": "Ce fichier n’a pas encore de contenu.",
-    "failed": "Le fichier n’a pas pu être lu.",
-    "external": "Ce fichier se trouve à l’adresse {url}.",
-    "truncated": "Seuls les premiers {size} sont affichés.",
-    "pdfFailed": "Ce PDF ne peut pas être affiché. Ouvrez-le ou téléchargez-le.",
-    "pdfPage": "Page {page} sur {pages}",
-    "previousPage": "Page précédente",
-    "nextPage": "Page suivante",
-    "gone": "Ce fichier n’existe plus."
   }
 }

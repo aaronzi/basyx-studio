@@ -45,7 +45,8 @@ const activationMethods = new Set<AppMethodName>(['studio.ui.copyText', 'studio.
 
 /**
  * What a view embedded in an app's page may call through Studio (ADR 0051):
- * reads, and notifications labelled with its app. The app around it decides
+ * reads, notifications labelled with its app, and Studio's file viewer,
+ * read-only. The app around it decides
  * where it is and what lies over it, so it could steer clicks into it; so
  * nothing else, not even what could write further away, such as its
  * backend or its connections' operations. `getContext`, `setHeight` and the
@@ -62,6 +63,8 @@ const embeddedAllowed = new Set<AppMethodName>([
   'studio.ui.readFile',
   'studio.ui.readExternalFile',
   'studio.ui.notify',
+  // Studio's viewer, read-only for an embedded view (ADR 0052).
+  'studio.ui.previewFile',
 ])
 
 /** A view that the frame's app embedded, by its embed token (ADR 0051). */
@@ -132,6 +135,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   const desktop = useDesktopBridge()
   const studioUrl = useStudioUrl()
   const readExternalFile = useExternalFile()
+  const previewFile = useFilePreview(() => options.targetId)
   const connected = ref(false)
   /** Content height the app asked for (`studio.ui.setHeight`), or `null`. */
   const height = ref<number | null>(null)
@@ -249,7 +253,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         respond({ type: 'response', id, result: decoded.result }, decoded.transfer)
         return
       }
-      const replaced = await carryOut(method.data, params, result, contribution)
+      const replaced = await carryOut(method.data, params, result, contribution, channel.embedded !== null)
       respond({ type: 'response', id, result: replaced ? replaced.result : result }, replaced?.transfer)
     } catch (error) {
       const problem = problemOf(error)
@@ -305,7 +309,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
    * Studio authorized the call; UI methods are carried out here. A returned
    * result replaces Studio's; its `transfer` buffers move to the frame.
    */
-  async function carryOut (method: AppMethodName, params: unknown, result: unknown, contribution: AppContributionInfo): Promise<{ result: unknown, transfer?: Transferable[] } | null> {
+  async function carryOut (method: AppMethodName, params: unknown, result: unknown, contribution: AppContributionInfo, embedded: boolean): Promise<{ result: unknown, transfer?: Transferable[] } | null> {
     switch (method) {
       case 'studio.ui.notify': {
         const notice = appMethodParamsSchemas['studio.ui.notify'].parse(params)
@@ -346,6 +350,16 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         }
         const content = await readExternalFile(url, { targetId: options.targetId, submodelKey: resourceKey(file.submodelId), elementKey: resourceKey(file.idShortPath) })
         return { result: content, transfer: [content.bytes.buffer] }
+      }
+      case 'studio.ui.previewFile': {
+        // Studio's own viewer, with the element as the user reads it (ADR 0052).
+        if (!options.targetId) {
+          throw hostProblem('invalid_request', 'This app frame is not bound to a target.', 400)
+        }
+        const file = appMethodParamsSchemas['studio.ui.previewFile'].parse(params)
+        // A view embedded in another app's page is read-only there (ADR 0051), and so is the viewer it opens.
+        await previewFile(resourceKey(file.submodelId), resourceKey(file.idShortPath), { readOnly: embedded })
+        break
       }
       case 'studio.ui.navigate': {
         if (contribution.kind === 'module') {

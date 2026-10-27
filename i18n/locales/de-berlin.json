@@ -548,7 +548,6 @@
     "range": "Von bis · {type}",
     "elements": "keene Elemente | {count} Element | {count} Elemente",
     "noFile": "Keene Datei",
-    "preview": "Uffmachen",
     "download": "Runterladen",
     "replace": "Austauschen",
     "replaceTitle": "Die Datei von {name} austauschen",

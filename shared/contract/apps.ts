@@ -328,6 +328,7 @@ export const appMethodParamsSchemas = {
   'studio.ui.openFile': z.object({ submodelId: identifier, idShortPath, download: z.boolean().default(false) }).strict(),
   'studio.ui.readFile': z.object({ submodelId: identifier, idShortPath }).strict(),
   'studio.ui.readExternalFile': z.object({ submodelId: identifier, idShortPath }).strict(),
+  'studio.ui.previewFile': z.object({ submodelId: identifier, idShortPath }).strict(),
   'studio.ui.openFullscreen': z.object({ state: z.string().max(4000).optional(), header: z.boolean().default(true) }).strict(),
   'studio.ui.closeFullscreen': z.object({}).strict(),
   'studio.aas.listShells': listQuerySchema.strict(),

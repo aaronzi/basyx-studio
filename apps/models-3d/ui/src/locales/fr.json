@@ -16,21 +16,9 @@
     "openExternalAt": "Ouvrir le fichier sur {host}",
     "external": "Le modèle est stocké en dehors de cette AAS, sur {host}. Studio affiche son image d'aperçu.",
     "externalFailed": "Le modèle est stocké en dehors de cette AAS, sur {host}, qui ne l'a pas transmis à Studio. Studio affiche son image d'aperçu.",
-    "loading": "Chargement du fichier…",
-    "processing": "Préparation du modèle 3D…",
     "unsupported": "{format} ne peut pas être affiché en 3D ; téléchargez le fichier pour l'ouvrir.",
     "noFile": "Cette version ne contient aucun fichier 3D.",
-    "failed": "Aperçu 3D indisponible",
-    "pickHint": "Cliquez sur un élément pour voir ses propriétés.",
-    "clearSelection": "Effacer la sélection",
-    "noProperties": "Cet élément n'a pas de propriétés.",
-    "missingImages": "Les textures d'autres fichiers ne sont pas affichées : {files}"
-  },
-  "errors": {
-    "webgl": "Ce navigateur ne peut pas afficher de graphismes 3D (WebGL est désactivé ou non pris en charge).",
-    "missingBuffers": "Le fichier glTF conserve sa géométrie dans d'autres fichiers, qu'un élément File ne peut pas contenir : {files}.",
-    "download": "Le fichier n'a pas pu être chargé : {message}",
-    "parse": "Le fichier n'a pas pu être lu comme modèle 3D : {message}"
+    "failed": "Aperçu 3D indisponible"
   },
   "summary": {
     "levelOfDetail": "Niveau de détail",

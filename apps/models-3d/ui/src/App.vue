@@ -66,7 +66,8 @@
 <script lang="ts" setup>
   import type { Model3DEntry } from './models3d'
   import type { AppContext, StudioClient } from '@basyx/studio-sdk'
-  import { viewerThemeOf } from '@basyx/model-viewer'
+  import { viewerThemeOf } from '@basyx/file-viewer'
+  import { provideFileViewer } from '@basyx/file-viewer/vue'
   import { loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
   import { computed, onMounted, reactive, ref } from 'vue'
@@ -83,6 +84,7 @@
   const props = defineProps<{ client: StudioClient }>()
 
   const { t, locale } = provideI18n(props.client)
+  provideFileViewer({ locale: () => locale.value })
 
   const context = ref<AppContext>(props.client.context)
   props.client.onContext(value => {

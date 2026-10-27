@@ -58,20 +58,5 @@
     "loadFailed": "Die Dateien konnten nicht gelesen werden.",
     "expand": "{name} aufklappen",
     "collapse": "{name} zuklappen"
-  },
-  "preview": {
-    "close": "Vorschau schließen",
-    "noneTitle": "Keine Vorschau verfügbar",
-    "none": "Dieser Dateityp kann hier nicht angezeigt werden. Laden Sie die Datei herunter, um sie auf Ihrem Computer zu öffnen.",
-    "failedTitle": "Die Datei kann nicht angezeigt werden",
-    "empty": "Diese Datei hat noch keinen Inhalt.",
-    "failed": "Die Datei konnte nicht gelesen werden.",
-    "external": "Diese Datei liegt unter {url}.",
-    "truncated": "Nur die ersten {size} werden angezeigt.",
-    "pdfFailed": "Dieses PDF kann nicht angezeigt werden. Öffnen Sie es oder laden Sie es herunter.",
-    "pdfPage": "Seite {page} von {pages}",
-    "previousPage": "Vorherige Seite",
-    "nextPage": "Nächste Seite",
-    "gone": "Diese Datei ist nicht mehr vorhanden."
   }
 }

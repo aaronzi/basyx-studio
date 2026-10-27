@@ -61,10 +61,10 @@
 <script lang="ts" setup>
   import type { IfcModel } from '../inventory'
   import type { SubmodelSummary } from '@basyx/studio-sdk'
-  import { viewerThemeOf } from '@basyx/model-viewer'
+  import { viewerThemeOf } from '@basyx/file-viewer'
   // Only the IFC parser: the build holds web-ifc's WebAssembly and worker, and none of STEP's.
-  import { ifcParser } from '@basyx/model-viewer/ifc'
-  import { useModelViewer } from '@basyx/model-viewer/vue/core'
+  import { ifcParser } from '@basyx/file-viewer/model/ifc'
+  import { useModelViewer } from '@basyx/file-viewer/model/vue/core'
   import { computed, ref, watch } from 'vue'
   import { useClient } from '../client'
   import { useI18n } from '../i18n'

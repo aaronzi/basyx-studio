@@ -72,6 +72,8 @@ export class StudioClient {
     readFile: (submodelId: string, idShortPath: string) => this.call('studio.ui.readFile', { submodelId, idShortPath }),
     /** Reads a file an element names by an http(s) address at another host (needs studio.ui.externalFiles; Studio ≥ 0.1.2). */
     readExternalFile: (submodelId: string, idShortPath: string) => this.call('studio.ui.readExternalFile', { submodelId, idShortPath }),
+    /** Shows a File or Blob element in Studio's full-screen file viewer (needs studio.aas.read; Studio ≥ 0.1.12). */
+    previewFile: (submodelId: string, idShortPath: string) => this.call('studio.ui.previewFile', { submodelId, idShortPath }),
     /**
      * Opens this view again in a full-screen dialog; `context.fullscreen` is
      * true there, and `context.viewState` is `state` (Studio ≥ 0.1.1). With

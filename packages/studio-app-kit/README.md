@@ -149,7 +149,7 @@ export default defineConfig({ plugins: [vue(), studioApp()] })
 The preset builds `ui/index.html` to `dist/ui/` with relative URLs, as
 Studio serves an app under `/app/<installation>/ui/`, and compiles Vuetify's
 Sass with Studio's settings, in the dev server too. Workers are ES modules,
-and occt-import-js (STEP in `@basyx/model-viewer`) is built without
+and occt-import-js (STEP in `@basyx/file-viewer`) is built without
 `new Function`, which app frames forbid. `studioApp({ root: 'web' })` uses
 another folder.
 

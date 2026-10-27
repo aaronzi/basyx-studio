@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "allowImportingTsExtensions": false,
+    "rewriteRelativeImportExtensions": true
+  },
+  "include": [
+    "src/index.ts",
+    "src/markdown.ts",
+    "src/monaco.ts",
+    "src/pdf.ts",
+    "src/pdf-worker.d.ts",
+    "src/model/**/*.ts"
+  ]
+}

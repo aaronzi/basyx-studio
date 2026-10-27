@@ -215,7 +215,7 @@ where one app can read another's storage and script its frames.
   `studioApi` range that excludes app API versions below 0.1.3, e.g.
   `^0.1.3`. The shared manifest checks report it. An older Studio would refuse
   the unknown properties anyway, with a less helpful message.
-- `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/model-viewer`
+- `@basyx/studio-sdk`, `@basyx/studio-app-kit` and `@basyx/file-viewer`
   become 0.1.1: additions only, so apps that depend on `^0.1.0` get them.
 
 ## Consequences

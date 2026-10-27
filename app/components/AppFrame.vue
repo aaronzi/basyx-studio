@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column flex-grow-1">
+  <div class="d-flex flex-column flex-grow-1 position-relative">
     <!-- A frame that never connects (D14) says so, and why, instead of staying blank. -->
     <v-alert
       v-if="startProblem && !connected"
@@ -13,18 +13,21 @@
       </template>
     </v-alert>
 
-    <v-progress-linear v-else-if="!connected" />
+    <!-- Over the frame's top edge, taking no space: a widget fitted to the
+         frame's height does not grow a scrollbar while the app starts. -->
+    <v-progress-linear v-else-if="!connected" absolute location="top" />
 
     <!-- Created only on the client, after the bridge listens: a frame in
          server-rendered HTML would load before hydration, and after the
          target's settings arrived, so the first context has them (ADR 0048).
          Hidden until the app connects, so its blank (white) page does not
-         flash in dark mode. -->
+         flash in dark mode; while the start problem shows, it takes no
+         space, so a widget fits the alert and does not scroll. -->
     <iframe
       v-if="mounted && targetContext.status.value !== 'pending'"
       :key="attempt"
       ref="frame"
-      :class="['w-100 border-0 d-block', fit ? undefined : 'flex-grow-1', connected ? undefined : 'opacity-0']"
+      :class="['w-100 border-0', startProblem && !connected ? 'd-none' : 'd-block', fit ? undefined : 'flex-grow-1', connected ? undefined : 'opacity-0']"
       :height="fit ? (height ?? 480) : undefined"
       referrerpolicy="no-referrer"
       :sandbox="contribution.frameOrigin ? 'allow-scripts allow-same-origin' : 'allow-scripts'"
@@ -153,6 +156,7 @@
     subPath: props.subPath ?? '',
     mode: ui.mode,
     fullscreen: props.fullscreen ?? false,
+    fills: !props.fit,
     fullscreenOpen: fullscreenOpen.value || viewOpen.value,
     viewState: props.viewState ?? '',
     locale: locale.value,

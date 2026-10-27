@@ -2,8 +2,8 @@ import type { Locator, Page } from '@playwright/test'
 import { expect, test } from '@playwright/test'
 import { key, registerOpenTarget, signIn, waitUntilSettled } from './support'
 
-// 3D models in the hosted build (ADR 0038, 0039): the 3D view of File
-// elements in the Visualization tab, and the bundled 3D Models app for IDTA
+// 3D models in the hosted build (ADR 0038, 0039): 3D files in the file view
+// of the Visualization tab (ADR 0052), and the bundled 3D Models app for IDTA
 // 02026, on `Models3DDemo` (test-setup/fixtures/open/studio-3d-models.aasx).
 // Run `pnpm build` first.
 
@@ -46,9 +46,9 @@ test('shows STL, OBJ, glTF, GLB, STEP and IFC files in 3D', async ({ page }) => 
   await expect(page.locator('[data-test="model-view-element"]')).toContainText('Click an element to see its properties.')
 })
 
-test('offers the 3D view from the File card and explains files it cannot show', async ({ page }) => {
+test('offers the file view from the File card and explains files it cannot show', async ({ page }) => {
   await page.goto(`/targets/${targetId}/shells/${key(shell)}?submodel=${key(files)}&element=${key('Glb')}`)
-  await page.locator('[data-test="file-view-3d"]').click()
+  await page.locator('[data-test="file-show-preview"]').click()
   await expect(page).toHaveURL(/mode=visualization/)
   await expectModel(page, 'GLB')
 
@@ -61,10 +61,9 @@ test('offers the 3D view from the File card and explains files it cannot show', 
   await expectModel(page, 'glTF')
   await expect(page.getByText('Textures in other files are not shown: bracket-color.png')).toBeVisible()
 
-  // Not a 3D file: no Visualization tab.
-  await page.goto(`/targets/${targetId}/shells/${key(shell)}?submodel=${key(files)}&element=${key('Preview')}`)
-  await expect(page.getByRole('tab', { name: 'JSON' })).toBeVisible()
-  await expect(page.getByRole('tab', { name: 'Visualization' })).toHaveCount(0)
+  // Not a 3D file: the same file view shows it, here as an image.
+  await page.goto(elementUrl('Preview'))
+  await expect(page.locator('[data-test="file-viewer-image"] img')).toBeVisible({ timeout: 30_000 })
 })
 
 test('shows the Models3D submodel in the bundled 3D Models app', async ({ page }) => {

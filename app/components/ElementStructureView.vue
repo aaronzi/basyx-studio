@@ -1,22 +1,7 @@
 <template>
   <v-card border="0" color="surface-light">
-    <!-- Blob: content type, size, an image preview and a download -->
-    <template v-if="modelType === 'Blob'">
-      <v-card-item>
-        <v-card-subtitle class="text-label-medium">{{ t('details.blob', { type: element.contentType ?? '' }) }}</v-card-subtitle>
-        <v-card-title class="text-body-large">{{ blobBytes === null ? t('details.blobEmpty') : t('details.bytes', { size: blobBytes.toLocaleString(locale) }) }}</v-card-title>
-      </v-card-item>
-
-      <v-img v-if="blobUrl && isImage" class="mx-4" max-height="200" :src="blobUrl" />
-
-      <v-card-actions v-if="blobUrl">
-        <v-spacer />
-        <v-btn :download="`${String(element.idShort ?? 'blob')}`" :href="blobUrl" prepend-icon="mdi-download" :text="t('details.download')" />
-      </v-card-actions>
-    </template>
-
     <!-- References: the keys, and a way into the element where it is in this submodel -->
-    <template v-else-if="references.length > 0">
+    <template v-if="references.length > 0">
       <v-list lines="two">
         <template v-for="reference in references" :key="reference.label">
           <v-list-subheader :title="reference.label" />
@@ -66,24 +51,14 @@
   import { resourceKey } from '~/utils/aas'
 
   // Typed views of the structural element types (MVP-4 definition of done 8):
-  // Blob, ReferenceElement, (Annotated)RelationshipElement, BasicEventElement,
-  // Entity and Capability.
+  // ReferenceElement, (Annotated)RelationshipElement, BasicEventElement,
+  // Entity and Capability. Blobs show as files (FileValue, ADR 0052).
   const props = defineProps<{ element: Record<string, any>, submodelKey: string, submodelId: string }>()
   const emit = defineEmits<{ select: [id: string] }>()
 
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
 
   const modelType = computed(() => String(props.element.modelType ?? ''))
-
-  // Blob values are base64 (AAS JSON).
-  const blobBytes = computed(() => {
-    const value = props.element.value
-    return typeof value === 'string' && value ? Math.floor(value.replace(/=+$/, '').length * 3 / 4) : null
-  })
-  const isImage = computed(() => String(props.element.contentType ?? '').startsWith('image/'))
-  const blobUrl = computed(() => (typeof props.element.value === 'string' && props.element.value
-    ? `data:${props.element.contentType ?? 'application/octet-stream'};base64,${props.element.value}`
-    : null))
 
   interface Key { type: string, value: string }
 

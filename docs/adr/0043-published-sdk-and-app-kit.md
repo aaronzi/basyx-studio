@@ -18,7 +18,7 @@ Studio's app platform works for the apps in this repository only
   defaults, theme sync, i18n, the Vite plugin that compiles Vuetify with
   Studio's Sass settings and patches embind) import files from `app/` and
   `shared/`.
-- `@basyx/model-viewer`, which an app needs to show IFC and STEP models
+- `@basyx/file-viewer`, which an app needs to show IFC and STEP models
   ([ADR 0039](0039-3d-viewer-libraries.md)), is private.
 - `scripts/build-example-apps.mjs` packages this repository's apps; no tool
   packages an app elsewhere, and only Studio's upload checks a package
@@ -41,7 +41,7 @@ registry, in versions that say which Studio they work with.
     `./signature`), and the `studio-app` command. `@basyx/studio-sdk`, Vue,
     Vuetify, Vite and Sass are peer dependencies, so an app has one copy of
     each.
-  - `@basyx/model-viewer`: the 3D viewer, made public. It ships Vite's
+  - `@basyx/file-viewer`: the 3D viewer, made public. It ships Vite's
     `?url` and `?worker&url` imports for its WebAssembly files and worker,
     so apps that use it build with Vite, as the kit assumes anyway.
 - **In the workspace, packages export their source.** `exports` names

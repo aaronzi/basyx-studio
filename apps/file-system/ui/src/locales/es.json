@@ -58,20 +58,5 @@
     "loadFailed": "No se han podido leer los archivos.",
     "expand": "Expandir {name}",
     "collapse": "Contraer {name}"
-  },
-  "preview": {
-    "close": "Cerrar la vista previa",
-    "noneTitle": "Vista previa no disponible",
-    "none": "Este tipo de archivo no se puede mostrar aquí. Descárguelo para abrirlo en su ordenador.",
-    "failedTitle": "No se puede mostrar el archivo",
-    "empty": "Este archivo todavía no tiene contenido.",
-    "failed": "No se ha podido leer el archivo.",
-    "external": "Este archivo se encuentra en {url}.",
-    "truncated": "Solo se muestran los primeros {size}.",
-    "pdfFailed": "Este PDF no se puede mostrar. Ábralo o descárguelo.",
-    "pdfPage": "Página {page} de {pages}",
-    "previousPage": "Página anterior",
-    "nextPage": "Página siguiente",
-    "gone": "Este archivo ya no existe."
   }
 }

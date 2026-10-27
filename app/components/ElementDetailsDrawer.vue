@@ -186,14 +186,16 @@
             :can-invoke="canInvoke"
             :can-replace="canWrite && fileUploads"
             :detail="detail"
+            :file-source="elementFile.source.value"
             :history="history"
             :item="item"
             :refreshing="refreshing"
             :submodel-key="item.submodelKey"
             :target-id="targetId"
             @changed="onChanged"
+            @maximize="dialog.open(elementFile.state)"
+            @preview="showFileView"
             @select="id => emit('select', id)"
-            @visualize="showModel3d"
           />
         </div>
 
@@ -276,7 +278,7 @@
         <ElementVisualizationPanel
           v-model:view="view"
           :built-ins="builtInViews"
-          :model3d="model3d"
+          :file="fileView ? elementFile.state : null"
           :shell-id="shellId"
           :submodel="{ id: submodelRef.submodelId, semanticId: submodelRef.semanticId }"
           :submodel-label="submodelLabel ?? submodelRef.submodelId"
@@ -317,12 +319,14 @@
   import type { DetailsMode } from '~/utils/aas'
   import type { CreatingElement } from '~/utils/editor'
   import type { BuiltInView } from '~/utils/visualizations'
+  import { viewerKindIcon } from '@basyx/file-viewer'
   import { useQuery, useQueryCache } from '@pinia/colada'
   import { useDisplay } from 'vuetify'
   import { isElementModelType } from '#shared/aas/defaults'
+  import { hasFileContent } from '~/composables/useElementFile'
   import { decodeResourceKey, langText, modelTypeIcon } from '~/utils/aas'
   import { formActionsFooterKey } from '~/utils/editor'
-  import { fileModelFormat, model3dViewId } from '~/utils/visualizations'
+  import { fileViewId } from '~/utils/visualizations'
 
   // The details drawer (MVP-4 plan, T2): the selected submodel or element in
   // the modes of the Web UI's right pane. The mode and the app view are in the
@@ -466,16 +470,35 @@
     .filter(item => item.reason.semanticId === props.submodelRef?.semanticId)
     .toSorted((a, b) => Number(b.bundled) - Number(a.bundled)))
 
-  // Studio's own views of the selection: the 3D view of a File element.
-  const model3d = computed(() => {
-    const format = props.item?.elementKey && detail.value ? fileModelFormat(value.value) : null
-    return format ? { submodelKey: props.item!.submodelKey, elementKey: props.item!.elementKey!, element: value.value, format } : null
+  // Studio's own views of the selection: the file view of a File or Blob
+  // (ADR 0052). Its state is shared by the details card, the view and the
+  // full-screen dialog. Text is editable where the content may change: a
+  // File's with uploads, a Blob's with structural writes.
+  const dialog = useFileViewerDialogStore()
+  const elementFile = useElementFile({
+    targetId: () => targetId.value,
+    submodelKey: () => props.item?.elementKey ? props.item.submodelKey : null,
+    detail: () => props.item?.elementKey ? detail.value : null,
+    editable: () => props.canWrite && (value.value.modelType === 'Blob' ? props.capabilities.writeStructure : fileUploads.value),
+    onSaved: (saved, origin) => {
+      // The selection may have changed while the save was on its way.
+      if (origin.targetId === targetId.value && props.item?.submodelKey === origin.submodelKey && props.item.elementKey === origin.elementKey) {
+        onChanged(saved)
+      } else {
+        void queryCache.invalidateQueries({ key: ['targets', origin.targetId, 'details'] })
+        emit('changed', saved)
+      }
+    },
+    onConflict: () => void details.refetch(),
   })
-  const builtInViews = computed<BuiltInView[]>(() => (model3d.value ? [{ id: model3dViewId, title: t('model3d.title'), icon: 'mdi-cube-outline' }] : []))
+  const fileView = computed(() => Boolean(props.item?.elementKey && hasFileContent(value.value)))
+  const builtInViews = computed<BuiltInView[]>(() => (fileView.value
+    ? [{ id: fileViewId, title: t('details.fileView'), icon: viewerKindIcon(elementFile.state.detected.value) }]
+    : []))
 
-  /** The Visualization tab with the 3D view (FileValue's "View in 3D"). */
-  function showModel3d () {
-    view.value = model3dViewId
+  /** The Visualization tab with the file view (the details card's "Show preview"). */
+  function showFileView () {
+    view.value = fileViewId
     mode.value = 'visualization'
   }
 

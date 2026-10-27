@@ -10,8 +10,8 @@ describe('modelFiles', () => {
     const studio = createDevStudio()
     const submodel = await studio.client.aas.getSubmodel('https://example.com/ids/sm/pump-01/models')
     expect(modelFiles(submodel)).toEqual([
-      { path: 'Model01.ModelFile', fileName: 'pump.ifc', format: 'ifc' },
-      { path: 'Casing', fileName: 'casing.glb', format: 'glb' },
+      { path: 'Model01.ModelFile', fileName: 'pump.ifc', format: 'ifc', icon: 'mdi-cube-outline' },
+      { path: 'Casing', fileName: 'casing.glb', format: 'glb', icon: 'mdi-cube-outline' },
     ])
   })
 })

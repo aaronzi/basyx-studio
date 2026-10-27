@@ -24,18 +24,12 @@
 
     <v-card-item class="px-2 pb-2 pt-0 cursor-pointer" @click="emit('preview')">
       <v-card>
-        <v-img
-          v-if="thumbnail"
-          :alt="entry.name"
-          :aspect-ratio="16 / 9"
-          cover
-          :src="thumbnail"
-        />
-
-        <v-responsive v-else :aspect-ratio="16 / 9">
-          <div class="d-flex align-center justify-center h-100">
-            <v-icon :color="iconColorOf(entry)" :icon="iconOf(entry)" size="large" />
-          </div>
+        <v-responsive :aspect-ratio="16 / 9">
+          <file-thumbnail :alt="entry.name" cover height="100%" :source="source">
+            <template #icon>
+              <v-icon :color="iconColorOf(entry)" :icon="iconOf(entry)" size="large" />
+            </template>
+          </file-thumbnail>
         </v-responsive>
       </v-card>
     </v-card-item>
@@ -44,13 +38,16 @@
 
 <script lang="ts" setup>
   import type { EntryAction, FileEntry } from './fileSystem'
+  import type { FileSource } from '@basyx/file-viewer/vue'
+  import { FileThumbnail } from '@basyx/file-viewer/vue'
   import EntryMenu from './EntryMenu.vue'
   import { iconColorOf, iconOf } from './fileSystem'
   import { useI18n } from './i18n'
 
   // A file in the gallery, as the Web UI's FileCard: its name and menu above
-  // a 16:9 thumbnail (images) or its type's icon; a click previews it.
-  defineProps<{ entry: FileEntry, editable: boolean, selected: boolean, thumbnail: string | null }>()
+  // a 16:9 thumbnail (images, the file viewer's) or its type's icon; a click
+  // previews it.
+  defineProps<{ entry: FileEntry, editable: boolean, selected: boolean, source: FileSource | null }>()
   const emit = defineEmits<{ preview: [], toggle: [], action: [action: EntryAction] }>()
   const { t } = useI18n()
 </script>

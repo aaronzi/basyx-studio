@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.11'
+export const studioAppApiVersion = '0.1.12'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -226,6 +226,14 @@ export interface AppContext {
   fullscreenOpen?: boolean
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
   fullscreen: boolean
+  /**
+   * True where the frame fills the space Studio gives it, e.g. the details
+   * pane's Visualization tab or a full-screen dialog: size the view to the
+   * window. False where Studio sizes the frame to the view's content
+   * (`studio.ui.setHeight`), e.g. a widget on a shell's Overview (Studio app
+   * API 0.1.12; absent before).
+   */
+  fills?: boolean
   /**
    * True for a view that another app placed in its page
    * (`studio.ui.embedView`): it is read-only there, `mode` is always
@@ -606,6 +614,16 @@ export interface Methods {
    */
   'studio.ui.readExternalFile': { params: { submodelId: string, idShortPath: string }, result: FileContent }
   /**
+   * Shows a File or Blob element of the active target in Studio's
+   * full-screen file viewer (ADR 0052): images, PDFs, text, Markdown, CSV,
+   * 3D models, audio and video, for internal files and http(s) addresses
+   * alike. Studio reads the element as the user; in its edit mode, texts
+   * can be edited and saved there, except from a view embedded in another
+   * app's page, for which the viewer is read-only. Resolves once the viewer
+   * is open (Studio app API 0.1.12).
+   */
+  'studio.ui.previewFile': { params: { submodelId: string, idShortPath: string }, result: null }
+  /**
    * Opens the same view again in a full-screen dialog of Studio. `state`
    * (up to 4,000 characters) reaches the view there as `context.viewState`,
    * so it can show what the user had selected.
@@ -761,6 +779,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.openFile': 'studio.aas.read',
   'studio.ui.readFile': 'studio.aas.read',
   'studio.ui.readExternalFile': 'studio.ui.externalFiles',
+  'studio.ui.previewFile': 'studio.aas.read',
   'studio.ui.openFullscreen': null,
   'studio.ui.closeFullscreen': null,
   'studio.aas.listShells': 'studio.aas.read',

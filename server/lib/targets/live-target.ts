@@ -667,6 +667,12 @@ export class LiveAasTarget implements AasTarget {
     if (!location) {
       throw new StudioProblem('target_resource_not_found', 'The File element has no value.')
     }
+    // A file at another address: BaSyx Go answers with a redirect to it,
+    // which Studio's network policy refuses to follow. It is read through
+    // the external-file route instead (ADR 0042).
+    if (/^https?:\/\//i.test(location)) {
+      throw new StudioProblem('unsupported_operation', 'The File names a file at another address; read it as an external file (studio.ui.readExternalFile).')
+    }
     const blob = await this.#call(await this.#submodelBase(submodelId), configuration =>
       this.#submodelClient.getFileByPath({ configuration, submodelIdentifier: submodelId, idShortPath })) as Blob
     return {

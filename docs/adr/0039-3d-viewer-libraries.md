@@ -19,8 +19,8 @@ geometry kernel to turn into triangles.
 
 ## Decision
 
-- One workspace package, **`@basyx/model-viewer`** (`packages/model-viewer`),
-  holds the viewer for Studio and the app: format detection (without
+- The workspace package **`@basyx/file-viewer`** (`packages/file-viewer`,
+  the 3D viewer in `src/model`) holds the viewer for Studio and the app: format detection (without
   three.js, so Studio can decide whether to offer the view), the viewer, a
   parser worker, and a Vue composable. Each consumer draws its own Vuetify
   controls around it.

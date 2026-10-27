@@ -548,7 +548,6 @@
     "range": "Vun bis · {type}",
     "elements": "kenn Elemente | {count} Element | {count} Elemente",
     "noFile": "Kenn Datei",
-    "preview": "Uffmache",
     "download": "Runnerlade",
     "replace": "Austausche",
     "replaceTitle": "Die Datei vun {name} austausche",
