@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 import { reactive } from 'vue'
 import { draftValue, editLanguage } from '../../apps/nameplate/ui/src/fieldEditor'
 import { isExpired, parseNameplate, templateVersion } from '../../apps/nameplate/ui/src/nameplate'
-import { countryText, dateText, headline, manufacturerRows, markingExpired, markingName, markingRows, productRows, propertyGroups, templateLabel, versionChips } from '../../apps/nameplate/ui/src/presentation'
+import { countryText, dateText, headline, manufacturerRows, markingExpired, markingName, markingRows, markingSubtitle, productRows, propertyGroups, templateLabel, versionChips } from '../../apps/nameplate/ui/src/presentation'
 
 // The Digital Nameplate app's reading of IDTA 02006 3.0 and 2.0 and the ZVEI
 // nameplate 1.0, on the nameplate demo of the open infrastructure
@@ -160,6 +160,10 @@ describe('presentation', () => {
     expect(rows.map(row => row.key.split(':', 1)[0])).toEqual(['department', 'address', 'phone', 'fax', 'email', 'link', 'uniqueFacilityIdentifier'])
     expect(rows.find(row => row.key.startsWith('phone'))).toMatchObject({ url: 'tel:+49631123456-0', note: 'Mon–Fri 8:00–17:00 CET', type: 'Office' })
     expect(manufacturerRows(t, v3, 'en', true).filter(row => row.key.startsWith('field')).length).toBeGreaterThan(10)
+  })
+
+  it('says on a marking\'s card its certificate, else its first note', () => {
+    expect(v3.markings.map(marking => markingSubtitle(t, marking, 'en'))).toEqual(['EU-DoC GM40-2025-01', 'UK-DoC GM40-2025-01', 'Dispose of separately from household waste.', 'ATEX EX-2019-0815'])
   })
 
   it('shows a marking\'s certificate, dates and note', () => {

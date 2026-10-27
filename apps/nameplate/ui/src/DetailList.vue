@@ -1,5 +1,5 @@
 <template>
-  <v-table class="bg-transparent" density="compact">
+  <v-table-details>
     <tbody>
       <tr v-for="row in rows" :key="row.key" :data-field="row.field?.path" data-test="detail-row">
         <td class="text-medium-emphasis text-no-wrap align-top py-2">
@@ -40,22 +40,18 @@
             <div class="flex-grow-1">
               <div class="d-flex flex-wrap align-center ga-2">
                 <!-- The frame cannot open links itself: Studio opens them in the browser, mail or phone app. -->
-                <v-btn
+                <v-btn-link
                   v-if="row.url"
                   :append-icon="linkIcon(row.url)"
-                  class="px-0 text-break"
                   data-test="detail-link"
-                  size="small"
                   :text="row.value"
                   @click="open(row.url)"
                 />
 
-                <v-btn
+                <v-btn-link
                   v-else-if="row.file && !row.field"
                   append-icon="mdi-eye-outline"
-                  class="px-0 text-break"
                   data-test="detail-file"
-                  size="small"
                   :text="row.value"
                   @click="preview(row.file)"
                 />
@@ -71,13 +67,12 @@
 
               <div v-if="row.note" class="text-body-small text-medium-emphasis">{{ row.note }}</div>
 
-              <v-btn
+              <v-btn-link
                 v-if="row.map"
                 append-icon="mdi-open-in-new"
-                class="px-0 mt-1"
+                class="mt-1"
                 data-test="show-on-map"
                 prepend-icon="mdi-map-search-outline"
-                size="small"
                 :text="t('contact.showOnMap')"
                 @click="open(row.map)"
               />
@@ -109,7 +104,7 @@
         </td>
       </tr>
     </tbody>
-  </v-table>
+  </v-table-details>
 </template>
 
 <script lang="ts" setup>

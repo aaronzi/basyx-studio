@@ -24,7 +24,7 @@
         "title": { "en": "Digital Nameplate", "de": "Digitales Typenschild", "es": "Placa de características digital", "fr": "Plaque signalétique numérique", "ja": "デジタル銘板", "nl": "Digitaal typeplaatje", "zh-Hans": "数字铭牌" },
         "entry": "ui/index.html",
         "semanticIds": ["https://admin-shell.io/idta/nameplate/3/0/Nameplate", "https://admin-shell.io/zvei/nameplate/2/0/Nameplate", "https://admin-shell.io/zvei/nameplate/1/0/Nameplate"],
-        "columns": { "md": 12, "xl": 6 }
+        "columns": { "md": 12 }
       }
     ]
   }

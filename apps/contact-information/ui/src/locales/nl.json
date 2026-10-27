@@ -5,7 +5,9 @@
     "search": "Contacten zoeken",
     "filtered": "{count} van {total} contacten",
     "noMatch": "Geen contact komt overeen met de zoekopdracht.",
-    "fullscreen": "Volledig scherm"
+    "fullscreen": "Volledig scherm",
+    "close": "Sluiten",
+    "open": "{name} tonen"
   },
   "contact": {
     "showOnMap": "Op de kaart tonen",

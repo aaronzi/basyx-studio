@@ -5,6 +5,7 @@ import { VAvatar } from 'vuetify/components/VAvatar'
 import { VBtn } from 'vuetify/components/VBtn'
 import { VCard, VCardActions, VCardItem, VCardSubtitle, VCardText, VCardTitle } from 'vuetify/components/VCard'
 import { VChip } from 'vuetify/components/VChip'
+import { VDialog } from 'vuetify/components/VDialog'
 import { VCol, VRow, VSpacer } from 'vuetify/components/VGrid'
 import { VIcon } from 'vuetify/components/VIcon'
 import { VProgressLinear } from 'vuetify/components/VProgressLinear'
@@ -26,6 +27,7 @@ await mountApp(App, {
   VCardTitle,
   VChip,
   VCol,
+  VDialog,
   VIcon,
   VProgressLinear,
   VRow,

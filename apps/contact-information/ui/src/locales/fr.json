@@ -5,7 +5,9 @@
     "search": "Rechercher des contacts",
     "filtered": "{count} sur {total} contacts",
     "noMatch": "Aucun contact ne correspond à la recherche.",
-    "fullscreen": "Plein écran"
+    "fullscreen": "Plein écran",
+    "close": "Fermer",
+    "open": "Afficher {name}"
   },
   "contact": {
     "showOnMap": "Afficher sur la carte",

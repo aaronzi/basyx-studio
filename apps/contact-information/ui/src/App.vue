@@ -1,14 +1,26 @@
 <template>
   <v-app>
     <!-- Studio's card shows the view's title. The BaSyx AAS Web UI's
-         ContactInformations plugin as cards: one per contact, side by side
-         where the frame is wide, with a search where there are many. -->
+         ContactInformations plugin as compact cards, side by side where the
+         frame is wide, with a search where there are many; a card opens the
+         contact's details. -->
     <v-view-card>
       <v-progress-linear v-if="loading" />
 
       <v-alert v-else-if="error" class="ma-4" :text="error" type="error" />
 
       <v-card-text v-else-if="contacts.length === 0" class="text-medium-emphasis" data-test="no-contacts">{{ t('contacts.none') }}</v-card-text>
+
+      <!-- A contact's details, in the frame Studio shows alone over its page (openContact). -->
+      <ContactDialog
+        v-else-if="dialogContact"
+        :contact="dialogContact"
+        :index="contacts.indexOf(dialogContact)"
+        :notice="notice"
+        @close="closeDialog"
+        @dismiss="notice = null"
+        @save="saveVCard(dialogContact)"
+      />
 
       <div v-else class="pa-4 d-flex flex-column ga-3">
         <v-alert
@@ -61,10 +73,11 @@
             v-for="entry in filtered"
             :key="entry.contact.path"
             cols="12"
-            :lg="fullscreen ? 4 : 6"
-            md="6"
+            lg="3"
+            md="4"
+            sm="6"
           >
-            <ContactCard :contact="entry.contact" :index="entry.index" @save="saveVCard(entry.contact)" />
+            <ContactCard :contact="entry.contact" :index="entry.index" @open="openContact(entry.contact)" />
           </v-col>
         </v-row>
       </div>
@@ -81,6 +94,7 @@
   import { computed, onMounted, ref, shallowRef, watch } from 'vue'
   import { provideRowActions } from './actions'
   import ContactCard from './ContactCard.vue'
+  import ContactDialog from './ContactDialog.vue'
   import { useFieldEditor } from './fieldEditor'
   import { provideI18n } from './i18n'
 
@@ -96,7 +110,6 @@
     context.value = value
   })
   const submodelId = computed(() => context.value.submodel!.id)
-  const fullscreen = computed(() => context.value.fullscreen)
   const ownFullscreen = computed(() => !context.value.fullscreen && !context.value.fullscreenControl)
   const canEdit = computed(() => (context.value.target?.write ?? false) && context.value.mode === 'edit' && !context.value.embedded)
 
@@ -171,12 +184,30 @@
     void props.client.ui.openFullscreen(viewState.value)
   }
 
+  /** The contact whose details this frame shows as a dialog; `null` for the view. */
+  const dialogPath = ref<string | null>(null)
+  const dialogContact = computed(() => contacts.value.find(contact => contact.path === dialogPath.value) ?? null)
+
+  /**
+   * A contact's details in a dialog: the view again, alone over Studio's
+   * dimmed page (openFullscreen without header), so the dialog has the
+   * window wherever the view is, also in a short Overview card.
+   */
+  function openContact (contact: ContactInformation) {
+    void props.client.ui.openFullscreen(JSON.stringify({ contact: contact.path }), { header: false })
+  }
+
+  function closeDialog () {
+    void props.client.ui.closeFullscreen()
+  }
+
   function restore (state: string) {
     try {
-      const value = (JSON.parse(state) as { query?: unknown }).query
-      query.value = typeof value === 'string' ? value : ''
+      const parsed = JSON.parse(state) as { query?: unknown, contact?: unknown }
+      query.value = typeof parsed.query === 'string' ? parsed.query : ''
+      dialogPath.value = context.value.fullscreen && typeof parsed.contact === 'string' ? parsed.contact : null
     } catch {
-      // Not ours, or empty: no search.
+      // Not ours, or empty: the view, without search.
     }
   }
 

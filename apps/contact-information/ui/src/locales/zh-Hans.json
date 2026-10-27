@@ -5,7 +5,9 @@
     "search": "搜索联系人",
     "filtered": "{total} 个联系人中的 {count} 个",
     "noMatch": "没有与搜索匹配的联系人。",
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "close": "关闭",
+    "open": "显示 {name}"
   },
   "contact": {
     "showOnMap": "在地图上显示",

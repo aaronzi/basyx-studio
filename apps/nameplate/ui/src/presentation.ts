@@ -156,6 +156,11 @@ export function markingName (t: Translate, marking: Marking, index: number, loca
   return fieldText(marking.name, locale) || marking.fallbackName || t('marking.untitled', { number: index + 1 })
 }
 
+/** What a marking's card says below its name: the certificate, else its first note. */
+export function markingSubtitle (t: Translate, marking: Marking, locale: string): string {
+  return fieldText(marking.designation, locale) || fieldText(marking.additionalTexts[0], locale)
+}
+
 /** A marking's certificate and dates, as rows. */
 export function markingRows (t: Translate, marking: Marking, locale: string, edit: boolean): DetailRow[] {
   const rows: Array<DetailRow | null> = [

@@ -4,6 +4,7 @@ import { childMatching, conceptOf, fieldText, matchesSpec, textFieldOf } from '@
 import { addressLines, addressText, channelType, channelTypeText, contactMatches, contactName, contactRole, contactRows, contactText, contactVCard, countryName, linkUrl, mailtoUrl, mapUrl, parseContactInformation, parseContactInformations, roleText, telUrl, vCardFileName } from '@basyx/studio-app-kit/contacts'
 import { describe, expect, it } from 'vitest'
 import { appMethodParamsSchemas, isExternalUrl } from '#shared/contract'
+import { contactHeading } from '../../apps/contact-information/ui/src/presentation'
 
 // The app kit's reading of IDTA 02002 Contact Information (`./contacts`),
 // which the Contacts and Digital Nameplate apps share, and the element
@@ -219,5 +220,17 @@ describe('links', () => {
     expect(appMethodParamsSchemas['studio.ui.saveFile'].safeParse({ fileName: 'Jane Doe.vcf', contentType: 'text/vcard', text: 'BEGIN:VCARD' }).success).toBe(true)
     expect(appMethodParamsSchemas['studio.ui.saveFile'].safeParse({ fileName: '../Jane.vcf', contentType: 'text/vcard', text: '' }).success).toBe(false)
     expect(appMethodParamsSchemas['studio.ui.saveFile'].safeParse({ fileName: 'big.txt', contentType: 'text/plain', text: 'x'.repeat(1024 * 1024 + 1) }).success).toBe(false)
+  })
+})
+
+describe('the Contacts app\'s cards', () => {
+  const t = (key: string, params?: Record<string, string | number>) => `${key}${params ? JSON.stringify(params) : ''}`
+
+  it('head a contact with the name, else the company, and its organization and role', () => {
+    const [jane, sales] = parseContactInformations(contactsSubmodel)
+    expect(contactHeading(t, jane!, 0, 'en')).toEqual({ title: 'Ms Dr. Jane Q. Doe', subtitle: 'Example Drives GmbH · Research and development', role: 'Technical contact', named: true })
+    expect(contactHeading(t, sales!, 1, 'de')).toEqual({ title: 'Example Drives GmbH', subtitle: 'Vertrieb', role: 'Kaufmännischer Kontakt', named: false })
+    const empty = parseContactInformation({ path: 'ContactInformation__09__', element: { modelType: 'SubmodelElementCollection', value: [] } })
+    expect(contactHeading(t, empty, 9, 'en')).toEqual({ title: 'contacts.untitled{"number":10}', subtitle: '', role: '', named: false })
   })
 })

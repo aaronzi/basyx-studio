@@ -5,7 +5,9 @@
     "search": "Buscar contactos",
     "filtered": "{count} de {total} contactos",
     "noMatch": "Ningún contacto coincide con la búsqueda.",
-    "fullscreen": "Pantalla completa"
+    "fullscreen": "Pantalla completa",
+    "close": "Cerrar",
+    "open": "Mostrar {name}"
   },
   "contact": {
     "showOnMap": "Mostrar en el mapa",

@@ -2,7 +2,8 @@
   "nameplate": {
     "untitled": "製品",
     "logo": "{name} のロゴ",
-    "fullscreen": "全画面"
+    "fullscreen": "全画面",
+    "close": "閉じる"
   },
   "sections": {
     "product": "製品",
@@ -44,7 +45,8 @@
     "expires": "有効期限",
     "expired": "期限切れ",
     "additionalText": "備考",
-    "open": "{name} を表示"
+    "open": "{name} を表示",
+    "preview": "{name} をファイルビューアーで表示"
   },
   "assetSpecific": {
     "general": "一般",

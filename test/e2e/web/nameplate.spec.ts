@@ -4,9 +4,10 @@ import { key, registerOpenTarget, setMode, signIn, waitUntilSettled } from './su
 
 // The bundled Digital Nameplate and Contacts apps on `NameplateDemo` and its
 // 2.0 and 1.0 siblings (test-setup/fixtures/open/studio-nameplate.aasx):
-// product, manufacturer with logo, address on the map and vCard, markings,
-// asset specific properties, contacts with search, and changing a value in
-// place. Run `pnpm build` first.
+// product, manufacturer with logo, address on the map and vCard, markings
+// and contacts as cards whose details open in Studio's dialog, asset
+// specific properties, search, and changing a value in place. Run
+// `pnpm build` first.
 
 test.describe.configure({ mode: 'serial' })
 
@@ -23,6 +24,14 @@ async function openSubmodel (page: Page, title: string, shellId: string, submode
   const frame = page.frameLocator(`iframe[title="App: ${title}"]`).first()
   await expect(frame.locator(ready).first()).toBeVisible({ timeout: 30_000 })
   return frame
+}
+
+/** The app's frame in Studio's dialog (openFullscreen without header), once it stopped moving in. */
+async function dialogFrame (page: Page, title: string): Promise<FrameLocator> {
+  const frame = page.locator(`.v-dialog iframe[title="App: ${title}"]`)
+  await expect(frame).toBeVisible({ timeout: 30_000 })
+  await waitUntilSettled(frame)
+  return page.frameLocator(`.v-dialog iframe[title="App: ${title}"]`)
 }
 
 /** Clicks into an app once its frame stopped growing and moving. */
@@ -79,10 +88,19 @@ test('shows the Digital Nameplate 3.0 with logo, product, manufacturer, markings
   expect(text).toContain('FN:Example Drives GmbH')
   expect(text).toContain('EMAIL;TYPE=INTERNET,WORK:info@example.com')
 
-  // The markings with their certificates; the Ex certificate has expired.
+  // The markings as cards with their certificates; the Ex certificate has expired.
   await expect(frame.locator('[data-test="marking"]')).toHaveCount(4)
   await expect(frame.locator('[data-test="marking"]').filter({ hasText: 'Ex' }).locator('[data-test="marking-expired"]')).toHaveText('Expired')
   await expect(frame.locator('[data-test="marking"]').first()).toContainText('EU-DoC GM40-2025-01')
+
+  // A card opens the marking's details in Studio's dialog: the app alone over the dimmed page.
+  await clickIn(nameplateFrame(page), frame.locator('[data-test="marking"]').first())
+  const dialog = (await dialogFrame(page, 'Digital Nameplate')).locator('[data-test="marking-dialog"]')
+  await expect(dialog.locator('[data-test="marking-dialog-name"]')).toHaveText('CE', { timeout: 30_000 })
+  await expect(dialog).toContainText('Feb 14, 2030')
+  await expect(dialog).toContainText('Machinery Directive 2006/42/EC')
+  await dialog.locator('[data-test="marking-dialog-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
 
   // The asset specific properties, collapsed, by guideline.
   await clickIn(nameplateFrame(page), frame.locator('[data-test="asset-specific-properties"]').getByText('Asset specific properties'))
@@ -108,17 +126,16 @@ test('shows the contacts with roles, channels and search, and saves one as vCard
   await expect(frame.locator('[data-test="contact-name"]')).toHaveText(['Ms Dr. Jane Q. Doe', 'Example Drives GmbH', 'Alex Kim', 'Example Drives Inc.'])
   await expect(frame.locator('[data-test="contact-role"]')).toHaveText(['Technical contact', 'Commercial contact', 'Hazardous goods contact', 'Other contact'])
 
+  // A compact card: name, organization, role, and the first phone number and email address.
   const jane = frame.locator('[data-test="contact"]').first()
   await expect(jane.locator('[data-test="contact-organization"]')).toHaveText('Example Drives GmbH · Research and development')
-  await expect(jane.locator('[data-test="detail-link"]').filter({ hasText: '+49 (0)631 123456-21' })).toBeVisible()
-  await expect(jane).toContainText('Mon–Thu 9:00–16:00 CET')
-  await expect(jane).toContainText('German, English')
-  await expect(jane.locator('[data-test="detail-type"]').filter({ hasText: 'Video call' })).toBeVisible()
+  await expect(jane.locator('[data-test="detail-link"]')).toHaveText(['+49 (0)631 123456-21', 'jane.doe@example.com'])
 
-  // An email address opens in the mail app; Studio's page stays where it is.
+  // An email address opens in the mail app, not the card's details; Studio's page stays where it is.
   const url = page.url()
   await clickIn(contactsFrame(page), jane.locator('[data-test="detail-link"]').filter({ hasText: 'jane.doe@example.com' }))
   expect(page.url()).toBe(url)
+  await expect(page.locator('.v-dialog')).toHaveCount(0)
 
   // The search finds contacts by any text, also the translated role.
   await clickIn(contactsFrame(page), frame.locator('[data-test="contact-search"] input'))
@@ -130,10 +147,19 @@ test('shows the contacts with roles, channels and search, and saves one as vCard
   await frame.locator('[data-test="contact-search"] input').fill('')
   await expect(frame.locator('[data-test="contact"]')).toHaveCount(4)
 
+  // The card opens the contact's details in Studio's dialog, with the vCard.
+  await clickIn(contactsFrame(page), jane.locator('[data-test="contact-name"]'))
+  const dialog = (await dialogFrame(page, 'Contacts')).locator('[data-test="contact-dialog"]')
+  await expect(dialog.locator('[data-test="contact-dialog-name"]')).toHaveText('Ms Dr. Jane Q. Doe', { timeout: 30_000 })
+  await expect(dialog).toContainText('Mon–Thu 9:00–16:00 CET')
+  await expect(dialog).toContainText('German, English')
+  await expect(dialog.locator('[data-test="detail-type"]').filter({ hasText: 'Video call' })).toBeVisible()
   const download = page.waitForEvent('download')
-  await clickIn(contactsFrame(page), jane.locator('[data-test="save-vcard"]'))
+  await dialog.locator('[data-test="save-vcard"]').click()
   const vcard = await download
   expect(vcard.suggestedFilename()).toBe('Ms Dr. Jane Q. Doe.vcf')
+  await dialog.locator('[data-test="contact-dialog-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
 })
 
 test('changes a contact\'s value in place in edit mode', async ({ page, request }) => {
@@ -141,15 +167,20 @@ test('changes a contact\'s value in place in edit mode', async ({ page, request 
   await expect(frame.getByRole('button', { name: 'Edit Department' })).toHaveCount(0)
   await setMode(page, 'Edit')
 
-  const jane = frame.locator('[data-test="contact"]').first()
+  // In the details, every element is a row to change.
+  await clickIn(contactsFrame(page), frame.locator('[data-test="contact-name"]').first())
+  const dialog = (await dialogFrame(page, 'Contacts')).locator('[data-test="contact-dialog"]')
   try {
-    await clickIn(contactsFrame(page), jane.getByRole('button', { name: 'Edit Department' }))
-    await expect(jane.locator('[data-test="edit-field"]')).toContainText('Language: en')
-    await jane.getByRole('textbox', { name: 'Department' }).fill('Drive engineering')
-    await clickIn(contactsFrame(page), jane.getByRole('button', { name: 'Save' }))
-    await expect(frame.locator('[data-test="notice"]')).toContainText('Department saved.')
-    await expect(jane.locator('[data-field="ContactInformation__00__.Department"]')).toContainText('Drive engineering')
+    await dialog.getByRole('button', { name: 'Edit Department' }).click({ timeout: 30_000 })
+    await expect(dialog.locator('[data-test="edit-field"]')).toContainText('Language: en')
+    await dialog.getByRole('textbox', { name: 'Department' }).fill('Drive engineering')
+    await dialog.getByRole('button', { name: 'Save' }).click()
+    await expect(dialog.locator('[data-test="notice"]')).toContainText('Department saved.')
+    await expect(dialog.locator('[data-field="ContactInformation__00__.Department"]')).toContainText('Drive engineering')
     await expect(page.getByText('Contacts: Department saved.')).toBeVisible()
+    // Closing the details reads the view again.
+    await dialog.locator('[data-test="contact-dialog-close"]').click()
+    await expect(frame.locator('[data-test="contact-organization"]').first()).toHaveText('Example Drives GmbH · Drive engineering')
   } finally {
     // The German text stayed; the English one goes back as it was.
     const response = await request.get(`http://localhost:18081/submodels/${key(contacts)}/submodel-elements/ContactInformation__00__.Department`)

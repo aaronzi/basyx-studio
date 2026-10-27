@@ -5,7 +5,9 @@
     "search": "連絡先を検索",
     "filtered": "{total} 件中 {count} 件の連絡先",
     "noMatch": "検索に一致する連絡先はありません。",
-    "fullscreen": "全画面"
+    "fullscreen": "全画面",
+    "close": "閉じる",
+    "open": "{name} を表示"
   },
   "contact": {
     "showOnMap": "地図で表示",

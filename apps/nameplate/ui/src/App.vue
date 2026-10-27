@@ -3,11 +3,24 @@
     <!-- Studio's card shows the view's title. Layout of the BaSyx AAS Web UI's
          Nameplate plugins in the frame of the Documents app: the product at a
          glance, then the product's facts and the manufacturer (side by side in
-         a wide frame), the markings, and the asset specific properties. -->
+         a wide frame), the markings as cards that open their details, and the
+         asset specific properties. -->
     <v-view-card>
       <v-progress-linear v-if="loading" />
 
       <v-alert v-else-if="error" class="ma-4" :text="error" type="error" />
+
+      <!-- A marking's details, in the frame Studio shows alone over its page (openMarking). -->
+      <MarkingDialog
+        v-else-if="nameplate && dialogMarking"
+        :client="client"
+        :index="nameplate.markings.indexOf(dialogMarking)"
+        :marking="dialogMarking"
+        :notice="notice"
+        :submodel-id="submodelId"
+        @close="closeDialog"
+        @dismiss="notice = null"
+      />
 
       <div v-else-if="nameplate" class="pa-4 d-flex flex-column ga-4">
         <v-alert
@@ -20,7 +33,7 @@
           @click:close="notice = null"
         />
 
-        <NameplateHeader :client="client" :nameplate="nameplate" :submodel-id="submodelId">
+        <NameplateHeader :client="client" :nameplate="nameplate" :submodel-id="submodelId" @open="openMarking">
           <!-- Where Studio shows no full-screen button of its own (details pane, another app's page). -->
           <v-btn
             v-if="ownFullscreen"
@@ -36,7 +49,7 @@
         </NameplateHeader>
 
         <v-row dense>
-          <v-col v-if="product.length > 0 || versions.length > 0" cols="12" :md="fullscreen ? 6 : 12">
+          <v-col v-if="product.length > 0 || versions.length > 0" cols="12" md="6">
             <section data-test="product">
               <div class="d-flex align-center text-title-small mb-1">
                 <v-icon class="me-2" icon="mdi-package-variant-closed" size="18" />
@@ -56,7 +69,7 @@
             </section>
           </v-col>
 
-          <v-col v-if="manufacturer.length > 0" cols="12" :md="fullscreen ? 6 : 12">
+          <v-col v-if="manufacturer.length > 0" cols="12" md="6">
             <section data-test="manufacturer">
               <div class="d-flex align-center text-title-small mb-1">
                 <v-icon class="me-2" icon="mdi-factory" size="18" />
@@ -84,7 +97,7 @@
             {{ t('sections.markings') }}
           </div>
 
-          <MarkingList :client="client" :markings="nameplate.markings" :submodel-id="submodelId" :wide="fullscreen" />
+          <MarkingList :client="client" :markings="nameplate.markings" :submodel-id="submodelId" @open="openMarking" />
         </section>
 
         <AssetProperties v-model:open="propertiesOpen" :groups="groups" />
@@ -94,7 +107,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { FileRef, Nameplate } from './nameplate'
+  import type { FileRef, Marking, Nameplate } from './nameplate'
   import type { AppContext, StudioClient } from '@basyx/studio-sdk'
   import { provideFileViewer } from '@basyx/file-viewer/vue'
   import { fieldText, loadSubmodel } from '@basyx/studio-app-kit'
@@ -106,6 +119,7 @@
   import DetailList from './DetailList.vue'
   import { useFieldEditor } from './fieldEditor'
   import { provideI18n } from './i18n'
+  import MarkingDialog from './MarkingDialog.vue'
   import MarkingList from './MarkingList.vue'
   import { parseNameplate } from './nameplate'
   import NameplateHeader from './NameplateHeader.vue'
@@ -124,7 +138,6 @@
     context.value = value
   })
   const submodelId = computed(() => context.value.submodel!.id)
-  const fullscreen = computed(() => context.value.fullscreen)
   const ownFullscreen = computed(() => !context.value.fullscreen && !context.value.fullscreenControl)
   const canEdit = computed(() => (context.value.target?.write ?? false) && context.value.mode === 'edit' && !context.value.embedded)
 
@@ -204,11 +217,30 @@
     void props.client.ui.openFullscreen(viewState.value)
   }
 
+  /** The marking whose details this frame shows as a dialog; `null` for the view. */
+  const dialogPath = ref<string | null>(null)
+  const dialogMarking = computed(() => nameplate.value?.markings.find(marking => marking.path === dialogPath.value) ?? null)
+
+  /**
+   * A marking's details in a dialog: the view again, alone over Studio's
+   * dimmed page (openFullscreen without header), so the dialog has the
+   * window wherever the view is, also in a short Overview card.
+   */
+  function openMarking (marking: Marking) {
+    void props.client.ui.openFullscreen(JSON.stringify({ marking: marking.path }), { header: false })
+  }
+
+  function closeDialog () {
+    void props.client.ui.closeFullscreen()
+  }
+
   function restore (state: string) {
     try {
-      propertiesOpen.value = (JSON.parse(state) as { properties?: unknown }).properties === true
+      const parsed = JSON.parse(state) as { properties?: unknown, marking?: unknown }
+      propertiesOpen.value = parsed.properties === true
+      dialogPath.value = context.value.fullscreen && typeof parsed.marking === 'string' ? parsed.marking : null
     } catch {
-      // Not ours, or empty: collapsed.
+      // Not ours, or empty: the view, collapsed.
     }
   }
 

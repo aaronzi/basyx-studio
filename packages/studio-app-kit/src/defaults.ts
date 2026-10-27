@@ -17,6 +17,9 @@ export const appDefaults = {
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text', density: 'comfortable' },
   VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none', density: 'comfortable' },
   VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none', density: 'comfortable' },
+  // A value that opens something (a link, an email address, a phone number, a
+  // document): in the primary colour, so it stands out from plain values.
+  VBtnLink: { color: 'primary', variant: 'text', size: 'small', rounded: 'lg', class: 'px-0 text-none text-break', density: 'comfortable' },
   ...buttonGroupDefaults,
   ...fieldDefaults,
   VChip: { label: true, size: 'small', variant: 'tonal' },
@@ -26,6 +29,10 @@ export const appDefaults = {
   ...menuDefaults,
   // The app bar, drawers, toolbars and tabs of a full-page module, as in Studio.
   ...layoutDefaults,
+  // Label and value rows of a view (a nameplate's facts, a document's
+  // details): bordered with Studio's radius, every other row tinted, as in
+  // the BaSyx AAS Web UI.
+  VTableDetails: { density: 'compact', striped: 'odd', class: 'bg-transparent border rounded-lg overflow-hidden' },
   VAlert: { border: 'start', variant: 'tonal' },
   VProgressLinear: { indeterminate: true, color: 'primary' },
 } as const

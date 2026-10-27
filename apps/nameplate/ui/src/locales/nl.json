@@ -2,7 +2,8 @@
   "nameplate": {
     "untitled": "Product",
     "logo": "Logo van {name}",
-    "fullscreen": "Volledig scherm"
+    "fullscreen": "Volledig scherm",
+    "close": "Sluiten"
   },
   "sections": {
     "product": "Product",
@@ -44,7 +45,8 @@
     "expires": "Geldig tot",
     "expired": "Verlopen",
     "additionalText": "Opmerking",
-    "open": "{name} tonen"
+    "open": "{name} tonen",
+    "preview": "{name} in de bestandsviewer tonen"
   },
   "assetSpecific": {
     "general": "Algemeen",

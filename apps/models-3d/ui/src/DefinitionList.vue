@@ -1,5 +1,5 @@
 <template>
-  <v-table class="bg-transparent" density="compact">
+  <v-table-details>
     <tbody>
       <tr v-for="entry in rows" :key="`${entry.label}:${entry.value}`">
         <td class="text-medium-emphasis text-no-wrap align-top py-1">
@@ -9,11 +9,9 @@
 
         <td class="text-break align-top py-1">
           <!-- The frame cannot open links itself; Studio opens them in the browser. -->
-          <v-btn
+          <v-btn-link
             v-if="entry.url"
             append-icon="mdi-open-in-new"
-            class="px-0"
-            size="small"
             :text="entry.value"
             @click="emit('open', entry.url)"
           />
@@ -22,7 +20,7 @@
         </td>
       </tr>
     </tbody>
-  </v-table>
+  </v-table-details>
 </template>
 
 <script lang="ts" setup>

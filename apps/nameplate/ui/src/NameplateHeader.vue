@@ -23,10 +23,12 @@
         <v-chip
           v-for="marking in markings"
           :key="marking.path"
+          :aria-label="t('marking.open', { name: marking.name })"
           :color="marking.expired ? 'error' : undefined"
           data-test="marking-chip"
           :prepend-icon="marking.expired ? 'mdi-alert-decagram-outline' : 'mdi-check-decagram-outline'"
           :text="marking.name"
+          @click="emit('open', marking.marking)"
         />
 
         <v-chip data-test="template-version" :text="templateLabel(nameplate.version)" variant="outlined" />
@@ -38,7 +40,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { Nameplate } from './nameplate'
+  import type { Marking, Nameplate } from './nameplate'
   import type { StudioClient } from '@basyx/studio-sdk'
   import { computed } from 'vue'
   import { useI18n } from './i18n'
@@ -47,12 +49,15 @@
 
   // The product at a glance: the manufacturer's logo, the product's
   // designation, manufacturer, type and serial number, its markings and the
-  // template version; the default slot takes the full-screen button.
+  // template version, each marking opening its details; the default slot
+  // takes the full-screen button.
   const props = defineProps<{ client: StudioClient, submodelId: string, nameplate: Nameplate }>()
+  const emit = defineEmits<{ open: [marking: Marking] }>()
 
   const { t, formatLocale } = useI18n()
   const heading = computed(() => headline(t, props.nameplate, formatLocale.value))
   const markings = computed(() => props.nameplate.markings.map((marking, index) => ({
+    marking,
     path: marking.path,
     name: markingName(t, marking, index, formatLocale.value),
     expired: markingExpired(marking, formatLocale.value),

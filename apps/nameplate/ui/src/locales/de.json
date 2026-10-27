@@ -2,7 +2,8 @@
   "nameplate": {
     "untitled": "Produkt",
     "logo": "Logo von {name}",
-    "fullscreen": "Vollbild"
+    "fullscreen": "Vollbild",
+    "close": "Schließen"
   },
   "sections": {
     "product": "Produkt",
@@ -44,7 +45,8 @@
     "expires": "Gültig bis",
     "expired": "Abgelaufen",
     "additionalText": "Hinweis",
-    "open": "{name} anzeigen"
+    "open": "{name} anzeigen",
+    "preview": "{name} im Dateibetrachter zeigen"
   },
   "assetSpecific": {
     "general": "Allgemein",

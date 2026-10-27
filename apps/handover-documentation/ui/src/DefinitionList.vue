@@ -1,5 +1,5 @@
 <template>
-  <v-table class="bg-transparent" density="compact">
+  <v-table-details>
     <tbody>
       <tr v-for="entry in rows" :key="`${entry.label}:${entry.value}`">
         <td class="text-medium-emphasis text-no-wrap align-top py-1">
@@ -10,12 +10,10 @@
         <td class="text-break align-top py-1">
           <!-- The frame cannot open links itself: Studio opens addresses in the
                browser and shells on its own page; documents are selected here. -->
-          <v-btn
+          <v-btn-link
             v-if="entry.url || entry.document || entry.shell"
             :append-icon="entry.document ? 'mdi-arrow-right' : 'mdi-open-in-new'"
-            class="px-0 text-break"
             data-test="definition-link"
-            size="small"
             :text="entry.value"
             @click="emit('open', entry)"
           />
@@ -24,7 +22,7 @@
         </td>
       </tr>
     </tbody>
-  </v-table>
+  </v-table-details>
 </template>
 
 <script lang="ts" setup>

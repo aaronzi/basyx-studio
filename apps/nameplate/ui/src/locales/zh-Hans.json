@@ -2,7 +2,8 @@
   "nameplate": {
     "untitled": "产品",
     "logo": "{name} 的徽标",
-    "fullscreen": "全屏"
+    "fullscreen": "全屏",
+    "close": "关闭"
   },
   "sections": {
     "product": "产品",
@@ -44,7 +45,8 @@
     "expires": "有效期至",
     "expired": "已过期",
     "additionalText": "备注",
-    "open": "显示 {name}"
+    "open": "显示 {name}",
+    "preview": "在文件查看器中显示 {name}"
   },
   "assetSpecific": {
     "general": "常规",

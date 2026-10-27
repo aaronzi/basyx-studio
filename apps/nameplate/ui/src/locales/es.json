@@ -2,7 +2,8 @@
   "nameplate": {
     "untitled": "Producto",
     "logo": "Logotipo de {name}",
-    "fullscreen": "Pantalla completa"
+    "fullscreen": "Pantalla completa",
+    "close": "Cerrar"
   },
   "sections": {
     "product": "Producto",
@@ -44,7 +45,8 @@
     "expires": "Válido hasta",
     "expired": "Caducado",
     "additionalText": "Nota",
-    "open": "Mostrar {name}"
+    "open": "Mostrar {name}",
+    "preview": "Mostrar {name} en el visor de archivos"
   },
   "assetSpecific": {
     "general": "General",
