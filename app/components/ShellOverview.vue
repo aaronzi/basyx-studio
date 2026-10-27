@@ -111,6 +111,7 @@
                 :ref="frame => setFrame(entry.widget.id, frame)"
                 :contribution="entry.widget.view.contribution"
                 fit
+                fullscreen-control
                 :shell-id="shellId"
                 :submodel="{ id: entry.widget.view.submodel.submodelId, semanticId: entry.widget.view.submodel.semanticId }"
                 :target="target"

@@ -7,6 +7,11 @@
 // from generate-models3d.mjs), so the fixture carries no third-party content;
 // external links point at stable public files.
 //
+// It also writes the handover documentation demo
+// (open/studio-handover-documentation.aasx, and its submodels as JSON in
+// handover-documentation/ for the unit tests): a shell with IDTA 02004
+// Handover Documentation 2.0 and 1.2 submodels for the Documents app.
+//
 // Run with: pnpm testenv:fixtures (after generate-models3d.mjs)
 
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -659,9 +664,10 @@ function blob (idShort, content, contentType, description) {
 }
 
 // ---------------------------------------------------------------------------
-// Handover Documentation (IDTA 02004-1-2, as server/lib/templates/handover-documentation.json)
+// Handover Documentation (IDTA 02004-2-0, as server/lib/templates/handover-documentation.json)
 // ---------------------------------------------------------------------------
 
+const handoverSemanticId2 = '0173-1#01-AHF578#003'
 const hd = {
   documents: '0173-1#02-ABI500#003',
   document: '0173-1#02-ABI500#003/0173-1#01-AHF579#003',
@@ -714,7 +720,7 @@ const handoverSubmodel = {
   modelType: 'Submodel',
   id: ids.handover,
   idShort: 'HandoverDocumentation',
-  semanticId: reference('0173-1#01-AHF578#003'),
+  semanticId: reference(handoverSemanticId2),
   submodelElements: [sml('Documents', hd.documents, hd.document, 'SubmodelElementCollection', [
     document({ id: 'BR-60-OM', classId: '03-02', className: 'Operation', title: 'Operating manual', description: 'Five pages to page through.', version: '2.1', date: '2026-10-01', digitalFiles: [file(undefined, 'operating-manual.pdf')], preview: 'preview-manual.png' }),
     document({ id: 'BR-60-DOC', classId: '01-04', className: 'Certificate, declaration', title: 'Declaration of conformity', description: 'A single-page PDF.', version: '1.0', date: '2026-10-01', digitalFiles: [file(undefined, 'declaration-of-conformity.pdf')], preview: 'preview-conformity.png' }),
@@ -863,44 +869,431 @@ const environment = {
 }
 
 // ---------------------------------------------------------------------------
+// Handover documentation demo: a gear motor's documents in IDTA 02004 2.0 and 1.2
+// ---------------------------------------------------------------------------
+
+const motorBand = '0.35 0.24 0.6 rg 0 812 595 30 re f'
+/** A title page and a page per chapter (`[heading, ...lines]`). */
+function motorPdf (title, version, chapters, language = 'en') {
+  return pdf([
+    { draw: motorBand, lines: [[24, 'Gear motor GM-40'], [16, title], [11, `Version ${version}`], [11, ''], [11, language === 'de' ? 'Studio-Testdaten, kein echtes Dokument.' : 'Studio test fixture, not a real document.']] },
+    ...chapters.map(([heading, ...lines]) => ({ draw: motorBand, lines: [[18, heading], ...lines.map(line => [11, line])] })),
+  ])
+}
+
+/** The motor from the side: housing, gearbox and shaft. */
+function motorImage () {
+  const image = canvas(640, 400)
+  image.rect(0, 0, 640, 4, [94, 53, 177])
+  image.rect(120, 140, 240, 140, [120, 120, 120])
+  image.rect(360, 160, 110, 100, [90, 90, 90])
+  image.rect(470, 200, 70, 20, [60, 60, 60])
+  for (let fin = 0; fin < 8; fin++) {
+    image.rect(135 + fin * 28, 120, 12, 20, [150, 150, 150])
+  }
+  image.line(120, 320, 540, 320, blue, 1)
+  image.line(120, 310, 120, 330, blue, 1)
+  image.line(540, 310, 540, 330, blue, 1)
+  return image
+}
+
+const motorSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="400" viewBox="0 0 640 400">
+  <title>Gear motor GM-40, dimension drawing</title>
+  <rect width="640" height="400" fill="#ffffff"/>
+  <rect width="640" height="4" fill="#5e35b1"/>
+  <rect x="120" y="140" width="240" height="140" fill="none" stroke="#212121" stroke-width="3"/>
+  <rect x="360" y="160" width="110" height="100" fill="none" stroke="#212121" stroke-width="3"/>
+  <rect x="470" y="200" width="70" height="20" fill="none" stroke="#212121" stroke-width="3"/>
+  <g stroke="#1976d2" stroke-width="1"><path d="M120 320 H540 M120 310 V330 M540 310 V330"/></g>
+  <text x="330" y="350" text-anchor="middle" font-family="sans-serif" font-size="16" fill="#1976d2">420 mm</text>
+</svg>
+`
+
+const sparePartsCsv = `Position,Part number,Description,Quantity,Interval
+1,GM40-101,Radial shaft seal 25x40x7,1,24 months
+2,GM40-102,Gear oil CLP 220 (1 l),2,10000 h
+3,GM40-103,Fan cover,1,on damage
+4,GM40-104,Terminal box gasket,1,on opening
+5,GM40-105,Ball bearing 6205-2RS,2,30000 h
+`
+
+const safetyMarkdown = `# Safety instructions, gear motor GM-40
+
+Read these instructions **before** you install, operate or maintain the motor.
+
+## Electrical safety
+
+- Disconnect the motor from the supply and secure it against switching on.
+- Only qualified electricians may connect the motor.
+
+## Mechanical safety
+
+| Hazard | Measure |
+| --- | --- |
+| Rotating shaft | Fit the shaft guard before operation |
+| Hot surfaces (up to 90 °C) | Let the motor cool down before touching it |
+| Weight (38 kg) | Lift it only by the eye bolts |
+
+> Studio test fixture, not a real document.
+`
+
+/** Files of the demo, by name, stored under /aasx/files/handover-documentation/. */
+const handoverFiles = {
+  'gm40-operating-manual-en-1.0.pdf': { content: motorPdf('Operating manual', '1.0', [['1 Commissioning', 'Check the oil level before the first start.'], ['2 Operation', 'Run the motor at 400 V, 50 Hz.']]), contentType: 'application/pdf' },
+  'gm40-operating-manual-en.pdf': { content: motorPdf('Operating manual', '2.0', [['1 Safety', 'Read the safety instructions first.'], ['2 Commissioning', 'Check the oil level and the direction of rotation.'], ['3 Operation', 'Run the motor at 400 V, 50 Hz, or on a frequency converter (5-60 Hz).'], ['4 Faults', 'A humming motor that does not start has lost a phase.']]), contentType: 'application/pdf' },
+  'gm40-betriebsanleitung-de.pdf': { content: motorPdf('Betriebsanleitung', '2.0', [['1 Sicherheit', 'Lesen Sie zuerst die Sicherheitshinweise.'], ['2 Inbetriebnahme', 'Pruefen Sie den Oelstand und die Drehrichtung.'], ['3 Betrieb', 'Betreiben Sie den Motor mit 400 V, 50 Hz.']], 'de'), contentType: 'application/pdf' },
+  'gm40-declaration-of-conformity.pdf': { content: motorPdf('EU Declaration of Conformity', '1.0', [['Declaration', 'The gear motor GM-40 conforms to the Machinery Directive 2006/42/EC', 'and the Low Voltage Directive 2014/35/EU.']]), contentType: 'application/pdf' },
+  'gm40-maintenance-2.1.pdf': { content: motorPdf('Maintenance instructions', '2.1', [['1 Intervals', 'Change the gear oil every 10,000 operating hours.'], ['2 Bearings', 'Replace the bearings after 30,000 hours.']]), contentType: 'application/pdf' },
+  'gm40-maintenance-3.0.pdf': { content: motorPdf('Maintenance instructions (draft)', '3.0', [['1 Intervals', 'Change the gear oil every 12,000 operating hours (synthetic oil).'], ['2 Bearings', 'Replace the bearings after 30,000 hours.'], ['3 Condition monitoring', 'Vibration above 4.5 mm/s calls for an inspection.']]), contentType: 'application/pdf' },
+  'gm40-dimension-drawing.png': { content: png(motorImage()), contentType: 'image/png' },
+  'gm40-dimension-drawing.svg': { content: text(motorSvg), contentType: 'image/svg+xml' },
+  'gm40-spare-parts.csv': { content: text(sparePartsCsv), contentType: 'text/csv' },
+  'gm40-safety-instructions.md': { content: text(safetyMarkdown), contentType: 'text/markdown' },
+  'preview-operating-manual.png': { content: png(pagePreview([94, 53, 177])), contentType: 'image/png' },
+  'preview-betriebsanleitung.png': { content: png(pagePreview([0, 137, 123])), contentType: 'image/png' },
+  'preview-conformity.png': { content: png(pagePreview([46, 125, 50])), contentType: 'image/png' },
+  'preview-maintenance.png': { content: png(pagePreview([245, 124, 0])), contentType: 'image/png' },
+  'preview-drawing.png': { content: png(pagePreview([25, 118, 210])), contentType: 'image/png' },
+}
+
+const handoverPath = name => `/aasx/files/handover-documentation/${name}`
+function handoverFile (idShort, name, semanticId) {
+  return { ...(idShort ? { idShort } : {}), modelType: 'File', semanticId: reference(semanticId), contentType: handoverFiles[name].contentType, value: handoverPath(name) }
+}
+
+/** A MultiLanguageProperty from `{ en, de, ... }`. */
+function langs (idShort, semanticId, texts) {
+  return { idShort, modelType: 'MultiLanguageProperty', semanticId: reference(semanticId), value: Object.entries(texts).map(([language, textValue]) => ({ language, text: textValue })) }
+}
+
+const modelReference = (...keys) => ({ type: 'ModelReference', keys: keys.map(([type, value]) => ({ type, value })) })
+function referenceElement (idShort, semanticId, value) {
+  return { ...(idShort ? { idShort } : {}), modelType: 'ReferenceElement', semanticId: reference(semanticId), value }
+}
+
+const demoIds = {
+  shell: 'urn:studio:test:aas:handover-documentation',
+  v2: 'urn:studio:test:sm:handover-documentation:2-0',
+  v1: 'urn:studio:test:sm:handover-documentation:1-2',
+  asset: 'urn:studio:test:asset:gear-motor-gm40',
+}
+const vdi = 'https://admin-shell.io/vdi/2770/1/0'
+const organization = { short: 'Example Drives', official: 'Example Drives GmbH' }
+
+// IDTA 02004-2-0: lists of documents, versions and files.
+const hd2 = {
+  ...hd,
+  subtitle: '0173-1#02-ABH998#003',
+  keywords: '0173-1#02-ABH999#003',
+  refersTo: '0173-1#02-ABK288#002',
+  basedOn: '0173-1#02-ABK289#002',
+  translationOf: '0173-1#02-ABK290#002',
+  previewFile: '0173-1#02-ABK127#002',
+  documentedEntities: `${vdi}/Document/DocumentedEntities`,
+  documentedEntity: `${vdi}/Document/DocumentedEntity`,
+  entities: `${vdi}/EntitiesForDocumentation`,
+  entity: `${vdi}/EntityForDocumentation`,
+}
+
+const documentRef2 = index => modelReference(['Submodel', demoIds.v2], ['SubmodelElementList', 'Documents'], ['SubmodelElementCollection', String(index)])
+const motorEntity2 = modelReference(['Submodel', demoIds.v2], ['SubmodelElementList', 'Entities'], ['Entity', '0'])
+
+function referenceList (idShort, semanticId, values) {
+  return values.length > 0 ? [sml(idShort, semanticId, semanticId, 'ReferenceElement', values.map(value => referenceElement(undefined, semanticId, value)))] : []
+}
+
+function versionV2 ({ languages, version, title, subtitle, description, keywords, date, status = 'Released', files: names = [], preview, refersTo = [], basedOn = [], translationOf = [] }) {
+  return smc(undefined, hd2.version, [
+    sml('Language', hd2.language, hd2.language, 'Property', languages.map(code => prop(undefined, hd2.language, code)), 'xs:string'),
+    prop('Version', '0173-1#02-AAP003#005', version),
+    langs('Title', '0173-1#02-ABG940#003', title),
+    ...(subtitle ? [langs('Subtitle', hd2.subtitle, subtitle)] : []),
+    langs('Description', '0173-1#02-AAN466#004', description),
+    ...(keywords ? [langs('KeyWords', hd2.keywords, keywords)] : []),
+    prop('StatusSetDate', '0173-1#02-ABI000#003', date, 'xs:date'),
+    prop('StatusValue', '0173-1#02-ABI001#003', status),
+    prop('OrganizationShortName', 'https://api.eclass-cdp.com/0173-1-02-ABI002-003', organization.short),
+    prop('OrganizationOfficialName', '0173-1#02-ABI004#003', organization.official),
+    ...referenceList('RefersToEntities', hd2.refersTo, refersTo),
+    ...referenceList('BasedOnReferences', hd2.basedOn, basedOn),
+    ...referenceList('TranslationOfEntities', hd2.translationOf, translationOf),
+    ...(names.length > 0 ? [sml('DigitalFiles', hd2.digitalFiles, hd2.digitalFiles, 'File', names.map(name => (name.startsWith('https://') ? { ...external(undefined, name, 'application/pdf', 'Data sheet at an external host'), semanticId: reference(hd2.digitalFiles) } : handoverFile(undefined, name, hd2.digitalFiles))))] : []),
+    ...(preview ? [handoverFile('PreviewFile', preview, hd2.previewFile)] : []),
+  ])
+}
+
+function documentV2 ({ ids: documentIds, classes, versions, documentedEntities = [] }) {
+  return smc(undefined, hd2.document, [
+    sml('DocumentIds', hd2.ids, hd2.id, 'SubmodelElementCollection', documentIds.map(([domain, id, primary]) => smc(undefined, hd2.id, [
+      prop('DocumentDomainId', '0173-1#02-ABH994#003', domain),
+      prop('DocumentIdentifier', '0173-1#02-AAO099#004', id),
+      prop('DocumentIsPrimary', '0173-1#02-ABH995#003', String(primary), 'xs:boolean'),
+    ]))),
+    sml('DocumentClassifications', hd2.classifications, hd2.classification, 'SubmodelElementCollection', classes.map(([system, id, name]) => smc(undefined, hd2.classification, [
+      prop('ClassId', '0173-1#02-ABH996#003', id),
+      langs('ClassName', '0173-1#02-ABJ219#002', name),
+      prop('ClassificationSystem', '0173-1#02-ABH997#003', system),
+    ]))),
+    sml('DocumentVersions', hd2.versions, hd2.version, 'SubmodelElementCollection', versions.map(entry => versionV2(entry))),
+    ...referenceList('DocumentedEntities', hd2.documentedEntity, documentedEntities).map(list => ({ ...list, semanticId: reference(hd2.documentedEntities) })),
+  ])
+}
+
+// VDI 2770 classes (IDTA 02004 requires one per document) and a manufacturer's own document types.
+const vdi2770 = 'VDI2770:2020'
+const own = 'Example Drives document types'
+const classes = {
+  identification: [vdi2770, '01-01', { en: 'Identification', de: 'Identifikation' }],
+  specification: [vdi2770, '02-01', { en: 'Technical specification', de: 'Technische Spezifikation' }],
+  drawings: [vdi2770, '02-02', { en: 'Drawings, plans', de: 'Zeichnungen, Pläne' }],
+  certificates: [vdi2770, '02-04', { en: 'Certificates, declarations', de: 'Zeugnisse, Zertifikate, Bescheinigungen' }],
+  operation: [vdi2770, '03-02', { en: 'Operation', de: 'Bedienung' }],
+  safety: [vdi2770, '03-03', { en: 'General safety', de: 'Allgemeine Sicherheit' }],
+  maintenance: [vdi2770, '03-04', { en: 'Inspection, maintenance, testing', de: 'Inspektion, Wartung, Prüfung' }],
+  spareParts: [vdi2770, '03-06', { en: 'Spare parts', de: 'Ersatzteile' }],
+  contract: [vdi2770, '04-01', { en: 'Contract documents', de: 'Vertragsunterlagen' }],
+}
+
+const handover2Submodel = {
+  modelType: 'Submodel',
+  id: demoIds.v2,
+  idShort: 'HandoverDocumentation',
+  semanticId: reference(handoverSemanticId2),
+  administration: { version: '2', revision: '0' },
+  submodelElements: [
+    sml('Documents', hd2.documents, hd2.document, 'SubmodelElementCollection', [
+      // 0: two versions; the newer one in English and German, with two files.
+      documentV2({
+        ids: [['Example Drives', 'GM40-OM', true], ['Customer', 'C-4711-0815', false]],
+        classes: [classes.operation, [own, 'OM', { en: 'Operating manual', de: 'Betriebsanleitung' }]],
+        versions: [
+          { languages: ['en'], version: '1.0', title: { en: 'Operating manual' }, description: { en: 'The first edition, for 400 V mains operation.' }, date: '2025-03-01', files: ['gm40-operating-manual-en-1.0.pdf'], preview: 'preview-operating-manual.png' },
+          {
+            languages: ['en', 'de'],
+            version: '2.0',
+            title: { en: 'Operating manual', de: 'Betriebsanleitung' },
+            subtitle: { en: 'Gear motor GM-40, 0.75 kW', de: 'Getriebemotor GM-40, 0,75 kW' },
+            description: { en: 'Commissioning, operation and fault finding, now with frequency converter operation.', de: 'Inbetriebnahme, Betrieb und Fehlersuche, jetzt mit Betrieb am Frequenzumrichter.' },
+            keywords: { en: 'commissioning, operation, faults, frequency converter', de: 'Inbetriebnahme, Betrieb, Störungen, Frequenzumrichter' },
+            date: '2026-09-01',
+            files: ['gm40-operating-manual-en.pdf', 'gm40-betriebsanleitung-de.pdf'],
+            preview: 'preview-operating-manual.png',
+            basedOn: [documentRef2(1)],
+          },
+        ],
+        documentedEntities: [motorEntity2],
+      }),
+      // 1: the German translation of the manual, a document of its own.
+      documentV2({
+        ids: [['Example Drives', 'GM40-OM-DE', true]],
+        classes: [classes.operation],
+        versions: [{ languages: ['de'], version: '2.0', title: { de: 'Betriebsanleitung (Deutsch)', en: 'Operating manual (German)' }, description: { de: 'Die deutsche Fassung der Betriebsanleitung.', en: 'The German edition of the operating manual.' }, date: '2026-09-01', files: ['gm40-betriebsanleitung-de.pdf'], preview: 'preview-betriebsanleitung.png', translationOf: [documentRef2(0)] }],
+        documentedEntities: [motorEntity2],
+      }),
+      documentV2({
+        ids: [['Example Drives', 'GM40-DOC', true]],
+        classes: [classes.certificates],
+        versions: [{ languages: ['en'], version: '1.0', title: { en: 'EU declaration of conformity', de: 'EU-Konformitätserklärung' }, description: { en: 'Machinery Directive and Low Voltage Directive.' }, date: '2025-02-15', files: ['gm40-declaration-of-conformity.pdf'], preview: 'preview-conformity.png' }],
+      }),
+      // 3: a drawing as PNG and SVG; it also documents the bracket of the 3D models demo.
+      documentV2({
+        ids: [['Example Drives', 'GM40-DRW-001', true]],
+        classes: [classes.drawings],
+        versions: [{ languages: ['en'], version: 'B', title: { en: 'Dimension drawing' }, description: { en: 'Outline and shaft height; the same drawing as PNG and as SVG.' }, keywords: { en: 'dimensions, mounting' }, date: '2026-04-20', files: ['gm40-dimension-drawing.png', 'gm40-dimension-drawing.svg'], preview: 'preview-drawing.png' }],
+        documentedEntities: [motorEntity2, modelReference(['AssetAdministrationShell', 'urn:studio:test:aas:models3d'])],
+      }),
+      // 4: the latest version is still in review.
+      documentV2({
+        ids: [['Example Drives', 'GM40-MI', true]],
+        classes: [classes.maintenance],
+        versions: [
+          { languages: ['en'], version: '2.1', title: { en: 'Maintenance instructions' }, description: { en: 'Intervals for oil changes and bearings.' }, date: '2025-11-10', files: ['gm40-maintenance-2.1.pdf'], preview: 'preview-maintenance.png', refersTo: [documentRef2(0)] },
+          { languages: ['en'], version: '3.0', title: { en: 'Maintenance instructions' }, subtitle: { en: 'Draft with condition monitoring' }, description: { en: 'Longer oil change intervals with synthetic oil, and vibration limits.' }, date: '2026-10-15', status: 'InReview', files: ['gm40-maintenance-3.0.pdf'], preview: 'preview-maintenance.png', refersTo: [documentRef2(0), documentRef2(5)] },
+        ],
+      }),
+      documentV2({
+        ids: [['Example Drives', 'GM40-SP', true]],
+        classes: [classes.spareParts],
+        versions: [{ languages: ['en'], version: '1.3', title: { en: 'Spare parts list' }, description: { en: 'Wear parts with part numbers and replacement intervals, as CSV.' }, date: '2026-01-05', files: ['gm40-spare-parts.csv'] }],
+      }),
+      documentV2({
+        ids: [['Example Drives', 'GM40-SI', true]],
+        classes: [classes.safety],
+        versions: [{ languages: ['en'], version: '1.0', title: { en: 'Safety instructions' }, description: { en: 'Electrical and mechanical safety, in Markdown.' }, date: '2025-02-15', files: ['gm40-safety-instructions.md'] }],
+      }),
+      // 7: at an external host that allows cross-origin reads.
+      documentV2({
+        ids: [['Example Drives', 'GM40-DS', true]],
+        classes: [classes.specification],
+        versions: [{ languages: ['en'], version: '1.0', title: { en: 'Data sheet (external)' }, description: { en: 'A PDF at an external host.' }, date: '2024-06-15', files: ['https://raw.githubusercontent.com/mozilla/pdf.js/master/web/compressed.tracemonkey-pldi-09.pdf'] }],
+      }),
+      // 8: without a file.
+      documentV2({
+        ids: [['Example Drives', 'GM40-SC', true]],
+        classes: [classes.contract],
+        versions: [{ languages: ['en'], version: '1.0', title: { en: 'Service contract' }, description: { en: 'Available on request; this version has no file.' }, date: '2026-06-01' }],
+      }),
+    ]),
+    sml('Entities', hd2.entities, hd2.entity, 'Entity', [{
+      modelType: 'Entity',
+      semanticId: reference(hd2.entity),
+      displayName: en('Gear motor GM-40, serial 0001'),
+      entityType: 'SelfManagedEntity',
+      globalAssetId: demoIds.asset,
+    }]),
+  ],
+}
+
+// IDTA 02004-1-2: numbered collections, `ValueId`, `Summary` and `DocumentVersionId`.
+const hd1 = {
+  document: '0173-1#02-ABI500#001/0173-1#01-AHF579#001',
+  id: '0173-1#02-ABI501#001/0173-1#01-AHF580#001',
+  classification: '0173-1#02-ABI502#001/0173-1#01-AHF581#001',
+  version: '0173-1#02-ABI503#001/0173-1#01-AHF582#001',
+  digitalFile: '0173-1#02-ABI504#001/0173-1#01-AHF583#001',
+  previewFile: '0173-1#02-ABI505#001/0173-1#01-AHF584#001',
+}
+const number = index => String(index + 1).padStart(2, '0')
+
+function documentV1 (index, { ids: documentIds, classes: documentClasses, versions, documentedEntities = [] }) {
+  return smc(`Document${number(index)}`, hd1.document, [
+    ...documentIds.map(([domain, id, primary], idIndex) => smc(`DocumentId${number(idIndex)}`, hd1.id, [
+      prop('DocumentDomainId', '0173-1#02-ABH994#001', domain),
+      prop('ValueId', '0173-1#02-AAO099#002', id),
+      prop('IsPrimary', '0173-1#02-ABH995#001', String(primary), 'xs:boolean'),
+    ])),
+    ...documentClasses.map(([system, id, name], classIndex) => smc(`DocumentClassification${number(classIndex)}`, hd1.classification, [
+      prop('ClassId', '0173-1#02-ABH996#001', id),
+      langs('ClassName', '0173-1#02-AAO102#003', name),
+      prop('ClassificationSystem', '0173-1#02-ABH997#001', system),
+    ])),
+    ...versions.map((version, versionIndex) => smc(`DocumentVersion${number(versionIndex)}`, hd1.version, [
+      ...version.languages.map((code, languageIndex) => prop(`Language${number(languageIndex)}`, '0173-1#02-AAN468#006', code)),
+      prop('DocumentVersionId', '0173-1#02-AAO100#002', version.version),
+      langs('Title', '0173-1#02-AAO105#002', version.title),
+      ...(version.subtitle ? [langs('SubTitle', '0173-1#02-ABH998#001', version.subtitle)] : []),
+      langs('Summary', '0173-1#02-AAO106#002', version.description),
+      ...(version.keywords ? [langs('KeyWords', '0173-1#02-ABH999#001', version.keywords)] : []),
+      prop('StatusSetDate', '0173-1#02-ABI000#001', version.date, 'xs:date'),
+      prop('StatusValue', '0173-1#02-ABI001#001', version.status ?? 'Released'),
+      prop('OrganizationName', '0173-1#02-ABI002#001', organization.short),
+      prop('OrganizationOfficialName', '0173-1#02-ABI004#001', organization.official),
+      ...version.files.map((name, fileIndex) => handoverFile(`DigitalFile${number(fileIndex)}`, name, hd1.digitalFile)),
+      ...(version.preview ? [handoverFile('PreviewFile', version.preview, hd1.previewFile)] : []),
+      ...(version.refersTo ?? []).map((value, refIndex) => referenceElement(`RefersTo${number(refIndex)}`, '0173-1#02-ABI006#001', value)),
+    ])),
+    ...documentedEntities.map((value, entityIndex) => referenceElement(`DocumentedEntity${number(entityIndex)}`, hd2.documentedEntity, value)),
+  ])
+}
+
+const documentRef1 = index => modelReference(['Submodel', demoIds.v1], ['SubmodelElementCollection', `Document${number(index)}`])
+const motorEntity1 = modelReference(['Submodel', demoIds.v1], ['Entity', 'Entity01'])
+
+const handover1Submodel = {
+  modelType: 'Submodel',
+  id: demoIds.v1,
+  idShort: 'HandoverDocumentation_1_2',
+  semanticId: reference('0173-1#01-AHF578#001'),
+  administration: { version: '1', revision: '2' },
+  submodelElements: [
+    documentV1(0, {
+      ids: [['Example Drives', 'GM40-OM', true]],
+      classes: [classes.operation],
+      versions: [
+        { languages: ['en'], version: '1.0', title: { en: 'Operating manual' }, description: { en: 'The first edition.' }, date: '2025-03-01', files: ['gm40-operating-manual-en-1.0.pdf'], preview: 'preview-operating-manual.png' },
+        { languages: ['en', 'de'], version: '2.0', title: { en: 'Operating manual', de: 'Betriebsanleitung' }, subtitle: { en: 'Gear motor GM-40' }, description: { en: 'With frequency converter operation.' }, keywords: { en: 'commissioning, operation' }, date: '2026-09-01', files: ['gm40-operating-manual-en.pdf', 'gm40-betriebsanleitung-de.pdf'], preview: 'preview-operating-manual.png' },
+      ],
+      documentedEntities: [motorEntity1],
+    }),
+    documentV1(1, {
+      ids: [['Example Drives', 'GM40-DOC', true]],
+      classes: [classes.certificates],
+      versions: [{ languages: ['en'], version: '1.0', title: { en: 'EU declaration of conformity' }, description: { en: 'Machinery Directive and Low Voltage Directive.' }, date: '2025-02-15', files: ['gm40-declaration-of-conformity.pdf'], preview: 'preview-conformity.png', refersTo: [documentRef1(0)] }],
+    }),
+    documentV1(2, {
+      ids: [['Example Drives', 'GM40-DRW-001', true]],
+      classes: [classes.drawings],
+      versions: [{ languages: ['en'], version: 'B', title: { en: 'Dimension drawing' }, description: { en: 'As PNG and as SVG.' }, date: '2026-04-20', files: ['gm40-dimension-drawing.png', 'gm40-dimension-drawing.svg'], preview: 'preview-drawing.png' }],
+    }),
+    {
+      idShort: 'Entity01',
+      modelType: 'Entity',
+      semanticId: reference(hd2.entity),
+      displayName: en('Gear motor GM-40, serial 0001'),
+      entityType: 'SelfManagedEntity',
+      globalAssetId: demoIds.asset,
+    },
+  ],
+}
+
+const handoverEnvironment = {
+  assetAdministrationShells: [{
+    modelType: 'AssetAdministrationShell',
+    id: demoIds.shell,
+    idShort: 'HandoverDocumentationDemo',
+    displayName: en('Handover documentation demo'),
+    description: en('A gear motor\'s documents in IDTA 02004 Handover Documentation 2.0 and 1.2, for the Documents app.'),
+    assetInformation: {
+      assetKind: 'Instance',
+      globalAssetId: demoIds.asset,
+      defaultThumbnail: { path: '/thumbnail.png', contentType: 'image/png' },
+    },
+    submodels: [demoIds.v2, demoIds.v1].map(id => ({ type: 'ModelReference', keys: [{ type: 'Submodel', value: id }] })),
+  }],
+  submodels: [handover2Submodel, handover1Submodel],
+}
+
+// ---------------------------------------------------------------------------
 // Verify and write
 // ---------------------------------------------------------------------------
 
-const parsed = jsonization.environmentFromJsonable(environment)
-if (parsed.error !== null) {
-  throw new Error(`deserialization failed at ${parsed.error.path}: ${parsed.error.message}`)
-}
 // IDTA 02026 names the vector components `X`, `Y` and `Z` (see generate-models3d.mjs).
 function vectorComponent (error, environmentJson) {
   const element = error.path.toString().match(/\[\d+\]|\.\w+/g)?.reduce((node, step) => node?.[step.replaceAll(/[.[\]]/g, '')], environmentJson)
   return error.path.toString().endsWith('.idShort') && ['X', 'Y', 'Z'].includes(element)
 }
-const errors = [...verification.verify(parsed.mustValue())].filter(error => !vectorComponent(error, environment))
-if (errors.length > 0) {
-  throw new Error(errors.map(error => `${error.path}: ${error.message}`).join('\n'))
-}
-const canonical = jsonization.toJsonable(parsed.mustValue())
 
-const thumbnail = png(drawingImage())
-const aasxPath = join(fixturesDir, 'open', 'studio-file-previews.aasx')
-const pkg = await NewPackaging().Create(aasxPath)
-try {
-  const spec = await pkg.PutPart(new URL('https://package.local/aasx/data.json'), 'application/json', new TextEncoder().encode(JSON.stringify(canonical)))
-  await pkg.MakeSpec(spec)
-  const parts = [
-    ...Object.entries(files).map(([name, { content, contentType }]) => [filePath(name), contentType.split(';', 1)[0], content]),
-    ...[...modelFiles].map(([path, contentType]) => [path, contentType, readFileSync(join(modelsDir, path.split('/').pop()))]),
-  ]
-  for (const [path, contentType, content] of parts) {
-    const part = await pkg.PutPart(new URL(`https://package.local${path}`), contentType, new Uint8Array(content))
-    await pkg.RelateSupplementaryToSpec(part, spec)
+/** The environment as AAS Core 3.1 writes it, after verifying it. */
+function verified (environmentJson) {
+  const parsed = jsonization.environmentFromJsonable(environmentJson)
+  if (parsed.error !== null) {
+    throw new Error(`deserialization failed at ${parsed.error.path}: ${parsed.error.message}`)
   }
-  await pkg.SetThumbnail(await pkg.PutPart(new URL('https://package.local/thumbnail.png'), 'image/png', new Uint8Array(thumbnail)))
-  await pkg.Flush()
-} finally {
-  pkg.Close()
+  const errors = [...verification.verify(parsed.mustValue())].filter(error => !vectorComponent(error, environmentJson))
+  if (errors.length > 0) {
+    throw new Error(errors.map(error => `${error.path}: ${error.message}`).join('\n'))
+  }
+  return jsonization.toJsonable(parsed.mustValue())
 }
-// The packaging library stores its parts uncompressed; deflated, the large
-// text file takes a few hundred KiB instead of 11 MiB in the repository.
-writeFileSync(aasxPath, zipSync(unzipSync(readFileSync(aasxPath)), { level: 9, mtime: new Date('2026-10-26T00:00:00Z') }))
+
+/** An AASX package of the environment, its files (`[path, contentType, bytes]`) and a thumbnail. */
+async function writeAasx (aasxPath, canonical, parts, thumbnail) {
+  const pkg = await NewPackaging().Create(aasxPath)
+  try {
+    const spec = await pkg.PutPart(new URL('https://package.local/aasx/data.json'), 'application/json', new TextEncoder().encode(JSON.stringify(canonical)))
+    await pkg.MakeSpec(spec)
+    for (const [path, contentType, content] of parts) {
+      const part = await pkg.PutPart(new URL(`https://package.local${path}`), contentType, new Uint8Array(content))
+      await pkg.RelateSupplementaryToSpec(part, spec)
+    }
+    await pkg.SetThumbnail(await pkg.PutPart(new URL('https://package.local/thumbnail.png'), 'image/png', new Uint8Array(thumbnail)))
+    await pkg.Flush()
+  } finally {
+    pkg.Close()
+  }
+  // The packaging library stores its parts uncompressed; deflated, the large
+  // text file takes a few hundred KiB instead of 11 MiB in the repository.
+  writeFileSync(aasxPath, zipSync(unzipSync(readFileSync(aasxPath)), { level: 9, mtime: new Date('2026-10-26T00:00:00Z') }))
+}
+
+await writeAasx(join(fixturesDir, 'open', 'studio-file-previews.aasx'), verified(environment), [
+  ...Object.entries(files).map(([name, { content, contentType }]) => [filePath(name), contentType.split(';', 1)[0], content]),
+  ...[...modelFiles].map(([path, contentType]) => [path, contentType, readFileSync(join(modelsDir, path.split('/').pop()))]),
+], png(drawingImage()))
 console.log(`wrote open/studio-file-previews.aasx (${Object.keys(files).length + modelFiles.size} files)`)
+
+const handoverCanonical = verified(handoverEnvironment)
+await writeAasx(join(fixturesDir, 'open', 'studio-handover-documentation.aasx'), handoverCanonical, Object.entries(handoverFiles).map(([name, { content, contentType }]) => [handoverPath(name), contentType, content]), png(motorImage()))
+writeFileSync(join(fixturesDir, 'handover-documentation', 'studio-handover-documentation.json'), `${JSON.stringify(handoverCanonical, null, 2)}\n`)
+console.log(`wrote open/studio-handover-documentation.aasx (${Object.keys(handoverFiles).length} files) and handover-documentation/studio-handover-documentation.json`)

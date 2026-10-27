@@ -89,8 +89,9 @@
             <v-tooltip activator="parent" location="bottom" :text="t('viewer.openExternalAt', { host: externalHost })" />
           </v-btn>
 
+          <!-- Where Studio shows no full-screen button of its own (details pane, another app's page). -->
           <v-btn
-            v-if="!fullscreen"
+            v-if="ownFullscreen"
             :aria-label="t('viewer.fullscreen')"
             color="surface"
             data-test="viewer-fullscreen"
@@ -160,7 +161,8 @@
     version: Model3DVersion | undefined
     title: string
     theme: ViewerTheme
-    fullscreen: boolean
+    /** Offer full screen: Studio shows no button for it here. */
+    ownFullscreen: boolean
   }>()
   const emit = defineEmits<{
     open: [url: string]

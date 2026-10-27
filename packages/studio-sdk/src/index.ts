@@ -86,6 +86,12 @@ export class StudioClient {
     }),
     /** Closes the full-screen dialog this view runs in (Studio ≥ 0.1.7). */
     closeFullscreen: () => this.call('studio.ui.closeFullscreen', {}),
+    /**
+     * Tells Studio what the view shows, so that Studio's own full-screen
+     * button (on the Overview card) opens it as `openFullscreen(state)` would;
+     * the view there reads it from `context.viewState` (Studio ≥ 0.1.13).
+     */
+    setViewState: (state: string) => this.call('studio.ui.setViewState', { state }),
     /** Opens a target in Studio (needs studio.ui.navigation). */
     openTarget: (targetId: string) => this.call('studio.ui.openTarget', { targetId }),
     /**

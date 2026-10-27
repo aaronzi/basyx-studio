@@ -40,13 +40,13 @@
               <ViewerCard
                 :key="version?.key ?? selected.key"
                 :client="client"
-                :fullscreen="fullscreen"
+                :own-fullscreen="ownFullscreen"
                 :submodel-id="submodelId"
                 :theme="theme"
                 :title="title"
                 :version="version"
                 @download="path => client.ui.openFile(submodelId, path, true)"
-                @fullscreen="openFullscreen"
+                @fullscreen="client.ui.openFullscreen(viewState)"
                 @open="openExternal"
               />
             </v-col>
@@ -70,7 +70,7 @@
   import { provideFileViewer } from '@basyx/file-viewer/vue'
   import { loadSubmodel } from '@basyx/studio-app-kit'
   import { StudioError } from '@basyx/studio-sdk'
-  import { computed, onMounted, reactive, ref } from 'vue'
+  import { computed, onMounted, reactive, ref, watch } from 'vue'
   import { provideI18n } from './i18n'
   import { latestVersion, parseModels3D, sortModels, versionTitle } from './models3d'
   import ModelSummary from './ModelSummary.vue'
@@ -91,13 +91,13 @@
     context.value = value
   })
   const submodelId = computed(() => context.value.submodel!.id)
-  const fullscreen = computed(() => context.value.fullscreen)
+  const ownFullscreen = computed(() => !context.value.fullscreen && !context.value.fullscreenControl)
   const theme = computed(() => viewerThemeOf(context.value.theme.colors, context.value.theme.dark))
 
   const loading = ref(true)
   const error = ref<string | null>(null)
   const models = ref<Model3DEntry[]>([])
-  /** What the full-screen view opens with: the selected model and the chosen versions. */
+  /** What the view shows, for Studio's full-screen button: the selected model and the chosen versions. */
   interface ViewState {
     model: string
     versions: Record<string, string>
@@ -121,11 +121,10 @@
     })
   }
 
-  /** Full screen shows the same model and version (`context.viewState`). */
-  function openFullscreen () {
-    const state: ViewState = { model: selected.value?.key ?? '', versions: { ...versionKeys } }
-    void props.client.ui.openFullscreen(JSON.stringify(state))
-  }
+  // Full screen opens the same model and version (`context.viewState`): Studio's
+  // button with the reported state, the viewer's own where Studio has none.
+  const viewState = computed(() => JSON.stringify({ model: selected.value?.key ?? '', versions: { ...versionKeys } } satisfies ViewState))
+  watch(viewState, state => void props.client.ui.setViewState(state))
 
   function restore (viewState: string) {
     try {

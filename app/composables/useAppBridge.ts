@@ -19,6 +19,8 @@ export interface AppBridgeOptions {
   onOpenFullscreen?: (state: string, header: boolean) => void
   /** Closes the full-screen dialog the frame runs in; absent outside one. */
   onCloseFullscreen?: () => void
+  /** What the view says it shows (`studio.ui.setViewState`), for Studio's own full-screen button. */
+  onViewState?: (state: string) => void
   /**
    * Shows another app's view in a full-screen dialog over the frame
    * (`studio.ui.openView`, ADR 0051); absent in dialogs, which open no
@@ -174,10 +176,50 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       mode: 'view',
       fullscreen: false,
       fullscreenOpen: embed.fullscreen !== null && options.shownView?.() === embed.fullscreen,
+      // The page around it draws no full-screen button of Studio's.
+      fullscreenControl: false,
       viewState: '',
       embedded: true,
       settings: targetContext.settings,
       connections: targetContext.connections,
+    }
+  }
+
+  /**
+   * Answers what only changes how Studio shows the frame's own view: no
+   * permission, no round trip. `false` for every other method.
+   */
+  function answerFrame (method: AppMethodName, params: unknown): boolean {
+    switch (method) {
+      case 'studio.ui.setHeight': {
+        const parsed = appMethodParamsSchemas['studio.ui.setHeight'].safeParse(params)
+        if (parsed.success) {
+          height.value = parsed.data.height
+        }
+        return true
+      }
+      case 'studio.ui.openFullscreen': {
+        const parsed = appMethodParamsSchemas['studio.ui.openFullscreen'].safeParse(params ?? {})
+        if (parsed.success) {
+          options.onOpenFullscreen?.(parsed.data.state ?? '', parsed.data.header)
+        }
+        return true
+      }
+      case 'studio.ui.closeFullscreen': {
+        options.onCloseFullscreen?.()
+        return true
+      }
+      case 'studio.ui.setViewState': {
+        // Kept by the frame for Studio's full-screen button.
+        const parsed = appMethodParamsSchemas['studio.ui.setViewState'].safeParse(params ?? {})
+        if (parsed.success) {
+          options.onViewState?.(parsed.data.state)
+        }
+        return true
+      }
+      default: {
+        return false
+      }
     }
   }
 
@@ -204,26 +246,7 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
         return
       }
     }
-    if (method.data === 'studio.ui.setHeight') {
-      // Only sizes the app's own frame; needs no permission or round trip.
-      const parsedHeight = appMethodParamsSchemas['studio.ui.setHeight'].safeParse(params)
-      if (parsedHeight.success) {
-        height.value = parsedHeight.data.height
-      }
-      respond({ type: 'response', id, result: null })
-      return
-    }
-    if (method.data === 'studio.ui.openFullscreen') {
-      // Like setHeight, it only affects how Studio shows the app's own view.
-      const parsedFullscreen = appMethodParamsSchemas['studio.ui.openFullscreen'].safeParse(params ?? {})
-      if (parsedFullscreen.success) {
-        options.onOpenFullscreen?.(parsedFullscreen.data.state ?? '', parsedFullscreen.data.header)
-      }
-      respond({ type: 'response', id, result: null })
-      return
-    }
-    if (method.data === 'studio.ui.closeFullscreen') {
-      options.onCloseFullscreen?.()
+    if (answerFrame(method.data, params)) {
       respond({ type: 'response', id, result: null })
       return
     }
@@ -435,8 +458,9 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
   function answerEmbedded (embed: Embed, contribution: AppContributionInfo, method: AppMethodName, params: unknown): { problem: Problem | null } | null {
     switch (method) {
       case 'studio.ui.setHeight':
-      case 'studio.ui.closeFullscreen': {
-        // The app around it sizes the frame; Studio does not tell it the view's height.
+      case 'studio.ui.closeFullscreen':
+      case 'studio.ui.setViewState': {
+        // The app around it sizes the frame and has no full-screen button of Studio's for it.
         return { problem: null }
       }
       case 'studio.ui.openFullscreen': {

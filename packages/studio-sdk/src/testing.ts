@@ -119,6 +119,8 @@ export interface TestStudio {
   readonly embeddedViews: TestEmbeddedView[]
   /** The File and Blob elements the app showed with `studio.ui.previewFile`. */
   readonly previewedFiles: TestPreviewedFile[]
+  /** The state the app last reported with `studio.ui.setViewState`; empty before. */
+  readonly viewState: string
   /** Sends a changed context to the app, as Studio does when the theme, the sub-path or the target changes. */
   setContext: (patch: Partial<AppContext>) => void
   /** Ends the connection; later calls are rejected. */
@@ -151,6 +153,7 @@ export function testContext (patch: Partial<AppContext> = {}): AppContext {
     mode: 'view',
     fullscreen: false,
     fullscreenOpen: false,
+    fullscreenControl: false,
     viewState: '',
     locale: 'en',
     theme: testTheme(),
@@ -298,6 +301,7 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const openedViews: TestOpenedView[] = []
   const embeddedViews: TestEmbeddedView[] = []
   const previewedFiles: TestPreviewedFile[] = []
+  let viewState = ''
   const listeners = new Set<(context: AppContext) => void>()
 
   const setContext = (patch: Partial<AppContext>) => {
@@ -310,6 +314,10 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
   const builtIn: TestHandlers = {
     'studio.ui.getContext': () => context,
     'studio.ui.setHeight': () => null,
+    'studio.ui.setViewState': ({ state }) => {
+      viewState = state
+      return null
+    },
     'studio.ui.navigate': ({ subPath, history = 'replace' }) => {
       navigations.push({ subPath, history })
       if (history === 'push' && subPath !== entries[entry]) {
@@ -449,6 +457,9 @@ export function createTestStudio (options: TestStudioOptions = {}): TestStudio {
     openedViews,
     embeddedViews,
     previewedFiles,
+    get viewState () {
+      return viewState
+    },
     setContext,
     close: () => transport.close(),
   }

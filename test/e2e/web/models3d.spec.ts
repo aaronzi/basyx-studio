@@ -24,6 +24,12 @@ async function clickInApp (page: Page, target: Locator) {
   await target.click()
 }
 
+/** Studio's full-screen button on the app's Overview card, which opens what the app reported (`studio.ui.setViewState`). */
+async function openFullscreen (page: Page) {
+  await waitUntilSettled(page.locator('iframe[title="App: 3D Models"]').first())
+  await page.locator('[data-test="overview-widget-view"]').filter({ has: page.locator('iframe[title="App: 3D Models"]') }).getByRole('button', { name: 'Full screen' }).click()
+}
+
 async function expectModel (page: Page, format: string) {
   const view = page.locator('[data-test="model-view"]')
   await expect(view.getByText(format, { exact: true })).toBeVisible({ timeout: 30_000 })
@@ -73,6 +79,8 @@ test('shows the Models3D submodel in the bundled 3D Models app', async ({ page }
   await expect(frame.locator('[data-test="model-title"]')).toHaveText('L bracket')
   await expect(frame.locator('[data-test="viewer-canvas"] canvas')).toBeVisible({ timeout: 30_000 })
   await expect(frame.locator('[data-test="model-summary"]')).toContainText('Engineering design')
+  // Studio's card has a full-screen button, so the viewer shows none of its own.
+  await expect(frame.locator('[data-test="viewer-fullscreen"]')).toHaveCount(0)
 
   // IFC in the app frame: web-ifc runs as WebAssembly in a blob: worker (ADR 0038).
   await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }))
@@ -90,7 +98,7 @@ test('opens the selected model and version in full screen', async ({ page }) => 
   await expect(frame.locator('[data-test="model-switcher-item"]')).toHaveCount(4, { timeout: 30_000 })
 
   await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }))
-  await clickInApp(page, frame.locator('[data-test="viewer-fullscreen"]'))
+  await openFullscreen(page)
   await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('Workshop building', { timeout: 30_000 })
   await page.locator('[data-test="app-fullscreen-close"]').click()
   await expect(page.locator('.v-dialog')).toBeHidden()
@@ -100,7 +108,7 @@ test('opens the selected model and version in full screen', async ({ page }) => 
   await clickInApp(page, frame.locator('[data-test="version-menu"]'))
   await clickInApp(page, frame.getByRole('listitem').filter({ hasText: 'v1.0' }))
   await expect(frame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)')
-  await clickInApp(page, frame.locator('[data-test="viewer-fullscreen"]'))
+  await openFullscreen(page)
   await expect(dialogFrame.locator('[data-test="model-title"]')).toHaveText('L bracket (CAD)', { timeout: 30_000 })
   await expect(dialogFrame.getByText('STEP AP214')).toBeVisible()
 })

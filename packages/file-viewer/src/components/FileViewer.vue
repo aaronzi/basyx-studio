@@ -57,12 +57,11 @@
           <v-btn
             v-if="source?.external"
             v-tooltip="t('actions.openExternal')"
+            v-bind="linkProps(source.external)"
             :aria-label="t('actions.openExternal')"
-            :href="source.external"
+            data-test="file-viewer-open-external"
             icon="mdi-open-in-new"
-            rel="noopener noreferrer"
             size="small"
-            target="_blank"
           />
 
           <v-btn
@@ -129,10 +128,8 @@
           <template #actions>
             <v-btn
               v-if="source?.external"
-              :href="source.external"
+              v-bind="linkProps(source.external)"
               prepend-icon="mdi-open-in-new"
-              rel="noopener noreferrer"
-              target="_blank"
               :text="t('actions.openExternal')"
             />
 
@@ -289,7 +286,7 @@
   const PdfView = defineAsyncComponent(() => import('./PdfView.vue'))
   const ModelView = defineAsyncComponent(() => import('./ModelView.vue'))
 
-  const { t, formatLocale } = useFileViewerContext()
+  const { t, formatLocale, openLink } = useFileViewerContext()
   const textView = useTemplateRef<InstanceType<typeof TextView>>('textView')
 
   const source = computed(() => props.state.source.value)
@@ -310,7 +307,14 @@
       }
     }
   })
-  const downloadable = computed(() => Boolean(props.state.content.value))
+  const downloadable = computed(() => Boolean(props.state.content.value || source.value?.download))
+
+  /** A link to an external file: the host opens it where it says how, a new tab otherwise. */
+  function linkProps (url: string) {
+    return openLink
+      ? { onClick: () => openLink(url) }
+      : { href: url, target: '_blank', rel: 'noopener noreferrer' }
+  }
   const conflict = computed(() => props.state.saveError.value instanceof FileConflictError)
 
   const saveErrorText = computed(() => {
@@ -359,8 +363,12 @@
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
 
-  /** The file as it is stored (unsaved changes are not part of it). */
+  /** The file as it is stored (unsaved changes are not part of it), through the host where it says how. */
   function download () {
+    if (source.value?.download) {
+      source.value.download()
+      return
+    }
     const content = props.state.content.value
     if (content && source.value) {
       save(new Blob([content.bytes as BlobPart], { type: source.value.contentType || content.contentType }), source.value.name)

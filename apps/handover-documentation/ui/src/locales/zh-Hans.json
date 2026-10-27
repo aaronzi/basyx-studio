@@ -1,0 +1,51 @@
+{
+  "document": {
+    "none": "此子模型没有文档。",
+    "untitled": "文档 {number}",
+    "fullscreen": "全屏"
+  },
+  "list": {
+    "search": "搜索文档",
+    "filter": "{count} 个筛选条件",
+    "filters": "{count} 个筛选条件",
+    "removeFilters": "移除筛选条件",
+    "classes": "类别",
+    "filtered": "{total} 个文档中的 {count} 个",
+    "noMatch": "没有符合搜索或筛选条件的文档。"
+  },
+  "version": {
+    "number": "版本 {number}",
+    "latest": "最新"
+  },
+  "preview": {
+    "previewImage": "预览图像",
+    "noFile": "此版本没有文件。"
+  },
+  "facts": {
+    "version": "版本",
+    "status": "状态",
+    "date": "日期",
+    "organization": "组织",
+    "languages": "语言"
+  },
+  "details": {
+    "title": "技术详情",
+    "identification": "标识",
+    "identifier": "标识符",
+    "primary": "主要",
+    "classification": "分类",
+    "class": "类别",
+    "files": "文件",
+    "digitalFile": "文档文件",
+    "previewFile": "预览图像",
+    "relations": "关联",
+    "refersTo": "引用",
+    "basedOn": "基于",
+    "translationOf": "译自",
+    "documentedEntity": "记录对象"
+  },
+  "values": {
+    "InReview": "审核中",
+    "Released": "已发布"
+  }
+}

@@ -123,6 +123,14 @@ describe('createTestStudio', () => {
     await expect(createTestStudio({ permissions: [] }).client.ui.openView('urn:example:sm:bom')).rejects.toMatchObject({ code: 'app_permission_not_declared' })
   })
 
+  it('keeps the view state an app reports, without a permission (app API 0.1.13)', async () => {
+    const studio = createTestStudio({ permissions: [] })
+    expect(studio.viewState).toBe('')
+    await studio.client.ui.setViewState('{"document":"Documents[1]"}')
+    await studio.client.ui.setViewState('{"document":"Documents[3]"}')
+    expect(studio.viewState).toBe('{"document":"Documents[3]"}')
+  })
+
   it('sends a changed context to the app', () => {
     const studio = createTestStudio()
     studio.setContext({ theme: { dark: true, colors: {} } })
