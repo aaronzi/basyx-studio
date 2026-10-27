@@ -218,6 +218,10 @@ describe('links', () => {
     expect(isExternalUrl('mailto:not an address')).toBe(false)
     expect(isExternalUrl('tel:call-me')).toBe(false)
     expect(isExternalUrl('sms:+49631')).toBe(false)
+    // A malformed escape is an invalid request, not an internal error.
+    expect(isExternalUrl('tel:%')).toBe(false)
+    expect(isExternalUrl('tel:%E0%A4%A')).toBe(false)
+    expect(appMethodParamsSchemas['studio.ui.openExternal'].safeParse({ url: 'tel:%' }).success).toBe(false)
     expect(appMethodParamsSchemas['studio.ui.openExternal'].safeParse({ url: 'tel:+49631123456' }).success).toBe(true)
     expect(appMethodParamsSchemas['studio.ui.openExternal'].safeParse({ url: 'javascript:alert(1)' }).success).toBe(false)
     expect(appMethodParamsSchemas['studio.ui.saveFile'].safeParse({ fileName: 'Jane Doe.vcf', contentType: 'text/vcard', text: 'BEGIN:VCARD' }).success).toBe(true)

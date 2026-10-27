@@ -7,7 +7,9 @@
     "noMatch": "Geen contact komt overeen met de zoekopdracht.",
     "fullscreen": "Volledig scherm",
     "close": "Sluiten",
-    "open": "{name} tonen"
+    "open": "{name} tonen",
+    "unavailable": "Contact niet beschikbaar",
+    "missing": "Dit contact staat niet meer in het submodel."
   },
   "contact": {
     "showOnMap": "Openen in Google Maps",

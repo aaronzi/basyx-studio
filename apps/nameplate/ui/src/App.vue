@@ -8,6 +8,36 @@
     <v-view-card>
       <v-progress-linear v-if="loading" />
 
+      <!-- The frame Studio shows alone over its page has no close button of Studio's:
+           where the details cannot be shown, a dialog with the reason closes it. -->
+      <v-dialog
+        v-else-if="dialogPath && (error || !dialogMarking)"
+        max-width="480"
+        :model-value="true"
+        :scrim="false"
+        @update:model-value="closeDialog"
+      >
+        <v-card data-test="dialog-unavailable">
+          <v-card-header class="flex-shrink-0">
+            <v-card-title>{{ t('marking.unavailable') }}</v-card-title>
+          </v-card-header>
+
+          <v-divider />
+
+          <v-card-text class="pa-4">
+            <v-alert :text="error ?? t('marking.missing')" type="error" />
+          </v-card-text>
+
+          <v-divider />
+
+          <v-card-actions>
+            <v-spacer />
+
+            <v-btn data-test="dialog-unavailable-close" :text="t('nameplate.close')" @click="closeDialog" />
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
+
       <v-alert v-else-if="error" class="ma-4" :text="error" type="error" />
 
       <!-- A marking's details, in the frame Studio shows alone over its page (openMarking). -->

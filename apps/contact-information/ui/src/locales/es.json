@@ -7,7 +7,9 @@
     "noMatch": "Ningún contacto coincide con la búsqueda.",
     "fullscreen": "Pantalla completa",
     "close": "Cerrar",
-    "open": "Mostrar {name}"
+    "open": "Mostrar {name}",
+    "unavailable": "Contacto no disponible",
+    "missing": "Este contacto ya no está en el submodelo."
   },
   "contact": {
     "showOnMap": "Abrir en Google Maps",

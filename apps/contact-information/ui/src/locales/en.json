@@ -7,7 +7,9 @@
     "noMatch": "No contact matches the search.",
     "fullscreen": "Full screen",
     "close": "Close",
-    "open": "Show {name}"
+    "open": "Show {name}",
+    "unavailable": "Contact not available",
+    "missing": "This contact is no longer in the submodel."
   },
   "contact": {
     "showOnMap": "Open in Google Maps",

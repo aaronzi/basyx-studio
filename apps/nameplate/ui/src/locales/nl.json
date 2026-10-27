@@ -47,7 +47,9 @@
     "expired": "Verlopen",
     "additionalText": "Opmerking",
     "open": "{name} tonen",
-    "preview": "{name} in de bestandsviewer tonen"
+    "preview": "{name} in de bestandsviewer tonen",
+    "unavailable": "Markering niet beschikbaar",
+    "missing": "Deze markering staat niet meer op het typeplaatje."
   },
   "assetSpecific": {
     "general": "Algemeen",

@@ -138,19 +138,22 @@ export function matchesSpec (element: JsonObject, spec: ElementSpec): boolean {
 }
 
 /**
- * The children of a submodel or element that a spec names, in their order:
- * those with its name, else those with its semantic ID, so that a semantic
- * ID given to the wrong element does not hide the element of that name.
+ * The children of a submodel or element that a spec names, by name or by
+ * semantic ID, in their order: every entry of a repeated element, e.g.
+ * `MarkingAdditionalText01` and a `SafetyNotice` with its semantic ID.
  */
 export function childrenMatching (node: Node | JsonObject | undefined, spec: ElementSpec): Node[] {
-  const children = node ? childrenOf(node) : []
-  const named = children.filter(entry => hasSpecName(entry.element, spec))
-  return named.length > 0 ? named : children.filter(entry => matchesSpec(entry.element, spec))
+  return (node ? childrenOf(node) : []).filter(entry => matchesSpec(entry.element, spec))
 }
 
-/** The first child that a spec names. */
+/**
+ * The child that a spec names: the first with its name, else the first with
+ * its semantic ID, so that a semantic ID given to the wrong element does not
+ * hide the element of that name.
+ */
 export function childMatching (node: Node | JsonObject | undefined, spec: ElementSpec): Node | undefined {
-  return childrenMatching(node, spec)[0]
+  const matches = childrenMatching(node, spec)
+  return matches.find(entry => hasSpecName(entry.element, spec)) ?? matches[0]
 }
 
 /** A Property or MultiLanguageProperty as text, with what changing it needs. */

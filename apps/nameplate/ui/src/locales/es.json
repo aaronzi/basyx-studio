@@ -47,7 +47,9 @@
     "expired": "Caducado",
     "additionalText": "Nota",
     "open": "Mostrar {name}",
-    "preview": "Mostrar {name} en el visor de archivos"
+    "preview": "Mostrar {name} en el visor de archivos",
+    "unavailable": "Marcado no disponible",
+    "missing": "Este marcado ya no está en la placa de características."
   },
   "assetSpecific": {
     "general": "General",

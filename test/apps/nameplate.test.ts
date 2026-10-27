@@ -125,6 +125,26 @@ describe('parseNameplate (2.0 and 1.0)', () => {
     expect(nameplate.logo?.name).toBe('logo.svg')
   })
 
+  it('keeps every entry of a repeated element, by name or by semantic ID', () => {
+    const note = (idShort: string, text: string) => ({ idShort, modelType: 'MultiLanguageProperty', semanticId: { keys: [{ value: '0112/2///61987#ABB146#007' }] }, value: [{ language: 'en', text }] })
+    const nameplate = parseNameplate({
+      modelType: 'Submodel',
+      submodelElements: [{
+        idShort: 'Markings',
+        modelType: 'SubmodelElementList',
+        value: [{
+          modelType: 'SubmodelElementCollection',
+          value: [
+            { idShort: 'MarkingName', modelType: 'Property', value: 'CE' },
+            note('MarkingAdditionalText01', 'Machinery Directive'),
+            note('SafetyNotice', 'Disconnect before servicing'),
+          ],
+        }],
+      }],
+    })
+    expect(nameplate.markings[0]!.additionalTexts.map(field => fieldText(field, 'en'))).toEqual(['Machinery Directive', 'Disconnect before servicing'])
+  })
+
   it('names the template version', () => {
     expect(templateVersion('https://admin-shell.io/idta/nameplate/3/0/Nameplate')).toBe('3.0')
     expect(templateVersion('urn:example:nameplate')).toBeNull()

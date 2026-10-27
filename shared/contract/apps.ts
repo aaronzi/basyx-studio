@@ -272,6 +272,15 @@ export type AppRequestMessage = z.infer<typeof appRequestMessageSchema>
 
 const identifier = z.string().min(1).max(2048)
 
+/** A percent-encoded text decoded; `null` for a malformed escape. */
+function decoded (value: string): string | null {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return null
+  }
+}
+
 /**
  * URLs an app may open outside Studio: https, or http of this computer, where
  * local BaSyx instances answer, in the system browser; an email address
@@ -291,7 +300,9 @@ export function isExternalUrl (value: string): boolean {
       return /^[^\s/?#@]+@[^\s/?#@]+(?:\?.*)?$/.test(value.slice('mailto:'.length))
     }
     case 'tel:': {
-      return /^\+?[\d\s().\-/]{2,40}$/.test(decodeURIComponent(url.pathname))
+      // A malformed escape such as `tel:%` is no number, not an error.
+      const number = decoded(url.pathname)
+      return number !== null && /^\+?[\d\s().\-/]{2,40}$/.test(number)
     }
     default: {
       return false

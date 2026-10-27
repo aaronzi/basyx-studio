@@ -47,7 +47,9 @@
     "expired": "Expiré",
     "additionalText": "Remarque",
     "open": "Afficher {name}",
-    "preview": "Afficher {name} dans la visionneuse de fichiers"
+    "preview": "Afficher {name} dans la visionneuse de fichiers",
+    "unavailable": "Marquage indisponible",
+    "missing": "Ce marquage ne figure plus sur la plaque signalétique."
   },
   "assetSpecific": {
     "general": "Général",

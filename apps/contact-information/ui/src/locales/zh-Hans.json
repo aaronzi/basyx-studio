@@ -7,7 +7,9 @@
     "noMatch": "没有与搜索匹配的联系人。",
     "fullscreen": "全屏",
     "close": "关闭",
-    "open": "显示 {name}"
+    "open": "显示 {name}",
+    "unavailable": "联系人不可用",
+    "missing": "此联系人已不在子模型中。"
   },
   "contact": {
     "showOnMap": "在 Google 地图中打开",

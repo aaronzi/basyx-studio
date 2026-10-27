@@ -7,7 +7,9 @@
     "noMatch": "Kein Kontakt passt zur Suche.",
     "fullscreen": "Vollbild",
     "close": "Schließen",
-    "open": "{name} anzeigen"
+    "open": "{name} anzeigen",
+    "unavailable": "Kontakt nicht verfügbar",
+    "missing": "Dieser Kontakt ist nicht mehr im Teilmodell."
   },
   "contact": {
     "showOnMap": "In Google Maps öffnen",

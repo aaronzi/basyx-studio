@@ -7,7 +7,9 @@
     "noMatch": "検索に一致する連絡先はありません。",
     "fullscreen": "全画面",
     "close": "閉じる",
-    "open": "{name} を表示"
+    "open": "{name} を表示",
+    "unavailable": "連絡先を表示できません",
+    "missing": "この連絡先はサブモデルにもうありません。"
   },
   "contact": {
     "showOnMap": "Google マップで開く",

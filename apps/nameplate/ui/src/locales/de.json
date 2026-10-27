@@ -47,7 +47,9 @@
     "expired": "Abgelaufen",
     "additionalText": "Hinweis",
     "open": "{name} anzeigen",
-    "preview": "{name} im Dateibetrachter zeigen"
+    "preview": "{name} im Dateibetrachter zeigen",
+    "unavailable": "Kennzeichnung nicht verfügbar",
+    "missing": "Diese Kennzeichnung ist nicht mehr im Typenschild."
   },
   "assetSpecific": {
     "general": "Allgemein",

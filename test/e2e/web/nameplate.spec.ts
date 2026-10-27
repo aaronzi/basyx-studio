@@ -163,6 +163,22 @@ test('shows the contacts with roles, channels and search, and saves one as vCard
   await expect(page.locator('.v-dialog')).toBeHidden()
 })
 
+test('closes a contact\'s dialog whose contact cannot be read', async ({ page }) => {
+  const frame = await openSubmodel(page, 'Contacts', shell, contacts, '[data-test="contact"]')
+
+  // The dialog's frame reads the submodel again; the repository fails then.
+  await page.route('**/api/studio/v1/app-calls', route => (route.request().postDataJSON()?.method === 'studio.aas.getSubmodel'
+    ? route.fulfill({ status: 502, contentType: 'application/problem+json', body: JSON.stringify({ status: 502, title: 'Bad Gateway', detail: 'The repository is not available.' }) })
+    : route.continue()))
+  await clickIn(contactsFrame(page), frame.locator('[data-test="contact-name"]').first())
+
+  // Studio shows no close button over the frame: the app's own dialog closes it.
+  const dialog = (await dialogFrame(page, 'Contacts')).locator('[data-test="dialog-unavailable"]')
+  await expect(dialog).toContainText('Contact not available', { timeout: 30_000 })
+  await dialog.locator('[data-test="dialog-unavailable-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
+})
+
 test('changes a contact\'s value in place in edit mode', async ({ page, request }) => {
   const frame = await openSubmodel(page, 'Contacts', shell, contacts, '[data-test="contact"]')
   await expect(frame.getByRole('button', { name: 'Edit Department' })).toHaveCount(0)

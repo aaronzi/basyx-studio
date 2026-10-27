@@ -47,7 +47,9 @@
     "expired": "期限切れ",
     "additionalText": "備考",
     "open": "{name} を表示",
-    "preview": "{name} をファイルビューアーで表示"
+    "preview": "{name} をファイルビューアーで表示",
+    "unavailable": "マーキングを表示できません",
+    "missing": "このマーキングは銘板にもうありません。"
   },
   "assetSpecific": {
     "general": "一般",

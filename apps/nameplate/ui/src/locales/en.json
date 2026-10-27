@@ -47,7 +47,9 @@
     "expired": "Expired",
     "additionalText": "Note",
     "open": "Show {name}",
-    "preview": "Show {name} in the file viewer"
+    "preview": "Show {name} in the file viewer",
+    "unavailable": "Marking not available",
+    "missing": "This marking is no longer in the nameplate."
   },
   "assetSpecific": {
     "general": "General",
