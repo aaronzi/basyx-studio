@@ -54,7 +54,7 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
 
   // An older version.
   await clickInApp(page, frame.locator('[data-test="version-menu"]'))
-  await clickInApp(page, frame.getByRole('listitem').filter({ hasText: 'v1.0' }))
+  await clickInApp(page, frame.locator('.v-overlay__content').getByRole('listitem').filter({ hasText: 'v1.0' }))
   await expect(frame.locator('[data-test="version-menu"]')).toHaveText('v1.0')
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-operating-manual-en-1.0.pdf', { timeout: 30_000 })
   await expect(viewer.locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 3', { timeout: 30_000 })
@@ -63,7 +63,7 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Spare parts list' }))
   await expect(viewer.locator('[data-test="file-viewer-csv"]')).toContainText('GM40-101', { timeout: 30_000 })
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Service contract' }))
-  await expect(frame.getByText('This version has no file.')).toBeVisible()
+  await expect(frame.locator('[data-test="document-preview"]')).toContainText('This version has no file.')
 })
 
 test('searches and filters documents, and follows relations between them', async ({ page }) => {
