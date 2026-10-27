@@ -52,9 +52,7 @@
   "assetSpecific": {
     "general": "Algemeen",
     "guideline": "Richtlijn {value}",
-    "entry": "{name} {number}",
-    "expand": "Tonen",
-    "collapse": "Verbergen"
+    "entry": "{name} {number}"
   },
   "contact": {
     "showOnMap": "Openen in Google Maps",

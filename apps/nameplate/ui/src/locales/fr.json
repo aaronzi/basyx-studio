@@ -52,9 +52,7 @@
   "assetSpecific": {
     "general": "Général",
     "guideline": "Directive {value}",
-    "entry": "{name} {number}",
-    "expand": "Afficher",
-    "collapse": "Masquer"
+    "entry": "{name} {number}"
   },
   "contact": {
     "showOnMap": "Ouvrir dans Google Maps",

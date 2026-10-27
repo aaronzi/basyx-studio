@@ -4,7 +4,7 @@
          Nameplate plugins in the frame of the Documents app: the product at a
          glance, then cards for the product's facts and the manufacturer (side
          by side in a wide frame), the markings, which open their details, and
-         the asset specific properties, these two below a heading. -->
+         the asset specific properties, collapsed. -->
     <v-view-card>
       <v-progress-linear v-if="loading" />
 
@@ -74,7 +74,7 @@
 
         </v-row>
 
-        <!-- The markings' cards and the property groups' tables are bordered themselves. -->
+        <!-- The markings' cards are bordered themselves. -->
         <section v-if="nameplate.markings.length > 0" data-test="markings">
           <SectionHeading icon="mdi-check-decagram-outline" :title="t('sections.markings')" />
           <MarkingList :client="client" :markings="nameplate.markings" :submodel-id="submodelId" @open="openMarking" />

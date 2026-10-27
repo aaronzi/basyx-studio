@@ -6,7 +6,7 @@ import { VCard, VCardActions, VCardItem, VCardSubtitle, VCardText, VCardTitle } 
 import { VChip } from 'vuetify/components/VChip'
 import { VDialog } from 'vuetify/components/VDialog'
 import { VDivider } from 'vuetify/components/VDivider'
-import { VExpansionPanel, VExpansionPanels, VExpansionPanelText } from 'vuetify/components/VExpansionPanel'
+import { VExpansionPanel, VExpansionPanels, VExpansionPanelText, VExpansionPanelTitle } from 'vuetify/components/VExpansionPanel'
 import { VCol, VRow, VSpacer } from 'vuetify/components/VGrid'
 import { VIcon } from 'vuetify/components/VIcon'
 import { VProgressLinear } from 'vuetify/components/VProgressLinear'
@@ -33,6 +33,7 @@ await mountApp(App, {
   VExpansionPanel,
   VExpansionPanels,
   VExpansionPanelText,
+  VExpansionPanelTitle,
   VIcon,
   VProgressLinear,
   VRow,

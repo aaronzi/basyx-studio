@@ -46,6 +46,9 @@ export const appDefaults = {
   // details): bordered with Studio's radius, every other row tinted, as in
   // the BaSyx AAS Web UI.
   VTableDetails: { density: 'compact', striped: 'odd', class: 'bg-transparent border rounded-lg overflow-hidden' },
+  // Collapsed details (a nameplate's asset specific properties, a model's
+  // technical details): bordered as cards, without a shadow.
+  VExpansionPanels: { flat: true, class: 'border rounded-lg overflow-hidden' },
   VAlert: { border: 'start', variant: 'tonal' },
   VProgressLinear: { indeterminate: true, color: 'primary' },
 } as const

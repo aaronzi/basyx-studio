@@ -10,8 +10,7 @@
 
 <script lang="ts" setup>
   // The heading of a part of the nameplate without a card of its own (the
-  // markings, the asset specific properties): icon, title and actions, as the
-  // header of a section's card.
+  // markings): icon, title and actions, as the header of a section's card.
   defineProps<{ title: string, icon: string }>()
   defineSlots<{
     actions?: () => unknown
