@@ -31,10 +31,12 @@ async function clickInApp (page: Page, target: Locator) {
   await target.click()
 }
 
-/** Opens the version's file menu and picks a file. */
+/** Opens the version's file menu and picks a file; the menu has closed when it returns. */
 async function chooseFile (page: Page, frame: FrameLocator, name: string) {
   await clickInApp(page, frame.locator('[data-test="document-files"]'))
-  await clickInApp(page, frame.locator('[data-test="document-file"]').filter({ hasText: name }))
+  // Only the open menu: a closed one stays in the page while it fades out.
+  await clickInApp(page, frame.locator('.v-overlay--active [data-test="document-file"]').filter({ hasText: name }))
+  await expect(frame.locator('.v-overlay--active [data-test="document-file"]')).toHaveCount(0)
 }
 
 test.beforeEach(async ({ page }) => {
@@ -57,6 +59,8 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-betriebsanleitung-de.pdf', { timeout: 30_000 })
   await expect(frame.locator('[data-test="document-files"]')).toHaveText('gm40-betriebsanleitung-de.pdf')
   await chooseFile(page, frame, 'Preview image')
+  // Images load once they are in sight (v-img), which here is below the fold.
+  await viewer.locator('[data-test="file-viewer-image"]').scrollIntoViewIfNeeded()
   await expect(viewer.locator('[data-test="file-viewer-image"] img')).toBeVisible({ timeout: 30_000 })
 
   // An older version.
