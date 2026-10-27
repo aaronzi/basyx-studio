@@ -6,7 +6,8 @@ import { createVuetify } from 'vuetify'
 import { VBtn } from 'vuetify/components/VBtn'
 import { VBtnGroup } from 'vuetify/components/VBtnGroup'
 import { VBtnToggle } from 'vuetify/components/VBtnToggle'
-import { VCard } from 'vuetify/components/VCard'
+import { VCard, VCardItem } from 'vuetify/components/VCard'
+import { VTable } from 'vuetify/components/VTable'
 import { Tooltip } from 'vuetify/directives'
 import { aliases, mdi } from 'vuetify/iconsets/mdi'
 import { appDefaults } from './defaults.ts'
@@ -37,10 +38,10 @@ export interface MountOptions {
 export async function mountApp (app: Component, components: Record<string, Component>, options: MountOptions = {}): Promise<StudioClient> {
   const client = await (options.client ?? connect())
   const vuetify = createVuetify({
-    components: { ...components, VBtn, VBtnGroup, VBtnToggle, VCard },
+    components: { ...components, VBtn, VBtnGroup, VBtnToggle, VCard, VCardItem, VTable },
     // `v-tooltip` as Studio uses it, e.g. on icon-only buttons.
     directives: { Tooltip },
-    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VBtnToggleIcon: VBtn, VCardFullscreen: VCard, VViewCard: VCard },
+    aliases: { VBtnPrimary: VBtn, VBtnSecondary: VBtn, VBtnToggleIcon: VBtn, VBtnLink: VBtn, VCardFullscreen: VCard, VCardHeader: VCardItem, VCardSection: VCard, VViewCard: VCard, VTableDetails: VTable },
     defaults: appDefaults,
     icons: { defaultSet: 'mdi', aliases, sets: { mdi } },
   })

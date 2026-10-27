@@ -543,6 +543,7 @@
       "studio_ui_navigation": "更改其自身的页面地址、打开目标和管理壳、在其他应用的视图中显示子模型并在浏览器中打开链接",
       "studio_backend": "运行服务器端代码（隔离）",
       "studio_ui_clipboard": "点击时将文本复制到剪贴板",
+      "studio_ui_saveFiles": "点击时将其创建的文件（如联系人）保存到你的计算机",
       "studio_containers": "在 Docker 或 Podman 上启动、停止、导出和删除本地 BaSyx 实例（仅限 Studio 自带的应用）",
       "studio_timeseries_read": "读取时间序列，也包括来自基础设施连接数据库的数据（仅限 Studio 附带的应用以及部署授予此权限的已签名应用）",
       "studio_ui_externalFiles": "在浏览器中获取管理壳在其他主机上指定的文件（这些主机可以看到您的地址）",

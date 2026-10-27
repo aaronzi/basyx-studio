@@ -12,11 +12,27 @@ export const appDefaults = {
   VApp: { class: 'bg-transparent' },
   VViewCard: { flat: true, border: false, rounded: 0, color: 'transparent' },
   VCard: { flat: true, border: true, rounded: 'lg' },
+  // The header of a dialog's or section's card, as in Studio: a tinted band
+  // that sets the title apart from the content.
+  VCardHeader: { class: 'bg-card-header' },
+  // A part of a view in a card of its own (a nameplate's product, its
+  // manufacturer), bordered as every card and as tall as its neighbours in a
+  // row; its label and value rows sit flush, the card is their border. An
+  // alias takes none of VCard's defaults, so they are restated.
+  VCardSection: { flat: true, border: true, rounded: 'lg', class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent' } },
+  // Dialogs as in Studio: their card keeps a shadow, so it stands out.
+  VDialog: { VCard: { flat: false } },
+  // The actions of a dialog or card at Studio's button height: the view's
+  // buttons are comfortable (VBtn below), Studio's dialog buttons are not.
+  VCardActions: { VBtn: { density: 'default' }, VBtnPrimary: { density: 'default' }, VBtnSecondary: { density: 'default' } },
   // A view that fills the window, e.g. a preview opened without Studio's header.
   ...fullscreenDefaults,
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text', density: 'comfortable' },
   VBtnPrimary: { color: 'primary', variant: 'flat', rounded: 'lg', class: 'text-none', density: 'comfortable' },
   VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none', density: 'comfortable' },
+  // A value that opens something (a link, an email address, a phone number, a
+  // document): in the primary colour, so it stands out from plain values.
+  VBtnLink: { color: 'primary', variant: 'text', size: 'small', rounded: 'lg', class: 'px-0 text-none text-break', density: 'comfortable' },
   ...buttonGroupDefaults,
   ...fieldDefaults,
   VChip: { label: true, size: 'small', variant: 'tonal' },
@@ -26,6 +42,13 @@ export const appDefaults = {
   ...menuDefaults,
   // The app bar, drawers, toolbars and tabs of a full-page module, as in Studio.
   ...layoutDefaults,
+  // Label and value rows of a view (a nameplate's facts, a document's
+  // details): bordered with Studio's radius, every other row tinted, as in
+  // the BaSyx AAS Web UI.
+  VTableDetails: { density: 'compact', striped: 'odd', class: 'bg-transparent border rounded-lg overflow-hidden' },
+  // Collapsed details (a nameplate's asset specific properties, a model's
+  // technical details): bordered as cards, without a shadow.
+  VExpansionPanels: { flat: true, class: 'border rounded-lg overflow-hidden' },
   VAlert: { border: 'start', variant: 'tonal' },
   VProgressLinear: { indeterminate: true, color: 'primary' },
 } as const

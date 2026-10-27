@@ -1,0 +1,29 @@
+{
+  "contacts": {
+    "none": "Dieses Teilmodell hat keine Kontakte.",
+    "untitled": "Kontakt {number}",
+    "search": "Kontakte durchsuchen",
+    "filtered": "{count} von {total} Kontakten",
+    "noMatch": "Kein Kontakt passt zur Suche.",
+    "fullscreen": "Vollbild",
+    "close": "Schließen",
+    "open": "{name} anzeigen",
+    "unavailable": "Kontakt nicht verfügbar",
+    "missing": "Dieser Kontakt ist nicht mehr im Teilmodell."
+  },
+  "contact": {
+    "showOnMap": "In Google Maps öffnen",
+    "copy": "{label} kopieren",
+    "copied": "In die Zwischenablage kopiert.",
+    "save": "Kontakt speichern"
+  },
+  "edit": {
+    "edit": "{label} bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "saved": "{label} gespeichert.",
+    "conflict": "Dieser Wert wurde inzwischen anderweitig geändert. Bitte abbrechen und erneut versuchen.",
+    "forbidden": "Keine Berechtigung, diesen Wert zu ändern.",
+    "language": "Sprache: {language}"
+  }
+}

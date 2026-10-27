@@ -272,10 +272,42 @@ export type AppRequestMessage = z.infer<typeof appRequestMessageSchema>
 
 const identifier = z.string().min(1).max(2048)
 
-/** URLs an app may open in the system browser: https, or http of this computer, where local BaSyx instances answer. */
+/** A percent-encoded text decoded; `null` for a malformed escape. */
+function decoded (value: string): string | null {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return null
+  }
+}
+
+/**
+ * URLs an app may open outside Studio: https, or http of this computer, where
+ * local BaSyx instances answer, in the system browser; an email address
+ * (`mailto:`) or a phone number (`tel:`) in the system's mail or phone app
+ * (app API 0.1.14).
+ */
 export function isExternalUrl (value: string): boolean {
   const url = URL.parse(value)
-  return url?.protocol === 'https:' || (url?.protocol === 'http:' && ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname))
+  switch (url?.protocol) {
+    case 'https:': {
+      return true
+    }
+    case 'http:': {
+      return ['127.0.0.1', 'localhost', '[::1]'].includes(url.hostname)
+    }
+    case 'mailto:': {
+      return /^[^\s/?#@]+@[^\s/?#@]+(?:\?.*)?$/.test(value.slice('mailto:'.length))
+    }
+    case 'tel:': {
+      // A malformed escape such as `tel:%` is no number, not an error.
+      const number = decoded(url.pathname)
+      return number !== null && /^\+?[\d\s().\-/]{2,40}$/.test(number)
+    }
+    default: {
+      return false
+    }
+  }
 }
 /**
  * The http(s) address of a file that an element names at another host: the
@@ -380,8 +412,9 @@ export const appMethodParamsSchemas = {
     appId: z.string().regex(/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*){1,9}$/, 'must be an app ID').max(128).optional(),
     viewId: z.string().regex(/^[a-z][a-z0-9-]{0,63}$/, 'must be the ID of a submodel view').optional(),
   }).strict().refine(view => view.viewId === undefined || view.appId !== undefined, { message: 'needs appId', path: ['viewId'] }),
-  'studio.ui.openExternal': z.object({ url: z.url({ protocol: /^https?$/ }).max(2000).refine(isExternalUrl, 'must be an https URL, or an http URL of this computer') }).strict(),
+  'studio.ui.openExternal': z.object({ url: z.url({ protocol: /^(?:https?|mailto|tel)$/ }).max(2000).refine(isExternalUrl, 'must be an https URL, an http URL of this computer, an email address (mailto:) or a phone number (tel:)') }).strict(),
   'studio.ui.copyText': z.object({ text: z.string().max(10_000) }).strict(),
+  'studio.ui.saveFile': z.object({ fileName, contentType: mediaType, text: z.string().max(1024 * 1024) }).strict(),
   'studio.containers.listEngines': z.object({}).strict(),
   'studio.containers.selectEngine': z.object({ host: engineHostSchema.nullable() }).strict(),
   'studio.containers.listStacks': z.object({}).strict(),

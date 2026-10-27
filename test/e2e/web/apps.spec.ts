@@ -132,7 +132,7 @@ test('offers app views only for matching submodels and says which (DoD 2)', asyn
 
   await openNameplateView(page, openTargetId)
   const frame = appFrame(page, 'Digital Nameplate')
-  await expect(frame.getByText('Industrial Servo Motor DM-3000')).toBeVisible()
+  await expect(frame.locator('[data-test="product-title"]')).toHaveText('Industrial Servo Motor DM-3000')
   await expect(frame.locator('[data-field="SerialNumber"]')).toContainText(originalSerial)
   // One card per matching view, labeled with its submodel, and with its app
   // where the view's own title does not name the app.
@@ -147,7 +147,7 @@ test('offers app views only for matching submodels and says which (DoD 2)', asyn
 
   // The secured fixture's nameplate (its serial number is changed by the write test).
   await openNameplateView(page, securedTargetId, securedShell)
-  await expect(appFrame(page, 'Digital Nameplate').getByText('Secured Test Manufacturer')).toBeVisible()
+  await expect(appFrame(page, 'Digital Nameplate').locator('[data-test="manufacturer-name"]')).toHaveText('Secured Test Manufacturer')
 })
 
 test('writes through the app with the core UI\'s conflict handling (DoD 4)', async ({ page, request }) => {
@@ -477,7 +477,7 @@ test('runs a backend app in Deno with the user\'s rights (DoD 8)', async ({ page
   const frame = appFrame(page)
 
   await frame.getByRole('button', { name: 'Summarize target' }).click()
-  await expect(frame.locator('[data-test="summary"]')).toContainText('65 shells', { timeout: 30_000 })
+  await expect(frame.locator('[data-test="summary"]')).toContainText('68 shells', { timeout: 30_000 })
   await expect(frame.locator('[data-test="summary"]')).toContainText('Deno 2.')
 
   await frame.getByRole('button', { name: 'Check isolation' }).click()

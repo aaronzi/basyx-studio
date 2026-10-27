@@ -131,6 +131,17 @@ describe('createTestStudio', () => {
     expect(studio.viewState).toBe('{"document":"Documents[3]"}')
   })
 
+  it('keeps the files an app saves, with studio.ui.saveFiles only (app API 0.1.14)', async () => {
+    const studio = createTestStudio({ permissions: ['studio.ui.saveFiles'] })
+    await studio.client.ui.saveFile('Jane Doe.vcf', 'BEGIN:VCARD\r\nEND:VCARD\r\n', 'text/vcard')
+    await studio.client.ui.saveFile('notes.txt', 'Notes')
+    expect(studio.savedFiles).toEqual([
+      { fileName: 'Jane Doe.vcf', contentType: 'text/vcard', text: 'BEGIN:VCARD\r\nEND:VCARD\r\n' },
+      { fileName: 'notes.txt', contentType: 'text/plain', text: 'Notes' },
+    ])
+    await expect(createTestStudio({ permissions: [] }).client.ui.saveFile('a.txt', 'a')).rejects.toMatchObject({ code: 'app_permission_not_declared' })
+  })
+
   it('sends a changed context to the app', () => {
     const studio = createTestStudio()
     studio.setContext({ theme: { dark: true, colors: {} } })

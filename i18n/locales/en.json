@@ -630,6 +630,7 @@
       "studio_ui_navigation": "Change its own page address, open targets and shells, show submodels in other apps' views and open links in your browser",
       "studio_backend": "Run server-side code (isolated)",
       "studio_ui_clipboard": "Copy text to your clipboard when you click",
+      "studio_ui_saveFiles": "Save files it creates, such as contacts, to your computer when you click",
       "studio_containers": "Start, stop, export and delete local BaSyx instances on Docker or Podman (apps shipped with Studio only)",
       "studio_timeseries_read": "Read time series, also from the databases of the infrastructure's connections (apps shipped with Studio, and signed apps the deployment grants it)",
       "studio_ui_externalFiles": "Fetch files that the AAS names at other hosts, in your browser (those hosts see your address)",

@@ -6,7 +6,7 @@
 export const protocolVersion = 'studio-sdk/0'
 
 /** Version of the Studio app API that manifests name in `studioApi`. */
-export const studioAppApiVersion = '0.1.13'
+export const studioAppApiVersion = '0.1.14'
 
 /** The largest file `studio.ui.readFile` hands to an app (200 MiB). */
 export const readFileMaxBytes = 200 * 1024 * 1024
@@ -27,6 +27,8 @@ export const permissions = [
    * so that host learns the user's address and which file they view.
    */
   'studio.ui.externalFiles',
+  /** Saving files the app creates, e.g. a contact as vCard, to the user's computer after a click (Studio app API 0.1.14). */
+  'studio.ui.saveFiles',
   'studio.backend',
   /** Desktop only, bundled first-party apps only: local BaSyx instances on Docker or Podman (ADR 0033). */
   'studio.containers',
@@ -740,11 +742,22 @@ export interface Methods {
    * (Studio app API 0.1.11).
    */
   'studio.ui.embedView': { params: { submodelId: string, shellId?: string, appId?: string, viewId?: string }, result: { url: string } }
-  /** Opens an http(s) URL in the system browser. */
-  /** Needs a click in the app just before. Only https, or http to this computer (127.0.0.1, localhost, [::1]). */
+  /**
+   * Opens an http(s) URL in the system browser, or a `mailto:` or `tel:`
+   * URL in the system's mail or phone app (Studio app API 0.1.14). Needs a
+   * click in the app just before. Only https, http to this computer
+   * (127.0.0.1, localhost, [::1]), mailto and tel.
+   */
   'studio.ui.openExternal': { params: { url: string }, result: null }
   /** Copies text to the clipboard; needs a click in the app just before. */
   'studio.ui.copyText': { params: { text: string }, result: null }
+  /**
+   * Saves a text file the app created, e.g. a contact as vCard, to the
+   * user's computer: the browser's download, or the desktop app's save
+   * dialog. Up to 1 MiB of text; needs a click in the app just before
+   * (Studio app API 0.1.14).
+   */
+  'studio.ui.saveFile': { params: { fileName: string, contentType: string, text: string }, result: null }
   'studio.containers.listEngines': { params: Record<string, never>, result: Engines }
   /** Uses this engine (`unix:///…` or `npipe:////./pipe/…`); `null` picks automatically. */
   'studio.containers.selectEngine': { params: { host: string | null }, result: Engines }
@@ -822,6 +835,7 @@ export const methodPermissions: Record<MethodName, Permission | null> = {
   'studio.ui.embedView': 'studio.ui.navigation',
   'studio.ui.openExternal': 'studio.ui.navigation',
   'studio.ui.copyText': 'studio.ui.clipboard',
+  'studio.ui.saveFile': 'studio.ui.saveFiles',
   'studio.containers.listEngines': 'studio.containers',
   'studio.containers.selectEngine': 'studio.containers',
   'studio.containers.listStacks': 'studio.containers',

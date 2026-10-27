@@ -60,3 +60,133 @@ export function humanize (idShort: string): string {
   const words = idShort.replaceAll(/([a-z\d])([A-Z])/g, '$1 $2').replaceAll(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
   return words.charAt(0) + words.slice(1).toLowerCase()
 }
+
+// Finding the elements of a submodel template across its versions (app API
+// 0.1.14): by idShort, also numbered (`Phone01`, `Marking__00__`,
+// `Language{00}`), by the last segment of a URL semantic ID, or by the
+// concept of an IRDI semantic ID in any version and spelling.
+
+export interface LangString {
+  language: string
+  text: string
+}
+
+/** The value of the first key of an element's semantic ID; empty without one. */
+export function semanticIdOf (element: JsonObject): string {
+  const keys = (element.semanticId as { keys?: Array<{ value?: unknown }> } | undefined)?.keys ?? []
+  return typeof keys[0]?.value === 'string' ? keys[0].value.trim() : ''
+}
+
+/** An ECLASS IRDI in either spelling: `0173-1#02-AAO128#002` or `0173-1-02-AAO128-002` (in an `api.eclass-cdp.com` URL). */
+const eclassIrdi = /(\d{4}-\d)[#-](\d{2})[#-]([A-Z]{2}[A-Z\d]\d{3})/
+/** An IEC CDD IRDI: `0112/2///61987#ABA565#009`, `0112/2///61360_7#AAS011#001`. */
+const iecIrdi = /(\d{4}\/\d)\/{3}([\d_]+)#([A-Z]{3}\d{3})/
+
+/**
+ * What a semantic ID means, without its version, to compare elements across
+ * template versions: `0173-1#02-AAO128#002` and
+ * `https://api.eclass-cdp.com/0173-1-02-AAO128-003` → `0173-1#02-AAO128`;
+ * `0112/2///61987#ABA565#009` → `0112/2///61987#ABA565`; the first IRDI of a
+ * composite one (`0173-1#02-ABI218#003/0173-1#01-AGZ672#004`); other IDs
+ * in lower case, without a trailing slash.
+ */
+export function conceptOf (semanticId: string): string {
+  const eclass = eclassIrdi.exec(semanticId)
+  if (eclass) {
+    return `${eclass[1]}#${eclass[2]}-${eclass[3]}`
+  }
+  const iec = iecIrdi.exec(semanticId)
+  if (iec) {
+    return `${iec[1]}///${iec[2]}#${iec[3]}`
+  }
+  return semanticId.trim().replace(/\/+$/, '').toLowerCase()
+}
+
+/** Which elements of a template are meant, whatever their version calls them. */
+export interface ElementSpec {
+  /** idShorts without a number: `Phone` matches `Phone`, `Phone01`, `Phone__00__` and `Phone{00}`. */
+  names: string[]
+  /** Semantic IDs, in any version: compared by `conceptOf`. */
+  semanticIds?: string[]
+}
+
+/** An idShort without its number, in lower case: `Marking__00__` → `marking`. */
+function baseName (idShort: unknown): string {
+  return String(idShort ?? '').replace(/(?:__\d+__|\{\d+\}|\d+)$/, '').toLowerCase()
+}
+
+/** The name a URL semantic ID gives its element: `…/ContactInformation/Phone` → `phone`. */
+function semanticName (semanticId: string): string {
+  return /^https?:\/\//i.test(semanticId) ? semanticId.replace(/\/+$/, '').split('/').pop()?.trim().toLowerCase() ?? '' : ''
+}
+
+/** Whether an element has one of a spec's names: as idShort, or as the last segment of a URL semantic ID. */
+export function hasSpecName (element: JsonObject, spec: ElementSpec): boolean {
+  const names = new Set(spec.names.map(name => name.toLowerCase()))
+  const semanticId = semanticIdOf(element)
+  return names.has(baseName(element.idShort)) || (semanticId !== '' && names.has(semanticName(semanticId)))
+}
+
+/** Whether an element is one of those a spec names. */
+export function matchesSpec (element: JsonObject, spec: ElementSpec): boolean {
+  if (hasSpecName(element, spec)) {
+    return true
+  }
+  const semanticId = semanticIdOf(element)
+  const concept = semanticId === '' ? '' : conceptOf(semanticId)
+  return concept !== '' && (spec.semanticIds ?? []).some(id => conceptOf(id) === concept)
+}
+
+/**
+ * The children of a submodel or element that a spec names, by name or by
+ * semantic ID, in their order: every entry of a repeated element, e.g.
+ * `MarkingAdditionalText01` and a `SafetyNotice` with its semantic ID.
+ */
+export function childrenMatching (node: Node | JsonObject | undefined, spec: ElementSpec): Node[] {
+  return (node ? childrenOf(node) : []).filter(entry => matchesSpec(entry.element, spec))
+}
+
+/**
+ * The child that a spec names: the first with its name, else the first with
+ * its semantic ID, so that a semantic ID given to the wrong element does not
+ * hide the element of that name.
+ */
+export function childMatching (node: Node | JsonObject | undefined, spec: ElementSpec): Node | undefined {
+  const matches = childrenMatching(node, spec)
+  return matches.find(entry => hasSpecName(entry.element, spec)) ?? matches[0]
+}
+
+/** A Property or MultiLanguageProperty as text, with what changing it needs. */
+export interface TextField {
+  /** The idShortPath, for `aas.getElement` and `aas.setElementValue`. */
+  path: string
+  modelType: 'Property' | 'MultiLanguageProperty'
+  /** The texts of a MultiLanguageProperty; a Property's value as one text without language. */
+  values: LangString[]
+  /** The first key of the element's `valueId`, e.g. a value list entry; empty without one. */
+  valueId: string
+}
+
+/** A Property or MultiLanguageProperty as a `TextField`; `undefined` for other elements. */
+export function textFieldOf (node: Node | undefined): TextField | undefined {
+  const element = node?.element
+  if (!node || !element || (element.modelType !== 'Property' && element.modelType !== 'MultiLanguageProperty')) {
+    return undefined
+  }
+  const keys = (element.valueId as { keys?: Array<{ value?: unknown }> } | undefined)?.keys ?? []
+  const valueId = typeof keys[0]?.value === 'string' ? keys[0].value : ''
+  if (element.modelType === 'Property') {
+    const value = element.value
+    const text = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value).trim() : ''
+    return { path: node.path, modelType: 'Property', values: text === '' ? [] : [{ language: '', text }], valueId }
+  }
+  const values = (Array.isArray(element.value) ? element.value as unknown[] : [])
+    .filter((entry): entry is LangString => typeof (entry as LangString)?.text === 'string' && (entry as LangString).text.trim() !== '')
+    .map(entry => ({ language: String(entry.language ?? ''), text: entry.text.trim() }))
+  return { path: node.path, modelType: 'MultiLanguageProperty', values, valueId }
+}
+
+/** A field's text for the locale: its language, else English, else the first. */
+export function fieldText (field: TextField | undefined, locale: string): string {
+  return field ? langText(field.values, locale) : ''
+}

@@ -1,0 +1,31 @@
+{
+  "$schema": "../../packages/studio-sdk/app-manifest.schema.json",
+  "manifestVersion": 0,
+  "id": "org.eclipse.basyx.studio.contact-information",
+  "version": "1.0.0",
+  "publisher": { "name": "Eclipse BaSyx" },
+  "title": { "en": "Contacts", "de": "Kontakte", "es": "Contactos", "fr": "Contacts", "ja": "連絡先", "nl": "Contacten", "zh-Hans": "联系人" },
+  "description": {
+    "en": "Shows the contacts of an asset (IDTA 02002 Contact Information 1.0): each contact's name, role, company and department, address on the map, phone, fax and email with their types and times, further links and languages, with search and a contact card to save. In edit mode, their values can be changed.",
+    "de": "Zeigt die Kontakte eines Assets (IDTA 02002 Contact Information 1.0): Name, Rolle, Unternehmen und Abteilung jedes Kontakts, Adresse auf der Karte, Telefon, Fax und E-Mail mit Art und Erreichbarkeit, weitere Links und Sprachen, mit Suche und einer Kontaktkarte zum Speichern. Im Bearbeitungsmodus lassen sich die Werte ändern.",
+    "es": "Muestra los contactos de un activo (IDTA 02002 Contact Information 1.0): nombre, función, empresa y departamento de cada contacto, dirección en el mapa, teléfono, fax y correo electrónico con su tipo y horario, otros enlaces e idiomas, con búsqueda y una tarjeta de contacto para guardar. En el modo de edición se pueden cambiar sus valores.",
+    "fr": "Affiche les contacts d'un actif (IDTA 02002 Contact Information 1.0) : nom, rôle, entreprise et service de chaque contact, adresse sur la carte, téléphone, fax et e-mail avec leur type et leurs horaires, autres liens et langues, avec recherche et une fiche contact à enregistrer. En mode édition, leurs valeurs peuvent être modifiées.",
+    "ja": "資産の連絡先（IDTA 02002 Contact Information 1.0）を表示します。各連絡先の名前、役割、会社と部署、地図上の住所、種類と対応時間付きの電話・FAX・メール、その他のリンクと言語を、検索と保存できる連絡先カードとともに表示します。編集モードでは値を変更できます。",
+    "nl": "Toont de contacten van een asset (IDTA 02002 Contact Information 1.0): naam, rol, bedrijf en afdeling van elk contact, adres op de kaart, telefoon, fax en e-mail met hun soort en bereikbaarheid, verdere links en talen, met zoeken en een contactkaart om op te slaan. In de bewerkingsmodus kunnen de waarden worden gewijzigd.",
+    "zh-Hans": "显示资产的联系人（IDTA 02002 Contact Information 1.0）：每个联系人的姓名、角色、公司和部门、地图上的地址、带类型和可联系时间的电话、传真和电子邮件、其他链接和语言，并提供搜索和可保存的联系人名片。在编辑模式下可以更改其值。"
+  },
+  "studioApi": "^0.1.14",
+  "runtimes": ["hosted", "desktop"],
+  "permissions": ["studio.aas.read", "studio.aas.write", "studio.ui.notifications", "studio.ui.navigation", "studio.ui.clipboard", "studio.ui.saveFiles"],
+  "contributes": {
+    "submodelViews": [
+      {
+        "id": "contact-information",
+        "title": { "en": "Contacts", "de": "Kontakte", "es": "Contactos", "fr": "Contacts", "ja": "連絡先", "nl": "Contacten", "zh-Hans": "联系人" },
+        "entry": "ui/index.html",
+        "semanticIds": ["https://admin-shell.io/zvei/nameplate/1/0/ContactInformations"],
+        "columns": { "md": 12, "xl": 8 }
+      }
+    ]
+  }
+}

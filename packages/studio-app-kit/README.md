@@ -25,7 +25,10 @@ await mountApp(App, { VApp, VList, VListItem })
 ```
 
 `mountApp` connects to Studio, creates Vuetify with Studio's defaults,
-aliases (`<v-btn-primary>`, `<v-btn-toggle-icon>` for icon-only choices in a
+aliases (`<v-btn-primary>`, `<v-btn-link>` for values that open something,
+`<v-table-details>` for label and value rows, `<v-card-header>` for the
+tinted header of a dialog's or section's card, `<v-card-section>` for a part
+of a view in a card of its own, `<v-btn-toggle-icon>` for icon-only choices in a
 `<v-btn-toggle>`, `<v-card-fullscreen>` for a view that fills the window,
 `<v-view-card>`), the `v-tooltip` directive and icons, follows Studio's
 theme, mounts `App` into `#app` with the client as its `client` prop, and
@@ -37,7 +40,8 @@ the app mounts.
 | Entry | What |
 | --- | --- |
 | `@basyx/studio-app-kit` | `mountApp`, `loadSubmodel`, and the AAS helpers below |
-| `@basyx/studio-app-kit/aas` | Reading AAS JSON without Vue: `childrenOf`, `child`, `langText`, `textOf`, `humanize` |
+| `@basyx/studio-app-kit/aas` | Reading AAS JSON without Vue: `childrenOf`, `child`, `langText`, `textOf`, `humanize`; elements of a template across its versions by idShort or semantic ID (`ElementSpec`, `childrenMatching`, `childMatching`, `matchesSpec`, `hasSpecName`, `conceptOf`; an idShort wins over a semantic ID) and `TextField`s to show and change (`textFieldOf`, `fieldText`) |
+| `@basyx/studio-app-kit/contacts` | IDTA 02002 contact information without Vue: `parseContactInformations`, `parseContactInformation` (also a nameplate's address), `contactName`, `addressLines`, `contactRows` in Studio's seven locales, value lists (`contactRole`, `channelType`), `telUrl`, `mailtoUrl`, `mapUrl`, `contactVCard` ([Contacts](#contacts)) |
 | `@basyx/studio-app-kit/i18n` | `provideI18n(client, base, translations, { baseLocale })` and `useI18n()`: texts that follow Studio's locale, the base catalog as fallback ([Texts](#texts)) |
 | `@basyx/studio-app-kit/router` | `createStudioHistory(client, { history })`: a Vue Router history over a module's sub-path ([Modules with pages](#modules-with-pages)) |
 | `@basyx/studio-app-kit/defaults` | The Vuetify defaults of `mountApp`, e.g. for lint rules |
@@ -76,6 +80,49 @@ new Intl.NumberFormat(formatLocale.value).format(1234.5)
 - Catalogs nest to any depth (`section.group.key`); a translation has the
   base catalog's keys, any of them missing (`PartialCatalog`). Two-level
   catalogs stay valid.
+
+## Contacts
+
+`@basyx/studio-app-kit/contacts` reads the contacts of IDTA 02002 Contact
+Information 1.0 and the manufacturer's address of the Digital Nameplate
+(`AddressInformation` in 3.0, `ContactInformation` in 2.0, `Address` in 1.0)
+by idShort or semantic ID, numbered or in lists, as Studio's Contacts and
+Digital Nameplate apps do:
+
+```ts
+import { contactName, contactRows, contactVCard, parseContactInformations, vCardFileName } from '@basyx/studio-app-kit/contacts'
+
+for (const contact of parseContactInformations(submodel)) {
+  contactName(contact, locale) // "Dr. Jane Doe"
+  contactRows(contact, locale) // role, company, address with map link, phone with tel: URL, …
+  await client.ui.saveFile(vCardFileName(contact, locale), contactVCard(contact, locale), 'text/vcard')
+}
+```
+
+Rows are labelled in Studio's seven UI locales, with the role and the
+types of phone, fax and email from their ECLASS value lists, countries and
+languages from `Intl`. `contactRows(contact, locale, { edit: true })` gives
+one row per element instead, each with the `TextField` to change through
+`aas.setElementValue`. The vCard is version 3.0 (RFC 2426); saving it needs
+`studio.ui.saveFiles`, opening `mailto:` and `tel:` URLs
+`studio.ui.navigation` (Studio app API 0.1.14).
+
+## Dialogs
+
+Dialogs look and close as Studio's own (`app/components/DialogCard.vue` in
+Studio): a `<v-card>` with a `<v-card-header>` that holds the title only, a
+`<v-divider>`, the body in `<v-card-text class="pa-4">`, another divider, and
+`<v-card-actions>` with further actions on the left (`<v-btn-secondary>`), a
+`<v-spacer>`, and *Close* or *Cancel* and the main action on the right. They
+close from their actions, Esc or a click outside, not from an icon in the
+header. The buttons in `<v-card-actions>` are as tall as Studio's; elsewhere
+in a view they are comfortable, so the view stays compact.
+
+A view whose frame is only as tall as its content, such as a widget on a
+shell's Overview, shows a dialog with the window's size by opening itself
+again without Studio's header (`client.ui.openFullscreen(state, { header:
+false })`): there it renders the `<v-dialog>` with `:scrim="false"`, as
+Studio dims the page, and calls `client.ui.closeFullscreen()` when it closes.
 
 ## Modules with pages
 

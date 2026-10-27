@@ -30,7 +30,7 @@ var g = {
 		"testenv:up": "docker compose -f test-setup/docker-compose.yaml up -d --wait --wait-timeout 300",
 		"testenv:down": "docker compose -f test-setup/docker-compose.yaml --profile large --profile demo down -v",
 		"testenv:smoke": "node test-setup/smoke-test.mjs",
-		"testenv:fixtures": "node test-setup/fixtures/generate-fixtures.mjs && node test-setup/fixtures/generate-models3d.mjs",
+		"testenv:fixtures": "node test-setup/fixtures/generate-fixtures.mjs && node test-setup/fixtures/generate-models3d.mjs && node test-setup/fixtures/generate-file-previews.mjs && node test-setup/fixtures/generate-nameplate.mjs",
 		"testenv:large": "node test-setup/fixtures/generate-fixtures.mjs --large && docker compose -f test-setup/docker-compose.yaml --profile large up -d --wait --wait-timeout 600 basyx-large",
 		"testenv:demo": "node examples/apps/fleet-atlas/demo/generate-fleet.mjs && docker compose -f test-setup/docker-compose.yaml --profile demo up -d --wait --wait-timeout 600 basyx-demo",
 		"testenv:demo:live": "node examples/apps/fleet-atlas/demo/simulate.mjs",
@@ -78,27 +78,27 @@ var g = {
 		zod: "^4.6.7"
 	},
 	devDependencies: {
-		"@basyx/model-viewer": "workspace:*",
+		"@basyx/file-viewer": "workspace:*",
 		"@basyx/studio-app-kit": "workspace:*",
 		"@basyx/studio-sdk": "workspace:*",
 		"@electric-sql/pglite-tools": "^0.4.11",
 		"@intlify/message-compiler": "^11.4.16",
 		"@nuxt/eslint": "^1.17.0",
-		"@nuxt/fonts": "^1.0.1",
+		"@nuxt/fonts": "^1.2.0",
 		"@pinia/nuxt": "^1.0.3",
 		"@playwright/test": "1.64.1",
 		"@types/node-forge": "^1.3.14",
 		"@types/pg": "^8.23.1",
-		"@types/semver": "^7.7.1",
+		"@types/semver": "^7.8.0",
 		"@vuetify/mcp": "^0.12.2",
 		"drizzle-kit": "^0.31.11",
 		electron: "^45.0.0",
-		"electron-builder": "^26.15.3",
+		"electron-builder": "^26.18.0",
 		esbuild: "0.28.2",
 		eslint: "^10.12.0",
 		"eslint-config-vuetify": "^4.7.2",
 		"nuxt-electron": "^0.7.0",
-		pnpm: "12.10.1",
+		pnpm: "12.15.0",
 		sass: "^1.106.1",
 		typescript: "^6.0.3",
 		"vite-plugin-electron": "^1.1.2",
@@ -141,7 +141,7 @@ var g = {
 			}]
 		}
 	},
-	packageManager: "pnpm@12.10.1+sha512.ba40a37eb1a370d60fea8c4cf1d364c13bcccef518e98ad2bcee954f539d38da37458e58261a3fa55e06523450ea0ffff9f497b135be41f2c15c1642bacace6c",
+	packageManager: "pnpm@12.15.0+sha512.b3951d6d6ff4a9f13dc7cf56cd28d2b8eb37dbcc9c68e52e1e1191873ea9f82a017287ab50baadc5ccc494f036c67c0e47eb13608c2fa36f47711b61ea128e61",
 	devEngines: { runtime: {
 		name: "deno",
 		version: "2.9.6",
@@ -321,7 +321,12 @@ async function H(e, t) {
 		new URL(t).origin !== i && e.preventDefault();
 	}), r.webContents.setWindowOpenHandler(({ url: e }) => {
 		let t = new URL(e).protocol;
-		return (t === "https:" || t === "http:") && h.openExternal(e), { action: "deny" };
+		return [
+			"https:",
+			"http:",
+			"mailto:",
+			"tel:"
+		].includes(t) && h.openExternal(e), { action: "deny" };
 	}), r.once("ready-to-show", () => r.show()), await r.loadURL(e), l.isPackaged || r.webContents.openDevTools();
 }
 async function U(e, t = {}) {

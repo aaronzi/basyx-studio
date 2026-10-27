@@ -1,0 +1,74 @@
+{
+  "nameplate": {
+    "untitled": "Product",
+    "logo": "Logo van {name}",
+    "fullscreen": "Volledig scherm",
+    "close": "Sluiten"
+  },
+  "sections": {
+    "product": "Product",
+    "manufacturer": "Fabrikant",
+    "markings": "Markeringen",
+    "assetSpecific": "Assetspecifieke eigenschappen"
+  },
+  "fields": {
+    "uriOfTheProduct": "Productpagina",
+    "manufacturerName": "Fabrikant",
+    "manufacturerProductDesignation": "Productaanduiding",
+    "manufacturerProductRoot": "Producthoofdgroep",
+    "manufacturerProductFamily": "Productfamilie",
+    "manufacturerProductType": "Producttype",
+    "orderCodeOfManufacturer": "Bestelcode",
+    "productArticleNumberOfManufacturer": "Artikelnummer",
+    "serialNumber": "Serienummer",
+    "batchNumber": "Batchnummer",
+    "yearOfConstruction": "Bouwjaar",
+    "dateOfManufacture": "Productiedatum",
+    "hardwareVersion": "Hardwareversie",
+    "firmwareVersion": "Firmwareversie",
+    "softwareVersion": "Softwareversie",
+    "countryOfOrigin": "Land van herkomst",
+    "uniqueFacilityIdentifier": "Vestigings-ID"
+  },
+  "product": {
+    "type": "Type {value}",
+    "serial": "SN {value}",
+    "hardwareVersion": "Hardware {version}",
+    "firmwareVersion": "Firmware {version}",
+    "softwareVersion": "Software {version}",
+    "versions": "Versies"
+  },
+  "marking": {
+    "untitled": "Markering {number}",
+    "name": "Naam",
+    "designation": "Certificaat",
+    "issued": "Uitgegeven",
+    "expires": "Geldig tot",
+    "expired": "Verlopen",
+    "additionalText": "Opmerking",
+    "open": "{name} tonen",
+    "preview": "{name} in de bestandsviewer tonen",
+    "unavailable": "Markering niet beschikbaar",
+    "missing": "Deze markering staat niet meer op het typeplaatje."
+  },
+  "assetSpecific": {
+    "general": "Algemeen",
+    "guideline": "Richtlijn {value}",
+    "entry": "{name} {number}"
+  },
+  "contact": {
+    "showOnMap": "Openen in Google Maps",
+    "copy": "{label} kopiëren",
+    "copied": "Naar het klembord gekopieerd.",
+    "save": "Contact opslaan"
+  },
+  "edit": {
+    "edit": "{label} bewerken",
+    "save": "Opslaan",
+    "cancel": "Annuleren",
+    "saved": "{label} opgeslagen.",
+    "conflict": "Iemand anders heeft deze waarde intussen gewijzigd. Annuleer en probeer het opnieuw.",
+    "forbidden": "Je mag deze waarde niet wijzigen.",
+    "language": "Taal: {language}"
+  }
+}

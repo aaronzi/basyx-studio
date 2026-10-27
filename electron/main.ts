@@ -300,10 +300,11 @@ async function createWindow (url: string, launchSecret?: string): Promise<void> 
     }
   })
   // IdP sign-in for targets runs in the system browser (RFC 8252); the
-  // renderer never opens other windows.
+  // renderer never opens other windows. Email addresses and phone numbers
+  // that apps open (studio.ui.openExternal) go to the mail or phone app.
   win.webContents.setWindowOpenHandler(({ url: targetUrl }) => {
     const protocol = new URL(targetUrl).protocol
-    if (protocol === 'https:' || protocol === 'http:') {
+    if (['https:', 'http:', 'mailto:', 'tel:'].includes(protocol)) {
       void shell.openExternal(targetUrl)
     }
     return { action: 'deny' }
