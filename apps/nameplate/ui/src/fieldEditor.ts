@@ -34,12 +34,14 @@ export function draftValue (draft: Pick<Draft, 'field' | 'value' | 'language' | 
   if (draft.field.modelType === 'Property') {
     return value === '' ? null : value
   }
-  const others = draft.values.filter(entry => entry.language !== draft.language)
-  const index = draft.values.findIndex(entry => entry.language === draft.language)
+  // Plain objects: the draft's are Vue proxies, which postMessage cannot clone.
+  const values = draft.values.map(entry => ({ language: entry.language, text: entry.text }))
+  const others = values.filter(entry => entry.language !== draft.language)
+  const index = values.findIndex(entry => entry.language === draft.language)
   if (value === '') {
     return others
   }
-  const changed = [...draft.values]
+  const changed = [...values]
   if (index === -1) {
     changed.push({ language: draft.language, text: value })
   } else {
