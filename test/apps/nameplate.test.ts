@@ -141,7 +141,8 @@ describe('presentation', () => {
 
   it('shows the product\'s other facts, the date and country in the user\'s language, the product page as link', () => {
     const rows = productRows(t, v3, 'de', false)
-    expect(rows.map(row => row.key)).toEqual(['manufacturerProductRoot', 'manufacturerProductFamily', 'manufacturerProductType', 'orderCodeOfManufacturer', 'productArticleNumberOfManufacturer', 'serialNumber', 'yearOfConstruction', 'dateOfManufacture', 'countryOfOrigin', 'uriOfTheProduct'])
+    expect(rows.map(row => row.key)).toEqual(['manufacturerProductRoot', 'manufacturerProductFamily', 'manufacturerProductType', 'orderCodeOfManufacturer', 'productArticleNumberOfManufacturer', 'serialNumber', 'yearOfConstruction', 'dateOfManufacture', 'versions', 'countryOfOrigin', 'uriOfTheProduct'])
+    expect(rows.find(row => row.key === 'versions')!.chips!.map(chip => chip.key)).toEqual(['hardwareVersion', 'firmwareVersion', 'softwareVersion'])
     expect(rows.find(row => row.key === 'dateOfManufacture')!.value).toBe(dateText('2025-03-12', 'de'))
     expect(rows.find(row => row.key === 'countryOfOrigin')!.value).toBe('Deutschland (DE)')
     expect(rows.find(row => row.key === 'uriOfTheProduct')).toMatchObject({ url: 'https://example.com/products/gm-40', copy: 'https://example.com/products/gm-40' })

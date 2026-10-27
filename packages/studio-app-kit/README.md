@@ -26,7 +26,9 @@ await mountApp(App, { VApp, VList, VListItem })
 
 `mountApp` connects to Studio, creates Vuetify with Studio's defaults,
 aliases (`<v-btn-primary>`, `<v-btn-link>` for values that open something,
-`<v-table-details>` for label and value rows, `<v-btn-toggle-icon>` for icon-only choices in a
+`<v-table-details>` for label and value rows, `<v-card-header>` for the
+tinted header of a dialog's or section's card, `<v-card-section>` for a part
+of a view in a card of its own, `<v-btn-toggle-icon>` for icon-only choices in a
 `<v-btn-toggle>`, `<v-card-fullscreen>` for a view that fills the window,
 `<v-view-card>`), the `v-tooltip` directive and icons, follows Studio's
 theme, mounts `App` into `#app` with the client as its `client` prop, and
@@ -104,6 +106,22 @@ one row per element instead, each with the `TextField` to change through
 `aas.setElementValue`. The vCard is version 3.0 (RFC 2426); saving it needs
 `studio.ui.saveFiles`, opening `mailto:` and `tel:` URLs
 `studio.ui.navigation` (Studio app API 0.1.14).
+
+## Dialogs
+
+Dialogs look and close as Studio's own (`app/components/DialogCard.vue` in
+Studio): a `<v-card>` with a `<v-card-header>` that holds the title only, a
+`<v-divider>`, the body in `<v-card-text class="pa-4">`, another divider, and
+`<v-card-actions>` with further actions on the left (`<v-btn-secondary>`), a
+`<v-spacer>`, and *Close* or *Cancel* and the main action on the right. They
+close from their actions, Esc or a click outside, not from an icon in the
+header.
+
+A view whose frame is only as tall as its content, such as a widget on a
+shell's Overview, shows a dialog with the window's size by opening itself
+again without Studio's header (`client.ui.openFullscreen(state, { header:
+false })`): there it renders the `<v-dialog>` with `:scrim="false"`, as
+Studio dims the page, and calls `client.ui.closeFullscreen()` when it closes.
 
 ## Modules with pages
 

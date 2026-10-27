@@ -1,6 +1,8 @@
 <template>
   <!-- In the frame Studio shows alone over its dimmed page (openFullscreen without
-       header), so the dialog has the whole window; Studio dims, so it does not. -->
+       header), so the dialog has the whole window; Studio dims, so it does not.
+       The card as Studio's dialogs (DialogCard): the title in a tinted header,
+       the body, and the actions, which close it. -->
   <v-dialog
     max-width="720"
     :model-value="true"
@@ -11,32 +13,18 @@
     @update:model-value="emit('close')"
   >
     <v-card data-test="contact-dialog">
-      <v-card-item>
-        <template #prepend>
-          <v-avatar color="primary" variant="tonal">
-            <v-icon :icon="heading.named ? 'mdi-account-outline' : 'mdi-domain'" />
-          </v-avatar>
-        </template>
+      <v-card-header class="flex-shrink-0">
+        <v-card-title class="text-wrap text-break" data-test="contact-dialog-name">{{ heading.title }}</v-card-title>
+      </v-card-header>
 
-        <v-card-title class="text-break" data-test="contact-dialog-name">{{ heading.title }}</v-card-title>
-        <v-card-subtitle v-if="heading.subtitle" class="text-break">{{ heading.subtitle }}</v-card-subtitle>
+      <v-divider />
 
-        <template #append>
-          <v-btn
-            :aria-label="t('contacts.close')"
-            data-test="contact-dialog-close"
-            icon="mdi-close"
-            size="small"
-            @click="emit('close')"
-          />
-        </template>
-      </v-card-item>
+      <v-card-text class="pa-4 d-flex flex-column ga-3">
+        <div v-if="heading.subtitle || (heading.role && !canEdit)" class="d-flex flex-wrap align-center ga-2">
+          <span v-if="heading.subtitle" class="text-body-medium text-medium-emphasis">{{ heading.subtitle }}</span>
+          <v-chip v-if="heading.role && !canEdit" color="primary" prepend-icon="mdi-account-tie-outline" :text="heading.role" />
+        </div>
 
-      <div v-if="heading.role && !canEdit" class="px-4">
-        <v-chip color="primary" prepend-icon="mdi-account-tie-outline" :text="heading.role" />
-      </div>
-
-      <v-card-text class="d-flex flex-column ga-3">
         <v-alert
           v-if="notice"
           closable
@@ -50,15 +38,20 @@
         <DetailList :rows="rows" />
       </v-card-text>
 
-      <v-card-actions v-if="!canEdit">
-        <v-spacer />
+      <v-divider />
 
-        <v-btn
+      <v-card-actions>
+        <v-btn-secondary
+          v-if="!canEdit"
           data-test="save-vcard"
           prepend-icon="mdi-card-account-details-outline"
           :text="t('contact.save')"
           @click="emit('save')"
         />
+
+        <v-spacer />
+
+        <v-btn data-test="contact-dialog-close" :text="t('contacts.close')" @click="emit('close')" />
       </v-card-actions>
     </v-card>
   </v-dialog>
@@ -79,9 +72,9 @@
   const emit = defineEmits<{ close: [], save: [], dismiss: [] }>()
 
   const { t, formatLocale } = useI18n()
+  const { canEdit } = useRowActions()
   /** A click while the dialog fades in is not taken for one outside it. */
   const entered = ref(false)
-  const { canEdit } = useRowActions()
 
   const heading = computed(() => contactHeading(t, props.contact, props.index, formatLocale.value))
   /** In view mode without what the heading shows. */

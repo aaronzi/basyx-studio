@@ -18,6 +18,8 @@ export interface DetailRow {
   type?: string
   /** E.g. when a phone number is answered. */
   note?: string
+  /** Chips in place of the value, e.g. the hardware, firmware and software versions. */
+  chips?: Array<{ key: string, text: string, icon: string }>
   /** An https, `mailto:` or `tel:` URL the value opens. */
   url?: string
   /** The address in OpenStreetMap. */
@@ -129,14 +131,24 @@ function fieldRow (t: Translate, nameplate: Nameplate, key: NameplateFieldKey, l
   }
 }
 
-/** The product's rows; in view mode without its designation and manufacturer, which head the view, and the versions, which are chips. */
+/** The product's rows; in view mode without its designation and manufacturer, which head the view, and with the versions as chips in one row. */
 export function productRows (t: Translate, nameplate: Nameplate, locale: string, edit: boolean): DetailRow[] {
-  const shown: NameplateFieldKey[] = edit
-    ? nameplateFieldKeys.filter(key => key !== 'uniqueFacilityIdentifier')
-    : ['manufacturerProductRoot', 'manufacturerProductFamily', 'manufacturerProductType', 'orderCodeOfManufacturer', 'productArticleNumberOfManufacturer', 'serialNumber', 'batchNumber', 'yearOfConstruction', 'dateOfManufacture', 'countryOfOrigin', 'uriOfTheProduct']
-  return shown
+  if (edit) {
+    return nameplateFieldKeys
+      .filter(key => key !== 'uniqueFacilityIdentifier')
+      .map(key => fieldRow(t, nameplate, key, locale))
+      .filter((row): row is DetailRow => row !== null)
+  }
+  const rows = (['manufacturerProductRoot', 'manufacturerProductFamily', 'manufacturerProductType', 'orderCodeOfManufacturer', 'productArticleNumberOfManufacturer', 'serialNumber', 'batchNumber', 'yearOfConstruction', 'dateOfManufacture', 'countryOfOrigin', 'uriOfTheProduct'] as const)
     .map(key => fieldRow(t, nameplate, key, locale))
-    .filter((row): row is DetailRow => row !== null && (edit || row.value !== ''))
+    .filter((row): row is DetailRow => row !== null && row.value !== '')
+  // The versions as chips in one row, where the template has them: after the date of manufacture.
+  const chips = versionChips(t, nameplate, locale)
+  if (chips.length > 0) {
+    const at = rows.findIndex(row => row.key === 'countryOfOrigin' || row.key === 'uriOfTheProduct')
+    rows.splice(at === -1 ? rows.length : at, 0, { key: 'versions', label: t('product.versions'), value: '', icon: 'mdi-source-branch', chips })
+  }
+  return rows
 }
 
 /** The manufacturer's address and contact channels (the kit's rows), and the facility. */

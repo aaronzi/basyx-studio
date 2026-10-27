@@ -35,7 +35,8 @@
     "serial": "序列号 {value}",
     "hardwareVersion": "硬件 {version}",
     "firmwareVersion": "固件 {version}",
-    "softwareVersion": "软件 {version}"
+    "softwareVersion": "软件 {version}",
+    "versions": "版本"
   },
   "marking": {
     "untitled": "标志 {number}",
@@ -51,7 +52,9 @@
   "assetSpecific": {
     "general": "常规",
     "guideline": "指令 {value}",
-    "entry": "{name} {number}"
+    "entry": "{name} {number}",
+    "expand": "显示",
+    "collapse": "隐藏"
   },
   "contact": {
     "showOnMap": "在地图上显示",

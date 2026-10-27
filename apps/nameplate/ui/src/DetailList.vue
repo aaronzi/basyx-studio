@@ -56,6 +56,16 @@
                   @click="preview(row.file)"
                 />
 
+                <template v-else-if="row.chips">
+                  <v-chip
+                    v-for="chip in row.chips"
+                    :key="chip.key"
+                    data-test="detail-chip"
+                    :prepend-icon="chip.icon"
+                    :text="chip.text"
+                  />
+                </template>
+
                 <div v-else-if="row.value">
                   <div v-for="(line, index) in row.value.split('\n')" :key="index">{{ line }}</div>
                 </div>

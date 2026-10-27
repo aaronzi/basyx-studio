@@ -35,7 +35,8 @@
     "serial": "SN {value}",
     "hardwareVersion": "ハードウェア {version}",
     "firmwareVersion": "ファームウェア {version}",
-    "softwareVersion": "ソフトウェア {version}"
+    "softwareVersion": "ソフトウェア {version}",
+    "versions": "バージョン"
   },
   "marking": {
     "untitled": "マーキング {number}",
@@ -51,7 +52,9 @@
   "assetSpecific": {
     "general": "一般",
     "guideline": "指令 {value}",
-    "entry": "{name} {number}"
+    "entry": "{name} {number}",
+    "expand": "表示",
+    "collapse": "非表示"
   },
   "contact": {
     "showOnMap": "地図で表示",

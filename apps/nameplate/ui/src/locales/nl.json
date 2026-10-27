@@ -35,7 +35,8 @@
     "serial": "SN {value}",
     "hardwareVersion": "Hardware {version}",
     "firmwareVersion": "Firmware {version}",
-    "softwareVersion": "Software {version}"
+    "softwareVersion": "Software {version}",
+    "versions": "Versies"
   },
   "marking": {
     "untitled": "Markering {number}",
@@ -51,7 +52,9 @@
   "assetSpecific": {
     "general": "Algemeen",
     "guideline": "Richtlijn {value}",
-    "entry": "{name} {number}"
+    "entry": "{name} {number}",
+    "expand": "Tonen",
+    "collapse": "Verbergen"
   },
   "contact": {
     "showOnMap": "Op de kaart tonen",

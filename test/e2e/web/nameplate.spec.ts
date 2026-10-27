@@ -56,7 +56,7 @@ test('shows the Digital Nameplate 3.0 with logo, product, manufacturer, markings
   await expect(frame.locator('[data-test="template-version"]')).toHaveText('IDTA 02006-3-0')
   await expect(frame.locator('[data-test="company-logo"] img')).toBeVisible({ timeout: 30_000 })
   await expect(frame.locator('[data-test="marking-chip"]')).toHaveText(['CE', 'UKCA', 'WEEE', 'Ex'])
-  await expect(frame.locator('[data-test="versions"] .v-chip')).toHaveText(['Hardware 1.2', 'Firmware 3.4.1', 'Software 2.0.0'])
+  await expect(frame.locator('[data-test="product"] [data-test="detail-chip"]')).toHaveText(['Hardware 1.2', 'Firmware 3.4.1', 'Software 2.0.0'])
 
   const product = frame.locator('[data-test="product"]')
   await expect(product.locator('[data-field="CountryOfOrigin"]')).toContainText('Germany (DE)')
@@ -103,7 +103,7 @@ test('shows the Digital Nameplate 3.0 with logo, product, manufacturer, markings
   await expect(page.locator('.v-dialog')).toBeHidden()
 
   // The asset specific properties, collapsed, by guideline.
-  await clickIn(nameplateFrame(page), frame.locator('[data-test="asset-specific-properties"]').getByText('Asset specific properties'))
+  await clickIn(nameplateFrame(page), frame.locator('[data-test="asset-specific-toggle"]'))
   await expect(frame.locator('[data-test="property-group"]')).toHaveText(['General', 'Guideline 2006/42/EC', 'Guideline 2014/35/EU'])
 })
 

@@ -35,7 +35,8 @@
     "serial": "N° de série {value}",
     "hardwareVersion": "Matériel {version}",
     "firmwareVersion": "Firmware {version}",
-    "softwareVersion": "Logiciel {version}"
+    "softwareVersion": "Logiciel {version}",
+    "versions": "Versions"
   },
   "marking": {
     "untitled": "Marquage {number}",
@@ -51,7 +52,9 @@
   "assetSpecific": {
     "general": "Général",
     "guideline": "Directive {value}",
-    "entry": "{name} {number}"
+    "entry": "{name} {number}",
+    "expand": "Afficher",
+    "collapse": "Masquer"
   },
   "contact": {
     "showOnMap": "Afficher sur la carte",

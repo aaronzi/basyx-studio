@@ -2,7 +2,7 @@ import { mountApp } from '@basyx/studio-app-kit'
 import { VAlert } from 'vuetify/components/VAlert'
 import { VApp } from 'vuetify/components/VApp'
 import { VBtn } from 'vuetify/components/VBtn'
-import { VCard, VCardItem, VCardSubtitle, VCardText, VCardTitle } from 'vuetify/components/VCard'
+import { VCard, VCardActions, VCardItem, VCardSubtitle, VCardText, VCardTitle } from 'vuetify/components/VCard'
 import { VChip } from 'vuetify/components/VChip'
 import { VDialog } from 'vuetify/components/VDialog'
 import { VDivider } from 'vuetify/components/VDivider'
@@ -21,6 +21,7 @@ await mountApp(App, {
   VApp,
   VBtn,
   VCard,
+  VCardActions,
   VCardItem,
   VCardSubtitle,
   VCardText,

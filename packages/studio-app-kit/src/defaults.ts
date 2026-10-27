@@ -12,6 +12,15 @@ export const appDefaults = {
   VApp: { class: 'bg-transparent' },
   VViewCard: { flat: true, border: false, rounded: 0, color: 'transparent' },
   VCard: { flat: true, border: true, rounded: 'lg' },
+  // The header of a dialog's or section's card, as in Studio: a tinted band
+  // that sets the title apart from the content.
+  VCardHeader: { class: 'bg-card-header' },
+  // A part of a view in a card of its own (a nameplate's product, its
+  // manufacturer), as tall as its neighbours in a row; its label and value
+  // rows sit flush, the card is their border.
+  VCardSection: { class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent' } },
+  // Dialogs as in Studio: their card keeps a shadow, so it stands out.
+  VDialog: { VCard: { flat: false } },
   // A view that fills the window, e.g. a preview opened without Studio's header.
   ...fullscreenDefaults,
   VBtn: { rounded: 'lg', class: 'text-none', variant: 'text', density: 'comfortable' },
