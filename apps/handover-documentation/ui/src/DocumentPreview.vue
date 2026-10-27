@@ -58,7 +58,8 @@
   // A version's file in the file viewer: one of its digital files (a PDF, a
   // drawing, a text) or its preview image. Internal files are read through
   // Studio (`readFile`), files at other hosts by Studio's page
-  // (`readExternalFile`); the full-screen viewer is Studio's (`previewFile`).
+  // (`readExternalFile`); the full-screen viewer is Studio's (`previewFile`),
+  // and so are downloads (`openFile`).
   const props = defineProps<{
     client: StudioClient
     submodelId: string
@@ -106,15 +107,21 @@
       load: () => (shown.external
         ? props.client.ui.readExternalFile(submodelId, shown.path)
         : props.client.ui.readFile(submodelId, shown.path)),
+      // The frame cannot download: Studio saves the file, or opens one at another host.
+      download: () => void (shown.external
+        ? props.client.ui.openExternal(shown.value)
+        : props.client.ui.openFile(submodelId, shown.path, true)).catch(fail),
     })
   })
   const state = useFileViewerState(source)
 
+  function fail (error_: unknown) {
+    emit('error', error_ instanceof StudioError ? error_.message : String(error_))
+  }
+
   function maximize () {
     if (file.value) {
-      void props.client.ui.previewFile(props.submodelId, file.value.path).catch((error_: unknown) => {
-        emit('error', error_ instanceof StudioError ? error_.message : String(error_))
-      })
+      void props.client.ui.previewFile(props.submodelId, file.value.path).catch(fail)
     }
   }
 </script>

@@ -79,6 +79,8 @@ test('shows the Models3D submodel in the bundled 3D Models app', async ({ page }
   await expect(frame.locator('[data-test="model-title"]')).toHaveText('L bracket')
   await expect(frame.locator('[data-test="viewer-canvas"] canvas')).toBeVisible({ timeout: 30_000 })
   await expect(frame.locator('[data-test="model-summary"]')).toContainText('Engineering design')
+  // Studio's card has a full-screen button, so the viewer shows none of its own.
+  await expect(frame.locator('[data-test="viewer-fullscreen"]')).toHaveCount(0)
 
   // IFC in the app frame: web-ifc runs as WebAssembly in a blob: worker (ADR 0038).
   await clickInApp(page, frame.locator('[data-test="model-switcher-item"]').filter({ hasText: 'Workshop building' }))

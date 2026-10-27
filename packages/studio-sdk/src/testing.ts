@@ -153,6 +153,7 @@ export function testContext (patch: Partial<AppContext> = {}): AppContext {
     mode: 'view',
     fullscreen: false,
     fullscreenOpen: false,
+    fullscreenControl: false,
     viewState: '',
     locale: 'en',
     theme: testTheme(),

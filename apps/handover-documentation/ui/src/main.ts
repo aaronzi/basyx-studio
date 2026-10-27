@@ -14,6 +14,7 @@ import { VProgressLinear } from 'vuetify/components/VProgressLinear'
 import { VSheet } from 'vuetify/components/VSheet'
 import { VTable } from 'vuetify/components/VTable'
 import { VTextField } from 'vuetify/components/VTextField'
+import { VTooltip } from 'vuetify/components/VTooltip'
 import App from './App.vue'
 
 await mountApp(App, {
@@ -42,4 +43,5 @@ await mountApp(App, {
   VSpacer,
   VTable,
   VTextField,
+  VTooltip,
 })

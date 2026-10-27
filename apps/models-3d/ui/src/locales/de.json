@@ -11,6 +11,7 @@
     "showImage": "Vorschaubild anzeigen",
     "showModel": "3D-Modell anzeigen",
     "download": "3D-Modell herunterladen",
+    "fullscreen": "Vollbild",
     "openExternal": "Externe Datei öffnen",
     "openExternalAt": "Datei bei {host} öffnen",
     "external": "Das Modell liegt außerhalb dieser Verwaltungsschale, bei {host}. Studio zeigt sein Vorschaubild.",

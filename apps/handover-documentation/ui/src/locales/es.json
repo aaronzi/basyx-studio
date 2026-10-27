@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "Este submodelo no tiene documentos.",
-    "untitled": "Documento {number}"
+    "untitled": "Documento {number}",
+    "fullscreen": "Pantalla completa"
   },
   "list": {
     "search": "Buscar documentos",

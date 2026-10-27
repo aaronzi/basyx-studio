@@ -70,11 +70,34 @@ test('shows the documents of IDTA 02004 2.0 with versions, files and the file vi
   await expect(viewer.locator('[data-test="file-viewer-name"]')).toHaveText('gm40-operating-manual-en-1.0.pdf', { timeout: 30_000 })
   await expect(viewer.locator('[data-test="pdf-page"]')).toHaveText('Page 1 of 3', { timeout: 30_000 })
 
+  // The frame cannot download: the viewer's button has Studio save the file.
+  const download = page.waitForEvent('popup')
+  await clickInApp(page, viewer.locator('[data-test="file-viewer-download"]'))
+  expect((await download).url()).toMatch(/\/attachment\?download$/)
+
   // A CSV file, a document without a file.
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Spare parts list' }))
   await expect(viewer.locator('[data-test="file-viewer-csv"]')).toContainText('GM40-101', { timeout: 30_000 })
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Service contract' }))
   await expect(frame.locator('[data-test="document-preview"]')).toContainText('This version has no file.')
+
+  // A file at another host: Studio opens it in the browser.
+  await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Data sheet (external)' }))
+  const external = page.waitForEvent('popup')
+  await clickInApp(page, viewer.locator('[data-test="file-viewer-open-external"]'))
+  expect((await external).url()).toContain('compressed.tracemonkey-pldi-09.pdf')
+})
+
+test('opens full screen with its own button where Studio shows none', async ({ page }) => {
+  // The details pane has no full-screen button for the view: the app shows one.
+  const frame = await openSubmodel(page, v2)
+  await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Safety instructions' }))
+  await clickInApp(page, frame.locator('[data-test="document-fullscreen"]'))
+  const dialogFrame = page.frameLocator('.v-dialog iframe[title="App: Documents"]')
+  await expect(dialogFrame.locator('[data-test="document-title"]')).toHaveText('Safety instructions', { timeout: 30_000 })
+  await expect(dialogFrame.locator('[data-test="document-fullscreen"]')).toHaveCount(0)
+  await page.locator('[data-test="app-fullscreen-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
 })
 
 test('searches and filters documents, and follows relations between them', async ({ page }) => {
@@ -84,7 +107,9 @@ test('searches and filters documents, and follows relations between them', async
   await frame.locator('[data-test="document-search"] input').fill('frequency converter')
   await expect(frame.locator('[data-test="document-item"]')).toHaveCount(1)
   await expect(frame.locator('[data-test="document-count"]')).toHaveText('1 of 9 documents')
-  await frame.locator('[data-test="document-search"] input').fill('')
+  // The clear button, which sends `null`, shows every document again.
+  await clickInApp(page, frame.locator('[data-test="document-search"] .v-field__clearable .v-icon'))
+  await expect(frame.locator('[data-test="document-item"]')).toHaveCount(9)
 
   // The classes are in a menu that opens from the search field.
   await clickInApp(page, frame.locator('[data-test="document-search"] input'))
@@ -110,6 +135,8 @@ test('opens the selected document and file in full screen from the Overview card
   const card = page.locator('[data-test="overview-widget-view"]').first()
   const frame = card.frameLocator('iframe[title="App: Documents"]')
   await expect(frame.locator('[data-test="document-item"]')).toHaveCount(9, { timeout: 30_000 })
+  // Studio's button is there, so the app shows none of its own.
+  await expect(frame.locator('[data-test="document-fullscreen"]')).toHaveCount(0)
   await clickInApp(page, frame.locator('[data-test="document-item"]').filter({ hasText: 'Dimension drawing' }))
   await chooseFile(page, frame, 'gm40-dimension-drawing.svg')
   // The app reported what it shows (`studio.ui.setViewState`); the card's button opens it so.

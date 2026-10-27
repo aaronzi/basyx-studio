@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "このサブモデルにはドキュメントがありません。",
-    "untitled": "ドキュメント {number}"
+    "untitled": "ドキュメント {number}",
+    "fullscreen": "全画面表示"
   },
   "list": {
     "search": "ドキュメントを検索",

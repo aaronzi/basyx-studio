@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "Dieses Teilmodell enthält keine Dokumente.",
-    "untitled": "Dokument {number}"
+    "untitled": "Dokument {number}",
+    "fullscreen": "Vollbild"
   },
   "list": {
     "search": "Dokumente durchsuchen",

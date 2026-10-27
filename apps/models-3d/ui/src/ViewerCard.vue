@@ -88,6 +88,21 @@
             <v-icon icon="mdi-open-in-new" />
             <v-tooltip activator="parent" location="bottom" :text="t('viewer.openExternalAt', { host: externalHost })" />
           </v-btn>
+
+          <!-- Where Studio shows no full-screen button of its own (details pane, another app's page). -->
+          <v-btn
+            v-if="ownFullscreen"
+            :aria-label="t('viewer.fullscreen')"
+            color="surface"
+            data-test="viewer-fullscreen"
+            icon
+            size="small"
+            variant="flat"
+            @click="emit('fullscreen')"
+          >
+            <v-icon icon="mdi-fullscreen" />
+            <v-tooltip activator="parent" location="bottom" :text="t('viewer.fullscreen')" />
+          </v-btn>
         </div>
       </v-responsive>
     </v-sheet>
@@ -146,10 +161,13 @@
     version: Model3DVersion | undefined
     title: string
     theme: ViewerTheme
+    /** Offer full screen: Studio shows no button for it here. */
+    ownFullscreen: boolean
   }>()
   const emit = defineEmits<{
     open: [url: string]
     download: [path: string]
+    fullscreen: []
   }>()
 
   const { t } = useI18n()

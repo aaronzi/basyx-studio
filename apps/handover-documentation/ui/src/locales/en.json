@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "This submodel has no documents.",
-    "untitled": "Document {number}"
+    "untitled": "Document {number}",
+    "fullscreen": "Full screen"
   },
   "list": {
     "search": "Search documents",

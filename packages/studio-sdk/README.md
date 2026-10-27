@@ -43,7 +43,7 @@ runs the app, whatever the package version.
 | 0.1.9 | 0.1.10: `ui.openView`; `openedViews` in `testing` | next release |
 | 0.1.10 | 0.1.11: `ui.embedView`, `context.embedded`; `connect()` of views embedded in other apps' pages; `embeddedViews` in `testing` | next release |
 | 0.1.11 | 0.1.12: `ui.previewFile`, `context.fills`; `previewedFiles` in `testing`; in the file viewer, every kind of file (`./vue`, `./viewer`) and the 3D view in parts (`./model`) | next release |
-| 0.1.12 | 0.1.13: `ui.setViewState`, which Studio's full-screen button on the Overview opens the view with; `viewState` in `testing` | next release |
+| 0.1.12 | 0.1.13: `ui.setViewState`, which Studio's full-screen button on the Overview opens the view with, and `context.fullscreenControl`, where Studio shows that button; `viewState` in `testing` | next release |
 
 A new app API minor version (new methods) is a new minor version of the
 packages; fixes are patch versions. While the app API is `0.x`, additions
@@ -262,7 +262,9 @@ Studio's Overview cards have a full-screen button of their own. So that it
 opens the view on what the user selected, too, report the selection with
 `ui.setViewState(state)` whenever it changes; Studio keeps the last one and
 opens the view with it as `openFullscreen(state)` would (Studio app API
-0.1.13). A view that does so needs no full-screen button of its own.
+0.1.13). `context.fullscreenControl` is `true` where Studio shows that
+button; elsewhere, e.g. in the details pane or in another app's page, a view
+that offers full screen shows its own button and calls `openFullscreen`.
 
 `ui.openFullscreen(state, { header: false })` shows the new frame on its own
 over the dimmed page, without Studio's header and close button, e.g. for a

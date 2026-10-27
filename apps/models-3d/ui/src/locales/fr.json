@@ -11,6 +11,7 @@
     "showImage": "Afficher l'image d'aperçu",
     "showModel": "Afficher le modèle 3D",
     "download": "Télécharger le modèle 3D",
+    "fullscreen": "Plein écran",
     "openExternal": "Ouvrir le fichier externe",
     "openExternalAt": "Ouvrir le fichier sur {host}",
     "external": "Le modèle est stocké en dehors de cette AAS, sur {host}. Studio affiche son image d'aperçu.",

@@ -109,6 +109,8 @@
     nested?: boolean
     /** In that dialog, the state the embedded view passed to `studio.ui.openFullscreen`. */
     viewState?: string
+    /** Studio draws a full-screen button for the frame, e.g. on an Overview card (`context.fullscreenControl`). */
+    fullscreenControl?: boolean
   }>()
   const emit = defineEmits<{
     'navigate': [subPath: string, history: 'push' | 'replace']
@@ -158,6 +160,7 @@
     fullscreen: props.fullscreen ?? false,
     fills: !props.fit,
     fullscreenOpen: fullscreenOpen.value || viewOpen.value,
+    fullscreenControl: props.fullscreenControl ?? false,
     viewState: props.viewState ?? '',
     locale: locale.value,
     theme: { dark: theme.current.value.dark, colors: themeColors.value },

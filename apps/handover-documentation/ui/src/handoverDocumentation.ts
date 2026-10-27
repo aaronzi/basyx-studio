@@ -150,10 +150,23 @@ function semanticIdOf (element: JsonObject): string {
   return typeof keys[0]?.value === 'string' ? keys[0].value : ''
 }
 
+/** An ECLASS IRDI in either spelling: `0173-1#02-ABI500#003` or `0173-1-02-ABI500-003` (in an `api.eclass-cdp.com` URL). */
+const irdiPattern = /(\d{4}-\d)[#-](\d{2})[#-]([A-Z]{2}[A-Z\d]\d{3})/g
+
 /** `0173-1#02-ABI500#003/0173-1#01-AHF579#003` and `https://api.eclass-cdp.com/0173-1-02-ABI500-003` → `0173-1#02-ABI500`. */
 export function irdiOf (semanticId: string): string {
-  const match = semanticId.match(/(\d{4}-\d)[#-](\d{2})[#-]([A-Z]{2}[A-Z\d]\d{3})/)
+  const [match] = semanticId.matchAll(irdiPattern)
   return match ? `${match[1]}#${match[2]}-${match[3]}` : ''
+}
+
+/**
+ * Whether a semantic ID is composite: a property's IRDI and its class's, as
+ * the items of IDTA 02004 lists have them
+ * (`0173-1#02-ABI500#003/0173-1#01-AHF579#003`, or the same as
+ * `https://api.eclass-cdp.com/0173-1-02-ABI500-003/0173-1-01-AHF579-003`).
+ */
+export function isCompositeIrdi (semanticId: string): boolean {
+  return [...semanticId.matchAll(irdiPattern)].length > 1
 }
 
 /** The name a URL semantic ID gives its element: `…/2770/1/0/Document/DocumentId` → `documentid`. */
@@ -177,7 +190,7 @@ function isPlural (element: JsonObject, name: ElementName): boolean {
   const plural = lower(name.plural)
   const semanticId = semanticIdOf(element)
   return plural.has(nameOf(element)) || plural.has(semanticName(semanticId))
-    || (plural.size > 0 && element.modelType === 'SubmodelElementCollection' && !/#\d+\/\d{4}-/.test(semanticId) && (name.irdis?.includes(irdiOf(semanticId)) ?? false))
+    || (plural.size > 0 && element.modelType === 'SubmodelElementCollection' && !isCompositeIrdi(semanticId) && (name.irdis?.includes(irdiOf(semanticId)) ?? false))
 }
 
 function matches (element: JsonObject, name: ElementName): boolean {
@@ -361,8 +374,8 @@ export function classificationKey (classification: Classification): string {
 }
 
 /** Whether a document's texts, identifiers or classes contain every word of the query. */
-export function matchesQuery (document: HandoverDocument, query: string): boolean {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean)
+export function matchesQuery (document: HandoverDocument, query: string | null | undefined): boolean {
+  const words = (query ?? '').toLowerCase().split(/\s+/).filter(Boolean)
   if (words.length === 0) {
     return true
   }

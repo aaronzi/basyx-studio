@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "Ce sous-modèle ne contient aucun document.",
-    "untitled": "Document {number}"
+    "untitled": "Document {number}",
+    "fullscreen": "Plein écran"
   },
   "list": {
     "search": "Rechercher des documents",

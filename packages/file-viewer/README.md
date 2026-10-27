@@ -41,6 +41,13 @@ In Studio, `client.ui.previewFile(submodelId, idShortPath)` shows a File or
 Blob element in Studio's own full-screen viewer, so an app needs neither
 component for that.
 
+An app's frame can neither download a file nor open a window, so an app that
+shows the viewer passes both to Studio: `download` on the source (e.g.
+`() => client.ui.openFile(submodelId, path, true)`) and `openLink` to
+`provideFileViewer` (e.g. `url => client.ui.openExternal(url)`) for external
+files and Markdown links. Without them, the viewer saves the bytes it read
+and opens links in a new tab, as Studio's page does.
+
 | Entry | What |
 | --- | --- |
 | `.` | What a file is shown as (`detectViewerKind`, `detectModelFormat`), text and CSV, without Vue or three.js |

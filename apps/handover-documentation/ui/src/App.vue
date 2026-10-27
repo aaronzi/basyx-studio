@@ -55,6 +55,19 @@
 
                   <v-spacer />
                   <VersionMenu :selected="version" :versions="selected.versions" @select="key => (versionKeys[selected!.key] = key)" />
+
+                  <!-- Where Studio shows no full-screen button of its own (details pane, another app's page). -->
+                  <v-btn
+                    v-if="ownFullscreen"
+                    :aria-label="t('document.fullscreen')"
+                    data-test="document-fullscreen"
+                    icon
+                    size="small"
+                    @click="openFullscreen"
+                  >
+                    <v-icon icon="mdi-fullscreen" />
+                    <v-tooltip activator="parent" location="bottom" :text="t('document.fullscreen')" />
+                  </v-btn>
                 </div>
 
                 <div v-if="subtitle" class="text-body-medium text-medium-emphasis">{{ subtitle }}</div>
@@ -102,7 +115,13 @@
   const props = defineProps<{ client: StudioClient }>()
 
   const { t, locale, formatLocale } = provideI18n(props.client)
-  provideFileViewer({ locale: () => locale.value })
+  // The frame opens no windows: Studio opens external files and Markdown links in the browser.
+  provideFileViewer({
+    locale: () => locale.value,
+    openLink: url => void props.client.ui.openExternal(url).catch(() => {
+      // Not https, or not from a click: nothing opens.
+    }),
+  })
 
   const context = ref<AppContext>(props.client.context)
   props.client.onContext(value => {
@@ -110,6 +129,7 @@
   })
   const submodelId = computed(() => context.value.submodel!.id)
   const fullscreen = computed(() => context.value.fullscreen)
+  const ownFullscreen = computed(() => !context.value.fullscreen && !context.value.fullscreenControl)
 
   const loading = ref(true)
   const error = ref<string | null>(null)
@@ -194,9 +214,14 @@
     }
   }
 
-  // Studio's full-screen button opens the same document, version and file (`context.viewState`).
+  // Full screen opens the same document, version and file (`context.viewState`):
+  // Studio's button with the reported state, the app's own where Studio has none.
   const viewState = computed(() => JSON.stringify({ document: selected.value?.key ?? '', versions: { ...versionKeys }, files: { ...fileKeys }, query: query.value, classes: classes.value } satisfies ViewState))
   watch(viewState, state => void props.client.ui.setViewState(state))
+
+  function openFullscreen () {
+    void props.client.ui.openFullscreen(viewState.value)
+  }
 
   function restore (viewState: string) {
     try {

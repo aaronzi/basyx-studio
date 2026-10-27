@@ -40,11 +40,13 @@
               <ViewerCard
                 :key="version?.key ?? selected.key"
                 :client="client"
+                :own-fullscreen="ownFullscreen"
                 :submodel-id="submodelId"
                 :theme="theme"
                 :title="title"
                 :version="version"
                 @download="path => client.ui.openFile(submodelId, path, true)"
+                @fullscreen="client.ui.openFullscreen(viewState)"
                 @open="openExternal"
               />
             </v-col>
@@ -89,6 +91,7 @@
     context.value = value
   })
   const submodelId = computed(() => context.value.submodel!.id)
+  const ownFullscreen = computed(() => !context.value.fullscreen && !context.value.fullscreenControl)
   const theme = computed(() => viewerThemeOf(context.value.theme.colors, context.value.theme.dark))
 
   const loading = ref(true)
@@ -118,7 +121,8 @@
     })
   }
 
-  // Studio's full-screen button opens the same model and version (`context.viewState`).
+  // Full screen opens the same model and version (`context.viewState`): Studio's
+  // button with the reported state, the viewer's own where Studio has none.
   const viewState = computed(() => JSON.stringify({ model: selected.value?.key ?? '', versions: { ...versionKeys } } satisfies ViewState))
   watch(viewState, state => void props.client.ui.setViewState(state))
 

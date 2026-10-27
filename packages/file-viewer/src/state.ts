@@ -28,6 +28,12 @@ export interface FileSource {
   load: (signal: AbortSignal) => Promise<FileContent>
   /** Writes changed bytes; without it, the file is read-only. */
   save?: (bytes: Uint8Array) => Promise<void>
+  /**
+   * Saves the file through the host, e.g. an app's `studio.ui.openFile`, as
+   * an app's frame cannot download; without it, the viewer saves the bytes
+   * it read.
+   */
+  download?: () => void
   /** Where unsaved text is kept across views and navigation; `version` is what it is based on. */
   draft?: { key: string, version: string }
 }

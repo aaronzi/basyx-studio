@@ -13,17 +13,17 @@
       <template #activator="{ props: activator }">
         <v-text-field
           v-bind="activator"
-          v-model="query"
           :aria-label="t('list.search')"
           clearable
           data-test="document-search"
           density="compact"
+          :model-value="query"
           :placeholder="t('list.search')"
           prepend-inner-icon="mdi-magnify"
           @click="menu = options.length > 1"
           @keydown.down.prevent="menu = options.length > 1"
           @keydown.esc="menu = false"
-          @update:model-value="menu = false"
+          @update:model-value="search"
         >
           <template v-if="classes.length > 0" #default>
             <v-chip
@@ -145,6 +145,12 @@
 
   const { t, formatLocale } = useI18n()
   const menu = ref(false)
+
+  /** Typing closes the filter menu; the clear button sends `null`, which is no search. */
+  function search (value: string | null) {
+    query.value = value ?? ''
+    menu.value = false
+  }
 
   function subtitle (document: HandoverDocument): string {
     return documentSubtitle(t, document, latestVersion(document.versions), formatLocale.value)

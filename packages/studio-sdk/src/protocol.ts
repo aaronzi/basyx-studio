@@ -227,6 +227,14 @@ export interface AppContext {
   /** True in the full-screen dialog that `studio.ui.openFullscreen` opens. */
   fullscreen: boolean
   /**
+   * True where Studio shows a full-screen button for the view, e.g. on a
+   * shell's Overview, which opens it with the state of
+   * `studio.ui.setViewState`. Elsewhere, e.g. in the details pane or in
+   * another app's page, a view that offers full screen shows its own button
+   * (`openFullscreen`) (Studio app API 0.1.13; absent before).
+   */
+  fullscreenControl?: boolean
+  /**
    * True where the frame fills the space Studio gives it, e.g. the details
    * pane's Visualization tab or a full-screen dialog: size the view to the
    * window. False where Studio sizes the frame to the view's content

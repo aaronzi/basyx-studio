@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "此子模型没有文档。",
-    "untitled": "文档 {number}"
+    "untitled": "文档 {number}",
+    "fullscreen": "全屏"
   },
   "list": {
     "search": "搜索文档",

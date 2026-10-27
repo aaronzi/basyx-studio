@@ -31,6 +31,12 @@ export interface FileViewerOptions {
    * for the languages. Without it, texts show without highlighting.
    */
   monaco?: () => Promise<MonacoApi>
+  /**
+   * Opens an http(s) link, of an external file or in Markdown, e.g. through
+   * an app's `studio.ui.openExternal`, as an app's frame opens no windows;
+   * without it, links open in a new tab. Called from the click.
+   */
+  openLink?: (url: string) => void
 }
 
 export type Translate = (key: string, params?: Record<string, string | number>) => string
@@ -40,6 +46,7 @@ export interface FileViewerContext {
   /** The locale for `Intl`, e.g. numbers and sizes. */
   formatLocale: () => string
   monaco: (() => Promise<MonacoApi>) | null
+  openLink: ((url: string) => void) | null
 }
 
 // A registered symbol: the same key when the module is loaded again (hot
@@ -99,6 +106,7 @@ export function provideFileViewer (options: FileViewerOptions): FileViewerContex
     t: translator(options.locale),
     formatLocale: () => intlLocale(options.locale()),
     monaco: options.monaco ?? null,
+    openLink: options.openLink ?? null,
   }
   provide(key, context)
   return context

@@ -1,7 +1,7 @@
 import type { JsonObject } from '@basyx/studio-sdk'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { classificationKey, documentAt, documentTitle, irdiOf, latestVersion, mainClassification, matchesQuery, parseHandoverDocumentation, referencePath, sortVersions } from '../../apps/handover-documentation/ui/src/handoverDocumentation'
+import { classificationKey, documentAt, documentTitle, irdiOf, isCompositeIrdi, latestVersion, mainClassification, matchesQuery, parseHandoverDocumentation, referencePath, sortVersions } from '../../apps/handover-documentation/ui/src/handoverDocumentation'
 import { dateText, documentSubtitle, statusColor, statusText, technicalGroups, titleText, versionFacts, versionLabel } from '../../apps/handover-documentation/ui/src/presentation'
 
 // The Documents app's reading of IDTA 02004 Handover Documentation (2.0 and
@@ -145,11 +145,31 @@ describe('other shapes', () => {
     expect(documents[0]!.versions[0]!.digitalFiles[0]).toMatchObject({ external: true, name: 'a b.pdf' })
   })
 
+  it('keeps documents whose composite IRDI is in the URL spelling', () => {
+    // As the IDTA template lists them: https://api.eclass-cdp.com/0173-1-02-ABI500-003/0173-1-01-AHF579-003.
+    const urlSpelling = (value: string) => `https://api.eclass-cdp.com/${value.replaceAll('#', '-')}`
+    const submodel = structuredClone(v1) as { submodelElements: Array<{ semanticId?: { keys: Array<{ value: string }> } }> }
+    for (const element of submodel.submodelElements) {
+      const key = element.semanticId?.keys[0]
+      if (key?.value.startsWith('0173-1#02-ABI500')) {
+        key.value = urlSpelling(key.value)
+      }
+    }
+    const { documents } = parseHandoverDocumentation(submodel as unknown as JsonObject)
+    expect(documents.map(document => document.key)).toEqual(['Document01', 'Document02', 'Document03'])
+    expect(documents.map(document => document.versions.length)).toEqual([2, 1, 1])
+    expect(documents[0]!.versions[1]!.digitalFiles).toHaveLength(2)
+  })
+
   it('normalizes IRDIs', () => {
     expect(irdiOf('0173-1#02-ABI500#003')).toBe('0173-1#02-ABI500')
     expect(irdiOf('0173-1#02-ABI500#001/0173-1#01-AHF579#001')).toBe('0173-1#02-ABI500')
     expect(irdiOf('https://api.eclass-cdp.com/0173-1-02-ABI002-003')).toBe('0173-1#02-ABI002')
     expect(irdiOf('https://admin-shell.io/vdi/2770/1/0/Document')).toBe('')
+    expect(isCompositeIrdi('0173-1#02-ABI500#003/0173-1#01-AHF579#003')).toBe(true)
+    expect(isCompositeIrdi('https://api.eclass-cdp.com/0173-1-02-ABI500-003/0173-1-01-AHF579-003')).toBe(true)
+    expect(isCompositeIrdi('0173-1#02-ABI500#003')).toBe(false)
+    expect(isCompositeIrdi('https://api.eclass-cdp.com/0173-1-02-ABI500-003')).toBe(false)
   })
 
   it('reads an empty submodel', () => {
@@ -186,6 +206,8 @@ describe('versions, titles, search and references', () => {
     expect(documents.filter(document => matchesQuery(document, 'spare-parts.csv'))).toHaveLength(1)
     expect(documents.filter(document => matchesQuery(document, 'Ersatzteile'))).toHaveLength(1)
     expect(documents.filter(document => matchesQuery(document, '  '))).toHaveLength(documents.length)
+    // The search field's clear button sends `null`.
+    expect(documents.filter(document => matchesQuery(document, null))).toHaveLength(documents.length)
   })
 
   it('resolves references into the submodel', () => {

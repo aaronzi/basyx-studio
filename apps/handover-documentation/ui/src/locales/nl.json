@@ -1,7 +1,8 @@
 {
   "document": {
     "none": "Dit submodel bevat geen documenten.",
-    "untitled": "Document {number}"
+    "untitled": "Document {number}",
+    "fullscreen": "Volledig scherm"
   },
   "list": {
     "search": "Documenten zoeken",

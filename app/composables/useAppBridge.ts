@@ -176,6 +176,8 @@ export function useAppBridge (frame: Ref<HTMLIFrameElement | null>, options: App
       mode: 'view',
       fullscreen: false,
       fullscreenOpen: embed.fullscreen !== null && options.shownView?.() === embed.fullscreen,
+      // The page around it draws no full-screen button of Studio's.
+      fullscreenControl: false,
       viewState: '',
       embedded: true,
       settings: targetContext.settings,
