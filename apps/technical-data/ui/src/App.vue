@@ -77,6 +77,19 @@
               :placeholder="t('sheet.search')"
               prepend-inner-icon="mdi-magnify"
             />
+
+            <!-- Every row as CSV, whatever the search shows; Studio's page saves the file. -->
+            <v-btn
+              v-if="!context.embedded"
+              :aria-label="t('csv.download')"
+              data-test="sheet-csv"
+              icon
+              size="small"
+              @click="downloadCsv"
+            >
+              <v-icon icon="mdi-file-delimited-outline" />
+              <v-tooltip activator="parent" location="bottom" :text="t('csv.download')" />
+            </v-btn>
           </div>
 
           <div v-if="query" class="text-body-small text-medium-emphasis mb-2" data-test="sheet-matches">
@@ -98,7 +111,7 @@
               :id="groupedProperties ? undefined : areaAnchor(properties[0]!.path)"
               data-test="property-sheet"
             >
-              <DataSheet :grouped="groupedProperties" icon="mdi-table" :sheets="properties" />
+              <DataSheet :grouped="groupedProperties" icon="mdi-table" :searching="Boolean(query)" :sheets="properties" />
             </div>
 
             <div v-if="descriptions.length > 0" data-test="specific-descriptions">
@@ -108,7 +121,7 @@
                 <h3 class="text-title-small">{{ t('sections.specificDescriptions') }}</h3>
               </div>
 
-              <DataSheet :grouped="groupedDescriptions" icon="mdi-text-box-outline" :sheets="descriptions" />
+              <DataSheet :grouped="groupedDescriptions" icon="mdi-text-box-outline" :searching="Boolean(query)" :sheets="descriptions" />
             </div>
           </div>
         </section>
@@ -137,7 +150,7 @@
   import DataSheet from './DataSheet.vue'
   import DetailList from './DetailList.vue'
   import { provideI18n } from './i18n'
-  import { areaAnchor, areaTitles, classificationRows, conceptMap, conceptQuery, filterRows, furtherRows, generalRows, sheetRows } from './presentation'
+  import { areaAnchor, areaTitles, classificationRows, conceptMap, conceptQuery, csvFileName, filterRows, furtherRows, generalRows, headline, sheetCsv, sheetRows } from './presentation'
   import ProductImages from './ProductImages.vue'
   import SectionCard from './SectionCard.vue'
   import { parseTechnicalData, sheetConceptIds } from './technicalData'
@@ -290,6 +303,17 @@
   // Studio's button with the reported state, the app's own where Studio has none.
   const viewState = computed(() => JSON.stringify({ query: query.value ?? '' }))
   watch(viewState, state => void props.client.ui.setViewState(state))
+
+  /** The data sheets as CSV, every row, with their titles as shown. */
+  function downloadCsv () {
+    const value = data.value
+    if (!value) {
+      return
+    }
+    const sheets = [...value.areas, ...value.specificDescriptions].map(area => ({ area, title: allSheets.value.find(sheet => sheet.path === area.path)?.title ?? '' }))
+    const csv = sheetCsv(t, sheets, concepts.value, formatLocale.value)
+    void props.client.ui.saveFile(csvFileName(t, headline(t, value, formatLocale.value).title), csv, 'text/csv').catch(fail)
+  }
 
   function openFullscreen () {
     void props.client.ui.openFullscreen(viewState.value)

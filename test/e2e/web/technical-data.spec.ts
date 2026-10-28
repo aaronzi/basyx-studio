@@ -65,18 +65,48 @@ test('shows Technical Data 2.0 as a data sheet with units, classes, images and f
   await expect(electrical.locator('[data-test="sheet-area"]')).toHaveText(['Electrical', 'Mechanical'])
   const descriptions = frame.locator('[data-test="specific-descriptions"]')
   await expect(descriptions.locator('[data-test="sheet-area"]')).toHaveCount(0)
-  await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-value"]')).toHaveText('3.0')
-  await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-unit"]')).toHaveText('kW')
+  // The value with its unit; in the narrow details pane, the description and definition in an info icon.
+  const ratedPower = sheetRow(electrical, 'Rated power')
+  await expect(ratedPower.locator('[data-test="sheet-value"]')).toHaveText('3.0 kW')
+  await expect(electrical.locator('[data-test="sheet-description-column"]')).toHaveCount(0)
+  await expect(ratedPower.getByRole('button', { name: 'At 400 V and 8 kHz switching frequency. — Mechanical power at the shaft in continuous operation at rated values.' })).toBeVisible()
   // Its concept description is under the api.eclass-cdp.com spelling of its ID.
-  await expect(sheetRow(electrical, 'Rated current').locator('[data-test="sheet-unit"]')).toHaveText('A')
+  await expect(sheetRow(electrical, 'Rated current').locator('[data-test="sheet-value"]')).toHaveText('7.25 A')
   await expect(electrical.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Protection', 'Dimensions'])
-  await expect(sheetRow(electrical, 'Ambient temperature in operation').locator('[data-test="sheet-value"]')).toHaveText('-20 – 40')
-  await expect(sheetRow(electrical, 'Installation altitude').locator('[data-test="sheet-value"]')).toHaveText('≤ 1000')
+  await expect(sheetRow(electrical, 'Ambient temperature in operation').locator('[data-test="sheet-value"]')).toHaveText('-20 – 40 °C')
+  await expect(sheetRow(electrical, 'Installation altitude').locator('[data-test="sheet-value"]')).toHaveText('≤ 1000 m')
   await expect(sheetRow(electrical, 'Overvoltage protection').locator('[data-test="sheet-value"]')).toHaveText('Yes')
   // Named by its supplemental semantic ID's concept.
   await expect(sheetRow(descriptions, 'Safety integrity level').locator('[data-test="sheet-value"]')).toHaveText('SIL 3')
 
   await expect(frame.locator('[data-test="further-information"]')).toContainText('Subject to technical changes.')
+
+  // A section collapses to its row and opens again; an area too.
+  const supply = electrical.locator('[data-test="sheet-section"]').filter({ hasText: 'Power supply' })
+  await clickIn(page, supply.locator('[data-test="sheet-toggle"]'))
+  await expect(sheetRow(electrical, 'Supply frequency')).toHaveCount(0)
+  await expect(electrical.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Dimensions'])
+  await supply.locator('[data-test="sheet-toggle"]').click()
+  await expect(sheetRow(electrical, 'Supply frequency')).toHaveCount(1)
+  const mechanical = electrical.locator('[data-test="sheet-area"]').filter({ hasText: 'Mechanical' })
+  await mechanical.locator('[data-test="sheet-toggle"]').click()
+  await expect(sheetRow(electrical, 'Weight')).toHaveCount(0)
+  await mechanical.locator('[data-test="sheet-toggle"]').click()
+
+  // Every row as CSV, which Studio's page saves.
+  const download = page.waitForEvent('download')
+  await clickIn(page, frame.locator('[data-test="sheet-csv"]'))
+  const csv = await download
+  expect(csv.suggestedFilename()).toBe('Servo drive SD-200 technical data.csv')
+  const text = (await csv.createReadStream().then(async stream => {
+    const chunks: Buffer[] = []
+    for await (const chunk of stream) {
+      chunks.push(chunk as Buffer)
+    }
+    return Buffer.concat(chunks)
+  })).toString('utf8')
+  expect(text).toContain('Electrical,,Rated power,3.0,,,kW,At 400 V and 8 kHz switching frequency.,')
+  expect(text).toContain('Functional safety,,Safety integrity level,SIL 3,')
 
   // A drawing in the data sheet opens in Studio's viewer.
   await clickIn(page, sheetRow(electrical, 'Dimension drawing').locator('[data-test="sheet-file"]'))
@@ -85,11 +115,27 @@ test('shows Technical Data 2.0 as a data sheet with units, classes, images and f
   await expect(page.locator('[data-test="file-viewer-dialog"]')).toBeHidden()
 })
 
+test('shows descriptions and definitions as columns where the frame is wide', async ({ page }) => {
+  const frame = await openSubmodel(page, shell, submodel)
+  await clickIn(page, frame.locator('[data-test="technical-data-fullscreen"]'))
+  const dialog = page.frameLocator('.v-dialog iframe[title="App: Technical Data"]')
+  const sheet = dialog.locator('[data-test="property-sheet"]')
+  await expect(sheet.locator('th')).toHaveText(['Property', 'Description', 'Definition', 'Value'], { timeout: 30_000 })
+  const ratedPower = sheetRow(sheet, 'Rated power')
+  await expect(ratedPower.locator('[data-test="sheet-description"]')).toHaveText('At 400 V and 8 kHz switching frequency.')
+  await expect(ratedPower.locator('[data-test="sheet-definition"]')).toHaveText('Mechanical power at the shaft in continuous operation at rated values.')
+  await expect(ratedPower.locator('[data-test="sheet-about"]')).toHaveCount(0)
+  // The specific descriptions: a description of their own, and a definition through a supplemental semantic ID.
+  await expect(dialog.locator('[data-test="specific-descriptions"] th')).toHaveText(['Property', 'Description', 'Definition', 'Value'])
+  await page.locator('[data-test="app-fullscreen-close"]').click()
+  await expect(page.locator('.v-dialog')).toBeHidden()
+})
+
 test('searches every data sheet and keeps the search in full screen', async ({ page }) => {
   const frame = await openSubmodel(page, shell, submodel)
   const search = frame.locator('[data-test="sheet-search"] input')
   await clickIn(page, search)
-  await search.fill('kA')
+  await search.fill('short-circuit')
   await expect(frame.locator('[data-test="sheet-matches"]')).toHaveText('1 of 22 properties')
   // The match with the area and the sections it lies in.
   await expect(frame.locator('[data-test="sheet-area"]')).toHaveText(['Electrical'])
@@ -140,12 +186,12 @@ test('changes a Property and a Range in place in edit mode', async ({ page, requ
     await frame.getByRole('textbox', { name: 'Rated power' }).fill('3.2')
     await frame.locator('[data-test="edit-save"]').click()
     await expect(frame.locator('[data-test="notice"]')).toContainText('Rated power saved.')
-    await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-value"]')).toHaveText('3.2')
+    await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-value"]')).toHaveText('3.2 kW')
 
     await clickIn(page, electrical.getByRole('button', { name: 'Edit Ambient temperature in operation' }))
     await frame.locator('[data-test="edit-max"] input').fill('45')
     await frame.locator('[data-test="edit-save"]').click()
-    await expect(sheetRow(electrical, 'Ambient temperature in operation').locator('[data-test="sheet-value"]')).toHaveText('-20 – 45')
+    await expect(sheetRow(electrical, 'Ambient temperature in operation').locator('[data-test="sheet-value"]')).toHaveText('-20 – 45 °C')
   } finally {
     await setAtSource(request, submodel, 'TechnicalPropertyAreas[0].RatedPower', '3.0')
     // A Range's value-only form at BaSyx.

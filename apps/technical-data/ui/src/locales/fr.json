@@ -38,10 +38,22 @@
     "unit": "Unité",
     "entry": "Entrée {number}",
     "area": "Zone {number}",
-    "description": "Description {number}",
+    "description": "Description",
     "search": "Rechercher des propriétés",
     "matches": "{count} propriétés sur {total}",
-    "noMatches": "Aucune propriété ne correspond à « {query} »."
+    "noMatches": "Aucune propriété ne correspond à « {query} ».",
+    "definition": "Définition",
+    "collapse": "Réduire {label}",
+    "expand": "Développer {label}"
+  },
+  "csv": {
+    "download": "Télécharger en CSV",
+    "fileName": "{name} données techniques.csv",
+    "area": "Zone",
+    "section": "Section",
+    "min": "Minimum",
+    "max": "Maximum",
+    "semanticId": "ID sémantique"
   },
   "further": {
     "validDate": "Valable à partir du",

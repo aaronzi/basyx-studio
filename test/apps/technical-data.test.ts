@@ -4,7 +4,7 @@ import { fieldText } from '@basyx/studio-app-kit/aas'
 import { createTestStudio, memoryAas } from '@basyx/studio-sdk/testing'
 import { describe, expect, it } from 'vitest'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { areaTitles, classificationChip, classificationRows, conceptMap, conceptQuery, conceptSpellings, dateText, filterRows, furtherRows, generalRows, headline, numberText, rangeText, sheetRows, templateLabel, typedText } from '../../apps/technical-data/ui/src/presentation'
+import { areaTitles, classificationChip, classificationRows, conceptMap, conceptQuery, conceptSpellings, csvFileName, dateText, descriptionOf, filterRows, furtherRows, generalRows, headline, numberText, rangeText, sheetCsv, sheetRows, templateLabel, typedText, valueWithUnit, visibleRows } from '../../apps/technical-data/ui/src/presentation'
 import { parseTechnicalData, referencedPath, sheetConceptIds, templateVersion } from '../../apps/technical-data/ui/src/technicalData'
 
 // The Technical Data app's reading of IDTA 02003 2.0 and ZVEI 1.2, and what
@@ -118,7 +118,11 @@ describe('the data sheets', () => {
       ['value', 0, 'Dimension drawing', 'sd-200-dimensions.svg', ''],
       ['value', 0, 'Application note', 'For synchronous servo motors up to 3 kW.', ''],
     ])
-    expect(rows[0]!.definition).toBe('Mechanical power at the shaft in continuous operation at rated values.')
+    // The concept's definition and the element's own description, each in its column.
+    expect(rows[0]).toMatchObject({ definition: 'Mechanical power at the shaft in continuous operation at rated values.', description: 'At 400 V and 8 kHz switching frequency.' })
+    expect(rows.find(row => row.label === 'Number of phases')).toMatchObject({ description: '', definition: 'Phases of the supply.' })
+    expect(valueWithUnit(rows[0]!)).toBe('3.0\u00A0kW')
+    expect(valueWithUnit({ value: 'Yes', unit: '' })).toBe('Yes')
     expect(rows.find(row => row.label === 'Dimension drawing')).toMatchObject({ file: { path: 'TechnicalPropertyAreas[0].DimensionDrawing' } })
     expect(rows.find(row => row.label === 'Supply frequency')!.field).toMatchObject({ modelType: 'Range', min: '50', max: '60' })
     // German names and numbers from the same concepts.
@@ -159,13 +163,50 @@ describe('the data sheets', () => {
     ])
   })
 
-  it('finds rows by every word, in their label, value, unit or section, keeping the sections above them', async () => {
+  it('finds rows by every word, in their label, value, unit, description, definition or section, keeping the sections above them', async () => {
     const rows = sheetRows(t, v2.areas[0]!, await conceptsOf(v2), 'en', false)
     expect(filterRows(rows, '')).toBe(rows)
     expect(filterRows(rows, 'kA').map(row => row.label)).toEqual(['Power supply', 'Protection', 'Short-circuit current rating'])
-    expect(filterRows(rows, 'supply phases').map(row => row.label)).toEqual(['Power supply', 'Number of phases'])
+    // Descriptions and definitions too: Rated voltage is the "supply voltage between phases".
+    expect(filterRows(rows, 'supply phases').map(row => row.label)).toEqual(['Rated voltage', 'Power supply', 'Number of phases'])
     expect(filterRows(rows, 'POWER rated').map(row => row.label)).toEqual(['Rated power'])
     expect(filterRows(rows, 'nothing like this')).toEqual([])
+  })
+
+  it('leaves out a description that only repeats the label', () => {
+    const node = { idShort: 'Width', displayName: [], description: [{ language: 'en', text: 'width' }], conceptIds: [] }
+    expect(descriptionOf(node, 'Width', 'en')).toBe('')
+    expect(descriptionOf({ ...node, description: [{ language: 'en', text: 'Without the cable gland.' }] }, 'Width', 'en')).toBe('Without the cable gland.')
+  })
+
+  it('hides the rows below a collapsed section, and all of a collapsed area', async () => {
+    const rows = sheetRows(t, v2.areas[0]!, await conceptsOf(v2), 'en', false)
+    const supply = rows.find(row => row.label === 'Power supply')!
+    const labels = (shown: typeof rows) => shown.map(row => row.label)
+    expect(visibleRows(rows, new Set())).toBe(rows)
+    // The section's own row stays, so that it opens again; its nested section goes with it.
+    expect(labels(visibleRows(rows, new Set([supply.key])))).toEqual(['Rated power', 'Rated voltage', 'Rated current', 'Power supply', 'Ambient temperature in operation', 'Installation altitude', 'Integrated brake chopper', 'Firmware release date', 'Dimension drawing', 'Application note'])
+    expect(visibleRows(rows, new Set([v2.areas[0]!.path]), v2.areas[0]!.path)).toEqual([])
+  })
+
+  it('writes every row as CSV, with values as stored and the sections they lie in', async () => {
+    const concepts = await conceptsOf(v2)
+    const sheets = v2.areas.map((area, index) => ({ area, title: ['Electrical', 'Mechanical'][index]! }))
+    const csv = sheetCsv(t, sheets, concepts, 'de')
+    expect(csv.startsWith('\uFEFF')).toBe(true)
+    const lines = csv.slice(1).split('\r\n')
+    expect(lines[0]).toBe('csv.area,csv.section,sheet.property,sheet.value,csv.min,csv.max,sheet.unit,sheet.description,sheet.definition,csv.semanticId')
+    // German names, but values as stored: a point, not "3,0".
+    expect(lines[1]).toBe('Electrical,,Bemessungsleistung,3.0,,,kW,Bei 400 V und 8 kHz Schaltfrequenz.,Mechanische Leistung an der Welle im Dauerbetrieb bei Bemessungswerten.,https://example.com/ids/cd/technical-data/RatedPower')
+    expect(lines.find(line => line.includes('Bemessungskurzschlussstrom'))).toBe('Electrical,Stromversorgung / Protection,Bemessungskurzschlussstrom,65,,,kA,,"Unbeeinflusster Kurzschlussstrom, dem der Antrieb an seiner Versorgung standhält.",https://example.com/ids/cd/technical-data/ShortCircuitCurrentRating')
+    // A Range's bounds in their own columns, a File as its path, a boolean as stored.
+    expect(lines.find(line => line.includes('Umgebungstemperatur'))).toContain(',,-20,40,°C,')
+    expect(lines.find(line => line.includes('Aufstellungshöhe'))).toContain(',,,1000,m,')
+    expect(lines.find(line => line.startsWith('Electrical,,Dimension drawing'))).toContain(',/aasx/files/technical-data/sd-200-dimensions.svg,')
+    expect(lines.find(line => line.includes('Überspannungsschutz'))).toContain(',true,')
+    expect(lines).toHaveLength(2 + 13 + 6)
+    expect(csvFileName(t, 'Servo drive SD-200 / B')).toBe('csv.fileName{"name":"Servo drive SD-200  B"}')
+    expect(csvFileName(t, '')).toBe('csv.fileName{"name":"technicalData.untitled"}')
   })
 
   it('lists every value in edit mode, empty ones too, and hides sections without values', async () => {

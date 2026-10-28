@@ -38,10 +38,22 @@
     "unit": "Unidad",
     "entry": "Entrada {number}",
     "area": "Área {number}",
-    "description": "Descripción {number}",
+    "description": "Descripción",
     "search": "Buscar propiedades",
     "matches": "{count} de {total} propiedades",
-    "noMatches": "Ninguna propiedad coincide con «{query}»."
+    "noMatches": "Ninguna propiedad coincide con «{query}».",
+    "definition": "Definición",
+    "collapse": "Contraer {label}",
+    "expand": "Expandir {label}"
+  },
+  "csv": {
+    "download": "Descargar como CSV",
+    "fileName": "{name} datos técnicos.csv",
+    "area": "Área",
+    "section": "Sección",
+    "min": "Mínimo",
+    "max": "Máximo",
+    "semanticId": "ID semántico"
   },
   "further": {
     "validDate": "Válido desde",

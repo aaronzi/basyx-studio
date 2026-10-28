@@ -38,10 +38,22 @@
     "unit": "Eenheid",
     "entry": "Item {number}",
     "area": "Gebied {number}",
-    "description": "Beschrijving {number}",
+    "description": "Beschrijving",
     "search": "Eigenschappen zoeken",
     "matches": "{count} van {total} eigenschappen",
-    "noMatches": "Geen eigenschap komt overeen met ‘{query}’."
+    "noMatches": "Geen eigenschap komt overeen met ‘{query}’.",
+    "definition": "Definitie",
+    "collapse": "{label} samenvouwen",
+    "expand": "{label} uitvouwen"
+  },
+  "csv": {
+    "download": "Downloaden als CSV",
+    "fileName": "{name} technische gegevens.csv",
+    "area": "Gebied",
+    "section": "Sectie",
+    "min": "Minimum",
+    "max": "Maximum",
+    "semanticId": "Semantische ID"
   },
   "further": {
     "validDate": "Geldig vanaf",

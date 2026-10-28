@@ -30,7 +30,9 @@ export interface SheetRow {
   /** How deep the row lies in its area: 0 for the area's own elements. */
   depth: number
   label: string
-  /** The concept's definition, else the element's description; empty without one. */
+  /** The element's own description; empty without one. */
+  description: string
+  /** What the concept description defines it as; empty without one. */
   definition: string
   value: string
   unit: string
@@ -95,9 +97,15 @@ export function labelOf (node: Named, concepts: Concepts, locale: string, fallba
     || (node.idShort ? humanize(node.idShort) : fallback)
 }
 
-/** What an element means: its concept's definition, else its description. */
+/** What an element's concept description defines it as. */
 export function definitionOf (node: Named, concepts: Concepts, locale: string): string {
-  return langText(conceptOf(node, concepts)?.definition ?? [], locale) || langText(node.description, locale)
+  return langText(conceptOf(node, concepts)?.definition ?? [], locale)
+}
+
+/** What the element's own description says, unless it only repeats the label. */
+export function descriptionOf (node: Named, label: string, locale: string): string {
+  const description = langText(node.description, locale)
+  return description.toLowerCase() === label.toLowerCase() ? '' : description
 }
 
 const numericTypes = new Set(['xs:double', 'xs:float', 'xs:decimal', 'xs:int', 'xs:integer', 'xs:long', 'xs:short', 'xs:byte',
@@ -185,7 +193,8 @@ function valueOf (t: Translate, node: Extract<SheetNode, { kind: 'value' }>, loc
 
 /**
  * An area's data sheet as table rows, depth first: a row per section, above
- * its elements, and a row per value with its unit. Without values, a
+ * its elements, and a row per value with its unit, description and the
+ * concept's definition. Without values, a
  * section has no row, except in edit mode, where every value is a row.
  */
 export function sheetRows (t: Translate, area: SheetArea, concepts: Concepts, locale: string, edit: boolean): SheetRow[] {
@@ -194,6 +203,7 @@ export function sheetRows (t: Translate, area: SheetArea, concepts: Concepts, lo
     for (const [index, node] of nodes.entries()) {
       const label = labelOf(node, concepts, locale, t('sheet.entry', { number: index + 1 }))
       const definition = definitionOf(node, concepts, locale)
+      const description = descriptionOf(node, label, locale)
       if (node.kind === 'section') {
         const at = rows.length
         visit(node.children, depth + 1, [...sections, { key: node.path, label }])
@@ -203,11 +213,12 @@ export function sheetRows (t: Translate, area: SheetArea, concepts: Concepts, lo
             kind: 'section',
             depth,
             label,
+            description,
             definition,
             value: '',
             unit: '',
             sections: sections.map(section => section.key),
-            haystack: [label, node.idShort, ...sections.map(section => section.label)].join(' ').toLowerCase(),
+            haystack: [label, node.idShort, description, definition, ...sections.map(section => section.label)].join(' ').toLowerCase(),
           })
         }
         continue
@@ -222,18 +233,35 @@ export function sheetRows (t: Translate, area: SheetArea, concepts: Concepts, lo
         kind: 'value',
         depth,
         label,
+        description,
         definition,
         value,
         unit,
         field: node.field,
         file: node.file ?? undefined,
         sections: sections.map(section => section.key),
-        haystack: [label, node.idShort, value, unit, ...sections.map(section => section.label)].join(' ').toLowerCase(),
+        haystack: [label, node.idShort, value, unit, description, definition, ...sections.map(section => section.label)].join(' ').toLowerCase(),
       })
     }
   }
   visit(area.children, 0, [])
   return rows
+}
+
+/** A value with its unit, kept on one line: "3.0 kW". */
+export function valueWithUnit (row: Pick<SheetRow, 'value' | 'unit'>): string {
+  return row.unit ? `${row.value}\u00A0${row.unit}` : row.value
+}
+
+/**
+ * An area's rows without those below a collapsed section; none at all where
+ * the area itself (`area`, its path) is collapsed.
+ */
+export function visibleRows (rows: SheetRow[], collapsed: ReadonlySet<string>, area = ''): SheetRow[] {
+  if (collapsed.size === 0) {
+    return rows
+  }
+  return collapsed.has(area) ? [] : rows.filter(row => !row.sections.some(section => collapsed.has(section)))
 }
 
 /**
@@ -362,4 +390,54 @@ export function classificationRows (t: Translate, classification: Classification
   return fields
     .filter(([, field]) => field !== undefined)
     .map(([key, field]) => ({ key: `${classification.path}:${key}`, label: t(`classification.fields.${key}`), value: fieldText(field, locale), field }))
+}
+
+/** A CSV field, quoted where it holds a separator, quote or line break (RFC 4180). */
+function csvField (value: string): string {
+  return /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value
+}
+
+/** A value as stored, for a spreadsheet: numbers with a point, booleans as `true` and `false`. */
+function rawValue (node: Extract<SheetNode, { kind: 'value' }>, locale: string): { value: string, min: string, max: string } {
+  const field = node.field
+  if (field?.modelType === 'Range') {
+    return { value: '', min: field.min, max: field.max }
+  }
+  if (field) {
+    return { value: field.modelType === 'Property' ? (field.values[0]?.text ?? '') : fieldText(field, locale), min: '', max: '' }
+  }
+  return { value: node.file?.value ?? node.text, min: '', max: '' }
+}
+
+/**
+ * The data sheets as CSV (RFC 4180, with a byte order mark for spreadsheet
+ * programs): a row per value, with its area, the sections it lies in, its
+ * label, the value as stored (a Range's bounds in their own columns), unit,
+ * description, definition and semantic ID. Column titles in the user's
+ * language; every row, whatever a search shows.
+ */
+export function sheetCsv (t: Translate, sheets: Array<{ title: string, area: SheetArea }>, concepts: Concepts, locale: string): string {
+  const header = ['csv.area', 'csv.section', 'sheet.property', 'sheet.value', 'csv.min', 'csv.max', 'sheet.unit', 'sheet.description', 'sheet.definition', 'csv.semanticId'].map(key => t(key))
+  const lines: string[][] = [header]
+  const visit = (title: string, nodes: SheetNode[], sections: string[]) => {
+    for (const [index, node] of nodes.entries()) {
+      const label = labelOf(node, concepts, locale, t('sheet.entry', { number: index + 1 }))
+      if (node.kind === 'section') {
+        visit(title, node.children, [...sections, label])
+        continue
+      }
+      const { value, min, max } = rawValue(node, locale)
+      lines.push([title, sections.join(' / '), label, value, min, max, conceptOf(node, concepts)?.unit ?? '', descriptionOf(node, label, locale), definitionOf(node, concepts, locale), node.conceptIds[0] ?? ''])
+    }
+  }
+  for (const sheet of sheets) {
+    visit(sheet.title, sheet.area.children, [])
+  }
+  return `\uFEFF${lines.map(line => line.map(field => csvField(field)).join(',')).join('\r\n')}\r\n`
+}
+
+/** The CSV's file name: the product's, without characters file systems refuse. */
+export function csvFileName (t: Translate, product: string): string {
+  const name = product.replaceAll(/[/\\:*?"<>|\0]/g, '').trim().slice(0, 120)
+  return t('csv.fileName', { name: name || t('technicalData.untitled') })
 }

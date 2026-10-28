@@ -38,10 +38,22 @@
     "unit": "单位",
     "entry": "条目 {number}",
     "area": "区域 {number}",
-    "description": "描述 {number}",
+    "description": "描述",
     "search": "搜索属性",
     "matches": "{total} 个属性中的 {count} 个",
-    "noMatches": "没有与“{query}”匹配的属性。"
+    "noMatches": "没有与“{query}”匹配的属性。",
+    "definition": "定义",
+    "collapse": "折叠{label}",
+    "expand": "展开{label}"
+  },
+  "csv": {
+    "download": "下载为 CSV",
+    "fileName": "{name} 技术数据.csv",
+    "area": "区域",
+    "section": "章节",
+    "min": "最小值",
+    "max": "最大值",
+    "semanticId": "语义 ID"
   },
   "further": {
     "validDate": "生效日期",

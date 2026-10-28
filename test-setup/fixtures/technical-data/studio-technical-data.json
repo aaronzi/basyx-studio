@@ -636,6 +636,16 @@
               "value": [
                 {
                   "idShort": "RatedPower",
+                  "description": [
+                    {
+                      "language": "en",
+                      "text": "At 400 V and 8 kHz switching frequency."
+                    },
+                    {
+                      "language": "de",
+                      "text": "Bei 400 V und 8 kHz Schaltfrequenz."
+                    }
+                  ],
                   "semanticId": {
                     "type": "ExternalReference",
                     "keys": [
@@ -666,6 +676,16 @@
                 },
                 {
                   "idShort": "RatedCurrent",
+                  "description": [
+                    {
+                      "language": "en",
+                      "text": "Peak current for 3 s: 14.5 A."
+                    },
+                    {
+                      "language": "de",
+                      "text": "Spitzenstrom für 3 s: 14,5 A."
+                    }
+                  ],
                   "semanticId": {
                     "type": "ExternalReference",
                     "keys": [
@@ -782,6 +802,16 @@
                 },
                 {
                   "idShort": "AmbientTemperature",
+                  "description": [
+                    {
+                      "language": "en",
+                      "text": "Above 40 °C with 2.5 % less power per kelvin, up to 55 °C."
+                    },
+                    {
+                      "language": "de",
+                      "text": "Über 40 °C mit 2,5 % weniger Leistung je Kelvin, bis 55 °C."
+                    }
+                  ],
                   "semanticId": {
                     "type": "ExternalReference",
                     "keys": [
@@ -843,6 +873,16 @@
                 },
                 {
                   "idShort": "DimensionDrawing",
+                  "description": [
+                    {
+                      "language": "en",
+                      "text": "Front and side view, in millimetres."
+                    },
+                    {
+                      "language": "de",
+                      "text": "Vorder- und Seitenansicht, in Millimetern."
+                    }
+                  ],
                   "semanticId": {
                     "type": "ExternalReference",
                     "keys": [
@@ -1136,6 +1176,16 @@
               "value": [
                 {
                   "idShort": "SafetyFunction",
+                  "description": [
+                    {
+                      "language": "en",
+                      "text": "To IEC 61800-5-2."
+                    },
+                    {
+                      "language": "de",
+                      "text": "Nach IEC 61800-5-2."
+                    }
+                  ],
                   "semanticId": {
                     "type": "ExternalReference",
                     "keys": [

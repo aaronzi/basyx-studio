@@ -38,10 +38,22 @@
     "unit": "Einheit",
     "entry": "Eintrag {number}",
     "area": "Bereich {number}",
-    "description": "Beschreibung {number}",
+    "description": "Beschreibung",
     "search": "Eigenschaften durchsuchen",
     "matches": "{count} von {total} Eigenschaften",
-    "noMatches": "Keine Eigenschaft passt zu „{query}“."
+    "noMatches": "Keine Eigenschaft passt zu „{query}“.",
+    "definition": "Definition",
+    "collapse": "{label} einklappen",
+    "expand": "{label} ausklappen"
+  },
+  "csv": {
+    "download": "Als CSV herunterladen",
+    "fileName": "{name} technische Daten.csv",
+    "area": "Bereich",
+    "section": "Abschnitt",
+    "min": "Minimum",
+    "max": "Maximum",
+    "semanticId": "Semantische ID"
   },
   "further": {
     "validDate": "Gültig ab",

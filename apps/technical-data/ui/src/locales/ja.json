@@ -38,10 +38,22 @@
     "unit": "単位",
     "entry": "項目 {number}",
     "area": "領域 {number}",
-    "description": "説明 {number}",
+    "description": "説明",
     "search": "特性を検索",
     "matches": "{total} 件中 {count} 件の特性",
-    "noMatches": "「{query}」に一致する特性はありません。"
+    "noMatches": "「{query}」に一致する特性はありません。",
+    "definition": "定義",
+    "collapse": "{label} を折りたたむ",
+    "expand": "{label} を展開"
+  },
+  "csv": {
+    "download": "CSV としてダウンロード",
+    "fileName": "{name} 技術データ.csv",
+    "area": "領域",
+    "section": "セクション",
+    "min": "最小",
+    "max": "最大",
+    "semanticId": "セマンティック ID"
   },
   "further": {
     "validDate": "有効開始日",

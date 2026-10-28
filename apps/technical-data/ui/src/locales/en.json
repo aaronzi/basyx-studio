@@ -38,10 +38,22 @@
     "unit": "Unit",
     "entry": "Entry {number}",
     "area": "Area {number}",
-    "description": "Description {number}",
+    "description": "Description",
     "search": "Search properties",
     "matches": "{count} of {total} properties",
-    "noMatches": "No property matches “{query}”."
+    "noMatches": "No property matches “{query}”.",
+    "definition": "Definition",
+    "collapse": "Collapse {label}",
+    "expand": "Expand {label}"
+  },
+  "csv": {
+    "download": "Download as CSV",
+    "fileName": "{name} technical data.csv",
+    "area": "Area",
+    "section": "Section",
+    "min": "Minimum",
+    "max": "Maximum",
+    "semanticId": "Semantic ID"
   },
   "further": {
     "validDate": "Valid from",

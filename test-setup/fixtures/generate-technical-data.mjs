@@ -4,14 +4,15 @@
 // (logo, three product images with notes, an ECLASS and an IEC CDD class,
 // the ECLASS one referring to its area, two areas of technical properties
 // with nested sections, ranges, one open-ended, booleans, a date, a text in
-// two languages and a drawing, specific descriptions, and further
-// information), concept descriptions with units and names in English and
-// German, and a second shell with the same product as ZVEI Technical Data
-// 1.2 (`MainSection`, `SubSection`, `SemanticIdNotAvailable`, numbered
-// images, and the template's ValidDate with ManufacturerOrderCode's semantic
-// ID). The IDs of the properties are made up for the demo; the ECLASS-like
-// ones use the made-up class `ZZ`. Verified with AAS Core 3.1; every file is
-// drawn here, so the fixture carries no third-party content.
+// two languages and a drawing, some with descriptions of their own,
+// specific descriptions, and further information), concept descriptions
+// with units and names in English and German, and a second shell with the
+// same product as ZVEI Technical Data 1.2 (`MainSection`, `SubSection`,
+// `SemanticIdNotAvailable`, numbered images, and the template's ValidDate
+// with ManufacturerOrderCode's semantic ID). The IDs of the properties are
+// made up for the demo; the ECLASS-like ones use the made-up class `ZZ`.
+// Verified with AAS Core 3.1; every file is drawn here, so the fixture
+// carries no third-party content.
 //
 // Run with: pnpm testenv:fixtures
 
@@ -125,10 +126,11 @@ const reference = value => ({ type: 'ExternalReference', keys: [{ type: 'GlobalR
 const en = text => [{ language: 'en', text }]
 const texts = value => (typeof value === 'string' ? en(value) : Object.entries(value).map(([language, text]) => ({ language, text })))
 
-/** Optional parts of an element: a display name in several languages, supplemental semantic IDs. */
-function extras ({ displayName, supplemental } = {}) {
+/** Optional parts of an element: a display name and a description in several languages, supplemental semantic IDs. */
+function extras ({ displayName, description, supplemental } = {}) {
   return {
     ...(displayName ? { displayName: texts(displayName) } : {}),
+    ...(description ? { description: texts(description) } : {}),
     ...(supplemental ? { supplementalSemanticIds: supplemental.map(id => reference(id)) } : {}),
   }
 }
@@ -142,8 +144,8 @@ function mlp (idShort, semanticId, value, options) {
   return { ...(idShort ? { idShort } : {}), modelType: 'MultiLanguageProperty', ...extras(options), ...(semanticId ? { semanticId: reference(semanticId) } : {}), value: texts(value) }
 }
 
-function range (idShort, semanticId, min, max, valueType = 'xs:double') {
-  return { idShort, modelType: 'Range', semanticId: reference(semanticId), valueType, ...(min === undefined ? {} : { min: String(min) }), ...(max === undefined ? {} : { max: String(max) }) }
+function range (idShort, semanticId, min, max, valueType = 'xs:double', options) {
+  return { idShort, modelType: 'Range', ...extras(options), semanticId: reference(semanticId), valueType, ...(min === undefined ? {} : { min: String(min) }), ...(max === undefined ? {} : { max: String(max) }) }
 }
 
 function smc (idShort, semanticId, value, options) {
@@ -163,8 +165,8 @@ function sml (idShort, semanticId, itemSemanticId, items) {
   }
 }
 
-function file (idShort, semanticId, name) {
-  return { ...(idShort ? { idShort } : {}), modelType: 'File', ...(semanticId ? { semanticId: reference(semanticId) } : {}), contentType: files[name].contentType, value: filePath(name) }
+function file (idShort, semanticId, name, options) {
+  return { ...(idShort ? { idShort } : {}), modelType: 'File', ...extras(options), ...(semanticId ? { semanticId: reference(semanticId) } : {}), contentType: files[name].contentType, value: filePath(name) }
 }
 
 // ---------------------------------------------------------------------------
@@ -339,9 +341,9 @@ const technicalData2 = {
       {
         displayName: { en: 'Electrical', de: 'Elektrisch' },
         value: [
-          prop('RatedPower', cds.ratedPower, '3.0', 'xs:double'),
+          prop('RatedPower', cds.ratedPower, '3.0', 'xs:double', { description: { en: 'At 400 V and 8 kHz switching frequency.', de: 'Bei 400 V und 8 kHz Schaltfrequenz.' } }),
           prop('RatedVoltage', cds.ratedVoltage, '400', 'xs:integer'),
-          prop('RatedCurrent', cds.ratedCurrent, '7.25', 'xs:double'),
+          prop('RatedCurrent', cds.ratedCurrent, '7.25', 'xs:double', { description: { en: 'Peak current for 3 s: 14.5 A.', de: 'Spitzenstrom für 3 s: 14,5 A.' } }),
           smc('Supply', td2.arbitrary, [
             range('SupplyFrequency', cds.frequency, '50', '60'),
             prop('NumberOfPhases', cds.phases, '3', 'xs:integer'),
@@ -350,11 +352,11 @@ const technicalData2 = {
               prop('ShortCircuitCurrentRating', cds.shortCircuit, '65', 'xs:double'),
             ]),
           ], { displayName: { en: 'Power supply', de: 'Stromversorgung' } }),
-          range('AmbientTemperature', cds.ambient, '-20', '40'),
+          range('AmbientTemperature', cds.ambient, '-20', '40', 'xs:double', { description: { en: 'Above 40 °C with 2.5 % less power per kelvin, up to 55 °C.', de: 'Über 40 °C mit 2,5 % weniger Leistung je Kelvin, bis 55 °C.' } }),
           range('InstallationAltitude', cds.altitude, undefined, '1000'),
           prop('IntegratedBrakeChopper', cds.brakeChopper, 'false', 'xs:boolean'),
           prop('FirmwareReleaseDate', cds.firmwareDate, '2026-03-01', 'xs:date'),
-          file('DimensionDrawing', td2.arbitrary, 'sd-200-dimensions.svg'),
+          file('DimensionDrawing', td2.arbitrary, 'sd-200-dimensions.svg', { description: { en: 'Front and side view, in millimetres.', de: 'Vorder- und Seitenansicht, in Millimetern.' } }),
           mlp('ApplicationNote', td2.arbitrary, { en: 'For synchronous servo motors up to 3 kW.', de: 'Für Synchron-Servomotoren bis 3 kW.' }),
         ],
       },
@@ -381,7 +383,7 @@ const technicalData2 = {
       {
         displayName: { en: 'Functional safety', de: 'Funktionale Sicherheit' },
         value: [
-          prop('SafetyFunction', td2.arbitrary, 'STO (Safe torque off)'),
+          prop('SafetyFunction', td2.arbitrary, 'STO (Safe torque off)', 'xs:string', { description: { en: 'To IEC 61800-5-2.', de: 'Nach IEC 61800-5-2.' } }),
           prop('SafetyIntegrityLevel', td2.arbitrary, 'SIL 3', 'xs:string', { supplemental: [cds.safetyIntegrity] }),
           prop('PerformanceLevel', td2.arbitrary, 'PL e'),
         ],
