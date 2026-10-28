@@ -17,9 +17,11 @@ export const appDefaults = {
   VCardHeader: { class: 'bg-card-header' },
   // A part of a view in a card of its own (a nameplate's product, its
   // manufacturer), bordered as every card and as tall as its neighbours in a
-  // row; its label and value rows sit flush, the card is their border. An
-  // alias takes none of VCard's defaults, so they are restated.
-  VCardSection: { flat: true, border: true, rounded: 'lg', class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent' } },
+  // row; its label and value rows sit flush, the card is their border, and
+  // their stripes start on the second row, so the first one does not look
+  // like the tinted header above it. An alias takes none of VCard's
+  // defaults, so they are restated.
+  VCardSection: { flat: true, border: true, rounded: 'lg', class: 'h-100 d-flex flex-column', VTableDetails: { class: 'bg-transparent', striped: 'even' } },
   // Dialogs as in Studio: their card keeps a shadow, so it stands out.
   VDialog: { VCard: { flat: false } },
   // The actions of a dialog or card at Studio's button height: the view's
