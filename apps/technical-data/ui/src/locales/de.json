@@ -1,0 +1,75 @@
+{
+  "technicalData": {
+    "untitled": "Produkt",
+    "logo": "Logo von {name}",
+    "fullscreen": "Vollbild",
+    "empty": "Dieses Teilmodell enthält keine technischen Daten."
+  },
+  "sections": {
+    "general": "Allgemeine Informationen",
+    "classifications": "Produktklassifikationen",
+    "properties": "Technische Eigenschaften",
+    "specificDescriptions": "Spezifische Beschreibungen",
+    "further": "Weitere Informationen"
+  },
+  "general": {
+    "manufacturerName": "Hersteller",
+    "productDesignation": "Produktbezeichnung",
+    "articleNumber": "Artikelnummer",
+    "orderCode": "Bestellnummer",
+    "articleShort": "Art.-Nr. {value}",
+    "orderShort": "Best.-Nr. {value}"
+  },
+  "classification": {
+    "system": "System",
+    "classId": "Klasse",
+    "className": "Klassenname",
+    "area": "Eigenschaften",
+    "version": "Version {version}",
+    "fields": {
+      "system": "Klassifikationssystem",
+      "version": "Systemversion",
+      "url": "Adresse des Systems",
+      "classId": "Klassen-ID",
+      "codedName": "Codierter Klassenname",
+      "className": "Klassenname"
+    }
+  },
+  "sheet": {
+    "property": "Eigenschaft",
+    "value": "Wert",
+    "unit": "Einheit",
+    "entry": "Eintrag {number}",
+    "area": "Bereich {number}",
+    "search": "Eigenschaften durchsuchen",
+    "matches": "{count} von {total} Eigenschaften",
+    "noMatches": "Keine Eigenschaft passt zu „{query}“."
+  },
+  "further": {
+    "validDate": "Gültig ab",
+    "statement": "Hinweis",
+    "validFrom": "Gültig ab {date}"
+  },
+  "image": {
+    "open": "{name} anzeigen"
+  },
+  "value": {
+    "yes": "Ja",
+    "no": "Nein"
+  },
+  "copy": {
+    "copy": "{label} kopieren",
+    "copied": "In die Zwischenablage kopiert."
+  },
+  "edit": {
+    "edit": "{label} bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "saved": "{label} gespeichert.",
+    "conflict": "Jemand anderes hat diesen Wert inzwischen geändert. Brechen Sie ab und versuchen Sie es erneut.",
+    "forbidden": "Sie dürfen diesen Wert nicht ändern.",
+    "language": "Sprache: {language}",
+    "min": "Minimum",
+    "max": "Maximum"
+  }
+}

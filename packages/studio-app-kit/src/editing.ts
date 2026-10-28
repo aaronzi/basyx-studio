@@ -3,7 +3,7 @@ import type { Translate } from './i18n.ts'
 import type { JsonObject, StudioClient } from '@basyx/studio-sdk'
 import type { InjectionKey, Ref } from 'vue'
 import { StudioError } from '@basyx/studio-sdk'
-import { inject, provide, ref } from 'vue'
+import { inject, provide, ref, toRaw } from 'vue'
 
 // Changing values in place, in Studio's edit mode, as the Digital Nameplate,
 // Contacts and Technical Data apps do (app API 0.1.15): the element is read
@@ -63,7 +63,7 @@ export function draftValue (draft: Pick<Draft, 'field' | 'value' | 'language' | 
 /** A Range as read, with the draft's bounds; an empty bound is left out (open). */
 export function draftRange (draft: Pick<Draft, 'value' | 'max'> & { element: JsonObject }): JsonObject {
   // A plain copy: the draft's is a Vue proxy, which postMessage cannot clone.
-  const { min: _min, max: _max, ...element } = JSON.parse(JSON.stringify(draft.element)) as JsonObject
+  const { min: _min, max: _max, ...element } = structuredClone(toRaw(draft.element))
   const [min, max] = [draft.value.trim(), draft.max.trim()]
   return { ...element, ...(min === '' ? {} : { min }), ...(max === '' ? {} : { max }) }
 }

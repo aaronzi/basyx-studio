@@ -70,8 +70,8 @@
 <script lang="ts" setup>
   import type { Marking } from './nameplate'
   import type { StudioClient } from '@basyx/studio-sdk'
-  import { computed, ref } from 'vue'
   import { useRowActions } from '@basyx/studio-app-kit/editing'
+  import { computed, ref } from 'vue'
   import DetailList from './DetailList.vue'
   import { useI18n } from './i18n'
   import { markingExpired, markingName, markingRows } from './presentation'
