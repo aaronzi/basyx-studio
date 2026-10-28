@@ -70,13 +70,14 @@
               :searching="Boolean(query)"
               :sheets="properties"
             >
-              <!-- Above the column headers, as a toolbar: the sheet's title, and right-aligned
-                   its download and the search over every data sheet, the specific descriptions too. -->
+              <!-- Above the column headers, tinted as they are: the sheet's title, and right-aligned
+                   its download and the search over every data sheet, the specific descriptions too.
+                   The same 8 px around the search on the right, above and below. -->
               <template #top>
-                <div class="d-flex flex-wrap align-center ga-2 pa-2 ps-4">
+                <div class="d-flex flex-wrap align-center ga-2 pa-2 ps-4 bg-card-header">
                   <v-icon icon="mdi-table-large" size="18" />
 
-                  <h3 class="text-title-small">{{ t('sections.properties') }}</h3>
+                  <h3 class="text-title-small ma-0">{{ t('sections.properties') }}</h3>
 
                   <v-spacer />
 

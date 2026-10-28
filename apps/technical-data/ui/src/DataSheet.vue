@@ -166,7 +166,7 @@
   // show where there is text for them and the frame is wide enough; on a
   // narrow one, an info button beside the label holds both, for the
   // keyboard and screen readers too. The top slot sits above the column
-  // headers, inside the sheet's border, as a toolbar.
+  // headers, inside the sheet's border.
   const props = defineProps<{
     sheets: Array<{ path: string, title: string, rows: SheetRow[] }>
     /** Whether areas get rows of their own: where there are several, also when a search shows one. */
