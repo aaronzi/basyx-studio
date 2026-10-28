@@ -49,6 +49,7 @@
     "onlyDescriptions": "Keine technische Eigenschaft passt zu „{query}“; die spezifischen Beschreibungen unten schon."
   },
   "csv": {
+    "button": "CSV",
     "download": "Als CSV herunterladen",
     "fileName": "{name} technische Daten.csv",
     "area": "Bereich",

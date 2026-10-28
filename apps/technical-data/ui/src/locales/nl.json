@@ -49,6 +49,7 @@
     "onlyDescriptions": "Geen technische eigenschap komt overeen met ‘{query}’; de specifieke beschrijvingen hieronder wel."
   },
   "csv": {
+    "button": "CSV",
     "download": "Downloaden als CSV",
     "fileName": "{name} technische gegevens.csv",
     "area": "Gebied",

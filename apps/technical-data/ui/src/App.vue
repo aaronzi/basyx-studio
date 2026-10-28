@@ -70,25 +70,13 @@
               :searching="Boolean(query)"
               :sheets="properties"
             >
-              <!-- The sheet's title, its download, and the search over every data sheet, the specific descriptions too. -->
+              <!-- Above the column headers, as a toolbar: the sheet's title, and right-aligned
+                   its download and the search over every data sheet, the specific descriptions too. -->
               <template #top>
-                <div class="d-flex flex-wrap align-center ga-2 py-2 px-4 bg-card-header">
+                <div class="d-flex flex-wrap align-center ga-2 pa-2 ps-4">
                   <v-icon icon="mdi-table-large" size="18" />
 
                   <h3 class="text-title-small">{{ t('sections.properties') }}</h3>
-
-                  <!-- Every row as CSV, whatever the search shows; Studio's page saves the file. -->
-                  <v-btn
-                    v-if="!context.embedded"
-                    :aria-label="t('csv.download')"
-                    data-test="sheet-csv"
-                    icon
-                    size="small"
-                    @click="downloadCsv"
-                  >
-                    <v-icon icon="mdi-file-delimited-outline" />
-                    <v-tooltip activator="parent" location="bottom" :text="t('csv.download')" />
-                  </v-btn>
 
                   <v-spacer />
 
@@ -96,15 +84,26 @@
                     {{ t('sheet.matches', { count: matches, total: totalValues }) }}
                   </span>
 
-                  <v-text-field
+                  <!-- Every row as CSV, whatever the search shows; Studio's page saves the file.
+                       As tall as the search beside it, as Studio's buttons in dialog actions. -->
+                  <v-btn-secondary
+                    v-if="!context.embedded"
+                    :aria-label="t('csv.download')"
+                    data-test="sheet-csv"
+                    density="default"
+                    prepend-icon="mdi-download"
+                    @click="downloadCsv"
+                  >
+                    {{ t('csv.button') }}
+                    <v-tooltip activator="parent" location="bottom" :text="t('csv.download')" />
+                  </v-btn-secondary>
+
+                  <v-text-field-search
                     v-model="query"
                     :aria-label="t('sheet.search')"
-                    clearable
                     data-test="sheet-search"
-                    hide-details
-                    max-width="320"
+                    max-width="280"
                     :placeholder="t('sheet.search')"
-                    prepend-inner-icon="mdi-magnify"
                   />
                 </div>
 

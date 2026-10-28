@@ -53,6 +53,11 @@ export const appDefaults = {
   // rows stand out, and the row under the pointer highlighted, as the BaSyx
   // AAS Web UI's table view.
   VTableSheet: { density: 'compact', hover: true, class: 'bg-transparent border rounded-lg overflow-hidden' },
+  // A search over what a view shows (a data sheet's properties), as Studio's
+  // search over its shell list: an outlined field, compact, with the
+  // magnifier and a button to clear it. An alias takes none of VTextField's
+  // defaults, so the shared field look is restated.
+  VTextFieldSearch: { ...fieldDefaults.VTextField, density: 'compact', hideDetails: true, clearable: true, prependInnerIcon: 'mdi-magnify' },
   // Collapsed details (a nameplate's asset specific properties, a model's
   // technical details): bordered as cards, without a shadow.
   VExpansionPanels: { flat: true, class: 'border rounded-lg overflow-hidden' },

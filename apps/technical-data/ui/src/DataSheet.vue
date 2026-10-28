@@ -5,7 +5,7 @@
     </template>
 
     <!-- Each column a fixed share of the width, so collapsing a section does not move them. -->
-    <thead :class="{ 'bg-card-header': !$slots.top }">
+    <thead class="bg-card-header">
       <tr>
         <th :class="width">{{ t('sheet.property') }}</th>
         <th v-if="descriptionColumn" :class="width" data-test="sheet-description-column">{{ t('sheet.description') }}</th>
@@ -166,7 +166,7 @@
   // show where there is text for them and the frame is wide enough; on a
   // narrow one, an info button beside the label holds both, for the
   // keyboard and screen readers too. The top slot sits above the column
-  // headers, inside the sheet's border; under it, they are not tinted.
+  // headers, inside the sheet's border, as a toolbar.
   const props = defineProps<{
     sheets: Array<{ path: string, title: string, rows: SheetRow[] }>
     /** Whether areas get rows of their own: where there are several, also when a search shows one. */

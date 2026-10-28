@@ -49,6 +49,7 @@
     "onlyDescriptions": "No technical property matches “{query}”; the specific descriptions below do."
   },
   "csv": {
+    "button": "CSV",
     "download": "Download as CSV",
     "fileName": "{name} technical data.csv",
     "area": "Area",

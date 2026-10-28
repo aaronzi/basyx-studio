@@ -49,6 +49,7 @@
     "onlyDescriptions": "「{query}」に一致する技術特性はありませんが、下の固有の説明には一致します。"
   },
   "csv": {
+    "button": "CSV",
     "download": "CSV としてダウンロード",
     "fileName": "{name} 技術データ.csv",
     "area": "領域",

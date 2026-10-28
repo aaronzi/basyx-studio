@@ -49,6 +49,7 @@
     "onlyDescriptions": "Aucune propriété technique ne correspond à « {query} » ; les descriptions spécifiques ci-dessous, si."
   },
   "csv": {
+    "button": "CSV",
     "download": "Télécharger en CSV",
     "fileName": "{name} données techniques.csv",
     "area": "Zone",

@@ -49,6 +49,7 @@
     "onlyDescriptions": "没有与“{query}”匹配的技术属性；下方的特定描述中有匹配项。"
   },
   "csv": {
+    "button": "CSV",
     "download": "下载为 CSV",
     "fileName": "{name} 技术数据.csv",
     "area": "区域",
