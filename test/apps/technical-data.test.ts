@@ -218,6 +218,59 @@ describe('the data sheets', () => {
   })
 })
 
+describe('lists', () => {
+  // AASd-115 and AASd-109: an entry without a semantic ID or value type of its own has the list's.
+  const list = {
+    modelType: 'Submodel',
+    semanticId: { keys: [{ value: '0173-1#01-AHX837#002' }] },
+    submodelElements: [{
+      idShort: 'TechnicalPropertyAreas',
+      modelType: 'SubmodelElementList',
+      semanticIdListElement: { keys: [{ value: 'urn:area' }] },
+      value: [{
+        modelType: 'SubmodelElementCollection',
+        value: [{
+          idShort: 'Lengths',
+          modelType: 'SubmodelElementList',
+          semanticIdListElement: { keys: [{ value: 'urn:length' }] },
+          valueTypeListElement: 'xs:decimal',
+          value: [
+            { modelType: 'Property', valueType: 'xs:decimal', value: '5.0' },
+            { modelType: 'Property', semanticId: { keys: [{ value: 'urn:width' }] }, value: '7.5' },
+          ],
+        }],
+      }],
+    }],
+  }
+  const concept = (id: string, name: string, unit: string | null) => ({ id, preferredName: [{ language: 'en', text: name }], shortName: [], definition: [], unit, dataType: null })
+  const concepts = new Map([
+    ['urn:area', concept('urn:area', 'Dimensions', null)],
+    ['urn:length', concept('urn:length', 'Length', 'mm')],
+    ['urn:width', concept('urn:width', 'Width', 'cm')],
+  ])
+
+  it('gives entries the list\'s semantic ID and value type, where they have none', () => {
+    const data = parseTechnicalData(list)
+    expect(sheetConceptIds(data)).toEqual(['urn:area', 'urn:length', 'urn:width'])
+    expect(areaTitles(data.areas, concepts, 'en', number => `Area ${number}`)).toEqual(['Dimensions'])
+    const rows = sheetRows(t, data.areas[0]!, concepts, 'en', false)
+    expect(rows.map(row => [row.label, row.value, row.unit])).toEqual([
+      ['Lengths', '', ''],
+      ['Length', '5.0', 'mm'],
+      // Its own semantic ID wins.
+      ['Width', '7.5', 'cm'],
+    ])
+    // Without a value type of its own, the list's makes it a number: "7,5" in German.
+    expect(sheetRows(t, data.areas[0]!, concepts, 'de', false)[2]!.value).toBe('7,5')
+  })
+
+  it('writes the inherited unit and semantic ID to the CSV', () => {
+    const data = parseTechnicalData(list)
+    const lines = sheetCsv(t, [{ area: data.areas[0]!, title: 'Dimensions' }], concepts, 'en').slice(1).split('\r\n')
+    expect(lines[1]).toBe('Dimensions,Lengths,Length,5.0,,,mm,,,urn:length')
+  })
+})
+
 describe('values', () => {
   it('formats numbers with the decimals given, dates, and booleans by their type', () => {
     expect(numberText('3.0', 'de')).toBe('3,0')
@@ -226,6 +279,12 @@ describe('values', () => {
     expect(numberText('-20', 'en')).toBe('-20')
     expect(numberText('1e3', 'en')).toBe('1e3')
     expect(numberText('n/a', 'en')).toBe('n/a')
+    // Every digit of an xs:long or xs:decimal, beyond what a Number holds.
+    expect(numberText('9007199254740993', 'en')).toBe('9,007,199,254,740,993')
+    expect(numberText('0.12345678901234567890', 'de')).toBe('0,12345678901234567890')
+    expect(typedText(t, '18446744073709551615', 'xs:unsignedLong', 'en')).toBe('18,446,744,073,709,551,615')
+    // Leading zeros stay as stored.
+    expect(numberText('007', 'en')).toBe('007')
     expect(typedText(t, '1', 'xs:boolean', 'en')).toBe('value.yes')
     expect(typedText(t, 'maybe', 'xs:boolean', 'en')).toBe('maybe')
     expect(typedText(t, 'IP65', 'xs:string', 'en')).toBe('IP65')

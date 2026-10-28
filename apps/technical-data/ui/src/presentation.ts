@@ -112,7 +112,11 @@ const numericTypes = new Set(['xs:double', 'xs:float', 'xs:decimal', 'xs:int', '
   'xs:unsignedInt', 'xs:unsignedLong', 'xs:unsignedShort', 'xs:unsignedByte', 'xs:positiveInteger', 'xs:negativeInteger',
   'xs:nonNegativeInteger', 'xs:nonPositiveInteger'])
 
-/** A number in the user's format, with the decimals it was given: `3.0` → "3,0" in German; other values as they are. */
+/**
+ * A number in the user's format, with the decimals and digits it was given:
+ * `3.0` → "3,0" in German, `9007199254740993` → "9,007,199,254,740,993";
+ * other values as they are.
+ */
 export function numberText (value: string, locale: string): string {
   const match = /^[+-]?\d+(?:\.(\d+))?$/.exec(value.trim())
   if (!match) {
@@ -120,7 +124,11 @@ export function numberText (value: string, locale: string): string {
   }
   const decimals = match[1]?.length ?? 0
   try {
-    return new Intl.NumberFormat([locale, 'en'], { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: 'min2' }).format(Number(value))
+    // The decimal string itself, not a Number: an xs:long or xs:decimal keeps every digit.
+    const text = new Intl.NumberFormat([locale, 'en'], { minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: 'min2' }).format(value.trim() as `${number}`)
+    // Where the engine rounded, or dropped leading zeros, the value as stored.
+    const digits = (number: string) => number.replaceAll(/\D/g, '')
+    return digits(text) === digits(value) ? text : value
   } catch {
     return value
   }

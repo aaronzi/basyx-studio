@@ -137,10 +137,34 @@ function keyValues (reference: unknown): string[] {
   return keys.map(key => (typeof key.value === 'string' ? key.value.trim() : '')).filter(value => value !== '')
 }
 
-/** The semantic ID and the supplemental ones, without the templates' placeholders. */
-export function conceptIdsOf (element: JsonObject): string[] {
+/**
+ * What the entries of a SubmodelElementList take from it where they say
+ * nothing themselves (AASd-115, AASd-109): its `semanticIdListElement` and
+ * `valueTypeListElement`. `undefined` for other elements.
+ */
+interface ListContext {
+  semanticId: string
+  valueType: string
+}
+
+function listContext (element: JsonObject): ListContext | undefined {
+  if (element.modelType !== 'SubmodelElementList') {
+    return undefined
+  }
+  return {
+    semanticId: keyValues(element.semanticIdListElement)[0] ?? '',
+    valueType: typeof element.valueTypeListElement === 'string' ? element.valueTypeListElement : '',
+  }
+}
+
+/**
+ * The semantic ID and the supplemental ones, without the templates'
+ * placeholders; an entry of a list without a semantic ID of its own has
+ * the list's `semanticIdListElement` (`inherited`).
+ */
+export function conceptIdsOf (element: JsonObject, inherited = ''): string[] {
   const supplemental = Array.isArray(element.supplementalSemanticIds) ? element.supplementalSemanticIds as unknown[] : []
-  const ids = [semanticIdOf(element), ...supplemental.map(reference => keyValues(reference)[0] ?? '')]
+  const ids = [semanticIdOf(element) || inherited, ...supplemental.map(reference => keyValues(reference)[0] ?? '')]
   return [...new Set(ids.filter(id => id !== '' && !placeholderIds.has(id.replace(/\/+$/, '').toLowerCase())))]
 }
 
@@ -150,7 +174,7 @@ function langStrings (value: unknown): LangString[] {
     : []
 }
 
-function described (node: Node): Described {
+function described (node: Node, list?: ListContext): Described {
   const { element } = node
   return {
     path: node.path,
@@ -158,7 +182,7 @@ function described (node: Node): Described {
     modelType: String(element.modelType ?? ''),
     displayName: langStrings(element.displayName),
     description: langStrings(element.description),
-    conceptIds: conceptIdsOf(element),
+    conceptIds: conceptIdsOf(element, list?.semanticId),
   }
 }
 
@@ -167,10 +191,12 @@ function referenceText (element: JsonObject): string {
   return keyValues(element.value).at(-1) ?? ''
 }
 
-function sheetNode (node: Node): SheetNode {
+/** An element of a data sheet; `list`, what the list it is an entry of gives its entries. */
+function sheetNode (node: Node, list?: ListContext): SheetNode {
   const { element } = node
   if (['SubmodelElementCollection', 'SubmodelElementList', 'Entity'].includes(String(element.modelType))) {
-    return { ...described(node), kind: 'section', children: childrenOf(node).map(entry => sheetNode(entry)) }
+    const entries = listContext(element)
+    return { ...described(node, list), kind: 'section', children: childrenOf(node).map(entry => sheetNode(entry, entries)) }
   }
   const field = textFieldOf(node) ?? rangeFieldOf(node)
   let text = ''
@@ -180,11 +206,11 @@ function sheetNode (node: Node): SheetNode {
     text = String(element.contentType ?? '')
   }
   return {
-    ...described(node),
+    ...described(node, list),
     kind: 'value',
     field,
     file: fileRef(node),
-    valueType: typeof element.valueType === 'string' ? element.valueType : '',
+    valueType: typeof element.valueType === 'string' && element.valueType ? element.valueType : (list?.valueType ?? ''),
     text,
   }
 }
@@ -195,9 +221,10 @@ function parseAreas (node: Node | undefined): SheetArea[] {
     return []
   }
   if (node.element.modelType === 'SubmodelElementList') {
+    const entries = listContext(node.element)
     return childrenOf(node)
       .filter(entry => entry.element.modelType === 'SubmodelElementCollection')
-      .map(entry => ({ ...described(entry), children: childrenOf(entry).map(child => sheetNode(child)) }))
+      .map(entry => ({ ...described(entry, entries), children: childrenOf(entry).map(child => sheetNode(child)) }))
   }
   return [{ ...described(node), children: childrenOf(node).map(child => sheetNode(child)) }]
 }
