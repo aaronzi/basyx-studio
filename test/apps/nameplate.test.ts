@@ -4,7 +4,7 @@ import { fieldText } from '@basyx/studio-app-kit/aas'
 import { addressText } from '@basyx/studio-app-kit/contacts'
 import { describe, expect, it } from 'vitest'
 import { reactive } from 'vue'
-import { draftValue, editLanguage } from '../../apps/nameplate/ui/src/fieldEditor'
+import { draftValue, editLanguage } from '@basyx/studio-app-kit/editing'
 import { isExpired, parseNameplate, templateVersion } from '../../apps/nameplate/ui/src/nameplate'
 import { countryText, dateText, headline, manufacturerRows, markingExpired, markingName, markingRows, markingSubtitle, productRows, propertyGroups, templateLabel, versionChips } from '../../apps/nameplate/ui/src/presentation'
 

@@ -12,7 +12,7 @@
 </template>
 
 <script lang="ts" setup>
-  import type { FileRef } from './nameplate'
+  import type { FileRef } from '@basyx/studio-app-kit/aas'
   import type { FileSource } from '@basyx/file-viewer/vue'
   import type { StudioClient } from '@basyx/studio-sdk'
   import { FileThumbnail, withCachedContent } from '@basyx/file-viewer/vue'

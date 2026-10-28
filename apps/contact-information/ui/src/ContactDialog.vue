@@ -61,7 +61,7 @@
   import type { ContactInformation } from '@basyx/studio-app-kit/contacts'
   import { contactRows } from '@basyx/studio-app-kit/contacts'
   import { computed, ref } from 'vue'
-  import { useRowActions } from './actions'
+  import { useRowActions } from '@basyx/studio-app-kit/editing'
   import DetailList from './DetailList.vue'
   import { useI18n } from './i18n'
   import { contactHeading } from './presentation'
