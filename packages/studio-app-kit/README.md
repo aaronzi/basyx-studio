@@ -26,7 +26,8 @@ await mountApp(App, { VApp, VList, VListItem })
 
 `mountApp` connects to Studio, creates Vuetify with Studio's defaults,
 aliases (`<v-btn-primary>`, `<v-btn-link>` for values that open something,
-`<v-table-details>` for label and value rows, `<v-card-header>` for the
+`<v-table-details>` for label and value rows, `<v-table-sheet>` for a table
+with column headers and group rows such as a data sheet, `<v-card-header>` for the
 tinted header of a dialog's or section's card, `<v-card-section>` for a part
 of a view in a card of its own, `<v-btn-toggle-icon>` for icon-only choices in a
 `<v-btn-toggle>`, `<v-card-fullscreen>` for a view that fills the window,

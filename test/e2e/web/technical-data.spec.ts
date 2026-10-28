@@ -5,7 +5,7 @@ import { key, openTargetUrl, registerOpenEnvironment, setAtSource, setMode, sign
 // The bundled Technical Data app on `TechnicalDataDemo` (IDTA 02003 2.0) and
 // `TechnicalDataDemo12` (ZVEI 1.2) of test-setup/fixtures/open/studio-technical-data.aasx:
 // the product at a glance, images in Studio's viewer, classes with the area
-// they refer to, data sheets with units, names and definitions from the
+// they refer to, one data sheet with units, names and definitions from the
 // concept descriptions, search kept in full screen, and changing a Property
 // and a Range in place. Run `pnpm build` first.
 
@@ -53,28 +53,28 @@ test('shows Technical Data 2.0 as a data sheet with units, classes, images and f
   await expect(frame.locator('[data-test="product-image"]')).toHaveCount(3)
   await expect(frame.locator('[data-test="product-image-note"]')).toHaveText(['Front view', 'Connectors at the bottom'])
 
-  // The classes in the template's columns, the ECLASS one with its area.
+  // The classes as the general information's rows, the ECLASS one with its area.
   const classes = frame.locator('[data-test="classification"]')
   await expect(classes).toHaveCount(2)
+  await expect(classes.locator('[data-test="classification-class"]')).toHaveText(['27-02-31-90', 'ZZB001'])
   await expect(classes.first()).toContainText('Servo drive (demo class)')
   await expect(classes.first().locator('[data-test="classification-area"]')).toHaveText('Electrical')
 
-  // Data sheets: the two areas and the specific descriptions.
-  const areas = frame.locator('[data-test="property-area"]')
-  await expect(areas).toHaveCount(3)
-  await expect(areas.nth(0)).toContainText('Electrical')
-  await expect(areas.nth(2)).toContainText('Functional safety')
-  const electrical = areas.nth(0)
+  // One data sheet with a row for each area, and the specific descriptions in their own.
+  const electrical = frame.locator('[data-test="property-sheet"]')
+  await expect(electrical.locator('[data-test="sheet-area"]')).toHaveText(['Electrical', 'Mechanical'])
+  const descriptions = frame.locator('[data-test="specific-descriptions"]')
+  await expect(descriptions.locator('[data-test="sheet-area"]')).toHaveCount(0)
   await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-value"]')).toHaveText('3.0')
   await expect(sheetRow(electrical, 'Rated power').locator('[data-test="sheet-unit"]')).toHaveText('kW')
   // Its concept description is under the api.eclass-cdp.com spelling of its ID.
   await expect(sheetRow(electrical, 'Rated current').locator('[data-test="sheet-unit"]')).toHaveText('A')
-  await expect(electrical.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Protection'])
+  await expect(electrical.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Protection', 'Dimensions'])
   await expect(sheetRow(electrical, 'Ambient temperature in operation').locator('[data-test="sheet-value"]')).toHaveText('-20 – 40')
   await expect(sheetRow(electrical, 'Installation altitude').locator('[data-test="sheet-value"]')).toHaveText('≤ 1000')
   await expect(sheetRow(electrical, 'Overvoltage protection').locator('[data-test="sheet-value"]')).toHaveText('Yes')
   // Named by its supplemental semantic ID's concept.
-  await expect(sheetRow(areas.nth(2), 'Safety integrity level').locator('[data-test="sheet-value"]')).toHaveText('SIL 3')
+  await expect(sheetRow(descriptions, 'Safety integrity level').locator('[data-test="sheet-value"]')).toHaveText('SIL 3')
 
   await expect(frame.locator('[data-test="further-information"]')).toContainText('Subject to technical changes.')
 
@@ -91,6 +91,8 @@ test('searches every data sheet and keeps the search in full screen', async ({ p
   await clickIn(page, search)
   await search.fill('kA')
   await expect(frame.locator('[data-test="sheet-matches"]')).toHaveText('1 of 22 properties')
+  // The match with the area and the sections it lies in.
+  await expect(frame.locator('[data-test="sheet-area"]')).toHaveText(['Electrical'])
   await expect(frame.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Protection'])
   await expect(frame.locator('[data-test="sheet-label"]')).toHaveText(['Short-circuit current rating'])
   await search.fill('nothing like this')
@@ -113,7 +115,7 @@ test('shows the area a class refers to', async ({ page }) => {
   await search.fill('IP65')
   await clickIn(page, frame.locator('[data-test="classification-area"]'))
   await expect(search).toHaveValue('')
-  await expect(frame.locator('[data-test="property-area"]').first()).toBeInViewport()
+  await expect(frame.locator('[data-test="sheet-area"]').first()).toBeInViewport()
 })
 
 test('reads ZVEI Technical Data 1.2 with main and sub sections', async ({ page }) => {
@@ -122,15 +124,17 @@ test('reads ZVEI Technical Data 1.2 with main and sub sections', async ({ page }
   // ValidDate has ManufacturerOrderCode's semantic ID in the 1.2 template.
   await expect(frame.locator('[data-test="valid-date"]')).toHaveText('Valid from Jun 1, 2023')
   await expect(frame.locator('[data-test="product-image"]')).toHaveCount(2)
+  // One area, without a row of its own.
+  await expect(frame.locator('[data-test="sheet-area"]')).toHaveCount(0)
   await expect(frame.locator('[data-test="sheet-section"]')).toHaveText(['Electrical', 'Supply', 'Mechanical'])
-  await expect(sheetRow(frame.locator('[data-test="property-area"]'), 'Colour of housing').locator('[data-test="sheet-value"]')).toHaveText('Anthracite')
+  await expect(sheetRow(frame.locator('[data-test="property-sheet"]'), 'Colour of housing').locator('[data-test="sheet-value"]')).toHaveText('Anthracite')
 })
 
 test('changes a Property and a Range in place in edit mode', async ({ page, request }) => {
   const frame = await openSubmodel(page, shell, submodel)
   await expect(frame.getByRole('button', { name: 'Edit Rated power' })).toHaveCount(0)
   await setMode(page, 'Edit')
-  const electrical = frame.locator('[data-test="property-area"]').first()
+  const electrical = frame.locator('[data-test="property-sheet"]')
   try {
     await clickIn(page, electrical.getByRole('button', { name: 'Edit Rated power' }))
     await frame.getByRole('textbox', { name: 'Rated power' }).fill('3.2')

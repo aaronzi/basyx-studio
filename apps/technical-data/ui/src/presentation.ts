@@ -269,6 +269,11 @@ export function areaTitles (areas: SheetArea[], concepts: Concepts, locale: stri
   })
 }
 
+/** The id of an area's row in the page, to scroll to it. */
+export function areaAnchor (path: string): string {
+  return `area-${path.replaceAll(/[^\w-]/g, '-')}`
+}
+
 /** E.g. "IDTA 02003-2-0"; 1.2 and 1.1 were ZVEI's. */
 export function templateLabel (version: string | null): string {
   if (version === null) {

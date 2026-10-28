@@ -21,11 +21,8 @@
     "orderShort": "Best.-Nr. {value}"
   },
   "classification": {
-    "system": "System",
-    "classId": "Klasse",
-    "className": "Klassenname",
-    "area": "Eigenschaften",
     "version": "Version {version}",
+    "showArea": "Eigenschaften von {name} anzeigen",
     "fields": {
       "system": "Klassifikationssystem",
       "version": "Systemversion",

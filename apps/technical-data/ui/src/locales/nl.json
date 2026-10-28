@@ -21,11 +21,8 @@
     "orderShort": "Bestelcode {value}"
   },
   "classification": {
-    "system": "Systeem",
-    "classId": "Klasse",
-    "className": "Klassenaam",
-    "area": "Eigenschappen",
     "version": "Versie {version}",
+    "showArea": "Eigenschappen van {name} tonen",
     "fields": {
       "system": "Classificatiesysteem",
       "version": "Systeemversie",

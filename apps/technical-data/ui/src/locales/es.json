@@ -21,11 +21,8 @@
     "orderShort": "Código de pedido {value}"
   },
   "classification": {
-    "system": "Sistema",
-    "classId": "Clase",
-    "className": "Nombre de la clase",
-    "area": "Propiedades",
     "version": "Versión {version}",
+    "showArea": "Mostrar las propiedades de {name}",
     "fields": {
       "system": "Sistema de clasificación",
       "version": "Versión del sistema",

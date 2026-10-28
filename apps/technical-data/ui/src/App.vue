@@ -3,7 +3,7 @@
     <!-- Studio's card shows the view's title. The sections of the BaSyx AAS Web
          UI's Technical Data plugins in the frame of the Nameplate app: the
          product at a glance, its images, general information and classes, the
-         technical properties as data sheets with units, specific descriptions
+         technical properties as one data sheet with units, specific descriptions
          and further information. -->
     <v-view-card>
       <v-progress-linear v-if="loading" />
@@ -92,16 +92,24 @@
           />
 
           <div class="d-flex flex-column ga-4">
-            <template v-for="sheet in sheets" :key="sheet.path">
-              <div v-if="sheet.rows.length > 0" :id="anchor(sheet.path)" data-test="property-area">
-                <SectionCard
-                  :icon="sheet.specific ? 'mdi-text-box-outline' : 'mdi-table'"
-                  :title="sheet.title"
-                >
-                  <DataSheet :rows="sheet.rows" />
-                </SectionCard>
+            <!-- One data sheet for every area; a single area's link scrolls to the sheet. -->
+            <div
+              v-if="properties.length > 0"
+              :id="groupedProperties ? undefined : areaAnchor(properties[0]!.path)"
+              data-test="property-sheet"
+            >
+              <DataSheet :grouped="groupedProperties" icon="mdi-table" :sheets="properties" />
+            </div>
+
+            <div v-if="descriptions.length > 0" data-test="specific-descriptions">
+              <div class="d-flex align-center ga-2 mb-2">
+                <v-icon icon="mdi-text-box-outline" size="18" />
+
+                <h3 class="text-title-small">{{ t('sections.specificDescriptions') }}</h3>
               </div>
-            </template>
+
+              <DataSheet :grouped="groupedDescriptions" icon="mdi-text-box-outline" :sheets="descriptions" />
+            </div>
           </div>
         </section>
 
@@ -129,7 +137,7 @@
   import DataSheet from './DataSheet.vue'
   import DetailList from './DetailList.vue'
   import { provideI18n } from './i18n'
-  import { areaTitles, classificationRows, conceptMap, conceptQuery, filterRows, furtherRows, generalRows, sheetRows } from './presentation'
+  import { areaAnchor, areaTitles, classificationRows, conceptMap, conceptQuery, filterRows, furtherRows, generalRows, sheetRows } from './presentation'
   import ProductImages from './ProductImages.vue'
   import SectionCard from './SectionCard.vue'
   import { parseTechnicalData, sheetConceptIds } from './technicalData'
@@ -180,7 +188,7 @@
     }
     return [
       ...sheetsOf(value.areas, false, number => t('sheet.area', { number })),
-      ...sheetsOf(value.specificDescriptions, true, number => (value.specificDescriptions.length === 1 ? t('sections.specificDescriptions') : t('sheet.description', { number }))),
+      ...sheetsOf(value.specificDescriptions, true, number => t('sheet.description', { number })),
     ]
   })
   const sheets = computed(() => allSheets.value
@@ -188,6 +196,11 @@
     .filter(sheet => sheet.rows.length > 0 || !query.value))
   const hasSheets = computed(() => allSheets.value.some(sheet => sheet.rows.length > 0))
   const totalValues = computed(() => allSheets.value.reduce((sum, sheet) => sum + sheet.rows.filter(row => row.kind === 'value').length, 0))
+  const properties = computed(() => sheets.value.filter(sheet => !sheet.specific && sheet.rows.length > 0))
+  const descriptions = computed(() => sheets.value.filter(sheet => sheet.specific && sheet.rows.length > 0))
+  // Areas get rows of their own where there are several, also while a search shows only one.
+  const groupedProperties = computed(() => allSheets.value.filter(sheet => !sheet.specific && sheet.rows.length > 0).length > 1)
+  const groupedDescriptions = computed(() => allSheets.value.filter(sheet => sheet.specific && sheet.rows.length > 0).length > 1)
   const matches = computed(() => sheets.value.reduce((sum, sheet) => sum + sheet.rows.filter(row => row.kind === 'value').length, 0))
   const areaLinks = computed(() => allSheets.value.filter(sheet => !sheet.specific).map(sheet => ({ path: sheet.path, title: sheet.title })))
   const empty = computed(() => data.value !== null && general.value.length === 0 && data.value.classifications.length === 0
@@ -264,18 +277,13 @@
     preview: (file: FileRef) => void props.client.ui.previewFile(submodelId.value, file.path).catch(fail),
   })
 
-  /** The id of an area's data sheet in the page. */
-  function anchor (path: string): string {
-    return `area-${path.replaceAll(/[^\w-]/g, '-')}`
-  }
-
   /** Scrolls to the data sheet of an area, e.g. the one a classification refers to; the search is cleared if it hides it. */
   async function showArea (path: string) {
     if (!sheets.value.some(sheet => sheet.path === path && sheet.rows.length > 0)) {
       query.value = ''
       await nextTick()
     }
-    document.querySelector(`#${anchor(path)}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    document.querySelector(`#${areaAnchor(path)}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
   // Full screen opens with the search as it is (`context.viewState`):

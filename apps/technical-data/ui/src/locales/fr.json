@@ -21,11 +21,8 @@
     "orderShort": "Réf. de commande {value}"
   },
   "classification": {
-    "system": "Système",
-    "classId": "Classe",
-    "className": "Nom de la classe",
-    "area": "Propriétés",
     "version": "Version {version}",
+    "showArea": "Afficher les propriétés de {name}",
     "fields": {
       "system": "Système de classification",
       "version": "Version du système",

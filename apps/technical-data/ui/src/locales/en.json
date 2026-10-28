@@ -21,11 +21,8 @@
     "orderShort": "Order code {value}"
   },
   "classification": {
-    "system": "System",
-    "classId": "Class",
-    "className": "Class name",
-    "area": "Properties",
     "version": "Version {version}",
+    "showArea": "Show the properties of {name}",
     "fields": {
       "system": "Classification system",
       "version": "System version",

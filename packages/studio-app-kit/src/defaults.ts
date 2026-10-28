@@ -46,6 +46,11 @@ export const appDefaults = {
   // details): bordered with Studio's radius, every other row tinted, as in
   // the BaSyx AAS Web UI.
   VTableDetails: { density: 'compact', striped: 'odd', class: 'bg-transparent border rounded-lg overflow-hidden' },
+  // A table with column headers and group rows (a technical data sheet):
+  // bordered as the details, not striped, so the tinted header and group
+  // rows stand out, and the row under the pointer highlighted, as the BaSyx
+  // AAS Web UI's table view.
+  VTableSheet: { density: 'compact', hover: true, class: 'bg-transparent border rounded-lg overflow-hidden' },
   // Collapsed details (a nameplate's asset specific properties, a model's
   // technical details): bordered as cards, without a shadow.
   VExpansionPanels: { flat: true, class: 'border rounded-lg overflow-hidden' },

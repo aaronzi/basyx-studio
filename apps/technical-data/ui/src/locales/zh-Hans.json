@@ -21,11 +21,8 @@
     "orderShort": "订货号 {value}"
   },
   "classification": {
-    "system": "体系",
-    "classId": "类别",
-    "className": "类别名称",
-    "area": "属性",
     "version": "版本 {version}",
+    "showArea": "显示 {name} 的属性",
     "fields": {
       "system": "分类体系",
       "version": "体系版本",

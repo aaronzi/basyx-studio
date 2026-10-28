@@ -21,11 +21,8 @@
     "orderShort": "注文コード {value}"
   },
   "classification": {
-    "system": "体系",
-    "classId": "クラス",
-    "className": "クラス名",
-    "area": "特性",
     "version": "バージョン {version}",
+    "showArea": "{name} の特性を表示",
     "fields": {
       "system": "分類体系",
       "version": "体系のバージョン",
