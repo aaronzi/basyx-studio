@@ -59,7 +59,8 @@
           </v-col>
         </v-row>
 
-        <section v-if="sheets.length > 0" data-test="technical-properties">
+        <!-- Also while a search hides every row: the search field and its "no match" stay. -->
+        <section v-if="hasSheets" data-test="technical-properties">
           <div class="d-flex flex-wrap align-center ga-2 mb-2">
             <v-icon icon="mdi-table-large" size="18" />
 
@@ -128,7 +129,7 @@
   import DataSheet from './DataSheet.vue'
   import DetailList from './DetailList.vue'
   import { provideI18n } from './i18n'
-  import { areaTitle, classificationRows, conceptMap, conceptQuery, filterRows, furtherRows, generalRows, sheetRows } from './presentation'
+  import { areaTitles, classificationRows, conceptMap, conceptQuery, filterRows, furtherRows, generalRows, sheetRows } from './presentation'
   import ProductImages from './ProductImages.vue'
   import SectionCard from './SectionCard.vue'
   import { parseTechnicalData, sheetConceptIds } from './technicalData'
@@ -168,19 +169,24 @@
     if (!value) {
       return []
     }
-    const areas = [...value.areas.map(area => ({ area, specific: false })), ...value.specificDescriptions.map(area => ({ area, specific: true }))]
-    return areas.map(({ area, specific }, index) => ({
-      path: area.path,
-      specific,
-      title: specific && value.specificDescriptions.length === 1 && area.displayName.length === 0
-        ? t('sections.specificDescriptions')
-        : areaTitle(t, area, specific ? index - value.areas.length : index, concepts.value, formatLocale.value),
-      rows: sheetRows(t, area, concepts.value, formatLocale.value, canEdit.value),
-    }))
+    const sheetsOf = (areas: typeof value.areas, specific: boolean, fallback: (number: number) => string) => {
+      const titles = areaTitles(areas, concepts.value, formatLocale.value, fallback)
+      return areas.map((area, index) => ({
+        path: area.path,
+        specific,
+        title: titles[index]!,
+        rows: sheetRows(t, area, concepts.value, formatLocale.value, canEdit.value),
+      }))
+    }
+    return [
+      ...sheetsOf(value.areas, false, number => t('sheet.area', { number })),
+      ...sheetsOf(value.specificDescriptions, true, number => (value.specificDescriptions.length === 1 ? t('sections.specificDescriptions') : t('sheet.description', { number }))),
+    ]
   })
   const sheets = computed(() => allSheets.value
     .map(sheet => ({ ...sheet, rows: filterRows(sheet.rows, query.value ?? '') }))
     .filter(sheet => sheet.rows.length > 0 || !query.value))
+  const hasSheets = computed(() => allSheets.value.some(sheet => sheet.rows.length > 0))
   const totalValues = computed(() => allSheets.value.reduce((sum, sheet) => sum + sheet.rows.filter(row => row.kind === 'value').length, 0))
   const matches = computed(() => sheets.value.reduce((sum, sheet) => sum + sheet.rows.filter(row => row.kind === 'value').length, 0))
   const areaLinks = computed(() => allSheets.value.filter(sheet => !sheet.specific).map(sheet => ({ path: sheet.path, title: sheet.title })))

@@ -41,6 +41,7 @@
     "unit": "单位",
     "entry": "条目 {number}",
     "area": "区域 {number}",
+    "description": "描述 {number}",
     "search": "搜索属性",
     "matches": "{total} 个属性中的 {count} 个",
     "noMatches": "没有与“{query}”匹配的属性。"

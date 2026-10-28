@@ -4,7 +4,7 @@ import { fieldText } from '@basyx/studio-app-kit/aas'
 import { createTestStudio, memoryAas } from '@basyx/studio-sdk/testing'
 import { describe, expect, it } from 'vitest'
 import { appMethodParamsSchemas } from '#shared/contract'
-import { areaTitle, classificationChip, classificationRows, conceptMap, conceptQuery, conceptSpellings, dateText, filterRows, furtherRows, generalRows, headline, numberText, rangeText, sheetRows, templateLabel, typedText } from '../../apps/technical-data/ui/src/presentation'
+import { areaTitles, classificationChip, classificationRows, conceptMap, conceptQuery, conceptSpellings, dateText, filterRows, furtherRows, generalRows, headline, numberText, rangeText, sheetRows, templateLabel, typedText } from '../../apps/technical-data/ui/src/presentation'
 import { parseTechnicalData, referencedPath, sheetConceptIds, templateVersion } from '../../apps/technical-data/ui/src/technicalData'
 
 // The Technical Data app's reading of IDTA 02003 2.0 and ZVEI 1.2, and what
@@ -107,7 +107,7 @@ describe('the data sheets', () => {
       ['value', 0, 'Rated current', '7.25', 'A'],
       ['section', 0, 'Power supply', '', ''],
       ['value', 1, 'Supply frequency', '50 – 60', 'Hz'],
-      ['value', 1, 'Number of phases', '3', '1'],
+      ['value', 1, 'Number of phases', '3', ''],
       ['section', 1, 'Protection', '', ''],
       ['value', 2, 'Overvoltage protection', 'value.yes', ''],
       ['value', 2, 'Short-circuit current rating', '65', 'kA'],
@@ -119,7 +119,7 @@ describe('the data sheets', () => {
       ['value', 0, 'Application note', 'For synchronous servo motors up to 3 kW.', ''],
     ])
     expect(rows[0]!.definition).toBe('Mechanical power at the shaft in continuous operation at rated values.')
-    expect(rows.find(row => row.label === 'Dimension drawing')).toMatchObject({ file: { path: 'TechnicalPropertyAreas[0].DimensionDrawing' }, copy: undefined })
+    expect(rows.find(row => row.label === 'Dimension drawing')).toMatchObject({ file: { path: 'TechnicalPropertyAreas[0].DimensionDrawing' } })
     expect(rows.find(row => row.label === 'Supply frequency')!.field).toMatchObject({ modelType: 'Range', min: '50', max: '60' })
     // German names and numbers from the same concepts.
     expect(sheetRows(t, v2.areas[0]!, concepts, 'de', false).slice(0, 3).map(row => [row.label, row.value])).toEqual([['Bemessungsleistung', '3,0'], ['Bemessungsspannung', '400'], ['Bemessungsstrom', '7,25']])
@@ -130,13 +130,18 @@ describe('the data sheets', () => {
 
   it('names areas by their display name and specific descriptions by a supplemental semantic ID\'s concept', async () => {
     const concepts = await conceptsOf(v2)
-    expect(v2.areas.map((area, index) => areaTitle(t, area, index, concepts, 'de'))).toEqual(['Elektrisch', 'Mechanisch'])
+    const fallback = (number: number) => `Area ${number}`
+    expect(areaTitles(v2.areas, concepts, 'de', fallback)).toEqual(['Elektrisch', 'Mechanisch'])
     expect(sheetRows(t, v2.specificDescriptions[0]!, concepts, 'en', false).map(row => [row.label, row.value])).toEqual([
       ['Safety function', 'STO (Safe torque off)'],
       ['Safety integrity level', 'SIL 3'],
       ['Performance level', 'PL e'],
     ])
-    expect(areaTitle(t, { ...v2.areas[0]!, displayName: [] }, 0, concepts, 'en')).toBe('sheet.area{"number":1}')
+    const unnamed = v2.areas.map(area => ({ ...area, displayName: [] }))
+    expect(areaTitles(unnamed, concepts, 'en', fallback)).toEqual(['Area 1', 'Area 2'])
+    // A name several areas share, e.g. their concept's, is numbered.
+    const shared = new Map([['urn:area', { id: 'urn:area', preferredName: [{ language: 'en', text: 'Technical property area' }], shortName: [], definition: [], unit: null, dataType: null }]])
+    expect(areaTitles(unnamed.map(area => ({ ...area, conceptIds: ['urn:area'] })), shared, 'en', fallback)).toEqual(['Technical property area 1', 'Technical property area 2'])
   })
 
   it('reads 1.2\'s main and sub sections, and elements without a dictionary ID', async () => {

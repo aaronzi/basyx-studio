@@ -36,8 +36,6 @@ export interface SheetRow {
   unit: string
   field?: EditableField
   file?: FileRef
-  /** The text a copy button copies. */
-  copy?: string
   /** The keys of the sections the row lies in, outermost first. */
   sections: string[]
   /** Everything search looks at, in lower case: label, idShort, value, unit and the sections' labels. */
@@ -229,7 +227,6 @@ export function sheetRows (t: Translate, area: SheetArea, concepts: Concepts, lo
         unit,
         field: node.field,
         file: node.file ?? undefined,
-        copy: node.field && !node.file ? value : undefined,
         sections: sections.map(section => section.key),
         haystack: [label, node.idShort, value, unit, ...sections.map(section => section.label)].join(' ').toLowerCase(),
       })
@@ -254,8 +251,22 @@ export function filterRows (rows: SheetRow[], query: string): SheetRow[] {
 }
 
 /** An area's title: its label, else "Area n". */
-export function areaTitle (t: Translate, area: SheetArea, index: number, concepts: Concepts, locale: string): string {
-  return labelOf(area, concepts, locale, t('sheet.area', { number: index + 1 }))
+/**
+ * The titles of areas: each one's label, else `fallback` with its number;
+ * a title several areas share, such as their concept's "Technical property
+ * area", is numbered.
+ */
+export function areaTitles (areas: SheetArea[], concepts: Concepts, locale: string, fallback: (number: number) => string): string[] {
+  const titles = areas.map((area, index) => labelOf(area, concepts, locale, fallback(index + 1)))
+  const seen = new Map<string, number>()
+  return titles.map(title => {
+    if (titles.filter(other => other === title).length < 2) {
+      return title
+    }
+    const number = (seen.get(title) ?? 0) + 1
+    seen.set(title, number)
+    return `${title} ${number}`
+  })
 }
 
 /** E.g. "IDTA 02003-2-0"; 1.2 and 1.1 were ZVEI's. */

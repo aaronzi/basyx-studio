@@ -41,6 +41,7 @@
     "unit": "Unidad",
     "entry": "Entrada {number}",
     "area": "Área {number}",
+    "description": "Descripción {number}",
     "search": "Buscar propiedades",
     "matches": "{count} de {total} propiedades",
     "noMatches": "Ninguna propiedad coincide con «{query}»."

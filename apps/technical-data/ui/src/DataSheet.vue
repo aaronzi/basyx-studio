@@ -3,7 +3,7 @@
     <thead>
       <tr>
         <th class="w-50">{{ t('sheet.property') }}</th>
-        <th>{{ t('sheet.value') }}</th>
+        <th class="w-25">{{ t('sheet.value') }}</th>
         <th>{{ t('sheet.unit') }}</th>
       </tr>
     </thead>
@@ -67,18 +67,6 @@
               </div>
 
               <v-btn
-                v-if="row.copy && !canEdit"
-                :aria-label="t('copy.copy', { label: row.label })"
-                data-test="sheet-copy"
-                icon
-                size="x-small"
-                @click="copy(row.copy)"
-              >
-                <v-icon icon="mdi-content-copy" size="14" />
-                <v-tooltip activator="parent" location="bottom" :text="t('copy.copy', { label: row.label })" />
-              </v-btn>
-
-              <v-btn
                 v-if="canEdit && row.field"
                 :aria-label="t('edit.edit', { label: row.label })"
                 data-test="edit"
@@ -111,7 +99,7 @@
   defineProps<{ rows: SheetRow[] }>()
 
   const { t } = useI18n()
-  const { canEdit, editor, copy, preview } = useRowActions()
+  const { canEdit, editor, preview } = useRowActions()
 
   const indents = ['ps-4', 'ps-8', 'ps-12', 'ps-16']
 

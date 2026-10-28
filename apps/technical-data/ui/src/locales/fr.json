@@ -41,6 +41,7 @@
     "unit": "Unité",
     "entry": "Entrée {number}",
     "area": "Zone {number}",
+    "description": "Description {number}",
     "search": "Rechercher des propriétés",
     "matches": "{count} propriétés sur {total}",
     "noMatches": "Aucune propriété ne correspond à « {query} »."

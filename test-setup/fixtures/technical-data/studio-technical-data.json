@@ -1828,7 +1828,6 @@
                 "text": "Anzahl der Phasen"
               }
             ],
-            "unit": "1",
             "dataType": "INTEGER_COUNT",
             "definition": [
               {

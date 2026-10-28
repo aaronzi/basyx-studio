@@ -41,6 +41,7 @@
     "unit": "Einheit",
     "entry": "Eintrag {number}",
     "area": "Bereich {number}",
+    "description": "Beschreibung {number}",
     "search": "Eigenschaften durchsuchen",
     "matches": "{count} von {total} Eigenschaften",
     "noMatches": "Keine Eigenschaft passt zu „{query}“."

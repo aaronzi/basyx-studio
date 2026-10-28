@@ -41,6 +41,7 @@
     "unit": "Eenheid",
     "entry": "Item {number}",
     "area": "Gebied {number}",
+    "description": "Beschrijving {number}",
     "search": "Eigenschappen zoeken",
     "matches": "{count} van {total} eigenschappen",
     "noMatches": "Geen eigenschap komt overeen met ‘{query}’."

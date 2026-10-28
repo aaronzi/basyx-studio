@@ -41,6 +41,7 @@
     "unit": "Unit",
     "entry": "Entry {number}",
     "area": "Area {number}",
+    "description": "Description {number}",
     "search": "Search properties",
     "matches": "{count} of {total} properties",
     "noMatches": "No property matches “{query}”."
