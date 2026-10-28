@@ -44,7 +44,9 @@
     "noMatches": "Keine Eigenschaft passt zu „{query}“.",
     "definition": "Definition",
     "collapse": "{label} einklappen",
-    "expand": "{label} ausklappen"
+    "expand": "{label} ausklappen",
+    "empty": "Keine technischen Eigenschaften.",
+    "onlyDescriptions": "Keine technische Eigenschaft passt zu „{query}“; die spezifischen Beschreibungen unten schon."
   },
   "csv": {
     "download": "Als CSV herunterladen",

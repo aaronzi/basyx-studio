@@ -44,7 +44,9 @@
     "noMatches": "「{query}」に一致する特性はありません。",
     "definition": "定義",
     "collapse": "{label} を折りたたむ",
-    "expand": "{label} を展開"
+    "expand": "{label} を展開",
+    "empty": "技術特性はありません。",
+    "onlyDescriptions": "「{query}」に一致する技術特性はありませんが、下の固有の説明には一致します。"
   },
   "csv": {
     "download": "CSV としてダウンロード",

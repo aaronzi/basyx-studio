@@ -60,69 +60,67 @@
         </v-row>
 
         <!-- Also while a search hides every row: the search field and its "no match" stay. -->
-        <section v-if="hasSheets" data-test="technical-properties">
-          <div class="d-flex flex-wrap align-center ga-2 mb-2">
-            <v-icon icon="mdi-table-large" size="18" />
-
-            <h3 class="text-title-small flex-grow-1">{{ t('sections.properties') }}</h3>
-
-            <!-- Over every data sheet, the specific descriptions too. -->
-            <v-text-field
-              v-model="query"
-              :aria-label="t('sheet.search')"
-              clearable
-              data-test="sheet-search"
-              hide-details
-              max-width="320"
-              :placeholder="t('sheet.search')"
-              prepend-inner-icon="mdi-magnify"
-            />
-
-            <!-- Every row as CSV, whatever the search shows; Studio's page saves the file. -->
-            <v-btn
-              v-if="!context.embedded"
-              :aria-label="t('csv.download')"
-              data-test="sheet-csv"
-              icon
-              size="small"
-              @click="downloadCsv"
+        <section v-if="hasSheets" class="d-flex flex-column ga-4" data-test="technical-properties">
+          <!-- One data sheet for every area; a single area's link scrolls to the sheet. -->
+          <div :id="groupedProperties || properties.length === 0 ? undefined : areaAnchor(properties[0]!.path)" data-test="property-sheet">
+            <DataSheet
+              :empty="query ? t(matches === 0 ? 'sheet.noMatches' : 'sheet.onlyDescriptions', { query }) : t('sheet.empty')"
+              :grouped="groupedProperties"
+              icon="mdi-table"
+              :searching="Boolean(query)"
+              :sheets="properties"
             >
-              <v-icon icon="mdi-file-delimited-outline" />
-              <v-tooltip activator="parent" location="bottom" :text="t('csv.download')" />
-            </v-btn>
+              <!-- The sheet's title, its download, and the search over every data sheet, the specific descriptions too. -->
+              <template #top>
+                <div class="d-flex flex-wrap align-center ga-2 py-2 px-4 bg-card-header">
+                  <v-icon icon="mdi-table-large" size="18" />
+
+                  <h3 class="text-title-small">{{ t('sections.properties') }}</h3>
+
+                  <!-- Every row as CSV, whatever the search shows; Studio's page saves the file. -->
+                  <v-btn
+                    v-if="!context.embedded"
+                    :aria-label="t('csv.download')"
+                    data-test="sheet-csv"
+                    icon
+                    size="small"
+                    @click="downloadCsv"
+                  >
+                    <v-icon icon="mdi-file-delimited-outline" />
+                    <v-tooltip activator="parent" location="bottom" :text="t('csv.download')" />
+                  </v-btn>
+
+                  <v-spacer />
+
+                  <span v-if="query" class="text-body-small text-medium-emphasis" data-test="sheet-matches">
+                    {{ t('sheet.matches', { count: matches, total: totalValues }) }}
+                  </span>
+
+                  <v-text-field
+                    v-model="query"
+                    :aria-label="t('sheet.search')"
+                    clearable
+                    data-test="sheet-search"
+                    hide-details
+                    max-width="320"
+                    :placeholder="t('sheet.search')"
+                    prepend-inner-icon="mdi-magnify"
+                  />
+                </div>
+
+                <v-divider />
+              </template>
+            </DataSheet>
           </div>
 
-          <div v-if="query" class="text-body-small text-medium-emphasis mb-2" data-test="sheet-matches">
-            {{ t('sheet.matches', { count: matches, total: totalValues }) }}
-          </div>
+          <div v-if="descriptions.length > 0" data-test="specific-descriptions">
+            <div class="d-flex align-center ga-2 mb-2">
+              <v-icon icon="mdi-text-box-outline" size="18" />
 
-          <v-alert
-            v-if="query && matches === 0"
-            data-test="sheet-no-matches"
-            density="compact"
-            :text="t('sheet.noMatches', { query })"
-            type="info"
-          />
-
-          <div class="d-flex flex-column ga-4">
-            <!-- One data sheet for every area; a single area's link scrolls to the sheet. -->
-            <div
-              v-if="properties.length > 0"
-              :id="groupedProperties ? undefined : areaAnchor(properties[0]!.path)"
-              data-test="property-sheet"
-            >
-              <DataSheet :grouped="groupedProperties" icon="mdi-table" :searching="Boolean(query)" :sheets="properties" />
+              <h3 class="text-title-small">{{ t('sections.specificDescriptions') }}</h3>
             </div>
 
-            <div v-if="descriptions.length > 0" data-test="specific-descriptions">
-              <div class="d-flex align-center ga-2 mb-2">
-                <v-icon icon="mdi-text-box-outline" size="18" />
-
-                <h3 class="text-title-small">{{ t('sections.specificDescriptions') }}</h3>
-              </div>
-
-              <DataSheet :grouped="groupedDescriptions" icon="mdi-text-box-outline" :searching="Boolean(query)" :sheets="descriptions" />
-            </div>
+            <DataSheet :grouped="groupedDescriptions" icon="mdi-text-box-outline" :searching="Boolean(query)" :sheets="descriptions" />
           </div>
         </section>
 

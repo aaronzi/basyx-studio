@@ -125,6 +125,15 @@ test('shows descriptions and definitions as columns where the frame is wide', as
   await expect(ratedPower.locator('[data-test="sheet-description"]')).toHaveText('At 400 V and 8 kHz switching frequency.')
   await expect(ratedPower.locator('[data-test="sheet-definition"]')).toHaveText('Mechanical power at the shaft in continuous operation at rated values.')
   await expect(ratedPower.locator('[data-test="sheet-about"]')).toHaveCount(0)
+  // Collapsing a section keeps the columns where they are.
+  const widths = async () => sheet.locator('th').evaluateAll(cells => cells.map(cell => Math.round(cell.getBoundingClientRect().width)))
+  await waitUntilSettled(page.locator('.v-dialog iframe[title="App: Technical Data"]'))
+  const before = await widths()
+  await sheet.locator('[data-test="sheet-area"]').filter({ hasText: 'Electrical' }).locator('[data-test="sheet-toggle"]').click()
+  await expect(sheetRow(sheet, 'Rated power')).toHaveCount(0)
+  expect(await widths()).toEqual(before)
+  await sheet.locator('[data-test="sheet-area"]').filter({ hasText: 'Electrical' }).locator('[data-test="sheet-toggle"]').click()
+
   // The specific descriptions: a description of their own, and a definition through a supplemental semantic ID.
   await expect(dialog.locator('[data-test="specific-descriptions"] th')).toHaveText(['Property', 'Description', 'Definition', 'Value'])
   await page.locator('[data-test="app-fullscreen-close"]').click()
@@ -142,7 +151,11 @@ test('searches every data sheet and keeps the search in full screen', async ({ p
   await expect(frame.locator('[data-test="sheet-section"]')).toHaveText(['Power supply', 'Protection'])
   await expect(frame.locator('[data-test="sheet-label"]')).toHaveText(['Short-circuit current rating'])
   await search.fill('nothing like this')
-  await expect(frame.locator('[data-test="sheet-no-matches"]')).toBeVisible()
+  await expect(frame.locator('[data-test="sheet-empty"]')).toHaveText('No property matches “nothing like this”.')
+  // Only the specific descriptions match: the technical properties say so.
+  await search.fill('IEC 61800')
+  await expect(frame.locator('[data-test="sheet-empty"]')).toContainText('the specific descriptions below do')
+  await expect(frame.locator('[data-test="specific-descriptions"] [data-test="sheet-label"]')).toHaveText(['Safety function'])
   await search.fill('SIL')
 
   await clickIn(page, frame.locator('[data-test="technical-data-fullscreen"]'))

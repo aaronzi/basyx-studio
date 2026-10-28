@@ -44,7 +44,9 @@
     "noMatches": "No property matches “{query}”.",
     "definition": "Definition",
     "collapse": "Collapse {label}",
-    "expand": "Expand {label}"
+    "expand": "Expand {label}",
+    "empty": "No technical properties.",
+    "onlyDescriptions": "No technical property matches “{query}”; the specific descriptions below do."
   },
   "csv": {
     "download": "Download as CSV",

@@ -1,15 +1,24 @@
 <template>
   <v-table-sheet data-test="data-sheet">
-    <thead class="bg-card-header">
+    <template v-if="$slots.top" #top>
+      <slot name="top" />
+    </template>
+
+    <!-- Each column a fixed share of the width, so collapsing a section does not move them. -->
+    <thead :class="{ 'bg-card-header': !$slots.top }">
       <tr>
-        <th>{{ t('sheet.property') }}</th>
-        <th v-if="descriptionColumn" data-test="sheet-description-column">{{ t('sheet.description') }}</th>
-        <th v-if="definitionColumn" data-test="sheet-definition-column">{{ t('sheet.definition') }}</th>
-        <th>{{ t('sheet.value') }}</th>
+        <th :class="width">{{ t('sheet.property') }}</th>
+        <th v-if="descriptionColumn" :class="width" data-test="sheet-description-column">{{ t('sheet.description') }}</th>
+        <th v-if="definitionColumn" :class="width" data-test="sheet-definition-column">{{ t('sheet.definition') }}</th>
+        <th :class="width">{{ t('sheet.value') }}</th>
       </tr>
     </thead>
 
     <tbody>
+      <tr v-if="shown.length === 0 && empty" data-test="sheet-empty">
+        <td class="py-4 text-medium-emphasis" :colspan="columns">{{ empty }}</td>
+      </tr>
+
       <template v-for="sheet in shown" :key="sheet.path">
         <!-- Each area heads its properties, where there are several. -->
         <tr
@@ -156,7 +165,8 @@
   // depth, the properties flush. The description and definition columns
   // show where there is text for them and the frame is wide enough; on a
   // narrow one, an info button beside the label holds both, for the
-  // keyboard and screen readers too.
+  // keyboard and screen readers too. The top slot sits above the column
+  // headers, inside the sheet's border; under it, they are not tinted.
   const props = defineProps<{
     sheets: Array<{ path: string, title: string, rows: SheetRow[] }>
     /** Whether areas get rows of their own: where there are several, also when a search shows one. */
@@ -164,6 +174,12 @@
     icon: string
     /** A search shows every match, collapsed or not, and nothing collapses meanwhile. */
     searching: boolean
+    /** What the sheet says without rows, e.g. that nothing matches a search. */
+    empty?: string
+  }>()
+  defineSlots<{
+    /** Above the column headers, inside the sheet's border: a title, a search. */
+    top?: () => unknown
   }>()
 
   const { t } = useI18n()
@@ -179,6 +195,7 @@
   const descriptionColumn = computed(() => wide.value && props.sheets.some(sheet => sheet.rows.some(row => row.kind === 'value' && row.description)))
   const definitionColumn = computed(() => wide.value && props.sheets.some(sheet => sheet.rows.some(row => row.kind === 'value' && row.definition)))
   const columns = computed(() => 2 + (descriptionColumn.value ? 1 : 0) + (definitionColumn.value ? 1 : 0))
+  const width = computed(() => ({ 2: 'w-50', 3: 'w-33', 4: 'w-25' })[columns.value])
 
   function toggle (key: string) {
     const next = new Set(collapsed.value)

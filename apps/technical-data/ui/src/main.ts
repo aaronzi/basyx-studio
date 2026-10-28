@@ -5,7 +5,7 @@ import { VBtn } from 'vuetify/components/VBtn'
 import { VCard, VCardItem, VCardSubtitle, VCardText, VCardTitle } from 'vuetify/components/VCard'
 import { VChip } from 'vuetify/components/VChip'
 import { VDivider } from 'vuetify/components/VDivider'
-import { VCol, VRow } from 'vuetify/components/VGrid'
+import { VCol, VRow, VSpacer } from 'vuetify/components/VGrid'
 import { VIcon } from 'vuetify/components/VIcon'
 import { VProgressLinear } from 'vuetify/components/VProgressLinear'
 import { VSheet } from 'vuetify/components/VSheet'
@@ -30,6 +30,7 @@ await mountApp(App, {
   VProgressLinear,
   VRow,
   VSheet,
+  VSpacer,
   VTable,
   VTextField,
   VTooltip,

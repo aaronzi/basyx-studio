@@ -44,7 +44,9 @@
     "noMatches": "没有与“{query}”匹配的属性。",
     "definition": "定义",
     "collapse": "折叠{label}",
-    "expand": "展开{label}"
+    "expand": "展开{label}",
+    "empty": "没有技术属性。",
+    "onlyDescriptions": "没有与“{query}”匹配的技术属性；下方的特定描述中有匹配项。"
   },
   "csv": {
     "download": "下载为 CSV",

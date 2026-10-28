@@ -44,7 +44,9 @@
     "noMatches": "Geen eigenschap komt overeen met ‘{query}’.",
     "definition": "Definitie",
     "collapse": "{label} samenvouwen",
-    "expand": "{label} uitvouwen"
+    "expand": "{label} uitvouwen",
+    "empty": "Geen technische eigenschappen.",
+    "onlyDescriptions": "Geen technische eigenschap komt overeen met ‘{query}’; de specifieke beschrijvingen hieronder wel."
   },
   "csv": {
     "download": "Downloaden als CSV",

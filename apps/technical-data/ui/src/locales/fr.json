@@ -44,7 +44,9 @@
     "noMatches": "Aucune propriété ne correspond à « {query} ».",
     "definition": "Définition",
     "collapse": "Réduire {label}",
-    "expand": "Développer {label}"
+    "expand": "Développer {label}",
+    "empty": "Aucune propriété technique.",
+    "onlyDescriptions": "Aucune propriété technique ne correspond à « {query} » ; les descriptions spécifiques ci-dessous, si."
   },
   "csv": {
     "download": "Télécharger en CSV",
