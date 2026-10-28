@@ -34,7 +34,9 @@ export const appDefaults = {
   VBtnSecondary: { color: 'surface-light', variant: 'flat', border: true, rounded: 'lg', class: 'text-none', density: 'comfortable' },
   // A value that opens something (a link, an email address, a phone number, a
   // document): in the primary colour, so it stands out from plain values.
-  VBtnLink: { color: 'primary', variant: 'text', size: 'small', rounded: 'lg', class: 'px-0 text-none text-break', density: 'comfortable' },
+  // Flush with the text before it; 4 px after it, as Vuetify pulls an
+  // appended icon 3 px outwards and the button clips what overflows.
+  VBtnLink: { color: 'primary', variant: 'text', size: 'small', rounded: 'lg', class: 'ps-0 pe-1 text-none text-break', density: 'comfortable' },
   ...buttonGroupDefaults,
   ...fieldDefaults,
   VChip: { label: true, size: 'small', variant: 'tonal' },
